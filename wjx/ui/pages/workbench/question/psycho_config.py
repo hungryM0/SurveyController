@@ -12,9 +12,9 @@ PSYCHO_SUPPORTED_TYPES = {"single", "scale", "score", "dropdown", "matrix"}
 
 # 偏向选项
 PSYCHO_BIAS_CHOICES = [
-    ("left", "偏左（低分倾向）"),
-    ("center", "居中（无偏向）"),
-    ("right", "偏右（高分倾向）"),
+    ("left", "低分倾向"),
+    ("center", "中间倾向"),
+    ("right", "高分倾向"),
 ]
 
 
@@ -104,15 +104,10 @@ def get_psycho_results(
         配置结果字典
     """
     result: Dict[int, Dict[str, Any]] = {}
-    for idx, cb in psycho_check_map.items():
-        bias_combo = psycho_bias_map.get(idx)
+    for idx, bias_combo in psycho_bias_map.items():
         bias_value = "center"
-        if bias_combo:
-            bias_index = bias_combo.currentIndex()
-            if 0 <= bias_index < len(PSYCHO_BIAS_CHOICES):
-                bias_value = PSYCHO_BIAS_CHOICES[bias_index][0]
-        result[idx] = {
-            "psycho_enabled": cb.isChecked(),
-            "psycho_bias": bias_value,
-        }
+        bias_index = bias_combo.currentIndex()
+        if 0 <= bias_index < len(PSYCHO_BIAS_CHOICES):
+            bias_value = PSYCHO_BIAS_CHOICES[bias_index][0]
+        result[idx] = {"psycho_enabled": True, "psycho_bias": bias_value}
     return result

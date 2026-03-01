@@ -9,6 +9,7 @@ from qfluentwidgets import MessageBox
 
 from wjx.core.questions.config import QuestionEntry
 from wjx.ui.pages.workbench.question import QuestionWizardDialog, _get_entry_type_label
+from wjx.ui.pages.workbench.question.psycho_config import PSYCHO_SUPPORTED_TYPES
 
 _TEXT_RANDOM_NAME_TOKEN = "__RANDOM_NAME__"
 _TEXT_RANDOM_MOBILE_TOKEN = "__RANDOM_MOBILE__"
@@ -25,6 +26,14 @@ def _pretty_text_answer(value: Any) -> str:
 
 def question_summary(entry: QuestionEntry) -> str:
     """生成题目配置摘要"""
+    if getattr(entry, "question_type", "") in PSYCHO_SUPPORTED_TYPES and bool(getattr(entry, "psycho_enabled", False)):
+        bias_text = {
+            "left": "低分倾向",
+            "center": "中间倾向",
+            "right": "高分倾向",
+        }.get(str(getattr(entry, "psycho_bias", "center") or "center"), "中间倾向")
+        return f"倾向模式: {bias_text}"
+
     if entry.question_type in ("text", "multi_text"):
         if entry.question_type == "text":
             random_mode = str(getattr(entry, "text_random_mode", "none") or "none").strip().lower()
@@ -112,6 +121,17 @@ class DashboardEntriesMixin:
             self._refresh_entry_table()
 
     def _apply_wizard_results(self, entries: List[QuestionEntry], dlg: QuestionWizardDialog) -> None:
+        def _build_bias_weights(option_count: int, bias: str) -> List[float]:
+            count = max(1, int(option_count or 1))
+            if count == 1:
+                return [1.0]
+            if bias == "left":
+                return [float(count - i) for i in range(count)]
+            if bias == "right":
+                return [float(i + 1) for i in range(count)]
+            center = (count - 1) / 2.0
+            return [float(count - abs(i - center)) for i in range(count)]
+
         def _normalize_weights(raw: Any) -> Any:
             if isinstance(raw, list) and any(isinstance(item, (list, tuple)) for item in raw):
                 cleaned: List[List[float]] = []
@@ -124,7 +144,11 @@ class DashboardEntriesMixin:
                 return [float(max(0, v)) for v in raw]
             return raw
 
-        updates = dlg.get_results()
+        answer_mode = str(getattr(dlg, "get_answer_mode", lambda: "weights")() or "weights")
+        if answer_mode not in ("weights", "tendency"):
+            answer_mode = "weights"
+
+        updates = dlg.get_results() if answer_mode == "weights" else {}
         for idx, weights in updates.items():
             if 0 <= idx < len(entries):
                 entry = entries[idx]
@@ -169,6 +193,36 @@ class DashboardEntriesMixin:
                 entry = entries[idx]
                 entry.psycho_enabled = psycho_config.get("psycho_enabled", False)
                 entry.psycho_bias = psycho_config.get("psycho_bias", "center")
+
+        # 互斥生效：作答时只能使用一种模式
+        if answer_mode == "weights":
+            for entry in entries:
+                entry.psycho_enabled = False
+        else:
+            for idx, entry in enumerate(entries):
+                if entry.question_type not in PSYCHO_SUPPORTED_TYPES:
+                    continue
+                psycho_config = psycho_updates.get(idx, {})
+                enabled = bool(psycho_config.get("psycho_enabled", False))
+                bias = str(psycho_config.get("psycho_bias", "center") or "center")
+                entry.psycho_enabled = enabled
+                entry.psycho_bias = bias
+                if not enabled:
+                    entry.distribution_mode = "random"
+                    entry.custom_weights = None
+                    entry.probabilities = -1
+                    continue
+                option_count = max(1, int(getattr(entry, "option_count", 1) or 1))
+                bias_weights = _build_bias_weights(option_count, bias)
+                if entry.question_type == "matrix":
+                    rows = max(1, int(getattr(entry, "rows", 1) or 1))
+                    matrix_weights = [list(bias_weights) for _ in range(rows)]
+                    entry.custom_weights = matrix_weights
+                    entry.probabilities = matrix_weights
+                else:
+                    entry.custom_weights = list(bias_weights)
+                    entry.probabilities = list(bias_weights)
+                entry.distribution_mode = "custom"
 
     def _run_question_wizard(self, entries: List[QuestionEntry], info: List[Dict[str, Any]], survey_title: Optional[str] = None) -> bool:
         if not entries:
