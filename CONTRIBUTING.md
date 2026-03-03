@@ -21,6 +21,7 @@
 ├── fuck-wjx.py
 ├── rthook_pyside6.py     # PySide6 打包钩子
 ├── test_wjx_imports.py   # 导入检测脚本
+├── test_wjx_deadcode.py  # 死代码检测脚本
 └── wjx/                  # 主代码目录
 ```
 

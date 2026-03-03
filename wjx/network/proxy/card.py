@@ -67,15 +67,21 @@ def _validate_card(card_code: str) -> tuple[bool, Optional[int]]:
     if isinstance(data, dict) and data.get("ok") is True:
         quota_val = data.get("quota")
         if quota_val is None:
-            logging.warning("卡密验证响应中缺少quota字段，拒绝本次解锁")
+            logging.error(f"卡密 {masked} 验证成功，但服务器响应缺少quota字段 | {_summarize_http_response(response)}")
+            return False, None
+        if not isinstance(quota_val, (int, float, str)):
+            logging.error(f"卡密 {masked} 验证成功，但quota字段类型异常: {type(quota_val).__name__} | {_summarize_http_response(response)}")
             return False, None
         try:
             quota_val = int(quota_val)
-            if quota_val <= 0:
-                logging.warning(f"卡密验证响应中quota值无效: {quota_val}")
-                return False, None
-        except (ValueError, TypeError):
-            logging.warning(f"卡密验证响应中quota值格式错误: {quota_val}")
+        except (ValueError, TypeError) as e:
+            logging.error(f"卡密 {masked} 验证成功，但quota值无法转换为整数: {quota_val!r} ({e}) | {_summarize_http_response(response)}")
+            return False, None
+        if quota_val <= 0:
+            logging.error(f"卡密 {masked} 验证成功，但quota值无效: {quota_val}（可能卡密已被使用或无额度）| {_summarize_http_response(response)}")
+            return False, None
+        if quota_val > 10000:
+            logging.error(f"卡密 {masked} 验证成功，但quota值超出限制: {quota_val} > 10000 | {_summarize_http_response(response)}")
             return False, None
         logging.info(f"卡密 {masked} 验证通过，额度+{quota_val}")
         return True, quota_val

@@ -20,6 +20,7 @@ from qfluentwidgets import (
     BodyLabel,
     LineEdit,
     ComboBox,
+    CheckBox,
     PushButton,
     PrimaryPushButton,
     IndeterminateProgressRing,
@@ -282,6 +283,13 @@ class ContactForm(StatusPollingMixin, QWidget):
         wrapper.addLayout(form_layout)
         wrapper.addLayout(msg_layout, 1) # 给消息框最大的 stretch
         wrapper.addLayout(attachments_box)
+
+        # 捐助复选框行
+        donated_row = QHBoxLayout()
+        self.donated_cb = CheckBox("我已完成捐助", self)
+        donated_row.addStretch(1)
+        donated_row.addWidget(self.donated_cb)
+        wrapper.addLayout(donated_row)
 
         # 第四部分：底部状态与按钮
         bottom_layout = QHBoxLayout()
@@ -786,7 +794,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         if mtype == "卡密获取":
             confirm_email_box = MessageBox(
                 "确认邮箱地址",
-                f"当前输入的邮箱地址是：{email}\n\n如果邮箱输入错误，将无法收到卡密内容。请确认无误后再发送。",
+                f"当前输入的邮箱地址是：{email}\n\n申请发送后，卡密会于6小时内发送到该邮箱，请及时检查邮箱信息！\n\n若迟迟未收到邮件，可在“社区”页加入QQ群反馈解决",
                 self.window() or self,
             )
             confirm_email_box.yesButton.setText("确认发送")
@@ -813,6 +821,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         full_message = f"来源：fuck-wjx v{version_str}\n类型：{mtype}\n"
         if email:
             full_message += f"联系邮箱： {email}\n"
+        full_message += f"已捐助：{'是' if self.donated_cb.isChecked() else '否'}\n"
         full_message += f"消息：{message}"
 
         api_url = CONTACT_API_URL
