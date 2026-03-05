@@ -288,7 +288,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             header.addWidget(slider_note)
         if entry.question_type == "multiple":
             # 构建多选题提示文本
-            multi_note_text = "每个滑块的值对应的是选项的命中概率（%）"
+            multi_note_text = "概率=该选项独立被选中的机会，不要求总和100%（例：两个选项都50%，可能同时被选中）"
             if multi_min_limit is not None or multi_max_limit is not None:
                 limit_parts = []
                 if multi_min_limit is not None and multi_max_limit is not None:

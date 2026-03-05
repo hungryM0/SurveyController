@@ -7,6 +7,8 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     FluentIcon,
+    InfoBar,
+    InfoBarPosition,
     PopupTeachingTip,
     ScrollArea,
     SettingCardGroup,
@@ -28,11 +30,15 @@ from wjx.utils.io.load_save import RuntimeConfig
 class RuntimePage(ScrollArea):
     """独立的运行参数/开关页，方便在侧边栏查看。"""
 
+    MIN_THREADS = 1
+    NON_HEADLESS_MAX_THREADS = 8
+    HEADLESS_MAX_THREADS = 16
 
 
     def __init__(self, controller: RunController, parent=None):
         super().__init__(parent)
         self.controller = controller
+        self._suppress_headless_tip = False
         self.view = QWidget(self)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
@@ -41,6 +47,7 @@ class RuntimePage(ScrollArea):
         self._build_ui()
         self._bind_events()
         self._sync_random_ua(self.random_ua_card.isChecked())
+        self._apply_thread_limit_by_headless(self.headless_card.isChecked())
 
     def _build_ui(self):
         layout = QVBoxLayout(self.view)
@@ -65,8 +72,8 @@ class RuntimePage(ScrollArea):
             min_val=1, max_val=9999, default=10, parent=run_group
         )
         self.thread_card = SpinBoxSettingCard(
-            FluentIcon.APPLICATION, "并发浏览器", "同时运行的浏览器数量 (1-12)",
-            min_val=1, max_val=12, default=2, parent=run_group
+            FluentIcon.APPLICATION, "并发浏览器", "无头关闭时 1-8，无头开启时 1-16",
+            min_val=self.MIN_THREADS, max_val=self.NON_HEADLESS_MAX_THREADS, default=2, parent=run_group
         )
         spin_width = self.target_card.suggestSpinBoxWidthForDigits(4)
         self.target_card.setSpinBoxWidth(spin_width)
@@ -151,10 +158,49 @@ class RuntimePage(ScrollArea):
         self.thread_spin.valueChanged.connect(self._sync_threads_to_dashboard)
         self.random_ip_switch.checkedChanged.connect(self._on_random_ip_toggled)
         self.random_ua_switch.checkedChanged.connect(self._on_random_ua_toggled)
+        self.headless_card.switchButton.checkedChanged.connect(self._on_headless_toggled)
         self.timed_switch.checkedChanged.connect(self._sync_timed_mode)
         self.timed_card.helpButton.clicked.connect(self._show_timed_mode_help)
         self.proxy_source_combo.currentIndexChanged.connect(self._on_proxy_source_changed)
         self.reliability_mode_switch.checkedChanged.connect(self._on_reliability_mode_toggled)
+
+    def _resolve_thread_max(self, headless_enabled: bool) -> int:
+        return self.HEADLESS_MAX_THREADS if headless_enabled else self.NON_HEADLESS_MAX_THREADS
+
+    def _apply_thread_limit_by_headless(self, headless_enabled: bool) -> bool:
+        max_threads = self._resolve_thread_max(bool(headless_enabled))
+        previous_value = int(self.thread_spin.value())
+        clamped = previous_value > max_threads
+
+        self.thread_spin.setRange(self.MIN_THREADS, max_threads)
+        if clamped:
+            self.thread_spin.setValue(max_threads)
+
+        main_win = self.window()
+        dashboard = getattr(main_win, "dashboard", None)
+        if dashboard is not None and hasattr(dashboard, "thread_spin"):
+            dashboard.thread_spin.setRange(self.MIN_THREADS, max_threads)
+            if dashboard.thread_spin.value() > max_threads:
+                dashboard.thread_spin.blockSignals(True)
+                dashboard.thread_spin.setValue(max_threads)
+                dashboard.thread_spin.blockSignals(False)
+
+        return clamped
+
+    def _show_headless_limit_tip(self):
+        parent = self.window() or self.view
+        InfoBar.info(
+            "",
+            f"已关闭无头模式，并发上限为 {self.NON_HEADLESS_MAX_THREADS}，已自动调整",
+            parent=parent,
+            position=InfoBarPosition.TOP,
+            duration=2200,
+        )
+
+    def _on_headless_toggled(self, enabled: bool):
+        clamped = self._apply_thread_limit_by_headless(bool(enabled))
+        if (not enabled) and clamped and not self._suppress_headless_tip:
+            self._show_headless_limit_tip()
 
     def _sync_target_to_dashboard(self, value: int):
         main_win = self.window()
@@ -309,7 +355,13 @@ class RuntimePage(ScrollArea):
 
         self._sync_random_ua(self.random_ua_switch.isChecked())
         self.reliability_mode_switch.setChecked(getattr(cfg, "reliability_mode_enabled", True))
-        self.headless_card.setChecked(getattr(cfg, "headless_mode", False))
+
+        self._suppress_headless_tip = True
+        try:
+            self.headless_card.setChecked(getattr(cfg, "headless_mode", False))
+            self._apply_thread_limit_by_headless(self.headless_card.isChecked())
+        finally:
+            self._suppress_headless_tip = False
 
         try:
             proxy_source = getattr(cfg, "proxy_source", "default")

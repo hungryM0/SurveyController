@@ -1,5 +1,6 @@
 """WizardSectionsMixin：各题型配置区 UI 构建方法，供 QuestionWizardDialog 通过多继承引入。"""
-from typing import List, Dict, Any, Tuple
+from html import escape
+from typing import List, Dict, Any, Tuple, Optional, cast
 
 from PySide6.QtCore import Qt, QPropertyAnimation, QTimer, QEasingCurve
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QButtonGroup
@@ -48,6 +49,66 @@ class WizardSectionsMixin:
     bias_preset_map: Dict[int, Any]
     def _resolve_matrix_weights(self, entry: Any, rows: int, columns: int) -> List[List[float]]: ...
     def _resolve_slider_bounds(self, idx: int, entry: Any) -> Tuple[int, int]: ...
+
+    @staticmethod
+    def _compute_ratio_percentages(values: List[Any]) -> List[float]:
+        cleaned: List[float] = []
+        for value in values:
+            try:
+                cleaned.append(max(0.0, float(value)))
+            except Exception:
+                cleaned.append(0.0)
+        count = len(cleaned)
+        if count <= 0:
+            return []
+        total = sum(cleaned)
+        if total <= 0:
+            return [100.0 / count] * count
+        return [(item / total) * 100.0 for item in cleaned]
+
+    @staticmethod
+    def _format_ratio_percent(value: float) -> str:
+        rounded = round(float(value), 1)
+        text = f"{rounded:.1f}"
+        if text.endswith(".0"):
+            text = text[:-2]
+        return f"{text}%"
+
+    @staticmethod
+    def _pick_ratio_color(value: float) -> str:
+        if value < 10:
+            return "#d13438"
+        if value < 20:
+            return "#f7630c"
+        if value < 50:
+            return "#ffb900"
+        return "#107c10"
+
+    def _build_ratio_preview_text(self, option_names: List[str], percentages: List[float], prefix: str) -> str:
+        if not percentages:
+            return f"{prefix}暂无"
+        normalized_names: List[str] = []
+        for idx in range(len(percentages)):
+            raw_name = str(option_names[idx] or "").strip() if idx < len(option_names) else ""
+            normalized_names.append(escape(_shorten_text(raw_name or f"选项{idx + 1}", 14)))
+
+        chunks: List[str] = []
+        for idx in range(len(percentages)):
+            percent_text = self._format_ratio_percent(percentages[idx])
+            percent_color = self._pick_ratio_color(percentages[idx])
+            colored_percent = f"<span style='color:{percent_color};'>{percent_text}</span>"
+            chunks.append(f"{normalized_names[idx]} {colored_percent}")
+        return f"{prefix}{'｜'.join(chunks)}"
+
+    def _refresh_ratio_preview_label(
+        self,
+        label: BodyLabel,
+        sliders: List[NoWheelSlider],
+        option_names: List[str],
+        prefix: str,
+    ) -> None:
+        percentages = self._compute_ratio_percentages([slider.value() for slider in sliders])
+        label.setText(self._build_ratio_preview_text(option_names, percentages, prefix))
 
     def _build_text_section(self, idx: int, entry: QuestionEntry, card: CardWidget, card_layout: QVBoxLayout) -> None:
         self._has_content = True
@@ -227,9 +288,8 @@ class WizardSectionsMixin:
         texts = list(entry.texts or [DEFAULT_FILL_TEXT])
 
         def make_add_row_func(container_layout, row_edit_list, parent_card, num_blanks):
-            def add_row(initial_values: List[str] = None):
-                if initial_values is None:
-                    initial_values = [""] * num_blanks
+            def add_row(initial_values: Optional[List[str]] = None):
+                values: List[str] = initial_values if initial_values is not None else [""] * num_blanks
 
                 row_widget = QWidget(parent_card)
                 row_layout = QHBoxLayout(row_widget)
@@ -245,7 +305,7 @@ class WizardSectionsMixin:
                 edits_in_row: List[LineEdit] = []
                 for i in range(num_blanks):
                     edit = LineEdit(parent_card)
-                    edit.setText(initial_values[i] if i < len(initial_values) else "")
+                    edit.setText(values[i] if i < len(values) else "")
                     edit.setPlaceholderText(f"填空{i+1}")
                     row_layout.addWidget(edit, 1)
                     edits_in_row.append(edit)
@@ -533,6 +593,30 @@ class WizardSectionsMixin:
 
             row_sliders = build_slider_rows(row_card, row_card_layout, per_row_values[row_idx])
             per_row_sliders.append(row_sliders)
+
+            row_preview_label = BodyLabel("", row_card)
+            row_preview_label.setWordWrap(True)
+            row_preview_label.setStyleSheet("font-size: 12px;")
+            _apply_label_color(row_preview_label, "#666666", "#bfbfbf")
+            row_card_layout.addWidget(row_preview_label)
+
+            def _make_row_preview_update(
+                _label: BodyLabel = row_preview_label,
+                _row_sliders: List[NoWheelSlider] = row_sliders,
+            ):
+                def _update(_value: int = 0):
+                    self._refresh_ratio_preview_label(
+                        _label,
+                        _row_sliders,
+                        option_texts,
+                        "本行预计占比：",
+                    )
+                return _update
+
+            _row_preview_update = _make_row_preview_update()
+            for _slider in row_sliders:
+                _slider.valueChanged.connect(_row_preview_update)
+            _row_preview_update()
             per_row_layout.addWidget(row_card)
 
         self.matrix_row_slider_map[idx] = per_row_sliders
@@ -741,6 +825,25 @@ class WizardSectionsMixin:
 
         self.slider_map[idx] = sliders
 
+        if entry.question_type in ("single", "dropdown", "scale", "score"):
+            ratio_preview_label = BodyLabel("", card)
+            ratio_preview_label.setWordWrap(True)
+            ratio_preview_label.setStyleSheet("font-size: 12px;")
+            _apply_label_color(ratio_preview_label, "#666666", "#bfbfbf")
+            card_layout.addWidget(ratio_preview_label)
+
+            def _update_option_preview(_value: int = 0):
+                self._refresh_ratio_preview_label(
+                    ratio_preview_label,
+                    sliders,
+                    option_texts,
+                    "预计占比：",
+                )
+
+            for slider in sliders:
+                slider.valueChanged.connect(_update_option_preview)
+            _update_option_preview()
+
         # 预设 ↔ 滑块联动（用标志位避免循环触发，不用 blockSignals 以保证输入框同步）
         if _preset_seg is not None:
             _applying_preset = [False]
@@ -855,7 +958,7 @@ class WizardSectionsMixin:
                 cb.setEnabled(False)
             self._set_text_answer_enabled(idx, False)
             return
-        if checked and not ensure_ai_ready(self.window() or self):
+        if checked and not ensure_ai_ready(cast(QWidget, self).window() or cast(QWidget, self)):
             cb = self.ai_check_map.get(idx)
             if cb:
                 cb.blockSignals(True)
