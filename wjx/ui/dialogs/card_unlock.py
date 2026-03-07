@@ -94,16 +94,15 @@ class CardUnlockDialog(StatusPollingMixin, QDialog):
         title_row.setSpacing(12)
         title_icon = IconWidget(FluentIcon.EXPRESSIVE_INPUT_ENTRY, self)
         title_icon.setFixedSize(28, 28)
-        title = TitleLabel("解锁大额随机 IP 提交额度", self)
+        title = TitleLabel("获取大额随机 IP 提交额度", self)
         title_row.addWidget(title_icon)
         title_row.addWidget(title)
         title_row.addStretch(1)
         header_layout.addLayout(title_row)
 
         desc = BodyLabel(
-            "作者只是一名大一学生，由于 IP 池及开发成本高昂，且用户群体日益庞大、"
-            "问卷份数要求增长，单凭个人力量长期维护已十分困难…… 如果该功能帮到了您，"
-            "可否打赏支持😭🙏",
+            "IP 池与开发维护成本持续上涨，大额随机 IP 服务现已转为付费。"
+            "为保证服务稳定可持续，后续仅向赞助用户发放卡密，感谢理解💔",
             self,
         )
         desc.setWordWrap(True)
@@ -116,16 +115,14 @@ class CardUnlockDialog(StatusPollingMixin, QDialog):
         steps_layout.setContentsMargins(24, 20, 24, 20)
         steps_layout.setSpacing(12)
         
-        steps_title = StrongBodyLabel("获取与验证指南", steps_card)
+        steps_title = StrongBodyLabel("获取与验证流程（付费）", steps_card)
         steps_layout.addWidget(steps_title)
+
+        step1 = BodyLabel("1. 在下方按钮赞助支持（金额无下限，凭心意即可🙏）", steps_card)
+        step2 = BodyLabel("2. 点击下方前往申请，输入邮箱和所需要的额度", steps_card)
+        step3 = BodyLabel("3. 6小时内会收到有效期为72小时的卡密邮件，在此处粘贴并核销", steps_card)
         
-        step1 = BodyLabel("1. 赞助支持（🥹 任意金额，全凭心意，非常感激）", steps_card)
-        step2 = BodyLabel("2. 在「联系」中找到开发者并留言，附上您的联系邮箱", steps_card)
-        step3 = BodyLabel("3. 大概等一会收到到卡密邮件后在此处进行验证", steps_card)
-        step4 = BodyLabel("4. 暂无条件的用户也可凭借口才与开发者友好交流获取😁（误）", steps_card)
-        step4.setStyleSheet("color: #888; text-decoration: line-through;")
-        
-        for step in (step1, step2, step3, step4):
+        for step in (step1, step2, step3):
             steps_layout.addWidget(step)
             
         layout.addWidget(steps_card)

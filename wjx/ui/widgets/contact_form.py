@@ -201,7 +201,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         self.amount_edit.editingFinished.connect(self._on_amount_editing_finished)
         self.amount_edit.installEventFilter(self)
 
-        self.quantity_label = BodyLabel("大概需求份数：", self)
+        self.quantity_label = BodyLabel("大概需求额度：", self)
         self.quantity_edit = LineEdit(self)
         self.quantity_edit.setPlaceholderText("1~9999")
         self.quantity_edit.setMaximumWidth(110)
@@ -692,7 +692,7 @@ class ContactForm(StatusPollingMixin, QWidget):
             line = lines[idx]
             if (
                 line.startswith("捐助金额：￥")
-                or line.startswith("需求份数：")
+                or line.startswith("需求额度：")
                 or line.startswith("紧急程度：")
             ):
                 idx += 1
@@ -716,7 +716,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         if amount_text:
             meta_lines.append(f"捐助金额：￥{amount_text}")
         if quantity_text:
-            meta_lines.append(f"需求份数：{quantity_text}份")
+            meta_lines.append(f"需求额度：{quantity_text}份")
         if (amount_text or quantity_text) and urgency_text:
             meta_lines.append(f"紧急程度：{urgency_text}")
 
@@ -781,13 +781,13 @@ class ContactForm(StatusPollingMixin, QWidget):
                 InfoBar.warning("", "请输入捐助金额", parent=self, position=InfoBarPosition.TOP, duration=2000)
                 return
             if not quantity_text:
-                InfoBar.warning("", "请输入大概需求份数", parent=self, position=InfoBarPosition.TOP, duration=2000)
+                InfoBar.warning("", "请输入大概需求额度", parent=self, position=InfoBarPosition.TOP, duration=2000)
                 return
             if not quantity_text.isdigit() or int(quantity_text) <= 0:
-                InfoBar.warning("", "需求份数必须为正整数", parent=self, position=InfoBarPosition.TOP, duration=2000)
+                InfoBar.warning("", "需求额度必须为正整数", parent=self, position=InfoBarPosition.TOP, duration=2000)
                 return
             if int(quantity_text) > 9999:
-                InfoBar.warning("", "需求份数不能超过 9999", parent=self, position=InfoBarPosition.TOP, duration=2000)
+                InfoBar.warning("", "需求额度不能超过 9999", parent=self, position=InfoBarPosition.TOP, duration=2000)
                 return
             if not self._verify_code_requested:
                 InfoBar.warning("", "请先点击发送验证码", parent=self, position=InfoBarPosition.TOP, duration=2000)
