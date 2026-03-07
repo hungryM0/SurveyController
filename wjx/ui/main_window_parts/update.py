@@ -19,7 +19,7 @@ from qfluentwidgets import (
     ProgressBar,
 )
 
-from wjx.utils.app.config import GITHUB_MIRROR_SOURCES, get_bool_from_qsettings
+from wjx.utils.app.config import DOWNLOAD_SOURCES, get_bool_from_qsettings
 from wjx.utils.app.version import __VERSION__
 
 
@@ -393,18 +393,18 @@ class MainWindowUpdateMixin:
         if not getattr(self, "_download_cancelled", False):
             self._log_popup_error("更新失败", error_msg)
 
-    def _on_mirror_switched(self, new_mirror_key: str):
-        """镜像源切换时更新设置页面的下拉框"""
+    def _on_download_source_switched(self, new_source_key: str):
+        """下载源切换时更新设置页面的下拉框"""
         try:
             # 更新设置页面的下拉框
-            if hasattr(self, "_settings_page") and self._settings_page and hasattr(self._settings_page, "mirror_combo"):
-                idx = self._settings_page.mirror_combo.findData(new_mirror_key)
+            if hasattr(self, "_settings_page") and self._settings_page and hasattr(self._settings_page, "download_source_combo"):
+                idx = self._settings_page.download_source_combo.findData(new_source_key)
                 if idx >= 0:
-                    self._settings_page.mirror_combo.blockSignals(True)
-                    self._settings_page.mirror_combo.setCurrentIndex(idx)
-                    self._settings_page.mirror_combo.blockSignals(False)
+                    self._settings_page.download_source_combo.blockSignals(True)
+                    self._settings_page.download_source_combo.setCurrentIndex(idx)
+                    self._settings_page.download_source_combo.blockSignals(False)
             # 显示提示
-            mirror_label = GITHUB_MIRROR_SOURCES.get(new_mirror_key, {}).get("label", new_mirror_key)
-            self._toast(f"已自动切换到镜像源: {mirror_label}", "info")
+            source_label = DOWNLOAD_SOURCES.get(new_source_key, {}).get("label", new_source_key)
+            self._toast(f"已自动切换到下载源: {source_label}", "info")
         except Exception:
-            logging.warning("切换镜像源后同步 UI 状态失败", exc_info=True)
+            logging.warning("切换下载源后同步 UI 状态失败", exc_info=True)

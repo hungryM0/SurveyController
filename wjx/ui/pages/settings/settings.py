@@ -20,7 +20,7 @@ from qfluentwidgets import (
 )
 
 from wjx.ui.widgets.setting_cards import SwitchSettingCard
-from wjx.utils.app.config import GITHUB_MIRROR_SOURCES, DEFAULT_GITHUB_MIRROR, get_bool_from_qsettings
+from wjx.utils.app.config import DOWNLOAD_SOURCES, DEFAULT_DOWNLOAD_SOURCE, get_bool_from_qsettings
 
 
 class SettingsPage(ScrollArea):
@@ -100,24 +100,29 @@ class SettingsPage(ScrollArea):
         self.update_group.addSettingCard(self.auto_update_card)
 
         # 下载源选择
-        self.mirror_card = SettingCard(
+        self.download_source_card = SettingCard(
             FluentIcon.DOWNLOAD,
             "下载源",
             "选择用于下载更新的源（如果下载速度较慢，可以尝试切换到其他源）",
             self.update_group
         )
-        self.mirror_combo = ComboBox(self.mirror_card)
-        self.mirror_combo.setMinimumWidth(180)
-        for key, source in GITHUB_MIRROR_SOURCES.items():
-            self.mirror_combo.addItem(source["label"], userData=key)
-        # 读取保存的镜像源设置
-        saved_mirror = str(settings.value("github_mirror", DEFAULT_GITHUB_MIRROR))
-        idx = self.mirror_combo.findData(saved_mirror)
+        self.download_source_combo = ComboBox(self.download_source_card)
+        self.download_source_combo.setMinimumWidth(180)
+        for key, source in DOWNLOAD_SOURCES.items():
+            self.download_source_combo.addItem(source["label"], userData=key)
+        # 读取保存的下载源设置（兼容旧键 github_mirror）
+        saved_source = str(settings.value("download_source", "")).strip()
+        if not saved_source:
+            saved_source = str(settings.value("github_mirror", DEFAULT_DOWNLOAD_SOURCE)).strip()
+            if saved_source:
+                settings.setValue("download_source", saved_source)
+                settings.remove("github_mirror")
+        idx = self.download_source_combo.findData(saved_source)
         if idx >= 0:
-            self.mirror_combo.setCurrentIndex(idx)
-        self.mirror_card.hBoxLayout.addWidget(self.mirror_combo, 0, Qt.AlignmentFlag.AlignRight)
-        self.mirror_card.hBoxLayout.addSpacing(16)
-        self.update_group.addSettingCard(self.mirror_card)
+            self.download_source_combo.setCurrentIndex(idx)
+        self.download_source_card.hBoxLayout.addWidget(self.download_source_combo, 0, Qt.AlignmentFlag.AlignRight)
+        self.download_source_card.hBoxLayout.addSpacing(16)
+        self.update_group.addSettingCard(self.download_source_card)
 
         layout.addWidget(self.update_group)
 
@@ -167,7 +172,7 @@ class SettingsPage(ScrollArea):
         self.restart_card.clicked.connect(self._restart_program)
         self.reset_ui_card.clicked.connect(self._on_reset_ui_settings)
         self.auto_update_card.switchButton.checkedChanged.connect(self._on_auto_update_toggled)
-        self.mirror_combo.currentIndexChanged.connect(self._on_mirror_changed)
+        self.download_source_combo.currentIndexChanged.connect(self._on_download_source_changed)
 
     def _set_switch_state(self, card: SwitchSettingCard, checked: bool):
         btn = getattr(card, "switchButton", None)
@@ -362,16 +367,17 @@ class SettingsPage(ScrollArea):
             duration=2000
         )
 
-    def _on_mirror_changed(self):
+    def _on_download_source_changed(self):
         """下载源选择变化"""
-        idx = self.mirror_combo.currentIndex()
-        mirror_key = str(self.mirror_combo.itemData(idx)) if idx >= 0 else DEFAULT_GITHUB_MIRROR
+        idx = self.download_source_combo.currentIndex()
+        source_key = str(self.download_source_combo.itemData(idx)) if idx >= 0 else DEFAULT_DOWNLOAD_SOURCE
         settings = QSettings("FuckWjx", "Settings")
-        settings.setValue("github_mirror", mirror_key)
-        mirror_label = GITHUB_MIRROR_SOURCES.get(mirror_key, {}).get("label", mirror_key)
+        settings.setValue("download_source", source_key)
+        settings.remove("github_mirror")
+        source_label = DOWNLOAD_SOURCES.get(source_key, {}).get("label", source_key)
         InfoBar.success(
             "",
-            f"下载源已切换为：{mirror_label}",
+            f"下载源已切换为：{source_label}",
             parent=self.window(),
             position=InfoBarPosition.TOP,
             duration=2000

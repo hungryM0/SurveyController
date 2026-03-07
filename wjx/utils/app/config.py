@@ -423,8 +423,8 @@ _ENGLISH_MULTI_MIN_PATTERNS = (
     re.compile(r"(?:at\s+least|min(?:imum)?\s*)\s*(\d+)", re.IGNORECASE),
 )
 
-# ==================== GitHub 镜像源配置 ====================
-GITHUB_MIRROR_SOURCES = {
+# ==================== 下载源配置 ====================
+DOWNLOAD_SOURCES = {
     "official": {
         "label": "官方服务器",
         "api_prefix": "",  # API 不修改
@@ -447,4 +447,4 @@ GITHUB_MIRROR_SOURCES = {
         "download_prefix": "https://ghproxy.net/",
     },
 }
-DEFAULT_GITHUB_MIRROR = "official"
+DEFAULT_DOWNLOAD_SOURCE = "official"

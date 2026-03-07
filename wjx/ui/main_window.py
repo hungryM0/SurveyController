@@ -76,8 +76,8 @@ class MainWindow(
     downloadFinished = Signal(str)  # downloaded_file_path
     # 下载失败信号
     downloadFailed = Signal(str)  # error_message
-    # 镜像源切换信号
-    mirrorSwitched = Signal(str)  # new_mirror_key
+    # 下载源切换信号
+    downloadSourceSwitched = Signal(str)  # new_source_key
 
     def __init__(self, parent=None):
         self._boot_splash = None
@@ -176,8 +176,8 @@ class MainWindow(
         # 连接下载完成/失败信号
         self.downloadFinished.connect(self._on_download_finished)
         self.downloadFailed.connect(self._on_download_failed)
-        # 连接镜像源切换信号
-        self.mirrorSwitched.connect(self._on_mirror_switched)
+        # 连接下载源切换信号
+        self.downloadSourceSwitched.connect(self._on_download_source_switched)
         self._latest_badge = None
         self._outdated_badge = None
         self._preview_badge = None

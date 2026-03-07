@@ -23,37 +23,45 @@ except ImportError:
     QSettings = None
 
 from wjx.utils.app.version import __VERSION__, GITHUB_API_URL, GITHUB_RELEASES_URL
-from wjx.utils.app.config import GITHUB_MIRROR_SOURCES, DEFAULT_GITHUB_MIRROR
+from wjx.utils.app.config import DOWNLOAD_SOURCES, DEFAULT_DOWNLOAD_SOURCE
 
 
-def _get_github_mirror() -> str:
-    """获取当前选择的 GitHub 镜像源 key"""
+def _get_download_source() -> str:
+    """获取当前选择的下载源 key（兼容旧键 github_mirror）"""
 
 
     if QSettings is not None:
         try:
             settings = QSettings("FuckWjx", "Settings")
-            value = str(settings.value("github_mirror", DEFAULT_GITHUB_MIRROR))
-            return value if value else DEFAULT_GITHUB_MIRROR
+            value = str(settings.value("download_source", "")).strip()
+            if value:
+                return value
+            # 兼容旧设置键，读取后迁移
+            legacy_value = str(settings.value("github_mirror", DEFAULT_DOWNLOAD_SOURCE)).strip()
+            if legacy_value:
+                settings.setValue("download_source", legacy_value)
+                settings.remove("github_mirror")
+                return legacy_value
         except Exception as exc:
-            log_suppressed_exception("_get_github_mirror: settings = QSettings(\"FuckWjx\", \"Settings\")", exc, level=logging.WARNING)
-    return DEFAULT_GITHUB_MIRROR
+            log_suppressed_exception("_get_download_source: settings = QSettings(\"FuckWjx\", \"Settings\")", exc, level=logging.WARNING)
+    return DEFAULT_DOWNLOAD_SOURCE
 
 
-def _set_github_mirror(mirror_key: str) -> None:
-    """保存当前选择的 GitHub 镜像源 key"""
+def _set_download_source(source_key: str) -> None:
+    """保存当前选择的下载源 key"""
     if QSettings is not None:
         try:
             settings = QSettings("FuckWjx", "Settings")
-            settings.setValue("github_mirror", mirror_key)
-            logging.debug(f"已切换镜像源为: {mirror_key}")
+            settings.setValue("download_source", source_key)
+            settings.remove("github_mirror")
+            logging.debug(f"已切换下载源为: {source_key}")
         except Exception as exc:
-            log_suppressed_exception("_set_github_mirror: settings = QSettings(\"FuckWjx\", \"Settings\")", exc, level=logging.WARNING)
+            log_suppressed_exception("_set_download_source: settings = QSettings(\"FuckWjx\", \"Settings\")", exc, level=logging.WARNING)
 
 
-def _get_next_mirror(current_key: str) -> Optional[str]:
-    """获取下一个可用的镜像源 key"""
-    keys = list(GITHUB_MIRROR_SOURCES.keys())
+def _get_next_download_source(current_key: str) -> Optional[str]:
+    """获取下一个可用的下载源 key"""
+    keys = list(DOWNLOAD_SOURCES.keys())
     if current_key not in keys:
         return keys[0] if keys else None
     current_idx = keys.index(current_key)
@@ -64,19 +72,19 @@ def _get_next_mirror(current_key: str) -> Optional[str]:
     return keys[next_idx]
 
 
-def _apply_mirror_to_url(url: str, mirror_key: Optional[str] = None) -> str:
-    """将下载 URL 转换为镜像 URL"""
-    if mirror_key is None:
-        mirror_key = _get_github_mirror()
-    mirror_config = GITHUB_MIRROR_SOURCES.get(mirror_key, {})
-    direct_download_url = str(mirror_config.get("direct_download_url", "")).strip()
+def _apply_download_source_to_url(url: str, source_key: Optional[str] = None) -> str:
+    """将下载 URL 转换为对应下载源 URL"""
+    if source_key is None:
+        source_key = _get_download_source()
+    source_config = DOWNLOAD_SOURCES.get(source_key, {})
+    direct_download_url = str(source_config.get("direct_download_url", "")).strip()
     if direct_download_url:
-        logging.debug(f"使用镜像源 [{mirror_key}] 直连地址: {direct_download_url}")
+        logging.debug(f"使用下载源 [{source_key}] 直连地址: {direct_download_url}")
         return direct_download_url
-    prefix = mirror_config.get("download_prefix", "")
+    prefix = source_config.get("download_prefix", "")
     if prefix and url.startswith("https://github.com/"):
         mirrored_url = prefix + url
-        logging.debug(f"使用镜像源 [{mirror_key}]: {mirrored_url}")
+        logging.debug(f"使用下载源 [{source_key}]: {mirrored_url}")
         return mirrored_url
     return url
 
@@ -203,18 +211,18 @@ class UpdateManager:
     @staticmethod
     def download_update(
         download_url: str, file_name: str, progress_callback=None, cancel_check=None,
-        on_mirror_switch=None
+        on_download_source_switch=None
     ) -> Optional[str]:
         """下载更新文件，成功返回文件路径。"""
         # 连接超时时间（秒）
         CONNECT_TIMEOUT = 2
-        # 已尝试的镜像源
-        tried_mirrors = set()
-        current_mirror = _get_github_mirror()
+        # 已尝试的下载源
+        tried_sources = set()
+        current_source = _get_download_source()
         
         while True:
-            tried_mirrors.add(current_mirror)
-            actual_url = _apply_mirror_to_url(download_url, current_mirror)
+            tried_sources.add(current_source)
+            actual_url = _apply_download_source_to_url(download_url, current_source)
             
             try:
                 logging.debug(f"正在连接下载服务器: {actual_url}")
@@ -263,17 +271,17 @@ class UpdateManager:
 
                 logging.debug(f"文件已成功下载到: {target_file}")
                 
-                # 下载成功，保存当前使用的镜像源
-                _set_github_mirror(current_mirror)
-                if on_mirror_switch:
-                    on_mirror_switch(current_mirror)
+                # 下载成功，保存当前使用的下载源
+                _set_download_source(current_source)
+                if on_download_source_switch:
+                    on_download_source_switch(current_source)
 
                 UpdateManager.cleanup_old_executables(target_file)
 
                 return target_file
 
             except (http_client.exceptions.ConnectTimeout, http_client.exceptions.ConnectionError) as exc:
-                logging.warning(f"镜像源 [{current_mirror}] 连接失败: {exc}")
+                logging.warning(f"下载源 [{current_source}] 连接失败: {exc}")
                 
                 # 清理临时文件
                 try:
@@ -285,19 +293,19 @@ class UpdateManager:
                 except Exception as exc:
                     log_suppressed_exception("download_update: current_dir = _get_runtime_directory()", exc, level=logging.WARNING)
                 
-                # 尝试切换到下一个镜像源
-                next_mirror = _get_next_mirror(current_mirror)
-                if next_mirror and next_mirror not in tried_mirrors:
-                    mirror_label = GITHUB_MIRROR_SOURCES.get(next_mirror, {}).get("label", next_mirror)
-                    logging.debug(f"自动切换到镜像源: {mirror_label}")
-                    current_mirror = next_mirror
-                    # 通知 GUI 镜像源已切换
-                    if on_mirror_switch:
-                        on_mirror_switch(current_mirror)
+                # 尝试切换到下一个下载源
+                next_source = _get_next_download_source(current_source)
+                if next_source and next_source not in tried_sources:
+                    source_label = DOWNLOAD_SOURCES.get(next_source, {}).get("label", next_source)
+                    logging.debug(f"已自动切换到下载源: {source_label}")
+                    current_source = next_source
+                    # 通知 GUI 下载源已切换
+                    if on_download_source_switch:
+                        on_download_source_switch(current_source)
                     continue
                 else:
-                    # 所有镜像源都已尝试
-                    logging.error("所有镜像源均连接失败")
+                    # 所有下载源都已尝试
+                    logging.error("所有下载源均连接失败")
                     return None
                     
             except Exception as exc:
@@ -524,10 +532,10 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
     if hasattr(gui, "downloadStarted"):
         gui.downloadStarted.emit()
 
-    def on_mirror_switch(new_mirror_key):
-        """镜像源切换时的回调"""
-        if hasattr(gui, "mirrorSwitched"):
-            gui.mirrorSwitched.emit(new_mirror_key)
+    def on_download_source_switch(new_source_key):
+        """下载源切换时的回调"""
+        if hasattr(gui, "downloadSourceSwitched"):
+            gui.downloadSourceSwitched.emit(new_source_key)
 
     def do_update():
         try:
@@ -536,7 +544,7 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
                 update_info["file_name"],
                 progress_callback=update_progress,
                 cancel_check=cancel_check,
-                on_mirror_switch=on_mirror_switch,
+                on_download_source_switch=on_download_source_switch,
             )
 
             if gui._download_cancelled:
