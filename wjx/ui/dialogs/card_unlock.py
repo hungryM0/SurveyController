@@ -120,7 +120,7 @@ class CardUnlockDialog(StatusPollingMixin, QDialog):
 
         step1 = BodyLabel("1. 在下方按钮赞助支持（金额无下限，凭心意即可🙏）", steps_card)
         step2 = BodyLabel("2. 点击下方前往申请，输入邮箱和所需要的额度", steps_card)
-        step3 = BodyLabel("3. 6小时内会收到有效期为72小时的卡密邮件，在此处粘贴并核销", steps_card)
+        step3 = BodyLabel("3. 6小时内会收到有效期为72小时的卡密邮件，请注意检查邮箱", steps_card)
         
         for step in (step1, step2, step3):
             steps_layout.addWidget(step)
@@ -133,8 +133,8 @@ class CardUnlockDialog(StatusPollingMixin, QDialog):
         
         self.contact_btn = PushButton("前往申请", self, FluentIcon.CHAT)
         self.donate_btn = PushButton("赞助支持", self, FluentIcon.HEART)
-        support_row.addWidget(self.contact_btn)
         support_row.addWidget(self.donate_btn)
+        support_row.addWidget(self.contact_btn)
         
         support_row.addSpacing(16)
         

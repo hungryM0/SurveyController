@@ -148,7 +148,6 @@ def _resolve_env_value(key: str, default: str) -> str:
 
 _IPZAN_ENV_ENDPOINT = "https://api-wjx.hungrym0.top/api/ipzan/env"
 _RANDOM_IP_API_BASE = "https://service.ipzan.com/core-extract?num=1&no=20260112572376490874&minute=1&format=json&repeat=1&protocol=1&pool=ordinary&mode=auth&secret="
-_DEFAULT_SECRET = "pf706vk77kknlo"
 
 _ipzan_env_cache: Optional[dict] = None
 _ipzan_env_lock = threading.Lock()
@@ -170,13 +169,13 @@ def _fetch_ipzan_env() -> dict:
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             _ipzan_env_cache = {
-                "secret": data.get("secret") or _DEFAULT_SECRET,
+                "secret": str(data.get("secret") or "").strip(),
                 # 优先使用远端返回值，缺失时保持空串
                 "proxy": str(data.get("proxy") or "").strip(),
             }
         except Exception:
-            logging.debug("获取 ipzan env 失败，使用默认回退值", exc_info=True)
-            _ipzan_env_cache = {"secret": _DEFAULT_SECRET, "proxy": ""}
+            logging.debug("获取 ipzan env 失败，返回空配置", exc_info=True)
+            _ipzan_env_cache = {"secret": "", "proxy": ""}
     return _ipzan_env_cache
 
 
@@ -185,7 +184,9 @@ def get_proxy_remote_url() -> str:
     env_url = _resolve_env_value(_RANDOM_IP_API_ENV_KEY, "")
     if env_url:
         return env_url
-    secret = _fetch_ipzan_env()["secret"]
+    secret = str(_fetch_ipzan_env().get("secret") or "").strip()
+    if not secret:
+        return ""
     return _RANDOM_IP_API_BASE + secret
 
 

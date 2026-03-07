@@ -71,17 +71,10 @@ def _schedule_on_gui_thread(gui: Any, callback: Callable[[], None]) -> None:
 
 
 def confirm_random_ip_usage(gui: Any) -> bool:
-    notice = (
-        "启用随机IP提交前请确认：\n\n"
-        "1) 代理来源于网络，确认启用视为已知悉风险并自愿承担后果；\n"
-        "2) 禁止用于污染他人问卷数据，否则可能被封禁或承担法律责任；\n"
-        "3) 随机IP维护成本高昂，如需大量使用需要付费。\n\n"
-        "是否继续启用随机IP提交？"
-    )
-    confirmed = bool(_invoke_popup(gui, "confirm", "随机IP使用声明", notice))
-    if confirmed and gui is not None:
+    """随机IP启用确认（已移除使用声明弹窗）。"""
+    if gui is not None:
         setattr(gui, "_random_ip_disclaimer_ack", True)
-    return confirmed
+    return True
 
 
 def on_random_ip_toggle(gui: Any) -> None:
@@ -115,11 +108,7 @@ def on_random_ip_toggle(gui: Any) -> None:
 def ensure_random_ip_ready(gui: Any) -> bool:
     if getattr(gui, "_random_ip_disclaimer_ack", False):
         return True
-    if confirm_random_ip_usage(gui):
-        return True
-    _set_random_ip_enabled(gui, False)
-    _invoke_popup(gui, "info", "已取消随机IP提交", "未同意免责声明，已禁用随机IP提交。")
-    return False
+    return confirm_random_ip_usage(gui)
 
 
 def show_card_validation_dialog(gui: Any = None) -> bool:
