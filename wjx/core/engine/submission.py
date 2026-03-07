@@ -3,12 +3,14 @@ import logging
 import threading
 import time
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
+
+import httpx
 
 from wjx.core.engine.runtime_control import _is_fast_mode, _sleep_with_stop
 from wjx.core.questions.utils import extract_text_from_element as _extract_text_from_element
 from wjx.core.task_context import TaskContext
-from wjx.network.browser import By, BrowserDriver, NoSuchElementException
+from wjx.network.browser import By, BrowserDriver, NoSuchElementException, TimeoutException
 from wjx.utils.app.config import SUBMIT_CLICK_SETTLE_DELAY, SUBMIT_INITIAL_DELAY
 from wjx.utils.logging.log_utils import log_suppressed_exception
 
@@ -69,33 +71,8 @@ def _click_submit_button(driver: BrowserDriver, max_wait: float = 10.0) -> bool:
     return False
 
 
-def submit(
-    driver: BrowserDriver,
-    ctx: Optional[TaskContext] = None,
-    stop_signal: Optional[threading.Event] = None,
-):
-    """点击提交按钮并结束。
-
-    仅保留最基础的行为：可选等待 -> 点击提交 -> 可选稳定等待。
-    不再做弹窗确认/验证码检测/JS 强行触发等兜底逻辑。
-    """
-    fast_mode = _is_fast_mode(ctx) if ctx is not None else True
-    settle_delay = 0 if fast_mode else SUBMIT_CLICK_SETTLE_DELAY
-    pre_submit_delay = 0 if fast_mode else SUBMIT_INITIAL_DELAY
-
-    if pre_submit_delay > 0 and _sleep_with_stop(stop_signal, pre_submit_delay):
-        return
-    if stop_signal and stop_signal.is_set():
-        return
-
-    clicked = _click_submit_button(driver, max_wait=10.0)
-    if not clicked:
-        raise NoSuchElementException("Submit button not found")
-
-    if settle_delay > 0:
-        time.sleep(settle_delay)
-
-    # 有些模板点击“提交”后会弹出确认层，需要再点一次“确定/确认提交”
+def _click_submit_confirm_button(driver: BrowserDriver, settle_delay: float = 0.0) -> None:
+    """点击可能出现的提交确认按钮（有则点，无则忽略）。"""
     try:
         confirm_candidates = [
             (By.XPATH, '//*[@id="layui-layer1"]/div[3]/a'),
@@ -122,7 +99,224 @@ def submit(
             except Exception:
                 continue
     except Exception as exc:
-        log_suppressed_exception("submission.submit confirm dialog", exc)
+        log_suppressed_exception("submission._click_submit_confirm_button", exc)
+
+
+def _parse_submit_response(raw_text: str) -> tuple[str, str]:
+    """解析问卷星提交通用响应格式：`业务码〒内容`。"""
+    text = str(raw_text or "").strip()
+    if "〒" not in text:
+        return text, ""
+    code, payload = text.split("〒", 1)
+    return code.strip(), payload.strip()
+
+
+def _resolve_completion_url(submit_url: str, payload: str) -> str:
+    """把提交响应中的完成页路径转为可访问 URL。"""
+    value = str(payload or "").strip()
+    if not value:
+        return ""
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    if value.startswith("/"):
+        return urljoin(submit_url, value)
+    return urljoin(submit_url, f"/{value}")
+
+
+def _sanitize_request_headers(headers: dict) -> dict:
+    """过滤不适合原样透传给 httpx 的头字段。"""
+    if not isinstance(headers, dict):
+        return {}
+    blocked = {"host", "content-length", "connection", "accept-encoding"}
+    cleaned = {}
+    for key, value in headers.items():
+        lower_key = str(key or "").strip().lower()
+        if not lower_key or lower_key in blocked:
+            continue
+        cleaned[lower_key] = value
+    return cleaned
+
+
+def _collect_page_cookies(driver: BrowserDriver, submit_url: str) -> dict:
+    """把当前浏览器上下文里的 cookie 迁移给 httpx。"""
+    page = getattr(driver, "page", None)
+    if page is None:
+        return {}
+    try:
+        cookies = page.context.cookies([submit_url])
+    except Exception as exc:
+        log_suppressed_exception("submission._collect_page_cookies cookies()", exc, level=logging.WARNING)
+        return {}
+
+    cookie_map = {}
+    for item in cookies or []:
+        name = (item or {}).get("name")
+        value = (item or {}).get("value")
+        if name:
+            cookie_map[str(name)] = str(value or "")
+    return cookie_map
+
+
+def _capture_submit_request_via_route(
+    driver: BrowserDriver,
+    *,
+    stop_signal: Optional[threading.Event],
+    settle_delay: float,
+    max_wait: float = 12.0,
+) -> dict:
+    """通过 Playwright 路由拦截 processjq 请求，拿到完整 URL + payload。"""
+    page = getattr(driver, "page", None)
+    if page is None:
+        raise RuntimeError("当前驱动不支持 page.route，无法走无头 httpx 提交")
+
+    route_pattern = "**/joinnew/processjq.ashx*"
+    captured: dict = {}
+    captured_event = threading.Event()
+
+    def _route_handler(route, request):
+        if captured_event.is_set():
+            try:
+                route.abort()
+            except Exception as exc:
+                log_suppressed_exception("submission._capture_submit_request_via_route abort duplicated", exc, level=logging.WARNING)
+            return
+        try:
+            captured["method"] = request.method
+            captured["url"] = request.url
+            captured["headers"] = dict(request.headers or {})
+            captured["post_data"] = request.post_data or ""
+        except Exception as exc:
+            log_suppressed_exception("submission._capture_submit_request_via_route collect request", exc, level=logging.WARNING)
+        finally:
+            captured_event.set()
+            try:
+                route.abort()
+            except Exception as exc:
+                log_suppressed_exception("submission._capture_submit_request_via_route abort", exc, level=logging.WARNING)
+
+    page.route(route_pattern, _route_handler)
+    try:
+        clicked = _click_submit_button(driver, max_wait=10.0)
+        if not clicked:
+            raise NoSuchElementException("Submit button not found")
+        if settle_delay > 0:
+            time.sleep(settle_delay)
+        _click_submit_confirm_button(driver, settle_delay=settle_delay)
+
+        deadline = time.time() + max(0.0, float(max_wait or 0.0))
+        while not captured_event.is_set() and time.time() < deadline:
+            if stop_signal and stop_signal.is_set():
+                break
+            time.sleep(0.05)
+    finally:
+        try:
+            page.unroute(route_pattern, _route_handler)
+        except Exception as exc:
+            log_suppressed_exception("submission._capture_submit_request_via_route unroute", exc, level=logging.WARNING)
+
+    if not captured:
+        raise TimeoutException("无头提交流程未捕获到 processjq 请求")
+    return captured
+
+
+def _submit_via_headless_httpx(
+    driver: BrowserDriver,
+    *,
+    stop_signal: Optional[threading.Event],
+    settle_delay: float,
+) -> None:
+    """无头模式：先由页面生成提交请求，再用 httpx 真正发出。"""
+    setattr(driver, "_headless_httpx_submit_success", False)
+    logging.debug("无头模式启用：走 Playwright 抓包 + httpx 提交路线")
+    captured = _capture_submit_request_via_route(
+        driver,
+        stop_signal=stop_signal,
+        settle_delay=settle_delay,
+    )
+    submit_url = str(captured.get("url") or "").strip()
+    method = str(captured.get("method") or "POST").upper()
+    payload = str(captured.get("post_data") or "")
+    if not submit_url:
+        raise RuntimeError("无头提交流程捕获失败：提交 URL 为空")
+
+    request_headers = _sanitize_request_headers(captured.get("headers") or {})
+    cookies = _collect_page_cookies(driver, submit_url)
+    timeout = httpx.Timeout(20.0, connect=10.0)
+
+    try:
+        with httpx.Client(timeout=timeout, follow_redirects=False) as client:
+            response = client.request(
+                method=method,
+                url=submit_url,
+                headers=request_headers,
+                content=payload,
+                cookies=cookies,
+            )
+    except Exception as exc:
+        raise RuntimeError(f"无头+httpx 提交请求失败: {exc}") from exc
+
+    response_text = response.text or ""
+    business_code, business_payload = _parse_submit_response(response_text)
+
+    if response.status_code != 200:
+        raise RuntimeError(f"无头+httpx 提交 HTTP 状态异常: {response.status_code}, 响应: {response_text[:200]}")
+
+    if business_code != "10":
+        if business_code == "22":
+            raise RuntimeError("无头+httpx 提交被验证码拦截（业务码22：请输入验证码）")
+        raise RuntimeError(f"无头+httpx 提交失败，业务码={business_code}，响应={business_payload or response_text[:200]}")
+
+    completion_url = _resolve_completion_url(submit_url, business_payload)
+    if completion_url:
+        try:
+            driver.get(completion_url, timeout=15000)
+        except Exception as exc:
+            log_suppressed_exception("submission._submit_via_headless_httpx open completion url", exc, level=logging.WARNING)
+    setattr(driver, "_headless_httpx_submit_success", True)
+    logging.debug("无头+httpx 提交成功，业务码=10")
+
+
+def consume_headless_httpx_submit_success(driver: BrowserDriver) -> bool:
+    """读取并清空无头+httpx提交成功标记。"""
+    value = bool(getattr(driver, "_headless_httpx_submit_success", False))
+    setattr(driver, "_headless_httpx_submit_success", False)
+    return value
+
+
+def submit(
+    driver: BrowserDriver,
+    ctx: Optional[TaskContext] = None,
+    stop_signal: Optional[threading.Event] = None,
+):
+    """点击提交按钮并结束。
+
+    仅保留最基础的行为：可选等待 -> 点击提交 -> 可选稳定等待。
+    不再做弹窗确认/验证码检测/JS 强行触发等兜底逻辑。
+    """
+    fast_mode = _is_fast_mode(ctx) if ctx is not None else True
+    settle_delay = 0 if fast_mode else SUBMIT_CLICK_SETTLE_DELAY
+    pre_submit_delay = 0 if fast_mode else SUBMIT_INITIAL_DELAY
+
+    if pre_submit_delay > 0 and _sleep_with_stop(stop_signal, pre_submit_delay):
+        return
+    if stop_signal and stop_signal.is_set():
+        return
+
+    if ctx is not None and bool(getattr(ctx, "headless_mode", False)):
+        _submit_via_headless_httpx(
+            driver,
+            stop_signal=stop_signal,
+            settle_delay=settle_delay,
+        )
+        return
+
+    clicked = _click_submit_button(driver, max_wait=10.0)
+    if not clicked:
+        raise NoSuchElementException("Submit button not found")
+
+    if settle_delay > 0:
+        time.sleep(settle_delay)
+    _click_submit_confirm_button(driver, settle_delay=settle_delay)
 
 
 def _normalize_url_for_compare(value: str) -> str:

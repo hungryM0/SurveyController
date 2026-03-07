@@ -24,7 +24,11 @@ from wjx.core.engine.runtime_control import (
     _trigger_target_reached_stop,
     _wait_if_paused,
 )
-from wjx.core.engine.submission import _is_device_quota_limit_page, _normalize_url_for_compare
+from wjx.core.engine.submission import (
+    _is_device_quota_limit_page,
+    _normalize_url_for_compare,
+    consume_headless_httpx_submit_success,
+)
 from wjx.core.task_context import TaskContext
 from wjx.network.browser import (
     BrowserManager,
@@ -402,7 +406,13 @@ def run(
         # ── 1. 准备浏览器 ────────────────────────────────────────
         if session.driver is None:
             try:
-                ctx.update_thread_status(thread_name, "准备浏览器", running=True)
+                ctx.update_thread_step(
+                    thread_name,
+                    0,
+                    0,
+                    status_text="准备浏览器",
+                    running=True,
+                )
             except Exception:
                 logging.debug("更新线程状态失败：准备浏览器", exc_info=True)
             try:
@@ -487,6 +497,22 @@ def run(
                     break
                 finished = brush(session.driver, ctx=ctx, stop_signal=stop_signal)
                 if stop_signal.is_set() or not finished:
+                    break
+
+                # 无头+httpx 已经拿到业务成功码时，直接按成功提交处理，避免完成页加载超时误判失败
+                if ctx.headless_mode and consume_headless_httpx_submit_success(session.driver):
+                    grace_seconds = float(POST_SUBMIT_CLOSE_GRACE_SECONDS or 0.0)
+                    if grace_seconds > 0 and not stop_signal.is_set():
+                        time.sleep(grace_seconds)
+                    session.dispose()
+                    stopped = _record_successful_submission(
+                        ctx,
+                        stop_signal,
+                        gui_instance,
+                        thread_name=thread_name,
+                    )
+                    if stopped:
+                        pass
                     break
 
                 # 提交后短暂等待
