@@ -28,7 +28,7 @@ from wjx.utils.app.config import DEFAULT_FILL_TEXT
 
 from .constants import _get_entry_type_label
 from .utils import _shorten_text, _apply_label_color
-from .wizard_sections import WizardSectionsMixin, _TEXT_RANDOM_NONE
+from .wizard_sections import WizardSectionsMixin, _TEXT_RANDOM_NONE, _get_segmented_route_key
 from .psycho_config import BIAS_PRESET_CHOICES
 
 
@@ -192,7 +192,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         def _reset_master(_=None):
             if self._master_applying:
                 return
-            if _master_seg.currentItem() != "custom":
+            if _get_segmented_route_key(_master_seg) != "custom":
                 _master_seg.setCurrentItem("custom")
         for seg in self.bias_preset_map.values():
             if isinstance(seg, list):
@@ -463,7 +463,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         result: Dict[int, Any] = {}
         for idx, seg in self.bias_preset_map.items():
             if isinstance(seg, list):
-                result[idx] = [s.currentItem() or "custom" for s in seg]
+                result[idx] = [_get_segmented_route_key(s) for s in seg]
             else:
-                result[idx] = seg.currentItem() or "custom"
+                result[idx] = _get_segmented_route_key(seg)
         return result

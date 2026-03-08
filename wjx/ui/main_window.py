@@ -577,7 +577,12 @@ class MainWindow(
         self._toast("解析完成，可在'题目配置'页查看", "success")
 
     def _on_survey_parse_failed(self, msg: str):
-        self._toast(msg, "error")
+        text = str(msg or "").strip()
+        if "问卷已暂停" in text:
+            # 该提示已由 dashboard 处理为专用引导文案，主窗口层不重复弹出。
+            self.dashboard._open_wizard_after_parse = False
+            return
+        self._toast(text, "error")
         self.dashboard._open_wizard_after_parse = False
 
     def _ask_card_code(self) -> Optional[str]:

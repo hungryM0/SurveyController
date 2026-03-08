@@ -229,6 +229,16 @@ class RunControllerRuntimeMixin:
                 lines.append(f"[ ] {label}")
         return lines
 
+    @staticmethod
+    def _clone_runtime_config_for_gate(config: RuntimeConfig) -> RuntimeConfig:
+        """为初始化门禁创建轻量配置副本，避免深拷贝 UI 对象。"""
+        try:
+            return copy.copy(config)
+        except Exception:
+            cloned = RuntimeConfig()
+            cloned.__dict__.update(dict(getattr(config, "__dict__", {})))
+            return cloned
+
     def _start_with_initialization_gate(self, config: RuntimeConfig, proxy_pool: List[str]) -> None:
         if self.stop_event.is_set():
             self._starting = False
@@ -305,7 +315,7 @@ class RunControllerRuntimeMixin:
 
         if _cancelled():
             return
-        fallback_config = copy.deepcopy(config)
+        fallback_config = self._clone_runtime_config_for_gate(config)
         fallback_config.headless_mode = False
         fallback_threads = min(
             max(1, int(getattr(config, "threads", 1) or 1)),
@@ -331,7 +341,7 @@ class RunControllerRuntimeMixin:
             self._set_initialization_stage("playwright", f"初始化Playwright浏览器环境（{mode_text}预检）")
             self._emit_status()
         self._dispatch_to_ui_async(_init_stage)
-        probe_config = copy.deepcopy(config)
+        probe_config = self._clone_runtime_config_for_gate(config)
         probe_config.headless_mode = bool(headless)
         probe_config.threads = 1
         probe_config.target = 1

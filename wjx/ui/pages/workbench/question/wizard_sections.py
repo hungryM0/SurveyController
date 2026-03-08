@@ -26,6 +26,30 @@ _TEXT_RANDOM_NAME_TOKEN = "__RANDOM_NAME__"
 _TEXT_RANDOM_MOBILE_TOKEN = "__RANDOM_MOBILE__"
 
 
+def _get_segmented_route_key(seg: Any) -> str:
+    """兼容不同版本 QFluentWidgets：稳定读取分段控件 routeKey。"""
+    if seg is None:
+        return "custom"
+    try:
+        route_key_getter = getattr(seg, "currentRouteKey", None)
+        if callable(route_key_getter):
+            key = route_key_getter()
+            if isinstance(key, str) and key:
+                return key
+    except Exception:
+        pass
+    try:
+        item = seg.currentItem()
+    except Exception:
+        return "custom"
+    if isinstance(item, str) and item:
+        return item
+    route_key = getattr(item, "routeKey", None)
+    if isinstance(route_key, str) and route_key:
+        return route_key
+    return "custom"
+
+
 class WizardSectionsMixin:
     """各题型配置区 UI 构建方法。依赖 QuestionWizardDialog 的 state dict。"""
 
@@ -109,6 +133,7 @@ class WizardSectionsMixin:
     ) -> None:
         percentages = self._compute_ratio_percentages([slider.value() for slider in sliders])
         label.setText(self._build_ratio_preview_text(option_names, percentages, prefix))
+        label.setToolTip("这里显示的是目标占比，实际作答会受信效度和一致性约束影响而小幅波动。")
 
     def _build_text_section(self, idx: int, entry: QuestionEntry, card: CardWidget, card_layout: QVBoxLayout) -> None:
         self._has_content = True
@@ -609,7 +634,7 @@ class WizardSectionsMixin:
                         _label,
                         _row_sliders,
                         option_texts,
-                        "本行预计占比：",
+                        "本行目标占比（实际会小幅波动）：",
                     )
                 return _update
 
@@ -655,7 +680,7 @@ class WizardSectionsMixin:
                 def _on_slider(_):
                     if _flag[0]:
                         return
-                    if seg.currentItem() != "custom":
+                    if _get_segmented_route_key(seg) != "custom":
                         seg.setCurrentItem("custom")
                 for sl in sliders:
                     sl.valueChanged.connect(_on_slider)
@@ -837,7 +862,7 @@ class WizardSectionsMixin:
                     ratio_preview_label,
                     sliders,
                     option_texts,
-                    "预计占比：",
+                    "目标占比（实际会小幅波动）：",
                 )
 
             for slider in sliders:
@@ -874,7 +899,7 @@ class WizardSectionsMixin:
                 def _cb(value):
                     if _flag[0]:
                         return
-                    if _seg.currentItem() != "custom":
+                    if _get_segmented_route_key(_seg) != "custom":
                         _seg.setCurrentItem("custom")
                 return _cb
             _slider_cb = _make_slider_cb()

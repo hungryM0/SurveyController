@@ -209,6 +209,7 @@ class _QuestionDispatcher:
                 is_reverse=is_rev,
                 psycho_plan=psycho_plan,
                 question_index=q_num,
+                task_ctx=ctx,
             )
         else:
             _scale_impl(
@@ -220,6 +221,7 @@ class _QuestionDispatcher:
                 is_reverse=is_rev,
                 psycho_plan=psycho_plan,
                 question_index=q_num,
+                task_ctx=ctx,
             )
 
     def _handle_matrix(self, driver, q_num, idx, ctx: TaskContext, psycho_plan=None):
@@ -234,6 +236,7 @@ class _QuestionDispatcher:
             is_reverse=is_rev,
             psycho_plan=psycho_plan,
             question_index=q_num,
+            task_ctx=ctx,
         )
 
     def _handle_dropdown(self, driver, q_num, idx, ctx: TaskContext):

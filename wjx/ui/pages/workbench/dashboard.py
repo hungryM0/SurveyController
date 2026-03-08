@@ -467,9 +467,13 @@ class DashboardPage(
             except Exception as exc:
                 log_suppressed_exception("_on_survey_parse_failed: self._progress_infobar.close()", exc, level=logging.WARNING)
             self._progress_infobar = None
-        
-        # 显示解析失败消息
-        self._toast(f"解析失败：{error_msg}", "error", duration=3000)
+
+        text = str(error_msg or "").strip()
+        if "问卷已暂停" in text:
+            self._toast("问卷已暂停，需要前往问卷星后台重新发布", "warning", duration=4500)
+        else:
+            # 显示解析失败消息
+            self._toast(f"解析失败：{text or '请确认链接有效且网络正常'}", "error", duration=3000)
         self._open_wizard_after_parse = False
 
     @staticmethod
@@ -582,7 +586,8 @@ class DashboardPage(
             return
 
         cfg = self._build_config()
-        cfg.question_entries = list(self.question_page.get_entries())
+        from wjx.utils.io.load_save import serialize_question_entry, deserialize_question_entry
+        cfg.question_entries = [deserialize_question_entry(serialize_question_entry(entry)) for entry in self.question_page.get_entries()]
         cfg.questions_info = list(self.question_page.questions_info or [])
         if not cfg.question_entries:
             self._toast("未配置任何题目，无法开始执行（请先在'题目配置'页添加/配置题目）", "warning")

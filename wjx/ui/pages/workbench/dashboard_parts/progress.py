@@ -132,10 +132,20 @@ class DashboardProgressMixin:
 
         if sync_segment:
             seg = getattr(self, "thread_view_seg", None)
-            if seg is not None and seg.currentItem() != key:
-                seg.blockSignals(True)
-                seg.setCurrentItem(key)
-                seg.blockSignals(False)
+            if seg is not None:
+                current_key = None
+                try:
+                    route_getter = getattr(seg, "currentRouteKey", None)
+                    if callable(route_getter):
+                        current_key = route_getter()
+                    else:
+                        current_key = seg.currentItem()
+                except Exception:
+                    current_key = None
+                if current_key != key:
+                    seg.blockSignals(True)
+                    seg.setCurrentItem(key)
+                    seg.blockSignals(False)
 
         stack = getattr(self, "thread_view_stack", None)
         if stack is None:

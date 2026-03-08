@@ -40,7 +40,7 @@ wjx/
 │   ├── task_context.py    # 单次任务上下文数据
 │   ├── engine/            # 执行引擎（driver_factory/runtime_control/dom_helpers/navigation/question_detection/submission/answering/runner）
 │   ├── survey/            # 问卷解析（parser.py）
-│   ├── questions/         # 题目配置与题型实现（types/），以及一致性校验（consistency.py）
+│   ├── questions/         # 题目配置与题型实现（types/），以及一致性校验与分布纠偏（consistency.py、distribution.py）
 │   │   └── types/         # 各题型实现（single/multiple/dropdown/matrix/scale/score/slider/text/reorder）
 │   ├── captcha/           # 验证码处理（control/handler）
 │   ├── ai/                # AI 运行时（runtime.py）

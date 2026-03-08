@@ -355,6 +355,10 @@ def _record_successful_submission(
 
     if record_thread_success and thread_name:
         try:
+            ctx.commit_pending_distribution(thread_name)
+        except Exception:
+            logging.debug("提交成功后写入比例统计失败", exc_info=True)
+        try:
             ctx.increment_thread_success(thread_name, status_text="提交成功")
         except Exception:
             logging.debug("更新线程成功计数失败", exc_info=True)
@@ -517,6 +521,10 @@ def run(
             while True:
                 if stop_signal.is_set():
                     break
+                try:
+                    ctx.reset_pending_distribution(thread_name)
+                except Exception:
+                    logging.debug("重置本轮比例统计缓存失败", exc_info=True)
                 finished = brush(session.driver, ctx=ctx, stop_signal=stop_signal)
                 if stop_signal.is_set() or not finished:
                     break

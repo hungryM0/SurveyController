@@ -113,6 +113,8 @@ class TaskContext:
     cur_num: int = 0
     cur_fail: int = 0  # 全线程共享的连续失败计数，成功提交后归零
     thread_progress: Dict[str, ThreadProgressState] = field(default_factory=dict)
+    distribution_runtime_stats: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    distribution_pending_by_thread: Dict[str, List[Tuple[str, int, int]]] = field(default_factory=dict)
 
     # ── 停止控制 ──────────────────────────────────────────────────────────
     stop_event: threading.Event = field(default_factory=threading.Event)
@@ -278,6 +280,76 @@ class TaskContext:
             state.running = False
             state.status_text = str(status_text or "已停止")
             state.last_update_ts = now
+
+    @staticmethod
+    def _normalize_distribution_counts(raw_counts: Any, option_count: int) -> List[int]:
+        count = max(0, int(option_count or 0))
+        normalized = [0] * count
+        if not isinstance(raw_counts, list):
+            return normalized
+        for idx in range(min(len(raw_counts), count)):
+            try:
+                normalized[idx] = max(0, int(raw_counts[idx] or 0))
+            except Exception:
+                normalized[idx] = 0
+        return normalized
+
+    def snapshot_distribution_stats(self, stat_key: str, option_count: int) -> Tuple[int, List[int]]:
+        with self.lock:
+            bucket = self.distribution_runtime_stats.get(str(stat_key or "")) or {}
+            total = max(0, int(bucket.get("total") or 0)) if isinstance(bucket, dict) else 0
+            counts = self._normalize_distribution_counts(
+                bucket.get("counts") if isinstance(bucket, dict) else None,
+                option_count,
+            )
+        return total, counts
+
+    def reset_pending_distribution(self, thread_name: Optional[str] = None) -> None:
+        key = str(thread_name or threading.current_thread().name or "Worker-?").strip() or "Worker-?"
+        with self.lock:
+            self.distribution_pending_by_thread[key] = []
+
+    def append_pending_distribution_choice(
+        self,
+        stat_key: str,
+        option_index: int,
+        option_count: int,
+        thread_name: Optional[str] = None,
+    ) -> None:
+        key = str(thread_name or threading.current_thread().name or "Worker-?").strip() or "Worker-?"
+        normalized_option_count = max(0, int(option_count or 0))
+        normalized_option_index = int(option_index or 0)
+        if normalized_option_count <= 0:
+            return
+        if normalized_option_index < 0 or normalized_option_index >= normalized_option_count:
+            return
+        item = (str(stat_key or ""), normalized_option_index, normalized_option_count)
+        with self.lock:
+            pending = self.distribution_pending_by_thread.setdefault(key, [])
+            pending.append(item)
+
+    def commit_pending_distribution(self, thread_name: Optional[str] = None) -> int:
+        key = str(thread_name or threading.current_thread().name or "Worker-?").strip() or "Worker-?"
+        committed = 0
+        with self.lock:
+            pending = list(self.distribution_pending_by_thread.get(key) or [])
+            self.distribution_pending_by_thread[key] = []
+            for stat_key, option_index, option_count in pending:
+                if option_count <= 0 or option_index < 0 or option_index >= option_count:
+                    continue
+                bucket = self.distribution_runtime_stats.get(stat_key) or {}
+                total = max(0, int(bucket.get("total") or 0)) if isinstance(bucket, dict) else 0
+                counts = self._normalize_distribution_counts(
+                    bucket.get("counts") if isinstance(bucket, dict) else None,
+                    option_count,
+                )
+                counts[option_index] += 1
+                self.distribution_runtime_stats[stat_key] = {
+                    "total": total + 1,
+                    "counts": counts,
+                }
+                committed += 1
+        return committed
 
     def snapshot_thread_progress(self) -> List[Dict[str, Any]]:
         """返回线程进度快照（用于 UI 刷新，已排序）。"""

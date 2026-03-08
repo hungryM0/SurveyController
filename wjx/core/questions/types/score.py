@@ -6,7 +6,12 @@ from wjx.utils.logging.log_utils import log_suppressed_exception
 
 from wjx.network.browser import By, BrowserDriver, NoSuchElementException
 from wjx.core.persona.context import record_answer
+from wjx.core.questions.distribution import (
+    record_pending_distribution_choice,
+    resolve_distribution_probabilities,
+)
 from wjx.core.questions.tendency import get_tendency_index
+from wjx.core.questions.utils import normalize_droplist_probs
 
 
 def _is_valid_score_option(element) -> bool:
@@ -70,6 +75,7 @@ def score(
     is_reverse: bool = False,
     psycho_plan: Optional[Any] = None,
     question_index: Optional[int] = None,
+    task_ctx: Optional[Any] = None,
 ) -> None:
     """评价题处理主函数"""
 
@@ -84,13 +90,22 @@ def score(
     if not options:
         return
     probabilities = score_prob_config[index] if index < len(score_prob_config) else -1
+    probs = normalize_droplist_probs(probabilities, len(options))
+    resolved_question_index = question_index if question_index is not None else current
+    probs = resolve_distribution_probabilities(
+        probs,
+        len(options),
+        task_ctx,
+        resolved_question_index,
+        psycho_plan=psycho_plan,
+    )
     selected_index = get_tendency_index(
         len(options),
-        probabilities,
+        probs,
         dimension=dimension,
         is_reverse=is_reverse,
         psycho_plan=psycho_plan,
-        question_index=(question_index if question_index is not None else current),
+        question_index=resolved_question_index,
     )
     if selected_index >= len(options):
         selected_index = max(0, len(options) - 1)
@@ -102,6 +117,12 @@ def score(
             driver.execute_script("arguments[0].click();", target)
         except Exception as exc:
             log_suppressed_exception("score: driver.execute_script(\"arguments[0].click();\", target)", exc, level=logging.ERROR)
+    record_pending_distribution_choice(
+        task_ctx,
+        resolved_question_index,
+        selected_index,
+        len(options),
+    )
     # 记录统计数据
     # 记录作答上下文
     record_answer(current, "score", selected_indices=[selected_index])

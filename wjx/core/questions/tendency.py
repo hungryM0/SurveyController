@@ -144,6 +144,43 @@ def _enforce_zero_weight_guard(
     return best
 
 
+def _blend_psychometric_choice(
+    anchor_index: int,
+    option_count: int,
+    probabilities: Union[List[float], int, None],
+) -> int:
+    anchor = max(0, min(option_count - 1, int(anchor_index)))
+    if option_count <= 0 or not isinstance(probabilities, list) or len(probabilities) != option_count:
+        return anchor
+
+    fluctuation_window = _resolve_fluctuation_window(option_count)
+    if fluctuation_window <= 0:
+        return anchor
+
+    low = max(0, anchor - fluctuation_window)
+    high = min(option_count - 1, anchor + fluctuation_window)
+    adjusted_probs: List[float] = []
+    for idx in range(option_count):
+        try:
+            weight = float(probabilities[idx])
+        except Exception:
+            weight = 0.0
+        if math.isnan(weight) or math.isinf(weight) or weight <= 0.0:
+            adjusted_probs.append(0.0)
+            continue
+        if low <= idx <= high:
+            distance = abs(idx - anchor)
+            adjusted_probs.append(weight * _window_decay(distance, fluctuation_window))
+        else:
+            adjusted_probs.append(weight * (_OUTSIDE_WINDOW_DECAY * 0.5))
+
+    total = sum(adjusted_probs)
+    if total <= 0.0:
+        return anchor
+    normalized = [value / total for value in adjusted_probs]
+    return weighted_index(normalized)
+
+
 def get_tendency_index(
     option_count: int,
     probabilities: Union[List[float], int, None],
@@ -172,7 +209,8 @@ def get_tendency_index(
             psycho_plan, question_index, row_index, option_count, is_reverse
         )
         if choice is not None:
-            return _finalize_choice(choice, anchor=choice)
+            blended_choice = _blend_psychometric_choice(choice, option_count, probabilities)
+            return _finalize_choice(blended_choice, anchor=choice)
         # 计划未命中时，回退到常规倾向逻辑
         logging.debug(
             "心理测量计划未命中答案（题%d 行%s），回退到常规倾向逻辑",
