@@ -4,7 +4,7 @@ from typing import Optional
 
 from PySide6.QtCore import Qt, QStringListModel, Signal
 from PySide6.QtGui import QDoubleValidator, QIntValidator
-from PySide6.QtWidgets import QCompleter, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QButtonGroup, QCompleter, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     ComboBox,
@@ -18,6 +18,7 @@ from qfluentwidgets import (
     InfoBarPosition,
     LineEdit,
     PushButton,
+    RadioButton,
     SettingCard,
     SwitchButton,
     TransparentToolButton,
@@ -513,6 +514,9 @@ class ReliabilitySettingCard(ExpandGroupSettingCard):
     - 开关：控制是否启用信效度优化
     - 输入框：目标 Cronbach's Alpha 系数，范围 0.70-0.95
     """
+    PRIORITY_RELIABILITY_FIRST = "reliability_first"
+    PRIORITY_RATIO_FIRST = "ratio_first"
+    _VALID_PRIORITY_MODES = {PRIORITY_RELIABILITY_FIRST, PRIORITY_RATIO_FIRST}
 
     def __init__(self, parent=None):
         super().__init__(
@@ -555,6 +559,31 @@ class ReliabilitySettingCard(ExpandGroupSettingCard):
         alpha_row.addWidget(self.alphaEdit)
 
         layout.addLayout(alpha_row)
+
+        # 策略优先级（比例优先 / 信效度优先）
+        priority_row = QHBoxLayout()
+        priority_row.setContentsMargins(0, 0, 0, 0)
+        priority_row.setSpacing(8)
+        priority_label = BodyLabel("策略优先级：", self._groupContainer)
+        priority_label.setToolTip("比例优先更贴近目标占比；信效度优先更贴近真实答题一致性。")
+        self.reliabilityFirstRadio = RadioButton("确保信效度优先", self._groupContainer)
+        self.ratioFirstRadio = RadioButton("确保比例优先", self._groupContainer)
+        options_widget = QWidget(self._groupContainer)
+        options_layout = QHBoxLayout(options_widget)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.setSpacing(16)
+        options_layout.addWidget(self.reliabilityFirstRadio)
+        options_layout.addWidget(self.ratioFirstRadio)
+
+        priority_row.addWidget(priority_label)
+        priority_row.addStretch(1)
+        priority_row.addWidget(options_widget)
+
+        layout.addLayout(priority_row)
+        self._priorityGroup = QButtonGroup(self._groupContainer)
+        self._priorityGroup.addButton(self.reliabilityFirstRadio)
+        self._priorityGroup.addButton(self.ratioFirstRadio)
+        self.reliabilityFirstRadio.setChecked(True)
 
         self.addGroupWidget(self._groupContainer)
         self.setExpand(True)
@@ -606,6 +635,24 @@ class ReliabilitySettingCard(ExpandGroupSettingCard):
             text = "0.85"
         if self.alphaEdit.text() != text:
             self.alphaEdit.setText(text)
+
+    def get_priority_mode(self) -> str:
+        """读取当前优先级模式。"""
+
+        if self.ratioFirstRadio.isChecked():
+            return self.PRIORITY_RATIO_FIRST
+        return self.PRIORITY_RELIABILITY_FIRST
+
+    def set_priority_mode(self, mode: str) -> None:
+        """设置优先级模式（非法值回退到信效度优先）。"""
+
+        normalized = str(mode or self.PRIORITY_RELIABILITY_FIRST).strip().lower()
+        if normalized not in self._VALID_PRIORITY_MODES:
+            normalized = self.PRIORITY_RELIABILITY_FIRST
+        if normalized == self.PRIORITY_RATIO_FIRST:
+            self.ratioFirstRadio.setChecked(True)
+        else:
+            self.reliabilityFirstRadio.setChecked(True)
 
 
 class TimeRangeSettingCard(SettingCard):

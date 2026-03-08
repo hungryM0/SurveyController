@@ -3,14 +3,32 @@ from typing import Any, List, Optional, Tuple, Union
 
 from wjx.core.questions.utils import normalize_droplist_probs
 
-_CORRECTION_WARMUP_SAMPLES = 24
-_CORRECTION_GAIN = 2.8
-_CORRECTION_GAIN_PSYCHO = 1.15
-_CORRECTION_MIN_FACTOR = 0.6
-_CORRECTION_MAX_FACTOR = 1.7
-_CORRECTION_MIN_FACTOR_PSYCHO = 0.82
-_CORRECTION_MAX_FACTOR_PSYCHO = 1.18
-_CORRECTION_GAP_LIMIT = 0.35
+_PRIORITY_MODE_RELIABILITY_FIRST = "reliability_first"
+_PRIORITY_MODE_RATIO_FIRST = "ratio_first"
+_VALID_PRIORITY_MODES = {_PRIORITY_MODE_RELIABILITY_FIRST, _PRIORITY_MODE_RATIO_FIRST}
+
+_CORRECTION_PROFILE_RELIABILITY_FIRST = {
+    "warmup_samples": 24,
+    "gain": 2.8,
+    "gain_psycho": 1.15,
+    "min_factor": 0.6,
+    "max_factor": 1.7,
+    "min_factor_psycho": 0.82,
+    "max_factor_psycho": 1.18,
+    "gap_limit": 0.35,
+}
+
+# 比例优先（中等加强）：加快收敛，但仍保留心理测量路径的保守约束
+_CORRECTION_PROFILE_RATIO_FIRST = {
+    "warmup_samples": 12,
+    "gain": 4.2,
+    "gain_psycho": 2.05,
+    "min_factor": 0.45,
+    "max_factor": 2.2,
+    "min_factor_psycho": 0.72,
+    "max_factor_psycho": 1.34,
+    "gap_limit": 0.42,
+}
 
 
 def build_distribution_stat_key(question_index: int, row_index: Optional[int] = None) -> str:
@@ -42,6 +60,48 @@ def _resolve_runtime_counts(
     return (max(0, int(total or 0)), list(counts or []))
 
 
+def _resolve_priority_mode(ctx: Optional[Any]) -> str:
+    if ctx is None:
+        return _PRIORITY_MODE_RELIABILITY_FIRST
+    try:
+        mode = str(getattr(ctx, "reliability_priority_mode", _PRIORITY_MODE_RELIABILITY_FIRST) or "")
+    except Exception:
+        mode = _PRIORITY_MODE_RELIABILITY_FIRST
+    normalized = mode.strip().lower()
+    if normalized not in _VALID_PRIORITY_MODES:
+        return _PRIORITY_MODE_RELIABILITY_FIRST
+    return normalized
+
+
+def _resolve_correction_params(
+    ctx: Optional[Any],
+    psycho_plan: Optional[Any],
+) -> Tuple[int, float, float, float, float]:
+    mode = _resolve_priority_mode(ctx)
+    profile = (
+        _CORRECTION_PROFILE_RATIO_FIRST
+        if mode == _PRIORITY_MODE_RATIO_FIRST
+        else _CORRECTION_PROFILE_RELIABILITY_FIRST
+    )
+
+    if psycho_plan is not None:
+        return (
+            int(profile["warmup_samples"]),
+            float(profile["gain_psycho"]),
+            float(profile["min_factor_psycho"]),
+            float(profile["max_factor_psycho"]),
+            float(profile["gap_limit"]),
+        )
+
+    return (
+        int(profile["warmup_samples"]),
+        float(profile["gain"]),
+        float(profile["min_factor"]),
+        float(profile["max_factor"]),
+        float(profile["gap_limit"]),
+    )
+
+
 def resolve_distribution_probabilities(
     probabilities: Union[List[float], int, float, None],
     option_count: int,
@@ -60,18 +120,10 @@ def resolve_distribution_probabilities(
     if total <= 0:
         return target
 
-    sample_factor = min(1.0, float(total) / float(_CORRECTION_WARMUP_SAMPLES))
+    warmup_samples, gain, min_factor, max_factor, gap_limit = _resolve_correction_params(ctx, psycho_plan)
+    sample_factor = min(1.0, float(total) / float(max(1, warmup_samples)))
     if sample_factor <= 0.0:
         return target
-
-    if psycho_plan is not None:
-        gain = _CORRECTION_GAIN_PSYCHO
-        min_factor = _CORRECTION_MIN_FACTOR_PSYCHO
-        max_factor = _CORRECTION_MAX_FACTOR_PSYCHO
-    else:
-        gain = _CORRECTION_GAIN
-        min_factor = _CORRECTION_MIN_FACTOR
-        max_factor = _CORRECTION_MAX_FACTOR
 
     adjusted: List[float] = []
     for idx, target_ratio in enumerate(target):
@@ -79,7 +131,7 @@ def resolve_distribution_probabilities(
             adjusted.append(0.0)
             continue
         actual_ratio = float(counts[idx]) / float(total) if idx < len(counts) and total > 0 else 0.0
-        gap = max(-_CORRECTION_GAP_LIMIT, min(_CORRECTION_GAP_LIMIT, target_ratio - actual_ratio))
+        gap = max(-gap_limit, min(gap_limit, target_ratio - actual_ratio))
         factor = math.exp(gain * sample_factor * gap)
         factor = max(min_factor, min(max_factor, factor))
         adjusted.append(target_ratio * factor)

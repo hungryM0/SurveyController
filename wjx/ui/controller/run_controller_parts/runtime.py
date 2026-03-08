@@ -101,6 +101,11 @@ class RunControllerRuntimeMixin:
         except Exception:
             psycho_target_alpha = 0.85
         psycho_target_alpha = max(0.70, min(0.95, psycho_target_alpha))
+        reliability_priority_mode = str(
+            getattr(config, "reliability_priority_mode", "reliability_first") or "reliability_first"
+        ).strip().lower()
+        if reliability_priority_mode not in ("reliability_first", "ratio_first"):
+            reliability_priority_mode = "reliability_first"
 
         ctx = TaskContext(
             url=config.url,
@@ -124,6 +129,7 @@ class RunControllerRuntimeMixin:
             user_agent_ratios=dict(getattr(config, "random_ua_ratios", {"wechat": 33, "mobile": 33, "pc": 34})),
             answer_rules=copy.deepcopy(getattr(config, "answer_rules", []) or []),
             psycho_target_alpha=psycho_target_alpha,
+            reliability_priority_mode=reliability_priority_mode,
             stop_on_fail_enabled=config.fail_stop_enabled,
             pause_on_aliyun_captcha=bool(getattr(config, "pause_on_aliyun_captcha", True)),
         )
