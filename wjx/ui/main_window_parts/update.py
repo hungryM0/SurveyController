@@ -374,7 +374,7 @@ class MainWindowUpdateMixin:
 
         should_launch = self._log_popup_confirm(
             "更新完成",
-            f"新版本已下载到:\n{downloaded_file}\n\n是否立即运行新版本？",
+            f"新版本已下载到:\n{downloaded_file}\n\n是否立即安装新版本？",
         )
         UpdateManager.schedule_running_executable_deletion(downloaded_file)
         if should_launch:

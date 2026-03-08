@@ -64,9 +64,7 @@ def _bind_slider_input(slider: NoWheelSlider, edit: LineEdit) -> None:
             return
         if value < min_value or value > max_value:
             return
-        slider.blockSignals(True)
         slider.setValue(value)
-        slider.blockSignals(False)
 
     def sync_slider_final() -> None:
         text = edit.text().strip()
@@ -78,9 +76,7 @@ def _bind_slider_input(slider: NoWheelSlider, edit: LineEdit) -> None:
             logger.debug(f"滑块输入框最终值转换失败: '{text}' 不是有效整数")
             return
         value = max(min_value, min(max_value, value))
-        slider.blockSignals(True)
         slider.setValue(value)
-        slider.blockSignals(False)
         edit.blockSignals(True)
         edit.setText(str(value))
         edit.blockSignals(False)

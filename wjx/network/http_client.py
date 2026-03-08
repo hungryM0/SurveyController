@@ -78,16 +78,20 @@ class _StreamResponse:
 
     def iter_content(self, chunk_size: int = 8192) -> Iterator[bytes]:
         """批量读取，减少跨线程调用次数"""
-        buffer_size = chunk_size * 10  # 一次读取10个块
+        safe_chunk_size = max(int(chunk_size), 1)
+        buffer_size = safe_chunk_size * 10  # 一次读取10个块
+        stream_iter = self._response.aiter_bytes(safe_chunk_size)
 
         async def read_batch():
             chunks = []
             total_size = 0
-            async for chunk in self._response.aiter_bytes(chunk_size):
+            while total_size < buffer_size:
+                try:
+                    chunk = await stream_iter.__anext__()
+                except StopAsyncIteration:
+                    break
                 chunks.append(chunk)
                 total_size += len(chunk)
-                if total_size >= buffer_size:
-                    break
             return chunks
 
         try:

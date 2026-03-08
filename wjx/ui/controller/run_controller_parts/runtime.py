@@ -335,6 +335,8 @@ class RunControllerRuntimeMixin:
         probe_config.headless_mode = bool(headless)
         probe_config.threads = 1
         probe_config.target = 1
+        # 门禁探测只用于验证流程可用性，不应消耗作答时长等待。
+        probe_config.answer_duration = (0, 0)
 
         probe_ctx = self._prepare_engine_state(probe_config, list(proxy_pool))
         probe_ctx.stop_event = gate_stop_event

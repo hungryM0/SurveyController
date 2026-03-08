@@ -81,8 +81,12 @@ def _discard_unresponsive_proxy(ctx: TaskContext, proxy_address: str) -> None:
     if not proxy_address:
         return
     with ctx.lock:
-        try:
-            ctx.proxy_ip_pool.remove(proxy_address)
+        removed = False
+        while True:
+            try:
+                ctx.proxy_ip_pool.remove(proxy_address)
+                removed = True
+            except ValueError:
+                break
+        if removed:
             logging.debug(f"已移除无响应代理：{_mask_proxy_for_log(proxy_address)}")
-        except ValueError as exc:
-            log_suppressed_exception("_discard_unresponsive_proxy: ctx.proxy_ip_pool.remove(proxy_address)", exc, level=logging.WARNING)
