@@ -54,8 +54,8 @@ def _trigger_aliyun_captcha_stop(
                 return
             
             # 先检查当前随机IP状态和配额情况
-            from wjx.utils.system.registry_manager import RegistryManager
-            from wjx.network.proxy import get_random_ip_limit
+            from wjx.network.proxy import get_random_ip_counter_snapshot_local
+            from wjx.network.proxy.auth import has_authenticated_session
             
             var = getattr(gui_instance, "random_ip_enabled_var", None) if gui_instance else None
             is_enabled = bool(var.get() if var and hasattr(var, "get") else False)
@@ -72,47 +72,44 @@ def _trigger_aliyun_captcha_stop(
                     log_popup_warning("智能验证提示", message)
                 return
             
-            # 检查配额情况
-            count = RegistryManager.read_submit_count()
-            limit = int(get_random_ip_limit() or 0)
-            if limit <= 0:
+            used, total, custom_api = get_random_ip_counter_snapshot_local()
+            if custom_api:
                 message = (
                     "检测到阿里云智能验证，为避免继续失败提交已停止所有任务。\n\n"
-                    "随机IP额度当前不可用（本地未初始化且默认额度API不可用），\n"
-                    "请稍后重试或切换自定义代理接口。"
+                    "你当前使用的是自定义代理接口，请处理完验证后重新启动任务。"
                 )
                 if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
                     gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
                 else:
                     log_popup_warning("智能验证提示", message)
                 return
-            quota_exceeded = count >= limit
+
+            if not has_authenticated_session():
+                message = (
+                    "检测到阿里云智能验证，为避免继续失败提交已停止所有任务。\n\n"
+                    "默认随机IP现已需要先领取免费试用或核销卡密激活。\n"
+                    "请先激活随机IP，或切换自定义代理接口后再试。"
+                )
+                if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
+                    gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
+                else:
+                    log_popup_warning("智能验证提示", message)
+                return
+
+            remaining = max(0, int(total or 0) - int(used or 0))
+            quota_exceeded = remaining <= 0
             
             # 根据配额情况构建不同的提示消息
             if quota_exceeded:
                 message = (
                     "检测到阿里云智能验证，为避免继续失败提交已停止所有任务。\n\n"
-                    f"建议启用随机 IP，但当前配额已用完（{count}/{limit}）。\n"
-                    "请先核销卡密解锁额度后再启用随机 IP。\n\n"
-                    "是否现在前往核销卡密？"
+                    "建议启用随机 IP，但当前随机IP剩余额度不足。\n"
+                    "请先补充额度后再启用随机 IP。"
                 )
-                if gui_instance and hasattr(gui_instance, "_log_popup_confirm"):
-                    go_verify = bool(gui_instance._log_popup_confirm("智能验证提示", message, icon="warning"))
+                if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
+                    gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
                 else:
-                    go_verify = bool(log_popup_confirm("智能验证提示", message, icon="warning"))
-                
-                if go_verify and gui_instance:
-                    # 尝试显示卡密验证对话框
-                    try:
-                        # 寻找主窗口上的账号页面切换方法
-                        if hasattr(gui_instance, "switch_to_account_page"):
-                            gui_instance.switch_to_account_page()
-                        elif hasattr(gui_instance, "stack") and hasattr(gui_instance.stack, "setCurrentIndex"):
-                            # 尝试切换到账号页面（通常索引为1）
-                            gui_instance.stack.setCurrentIndex(1)
-                        logging.info("已引导用户前往账号页面核销卡密")
-                    except Exception:
-                        logging.warning("切换到账号页面失败", exc_info=True)
+                    log_popup_warning("智能验证提示", message)
                 return
             
             # 配额充足，询问是否启用随机IP（包含免责声明）

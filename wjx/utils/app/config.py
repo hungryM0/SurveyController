@@ -9,12 +9,9 @@ import logging
 集中管理应用的各种配置参数，方便统一修改和维护
 """
 
-import json
 import os
 import re
 import sys
-import threading
-import urllib.request
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -146,58 +143,23 @@ def _resolve_env_value(key: str, default: str) -> str:
     return default
 
 
-_IPZAN_ENV_ENDPOINT = "https://api-wjx.hungrym0.top/api/ipzan/env"
-_RANDOM_IP_API_BASE = "https://service.ipzan.com/core-extract?num=1&no=20260112572376490874&minute=1&format=json&repeat=1&protocol=1&pool=ordinary&mode=auth&secret="
-
-_ipzan_env_cache: Optional[dict] = None
-_ipzan_env_lock = threading.Lock()
-
-
-def _fetch_ipzan_env() -> dict:
-    """从远端拉取 ipzan 配置，带缓存和降级。"""
-    global _ipzan_env_cache
-    if _ipzan_env_cache is not None:
-        return _ipzan_env_cache
-    with _ipzan_env_lock:
-        if _ipzan_env_cache is not None:
-            return _ipzan_env_cache
-        try:
-            req = urllib.request.Request(
-                _IPZAN_ENV_ENDPOINT,
-                headers={"User-Agent": "Mozilla/5.0"},
-            )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            _ipzan_env_cache = {
-                "secret": str(data.get("secret") or "").strip(),
-                # 优先使用远端返回值，缺失时保持空串
-                "proxy": str(data.get("proxy") or "").strip(),
-            }
-        except Exception:
-            logging.debug("获取 ipzan env 失败，返回空配置", exc_info=True)
-            _ipzan_env_cache = {"secret": "", "proxy": ""}
-    return _ipzan_env_cache
-
-
 def get_proxy_remote_url() -> str:
-    """获取随机 IP API 地址（优先环境变量，其次远端配置）。"""
+    """获取随机 IP API 地址（默认走后端提取接口）。"""
     env_url = _resolve_env_value(_RANDOM_IP_API_ENV_KEY, "")
     if env_url:
         return env_url
-    secret = str(_fetch_ipzan_env().get("secret") or "").strip()
-    if not secret:
-        return ""
-    return _RANDOM_IP_API_BASE + secret
+    return _resolve_env_value("IP_EXTRACT_ENDPOINT", _DEFAULT_IP_EXTRACT_ENDPOINT)
 
 
 def get_proxy_auth() -> str:
-    """获取代理认证信息（优先环境变量，其次远端配置）。"""
-    env_auth = os.environ.get("WJX_PROXY_AUTH", "")
-    if env_auth:
-        return env_auth
-    return _fetch_ipzan_env()["proxy"]
+    """获取代理认证信息（仅保留环境变量兼容）。"""
+    return os.environ.get("WJX_PROXY_AUTH", "")
 _DEFAULT_CONTACT_API = "https://bot.hungrym0.top"
+_DEFAULT_AUTH_ACTIVATE = "https://api-wjx.hungrym0.top/api/auth/activate"
+_DEFAULT_AUTH_TRIAL = "https://api-wjx.hungrym0.top/api/auth/trial"
+_DEFAULT_AUTH_REFRESH = "https://api-wjx.hungrym0.top/api/auth/refresh"
 _DEFAULT_CARD_VALIDATION = "https://api-wjx.hungrym0.top/api/card/verify"
+_DEFAULT_IP_EXTRACT_ENDPOINT = "https://api-wjx.hungrym0.top/api/ip/extract"
 _DEFAULT_STATUS_ENDPOINT = "https://api-wjx.hungrym0.top/api/status"
 _DEFAULT_EMAIL_VERIFY_ENDPOINT = "https://api-wjx.hungrym0.top/api/email"
 
@@ -279,7 +241,11 @@ _RANDOM_IP_API_ENV_KEY = "RANDOM_IP_API_URL"
 
 # ==================== API 端点配置 ====================
 CONTACT_API_URL = _resolve_env_value("CONTACT_API_URL", _DEFAULT_CONTACT_API)
+AUTH_ACTIVATE_ENDPOINT = _resolve_env_value("AUTH_ACTIVATE_ENDPOINT", _DEFAULT_AUTH_ACTIVATE)
+AUTH_TRIAL_ENDPOINT = _resolve_env_value("AUTH_TRIAL_ENDPOINT", _DEFAULT_AUTH_TRIAL)
+AUTH_REFRESH_ENDPOINT = _resolve_env_value("AUTH_REFRESH_ENDPOINT", _DEFAULT_AUTH_REFRESH)
 CARD_VALIDATION_ENDPOINT = _resolve_env_value("CARD_VALIDATION_ENDPOINT", _DEFAULT_CARD_VALIDATION)
+IP_EXTRACT_ENDPOINT = _resolve_env_value("IP_EXTRACT_ENDPOINT", _DEFAULT_IP_EXTRACT_ENDPOINT)
 STATUS_ENDPOINT = _resolve_env_value("STATUS_ENDPOINT", _DEFAULT_STATUS_ENDPOINT)
 EMAIL_VERIFY_ENDPOINT = _resolve_env_value("EMAIL_VERIFY_ENDPOINT", _DEFAULT_EMAIL_VERIFY_ENDPOINT)
 

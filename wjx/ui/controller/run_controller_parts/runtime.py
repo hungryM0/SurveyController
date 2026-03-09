@@ -12,6 +12,7 @@ from PySide6.QtCore import QCoreApplication
 from wjx.core.engine import run
 from wjx.core.questions.config import configure_probabilities, validate_question_config
 from wjx.core.task_context import TaskContext
+from wjx.network.proxy.auth import get_quota_snapshot, has_authenticated_session
 from wjx.network.proxy import (
     get_effective_proxy_api_url,
     is_custom_proxy_api_active,
@@ -24,8 +25,6 @@ from wjx.utils.event_bus import (
     EVENT_TASK_STOPPED,
 )
 from wjx.utils.io.load_save import RuntimeConfig
-from wjx.utils.system.registry_manager import RegistryManager
-
 if TYPE_CHECKING:
     from PySide6.QtCore import QObject, QTimer
 
@@ -524,17 +523,16 @@ class RunControllerRuntimeMixin:
 
         if config.random_ip_enabled:
             if not is_custom_proxy_api_active():
-                count = RegistryManager.read_submit_count()
-                limit = int(RegistryManager.read_quota_limit(0) or 0)
-                if limit <= 0:
-                    logging.warning("随机IP额度不可用，无法启动随机IP模式")
+                if not has_authenticated_session():
+                    logging.warning("随机IP未激活，无法启动默认随机IP模式")
                     self._starting = False
-                    self.runFailed.emit("随机IP额度不可用（本地未初始化且默认额度API不可用），请稍后重试或改用自定义代理接口")
+                    self.runFailed.emit("默认随机IP需要先领取免费试用或核销卡密激活，请先激活后再试，或改用自定义代理接口")
                     return
-                if count >= limit:
-                    logging.warning("随机IP已达%s份上限，无法启动", limit)
+                remaining = int(get_quota_snapshot()["remaining_quota"])
+                if remaining <= 0:
+                    logging.warning("随机IP剩余额度不足，无法启动")
                     self._starting = False
-                    self.runFailed.emit(f"随机IP已达{limit}份上限，请关闭随机IP开关或解锁大额IP后再试")
+                    self.runFailed.emit("随机IP剩余额度不足，请补充额度后再试，或改用自定义代理接口")
                     return
             threading.Thread(
                 target=self._prefetch_proxies_and_start,
@@ -572,6 +570,11 @@ class RunControllerRuntimeMixin:
             if self.stop_event.is_set():
                 self._starting = False
                 return
+            try:
+                from wjx.network.proxy import refresh_ip_counter_display
+                refresh_ip_counter_display(self.adapter)
+            except Exception:
+                logging.debug("预取代理后刷新随机IP额度失败", exc_info=True)
             self._start_with_initialization_gate(config, proxy_pool)
 
         self._dispatch_to_ui_async(_continue_start)

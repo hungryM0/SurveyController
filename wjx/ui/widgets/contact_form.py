@@ -760,18 +760,6 @@ class ContactForm(StatusPollingMixin, QWidget):
         mtype = self.type_combo.currentText() or "报错反馈"
 
         if mtype == "卡密获取":
-            try:
-                from wjx.utils.system.registry_manager import RegistryManager
-                if RegistryManager.read_submit_count() <= 0:
-                    InfoBar.warning(
-                        "", "你都还没开始用随机ip呢，咋就来申请了😡",
-                        parent=self, position=InfoBarPosition.TOP, duration=3000,
-                    )
-                    return
-            except Exception as exc:
-                log_suppressed_exception("_on_send_clicked: from wjx.utils.system.registry_manager import RegistryManager", exc, level=logging.WARNING)
-
-        if mtype == "卡密获取":
             self._normalize_amount_if_needed()
             amount_text = (self.amount_edit.text() or "").strip()
             quantity_text = (self.quantity_edit.text() or "").strip()

@@ -11,6 +11,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog
 from qfluentwidgets import FluentIcon
 
+from wjx.network.proxy.auth import clear_session, has_authenticated_session
 from wjx.network.proxy import (
     _format_status_payload,
     _validate_card,
@@ -20,6 +21,7 @@ from wjx.network.proxy import (
     get_status,
     on_random_ip_toggle,
     refresh_ip_counter_display,
+    show_random_ip_activation_dialog,
 )
 from wjx.ui.dialogs.card_unlock import CardUnlockDialog
 from wjx.ui.dialogs.contact import ContactDialog
@@ -97,22 +99,16 @@ class DashboardRandomIPMixin:
 
     def _run_debug_reset_worker(self) -> None:
         """后台执行 debug reset，避免阻塞 GUI。"""
-        from wjx.network.proxy import _get_default_quota_with_cache
-
         payload: Dict[str, Any] = {"ok": False, "quota": None, "error": ""}
         try:
-            default_quota = _get_default_quota_with_cache()
-            if default_quota is None:
-                payload["error"] = "default_quota_unavailable"
-                return
-
+            clear_session()
             RegistryManager.write_submit_count(0)
-            RegistryManager.write_quota_limit(default_quota)
+            RegistryManager.write_quota_limit(0)
             RegistryManager.set_card_verified(False)
             RegistryManager.set_extra_quota_verified(False)
             RegistryManager.set_confetti_played(False)
             payload["ok"] = True
-            payload["quota"] = int(default_quota)
+            payload["quota"] = 0
         except Exception as exc:
             payload["error"] = str(exc)
             log_suppressed_exception("dashboard._run_debug_reset_worker", exc, level=logging.WARNING)
@@ -132,16 +128,14 @@ class DashboardRandomIPMixin:
     def _apply_debug_reset_result(self, data: Dict[str, Any]) -> None:
         self._debug_reset_in_progress = False
         success = bool(data.get("ok"))
-        quota = data.get("quota")
-
         if not success:
-            logging.warning("调试重置：默认额度API不可用，保持 --/-- 状态")
+            logging.warning("调试重置：清空随机IP状态失败")
             refresh_ip_counter_display(self.controller.adapter)
-            self._toast("默认额度API不可用，随机IP额度保持未初始化（--/--）", "warning", duration=3000)
+            self._toast("清空随机IP状态失败，请查看日志", "warning", duration=3000)
             return
 
         refresh_ip_counter_display(self.controller.adapter)
-        self._toast(f"已重置随机IP额度为 0/{quota}", "success", duration=2500)
+        self._toast("已清空随机IP激活状态", "success", duration=2500)
 
     def _set_runtime_ip_switch(self, enabled: bool) -> None:
         """设置运行时页面的随机IP开关，并同步展开区域的启用状态（绕过信号阻塞）。"""
@@ -154,28 +148,18 @@ class DashboardRandomIPMixin:
             log_suppressed_exception("_set_runtime_ip_switch", exc, level=logging.WARNING)
 
     def update_random_ip_counter(self, count: int, limit: int, custom_api: bool):
-        # 三态按钮：未验证 → 已验证(可申请更多) → 二次验证(禁用)
-        is_verified = RegistryManager.is_card_verified()
-        is_extra = RegistryManager.is_extra_quota_verified()
-        has_used_random_ip = int(count or 0) > 0
-        debug_mode = self._is_debug_mode_enabled()
-        can_request_quota = has_used_random_ip or debug_mode
-        if is_verified and is_extra:
-            self.card_btn.setEnabled(False)
-            self.card_btn.setText("已解锁")
-            self.card_btn.setIcon(FluentIcon.FINGERPRINT)
-        elif is_verified:
-            self.card_btn.setEnabled(can_request_quota)
-            self.card_btn.setText("申请更多额度")
-            self.card_btn.setIcon(FluentIcon.SHOPPING_CART)
+        authenticated = has_authenticated_session()
+        remaining = max(0, int(limit or 0) - int(count or 0))
+        if authenticated:
+            self.card_btn.setEnabled(True)
+            self.card_btn.setText("重新激活")
+            self.card_btn.setIcon(FluentIcon.SYNC)
+            self.card_btn.setToolTip("重新核销卡密可刷新当前设备的随机IP登录状态")
         else:
-            self.card_btn.setEnabled(can_request_quota)
-            self.card_btn.setText("解锁大额IP")
+            self.card_btn.setEnabled(True)
+            self.card_btn.setText("领取试用/激活")
             self.card_btn.setIcon(FluentIcon.FINGERPRINT)
-        if (not can_request_quota) and (not (is_verified and is_extra)):
-            self.card_btn.setToolTip("请先使用随机IP提交至少1次后再申请")
-        else:
-            self.card_btn.setToolTip("")
+            self.card_btn.setToolTip("可先领取一次免费试用，领过后再使用卡密激活")
 
         if custom_api:
             self.random_ip_hint.setText("自定义接口")
@@ -183,8 +167,8 @@ class DashboardRandomIPMixin:
             self._update_ip_low_infobar(count, limit, custom_api)
             self._update_ip_cost_infobar(custom_api)
             return
-        if limit <= 0:
-            self.random_ip_hint.setText("--/--")
+        if not authenticated:
+            self.random_ip_hint.setText("未激活")
             self.random_ip_hint.setStyleSheet("color:#6b6b6b;")
             self._update_ip_low_infobar(count, limit, custom_api)
             self._update_ip_cost_infobar(custom_api)
@@ -193,16 +177,14 @@ class DashboardRandomIPMixin:
                 self.random_ip_cb.setChecked(False)
                 self.random_ip_cb.blockSignals(False)
             return
-        self.random_ip_hint.setText(f"{count}/{limit}")
-        # 额度耗尽时变红
-        if count >= limit:
+        self.random_ip_hint.setText(f"剩余 {remaining}/{limit}")
+        if remaining <= 0:
             self.random_ip_hint.setStyleSheet("color:red;")
         else:
             self.random_ip_hint.setStyleSheet("color:#6b6b6b;")
         self._update_ip_low_infobar(count, limit, custom_api)
         self._update_ip_cost_infobar(custom_api)
-        # 达到上限时自动关闭随机IP开关
-        if count >= limit and self.random_ip_cb.isChecked():
+        if remaining <= 0 and self.random_ip_cb.isChecked():
             self.random_ip_cb.blockSignals(True)
             self.random_ip_cb.setChecked(False)
             self.random_ip_cb.blockSignals(False)
@@ -270,19 +252,10 @@ class DashboardRandomIPMixin:
 
     def _on_random_ip_toggled(self, state: int):
         enabled = state != 0
-        # 先同步检查限制，防止快速点击绕过
         if enabled:
             count, limit, custom_api = get_random_ip_counter_snapshot_local()
-            if (not custom_api) and limit <= 0:
-                self._toast("随机IP额度不可用（本地未初始化且默认额度API不可用）", "warning")
-                self.random_ip_cb.blockSignals(True)
-                self.random_ip_cb.setChecked(False)
-                self.random_ip_cb.blockSignals(False)
-                self._set_runtime_ip_switch(False)
-                refresh_ip_counter_display(self.controller.adapter)
-                return
-            if (not custom_api) and count >= limit:
-                self._toast(f"随机IP已达{limit}份限制，请核销卡密后再启用。", "warning")
+            if (not custom_api) and has_authenticated_session() and limit > 0 and count >= limit:
+                self._toast("随机IP剩余额度不足，请补充额度后再启用。", "warning")
                 self.random_ip_cb.blockSignals(True)
                 self.random_ip_cb.setChecked(False)
                 self.random_ip_cb.blockSignals(False)
@@ -331,32 +304,20 @@ class DashboardRandomIPMixin:
 
     def _on_card_code_clicked(self):
         """用户主动输入卡密解锁大额随机IP。"""
-        if RegistryManager.read_submit_count() <= 0 and (not self._is_debug_mode_enabled()):
-            self._toast("请先使用随机IP提交至少1次后再申请额度。", "warning", duration=2500)
-            return
-        was_already_verified = RegistryManager.is_card_verified()
-        dialog = CardUnlockDialog(
-            self,
-            status_fetcher=get_status,
-            status_formatter=_format_status_payload,
-            contact_handler=lambda: self._open_contact_dialog(default_type="卡密获取"),
-            card_validator=_validate_card,
-        )
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        # 验证成功后处理解锁逻辑：在原有额度基础上增加卡密提供的额度
-        if dialog.get_validation_result():
-            quota = dialog.get_validation_quota()
-            if quota is None:
-                self._toast("卡密验证返回缺少额度信息，拒绝解锁，请联系开发者。", "error")
+        if has_authenticated_session():
+            dialog = CardUnlockDialog(
+                self,
+                status_fetcher=get_status,
+                status_formatter=_format_status_payload,
+                contact_handler=lambda: self._open_contact_dialog(default_type="卡密获取"),
+                card_validator=_validate_card,
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
-            quota_to_add = max(1, int(quota))
-            current_limit = int(RegistryManager.read_quota_limit(0) or 0)
-            new_limit = current_limit + quota_to_add
-            RegistryManager.write_quota_limit(new_limit)
-            RegistryManager.set_card_verified(True)
-            if was_already_verified:
-                RegistryManager.set_extra_quota_verified(True)
+            activated = bool(dialog.get_validation_result())
+        else:
+            activated = bool(show_random_ip_activation_dialog(self.controller.adapter))
+        if activated:
             refresh_ip_counter_display(self.controller.adapter)
             self.random_ip_cb.setChecked(True)
             self._set_runtime_ip_switch(True)
@@ -367,57 +328,28 @@ class DashboardRandomIPMixin:
             self._ip_low_infobar.hide()
 
     def _update_ip_low_infobar(self, count: int, limit: int, custom_api: bool):
-        """更新IP余额不足提示条，基于API余额换算的剩余IP数判断"""
+        """更新随机IP余额不足提示条。"""
         if not self._ip_low_infobar:
             return
         if custom_api:
             self._ip_low_infobar.hide()
             self._ip_low_infobar_dismissed = False
             return
-
-        # 先用缓存快速更新，避免每次刷新都走网络
-        if self._api_balance_cache is not None:
-            cached_remaining = int(max(0.0, float(self._api_balance_cache)) / 0.0035)
-            self._on_ip_balance_checked(cached_remaining)
-
-        now = time.monotonic()
-        with self._ip_balance_fetch_lock:
-            if self._ip_balance_fetching or (now - self._last_ip_balance_fetch_ts) < self._ip_balance_fetch_interval_sec:
-                return
-            self._ip_balance_fetching = True
-            self._last_ip_balance_fetch_ts = now
-
-        # 异步获取 API 余额并判断
-        def _fetch_and_check():
-            try:
-                import wjx.network.http_client as http_client
-
-                response = http_client.get(
-                    "https://service.ipzan.com/userProduct-get",
-                    params={"no": "20260112572376490874", "userId": "72FH7U4E0IG"},
-                    timeout=5,
-                )
-                data = response.json()
-                if data.get("code") in (0, 200) and data.get("status") in (200, "200", None):
-                    balance = data.get("data", {}).get("balance", 0)
-                    remaining_ip = int(float(balance) / 0.0035)
-                    self._api_balance_cache = float(balance)
-                    self._ipBalanceChecked.emit(remaining_ip)
-            except Exception as exc:
-                timeout_error_names = {"ReadTimeout", "ConnectTimeout", "PoolTimeout", "TimeoutException"}
-                level = logging.DEBUG if exc.__class__.__name__ in timeout_error_names else logging.WARNING
-                log_suppressed_exception("_fetch_and_check: API balance fetch failed", exc, level=level)
-            finally:
-                with self._ip_balance_fetch_lock:
-                    self._ip_balance_fetching = False
-
-        threading.Thread(target=_fetch_and_check, daemon=True, name="IPBalanceCheck").start()
+        if not has_authenticated_session():
+            self._ip_low_infobar.hide()
+            self._ip_low_infobar_dismissed = False
+            return
+        remaining = max(0, int(limit or 0) - int(count or 0))
+        threshold = max(5, min(50, int(limit or 0) // 5 if int(limit or 0) > 0 else 5))
+        self._ip_low_threshold = threshold
+        self._on_ip_balance_checked(remaining if remaining <= threshold else threshold + 1)
 
     def _on_ip_balance_checked(self, remaining_ip: int):
         """处理IP余额检查结果（在主线程中执行）"""
         if not self._ip_low_infobar:
             return
-        if remaining_ip < self._ip_low_threshold:
+        threshold = max(5, min(50, int(getattr(self, "_ip_low_threshold", 20) or 20)))
+        if remaining_ip < threshold:
             if not self._ip_low_infobar_dismissed:
                 self._ip_low_infobar.show()
         else:

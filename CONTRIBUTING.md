@@ -70,9 +70,10 @@ wjx/
 │   ├── browser/
 │   │   └── driver.py      # 浏览器驱动封装
 │   ├── proxy/
+│   │   ├── auth.py        # 随机IP鉴权、会话与令牌刷新
 │   │   ├── provider.py    # 代理获取、URL构建、代理源管理
-│   │   ├── quota.py       # 额度管理（API缓存、注册表读写）
-│   │   ├── card.py        # 卡密验证（纯逻辑）
+│   │   ├── quota.py       # 额度管理（以后端会话与默认额度缓存为准）
+│   │   ├── card.py        # 卡密激活（纯逻辑）
 │   │   └── gui_bridge.py  # GUI交互桥接（弹窗、线程派发、开关控制）
 │   ├── http_client.py     # 请求策略
 │   └── session_policy.py  # 会话策略
@@ -82,7 +83,7 @@ wjx/
 │   ├── app/               # 应用配置与路径（config/runtime_paths/version）
 │   ├── io/                # 文件读写（load_save/markdown_utils/qrcode_utils/ip_usage_log）
 │   ├── integrations/      # 外部集成（ai_service）
-│   ├── system/            # 系统工具（cleanup_runner/registry_manager）
+│   ├── system/            # 系统工具（cleanup_runner/registry_manager/secure_store）
 │   ├── logging/           # 日志工具（log_utils）
 │   └── update/            # 更新逻辑（updater）
 └── __pycache__/           # 运行时缓存文件，不应提交到仓库

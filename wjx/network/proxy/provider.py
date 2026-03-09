@@ -8,12 +8,13 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from typing import Any, List, Optional, Set, Tuple
 
 import wjx.network.http_client as http_client
+from wjx.network.proxy.auth import extract_proxy, format_random_ip_error
 from wjx.utils.app.config import (
     DEFAULT_HTTP_HEADERS,
+    IP_EXTRACT_ENDPOINT,
     PROXY_HEALTH_CHECK_TIMEOUT,
     PROXY_HEALTH_CHECK_URL,
     PROXY_MAX_PROXIES,
-    get_proxy_remote_url,
     STATUS_ENDPOINT,
 )
 from wjx.utils.logging.log_utils import (
@@ -239,28 +240,15 @@ def _apply_pool_to_proxy_url(url: str, pool: Optional[str]) -> str:
 
 
 def get_default_proxy_area_code() -> str:
-    url = get_proxy_remote_url().strip()
-    if not url:
-        return ""
-    try:
-        split = urlsplit(url)
-    except Exception:
-        return ""
-    for key, value in parse_qsl(split.query, keep_blank_values=True):
-        if key.lower() == "area":
-            return _normalize_area_code(value)
-    return ""
+    return _normalize_area_code(_proxy_area_code_override) or ""
 
 
 def get_effective_proxy_api_url() -> str:
     override = (_proxy_api_url_override or "").strip()
-    url = override or get_proxy_remote_url()
+    url = override or IP_EXTRACT_ENDPOINT
     if get_proxy_source() != PROXY_SOURCE_DEFAULT:
         return url
-    url = _apply_area_to_proxy_url(url, _proxy_area_code_override)
-    pool = _resolve_ipzan_pool_by_area(_proxy_area_code_override)
-    url = _apply_pool_to_proxy_url(url, pool)
-    return _apply_minute_to_proxy_url(url, _proxy_occupy_minute)
+    return url
 
 
 def is_custom_proxy_api_active() -> bool:
@@ -576,10 +564,34 @@ def _fetch_new_proxy_batch(
         proxy_url = _proxy_api_url_override
         logging.info(f"使用自定义代理API: {proxy_url}")
 
-    candidates: List[str] = []
-    errors: List[str] = []
     area_code = get_proxy_area_code()
     has_area = bool(_normalize_area_code(area_code))
+    if current_source == PROXY_SOURCE_DEFAULT and not is_custom:
+        minute = int(get_proxy_occupy_minute() or 1)
+        pool = _resolve_ipzan_pool_by_area(area_code) or _IPZAN_POOL_ORDINARY
+        fetched: List[str] = []
+        errors: List[str] = []
+        for _ in range(max(1, expected_count)):
+            try:
+                payload = extract_proxy(
+                    minute=minute,
+                    pool=pool,
+                    area=_normalize_area_code(area_code) or "",
+                )
+                addr = _normalize_proxy_address(f"{payload['host']}:{payload['port']}")
+                if addr:
+                    fetched.append(addr)
+                    logging.info("获取到代理: %s", _mask_proxy_for_log(addr))
+            except Exception as exc:
+                message = format_random_ip_error(exc)
+                errors.append(message)
+                break
+        if not fetched:
+            raise RuntimeError(f"获取随机IP失败: {'; '.join(errors) if errors else '无可用接口'}")
+        return fetched[: max(1, expected_count)]
+
+    candidates: List[str] = []
+    errors: List[str] = []
     for url in _proxy_api_candidates(expected_count, proxy_url):
         try:
             resp = http_client.get(url, timeout=10, headers=DEFAULT_HTTP_HEADERS, proxies={})

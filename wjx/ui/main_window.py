@@ -113,6 +113,10 @@ class MainWindow(
         self.controller = RunController(self)
         self.controller.on_ip_counter = None  # will be set after dashboard creation
         self.controller.card_code_provider = self._ask_card_code
+        try:
+            self.controller.adapter._card_code_provider = self._ask_card_code
+        except Exception as exc:
+            log_suppressed_exception("__init__: sync adapter card_code_provider", exc, level=logging.WARNING)
 
         # 立即初始化关键页面
         self.runtime_page = RuntimePage(self.controller, self)

@@ -21,7 +21,6 @@ from playwright.sync_api import (
 
 from wjx.network.proxy import (
     PROXY_SOURCE_CUSTOM,
-    PROXY_SOURCE_DEFAULT,
     _normalize_proxy_address,
     get_proxy_source,
 )
@@ -124,7 +123,7 @@ def _parse_proxy_context_args(proxy_address: Optional[str]) -> Dict[str, Any]:
     except Exception as exc:
         log_suppressed_exception("browser_driver._parse_proxy_context_args parse proxy", exc, level=logging.WARNING)
 
-    if get_proxy_source() in (PROXY_SOURCE_DEFAULT, PROXY_SOURCE_CUSTOM) and "username" not in proxy_settings:
+    if get_proxy_source() == PROXY_SOURCE_CUSTOM and "username" not in proxy_settings:
         try:
             auth = get_proxy_auth()
             username, password = auth.split(":", 1)

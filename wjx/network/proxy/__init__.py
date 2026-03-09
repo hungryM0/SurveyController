@@ -24,7 +24,6 @@ from wjx.network.proxy.provider import (
     test_custom_proxy_api,
 )
 from wjx.network.proxy.quota import (
-    _get_default_quota_with_cache,
     get_random_ip_counter_snapshot_local,
     get_random_ip_limit,
     normalize_random_ip_enabled_value,
@@ -37,6 +36,7 @@ from wjx.network.proxy.gui_bridge import (
     handle_random_ip_submission,
     on_random_ip_toggle,
     refresh_ip_counter_display,
+    show_random_ip_activation_dialog,
 )
 
 __all__ = [
@@ -45,7 +45,6 @@ __all__ = [
     "PROXY_SOURCE_PIKACHU",
     "_fetch_new_proxy_batch",
     "_format_status_payload",
-    "_get_default_quota_with_cache",
     "_mask_proxy_for_log",
     "_normalize_proxy_address",
     "_proxy_is_responsive",
@@ -69,5 +68,6 @@ __all__ = [
     "set_proxy_api_override",
     "set_proxy_area_code",
     "set_proxy_source",
+    "show_random_ip_activation_dialog",
     "test_custom_proxy_api",
 ]

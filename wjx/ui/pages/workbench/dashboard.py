@@ -142,7 +142,7 @@ class DashboardPage(
         self._ip_low_infobar = FullWidthInfoBar(
             icon=InfoBarIcon.WARNING,
             title="",
-            content="随机IP剩余不足 5000，请提醒开发者及时充值",
+            content="随机IP剩余额度较低，如需继续使用请及时补充额度",
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
             position=InfoBarPosition.NONE,

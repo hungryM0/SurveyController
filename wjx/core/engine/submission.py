@@ -13,7 +13,6 @@ from wjx.core.task_context import TaskContext
 from wjx.network.browser import By, BrowserDriver, NoSuchElementException, TimeoutException
 from wjx.network.proxy import (
     PROXY_SOURCE_CUSTOM,
-    PROXY_SOURCE_DEFAULT,
     _normalize_proxy_address,
     get_proxy_source,
 )
@@ -192,7 +191,7 @@ def _build_submit_proxy_url(proxy_address: Optional[str]) -> Optional[str]:
     password = parsed.password
     if (
         not username
-        and get_proxy_source() in (PROXY_SOURCE_DEFAULT, PROXY_SOURCE_CUSTOM)
+        and get_proxy_source() == PROXY_SOURCE_CUSTOM
     ):
         try:
             auth = get_proxy_auth()

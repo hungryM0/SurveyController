@@ -27,6 +27,7 @@ from qfluentwidgets import (
 
 from wjx.ui.widgets import StatusPollingMixin
 from wjx.network.proxy import get_status, _format_status_payload
+from wjx.network.proxy.card import get_last_card_error_message
 from wjx.utils.app.version import ISSUE_FEEDBACK_URL
 from wjx.ui.pages.more.donate import DonatePage
 
@@ -407,12 +408,13 @@ class CardUnlockDialog(StatusPollingMixin, QDialog):
         if success:
             extra = ""
             if self._validation_quota is not None:
-                extra = f"，额度 +{self._validation_quota}"
-            InfoBar.success("", f"卡密验证通过{extra}", parent=self, position=InfoBarPosition.TOP, duration=2000)
+                extra = f"，剩余额度 {self._validation_quota}"
+            InfoBar.success("", f"随机IP激活成功{extra}", parent=self, position=InfoBarPosition.TOP, duration=2000)
             # 延迟关闭窗口，让用户看到成功提示
             QTimer.singleShot(1500, self._close_on_success)
         else:
-            InfoBar.error("", "卡密验证失败，请重试", parent=self, position=InfoBarPosition.TOP, duration=2500)
+            message = get_last_card_error_message() or "卡密验证失败，请重试"
+            InfoBar.error("", message, parent=self, position=InfoBarPosition.TOP, duration=3000)
 
     def _close_on_success(self):
         """验证成功后关闭窗口"""
