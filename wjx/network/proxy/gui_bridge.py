@@ -5,11 +5,15 @@ import logging
 import threading
 from typing import Any, Callable, Optional
 
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, IndeterminateProgressRing
+
 from wjx.network.proxy.auth import (
     RandomIPAuthError,
     activate_trial,
     format_random_ip_error,
-    get_quota_snapshot,
+    get_fresh_quota_snapshot,
     get_session_snapshot,
     has_authenticated_session,
     load_session_for_startup,
@@ -23,6 +27,85 @@ from wjx.utils.logging.log_utils import (
     log_popup_warning,
     log_suppressed_exception,
 )
+
+
+def _resolve_loading_parent(gui: Any) -> Optional[QWidget]:
+    candidate = gui
+    if isinstance(candidate, QWidget):
+        return candidate.window() or candidate
+    window_getter = getattr(gui, "window", None) if gui is not None else None
+    if callable(window_getter):
+        try:
+            parent = window_getter()
+            if isinstance(parent, QWidget):
+                return parent
+        except Exception:
+            logging.debug("获取加载框父窗口失败", exc_info=True)
+    active = QApplication.activeWindow()
+    if isinstance(active, QWidget):
+        return active
+    return None
+
+
+def _run_with_loading_dialog(
+    gui: Any,
+    *,
+    title: str,
+    message: str,
+    worker: Callable[[], Any],
+) -> Any:
+    parent = _resolve_loading_parent(gui)
+    if parent is None:
+        return worker()
+
+    result: dict[str, Any] = {}
+    done = threading.Event()
+
+    def _background() -> None:
+        try:
+            result["value"] = worker()
+        except Exception as exc:
+            result["error"] = exc
+        finally:
+            done.set()
+
+    dialog = QDialog(parent)
+    dialog.setWindowTitle(title)
+    dialog.setModal(True)
+    dialog.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+    dialog.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
+    dialog.setMinimumWidth(320)
+
+    layout = QVBoxLayout(dialog)
+    layout.setContentsMargins(24, 20, 24, 20)
+    layout.setSpacing(12)
+
+    ring = IndeterminateProgressRing(dialog)
+    ring.setFixedSize(36, 36)
+    ring.setStrokeWidth(3)
+    layout.addWidget(ring, 0, Qt.AlignmentFlag.AlignHCenter)
+
+    label = BodyLabel(message, dialog)
+    label.setWordWrap(True)
+    layout.addWidget(label, 0, Qt.AlignmentFlag.AlignHCenter)
+
+    timer = QTimer(dialog)
+    timer.setInterval(50)
+
+    def _poll_done() -> None:
+        if done.is_set():
+            timer.stop()
+            dialog.accept()
+
+    timer.timeout.connect(_poll_done)
+    timer.start()
+
+    threading.Thread(target=_background, daemon=True, name="RandomIPLoadingWorker").start()
+    dialog.exec()
+
+    if "error" in result:
+        raise result["error"]
+    return result.get("value")
 
 
 def _invoke_popup(gui: Any, kind: str, title: str, message: str) -> Any:
@@ -99,7 +182,22 @@ def on_random_ip_toggle(gui: Any) -> None:
         if not activated:
             _set_random_ip_enabled(gui, False)
             return
-    snapshot = get_quota_snapshot()
+    try:
+        snapshot = _run_with_loading_dialog(
+            gui,
+            title="随机IP校验中",
+            message="正在校验随机IP额度，请稍候...",
+            worker=get_fresh_quota_snapshot,
+        )
+    except Exception as exc:
+        message = format_random_ip_error(exc)
+        _invoke_popup(gui, "warning", "随机IP暂不可用", message)
+        _set_random_ip_enabled(gui, False)
+        try:
+            refresh_ip_counter_display(gui)
+        except Exception as refresh_exc:
+            log_suppressed_exception("on_random_ip_toggle refresh counter", refresh_exc)
+        return
     remaining = int(snapshot["remaining_quota"])
     if remaining <= 0:
         _invoke_popup(gui, "warning", "提示", "随机IP额度不足，请先补充额度后再启用。")
@@ -118,7 +216,12 @@ def ensure_random_ip_ready(gui: Any) -> bool:
 
 def _try_activate_trial(gui: Any = None) -> tuple[bool, bool]:
     try:
-        session = activate_trial()
+        session = _run_with_loading_dialog(
+            gui,
+            title="领取试用中",
+            message="正在领取随机IP免费试用，请稍候...",
+            worker=activate_trial,
+        )
     except RandomIPAuthError as exc:
         message = format_random_ip_error(exc)
         if exc.detail in {"trial_already_claimed", "trial_already_used", "device_trial_already_claimed"}:
@@ -171,7 +274,12 @@ def show_card_validation_dialog(gui: Any = None) -> bool:
         log_popup_warning("需要卡密", "请在界面中输入卡密激活随机IP服务")
         return False
     card_code = code_getter()
-    ok, remaining = _validate_card(str(card_code) if card_code else "")
+    ok, remaining = _run_with_loading_dialog(
+        gui,
+        title="核销卡密中",
+        message="正在核销随机IP卡密，请稍候...",
+        worker=lambda: _validate_card(str(card_code) if card_code else ""),
+    )
     if ok:
         quota_left = max(0, int(remaining or 0))
         _invoke_popup(gui, "info", "激活成功", f"卡密验证通过，随机IP剩余额度：{quota_left}。")

@@ -5,8 +5,19 @@ import time
 from typing import Any, Optional, Tuple
 import logging
 
-from wjx.network.proxy.provider import _map_answer_seconds_to_ipzan_minute
+from wjx.network.proxy.provider import _map_answer_seconds_to_proxy_minute
 from wjx.utils.logging.log_utils import log_suppressed_exception
+
+_COMPLETION_MARKERS = (
+    "答卷已经提交",
+    "感谢您的参与",
+    "问卷提交成功",
+    "提交成功",
+    "已完成本次问卷",
+    "已完成本次答卷",
+    "感谢您的宝贵时间",
+    "问卷已结束",
+)
 
 
 
@@ -38,7 +49,7 @@ def simulate_answer_duration_delay(
     # 用原始配置的最大秒数推导随机 IP 的分钟档位（1/3/5/10/15/30 分），作为硬上限参考
     proxy_ref_seconds = max(0, int(max(raw_min, raw_max)))
     try:
-        ip_minute = _map_answer_seconds_to_ipzan_minute(proxy_ref_seconds)
+        ip_minute = _map_answer_seconds_to_proxy_minute(proxy_ref_seconds)
     except Exception:
         ip_minute = 0
 
@@ -77,6 +88,13 @@ def simulate_answer_duration_delay(
 
 def is_survey_completion_page(driver: Any) -> bool:
     """尝试检测当前页面是否为问卷提交完成页。"""
+    try:
+        current_url = str(getattr(driver, "current_url", "") or "")
+        if "complete" in current_url.lower():
+            return True
+    except Exception as exc:
+        log_suppressed_exception("is_survey_completion_page: current_url", exc, level=logging.WARNING)
+
     detected = False
     try:
         divdsc = None
@@ -86,15 +104,50 @@ def is_survey_completion_page(driver: Any) -> bool:
             divdsc = None
         if divdsc and getattr(divdsc, "is_displayed", lambda: True)():
             text = getattr(divdsc, "text", "") or ""
-            if "答卷已经提交" in text or "感谢您的参与" in text:
+            if any(marker in text for marker in _COMPLETION_MARKERS):
                 detected = True
     except Exception as exc:
         log_suppressed_exception("is_survey_completion_page: divdsc = None", exc, level=logging.WARNING)
     if not detected:
         try:
             page_text = driver.execute_script("return document.body.innerText || '';") or ""
-            if "答卷已经提交" in page_text or "感谢您的参与" in page_text:
-                detected = True
+            has_marker = any(marker in page_text for marker in _COMPLETION_MARKERS)
+            if has_marker:
+                action_visible = bool(
+                    driver.execute_script(
+                        r"""
+                        return (() => {
+                            const selectors = [
+                                '#submit_button',
+                                '#divSubmit',
+                                '#ctlNext',
+                                '#divNext',
+                                '#btnNext',
+                                '#SM_BTN_1',
+                                '#SubmitBtnGroup .submitbtn',
+                                'button[type="submit"]',
+                                'a.button.mainBgColor'
+                            ];
+                            const visible = (el) => {
+                                if (!el) return false;
+                                const style = window.getComputedStyle(el);
+                                if (!style) return false;
+                                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+                                const rect = el.getBoundingClientRect();
+                                return rect.width > 0 && rect.height > 0;
+                            };
+                            for (const sel of selectors) {
+                                const nodes = document.querySelectorAll(sel);
+                                for (const node of nodes) {
+                                    if (visible(node)) return true;
+                                }
+                            }
+                            return false;
+                        })();
+                        """
+                    )
+                )
+                detected = not action_visible
         except Exception as exc:
             log_suppressed_exception("is_survey_completion_page: page_text = driver.execute_script(\"return document.body.innerText || '';\") or \"\"", exc, level=logging.WARNING)
     return bool(detected)

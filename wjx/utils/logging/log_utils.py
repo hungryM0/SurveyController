@@ -279,12 +279,10 @@ class LogBufferHandler(logging.Handler):
         """检查是否应过滤包含敏感信息的日志"""
         if not message:
             return False
-        # 过滤特定服务的API请求日志（只过滤这一个域名）
         sensitive_patterns = [
-            "service.ipzan.com",
-            "userProduct-get",
-            "20260112572376490874",
-            "72FH7U4E0IG",
+            "Authorization: Bearer ",
+            "refresh_token",
+            "access_token",
         ]
         return any(pattern in message for pattern in sensitive_patterns)
 

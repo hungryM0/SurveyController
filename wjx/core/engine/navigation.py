@@ -12,6 +12,65 @@ from wjx.core.questions.utils import (
 from wjx.network.browser import By, BrowserDriver
 from wjx.utils.logging.log_utils import log_suppressed_exception
 
+_START_TEXTS = ("开始作答", "开始答题", "开始填写")
+
+
+def _should_attempt_start_click(driver: BrowserDriver) -> bool:
+    """仅当页面仍处于开屏阶段时才尝试点击“开始作答”按钮。"""
+    script = r"""
+        return (() => {
+            const visible = (el) => {
+                if (!el) return false;
+                const style = window.getComputedStyle(el);
+                if (!style) return false;
+                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+                const rect = el.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            };
+
+            const hasVisible = (selectors) => {
+                for (const sel of selectors) {
+                    const nodes = document.querySelectorAll(sel);
+                    for (const node of nodes) {
+                        if (visible(node)) return true;
+                    }
+                }
+                return false;
+            };
+
+            const startLabels = new Set(['开始作答', '开始答题', '开始填写']);
+            const startNodes = Array.from(document.querySelectorAll('a, button, div, span')).filter((el) => {
+                if (!visible(el)) return false;
+                const text = (el.innerText || el.textContent || '').replace(/\s+/g, '');
+                return startLabels.has(text);
+            });
+            const hasStartGate = startNodes.length > 0;
+
+            const hasQuestionArea = hasVisible([
+                '#divQuestion [topic]',
+                '#divQuestion .div_question',
+                '.div_question[topic]',
+                '[id^="div"][topic]',
+                '.wjx_question[topic]'
+            ]);
+            const hasActionButtons = hasVisible([
+                '#submit_button',
+                '#divSubmit',
+                '#ctlNext',
+                '#divNext',
+                '#btnNext',
+                'button[type="submit"]',
+                'a.button.mainBgColor'
+            ]);
+
+            return !!(hasStartGate && !hasQuestionArea && !hasActionButtons);
+        })();
+    """
+    try:
+        return bool(driver.execute_script(script))
+    except Exception:
+        return True
+
 
 def try_click_start_answer_button(
     driver: BrowserDriver, timeout: float = 1.0, stop_signal: Optional[threading.Event] = None
@@ -22,10 +81,15 @@ def try_click_start_answer_button(
     poll_interval = 0.2
     total_window = max(0.0, timeout)
     max_checks = max(1, int(math.ceil(total_window / max(poll_interval, 0.05)))) if total_window else 1
+    if not _should_attempt_start_click(driver):
+        return False
+
     locator_candidates = [
-        (By.CSS_SELECTOR, "div.slideChunkWord"),
-        (By.XPATH, "//div[contains(@class,'slideChunkWord') and contains(normalize-space(),'开始作答')]"),
-        (By.XPATH, "//*[contains(text(),'开始作答')]"),
+        (By.XPATH, "//div[contains(@class,'slideChunkWord') and normalize-space()='开始作答']"),
+        (By.XPATH, "//a[normalize-space()='开始作答' or normalize-space()='开始答题' or normalize-space()='开始填写']"),
+        (By.XPATH, "//button[normalize-space()='开始作答' or normalize-space()='开始答题' or normalize-space()='开始填写']"),
+        (By.XPATH, "//div[normalize-space()='开始作答' or normalize-space()='开始答题' or normalize-space()='开始填写']"),
+        (By.XPATH, "//span[normalize-space()='开始作答' or normalize-space()='开始答题' or normalize-space()='开始填写']"),
     ]
     already_reported = False
     for attempt in range(max_checks):
@@ -46,7 +110,7 @@ def try_click_start_answer_button(
                 if not displayed:
                     continue
                 text = _extract_text_from_element(element)
-                if "开始作答" not in text:
+                if text.replace(" ", "") not in _START_TEXTS:
                     continue
                 if not already_reported:
                     print("检测到“开始作答”按钮，尝试自动点击...")

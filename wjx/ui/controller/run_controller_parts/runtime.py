@@ -12,7 +12,12 @@ from PySide6.QtCore import QCoreApplication
 from wjx.core.engine import run
 from wjx.core.questions.config import configure_probabilities, validate_question_config
 from wjx.core.task_context import TaskContext
-from wjx.network.proxy.auth import get_quota_snapshot, has_authenticated_session
+from wjx.network.proxy.auth import (
+    RandomIPAuthError,
+    format_random_ip_error,
+    get_fresh_quota_snapshot,
+    has_authenticated_session,
+)
 from wjx.network.proxy import (
     get_effective_proxy_api_url,
     is_custom_proxy_api_active,
@@ -528,7 +533,18 @@ class RunControllerRuntimeMixin:
                     self._starting = False
                     self.runFailed.emit("默认随机IP需要先领取免费试用或核销卡密激活，请先激活后再试，或改用自定义代理接口")
                     return
-                remaining = int(get_quota_snapshot()["remaining_quota"])
+                try:
+                    remaining = int(get_fresh_quota_snapshot()["remaining_quota"])
+                except RandomIPAuthError as exc:
+                    logging.warning("启动前同步随机IP额度失败：%s", exc.detail)
+                    self._starting = False
+                    self.runFailed.emit(format_random_ip_error(exc))
+                    return
+                except Exception as exc:
+                    logging.warning("启动前同步随机IP额度失败：%s", exc, exc_info=True)
+                    self._starting = False
+                    self.runFailed.emit(f"同步随机IP额度失败：{exc}")
+                    return
                 if remaining <= 0:
                     logging.warning("随机IP剩余额度不足，无法启动")
                     self._starting = False

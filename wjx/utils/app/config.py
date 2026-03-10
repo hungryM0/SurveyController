@@ -143,14 +143,6 @@ def _resolve_env_value(key: str, default: str) -> str:
     return default
 
 
-def get_proxy_remote_url() -> str:
-    """获取随机 IP API 地址（默认走后端提取接口）。"""
-    env_url = _resolve_env_value(_RANDOM_IP_API_ENV_KEY, "")
-    if env_url:
-        return env_url
-    return _resolve_env_value("IP_EXTRACT_ENDPOINT", _DEFAULT_IP_EXTRACT_ENDPOINT)
-
-
 def get_proxy_auth() -> str:
     """获取代理认证信息（仅保留环境变量兼容）。"""
     return os.environ.get("WJX_PROXY_AUTH", "")
@@ -158,6 +150,7 @@ _DEFAULT_CONTACT_API = "https://bot.hungrym0.top"
 _DEFAULT_AUTH_ACTIVATE = "https://api-wjx.hungrym0.top/api/auth/activate"
 _DEFAULT_AUTH_TRIAL = "https://api-wjx.hungrym0.top/api/auth/trial"
 _DEFAULT_AUTH_REFRESH = "https://api-wjx.hungrym0.top/api/auth/refresh"
+_DEFAULT_AUTH_BONUS_CLAIM = "https://api-wjx.hungrym0.top/api/bonus"
 _DEFAULT_CARD_VALIDATION = "https://api-wjx.hungrym0.top/api/card/verify"
 _DEFAULT_IP_EXTRACT_ENDPOINT = "https://api-wjx.hungrym0.top/api/ip/extract"
 _DEFAULT_STATUS_ENDPOINT = "https://api-wjx.hungrym0.top/api/status"
@@ -237,13 +230,12 @@ STOP_FORCE_WAIT_SECONDS = 0.3
 PROXY_MAX_PROXIES = 80
 PROXY_HEALTH_CHECK_URL = "https://www.wjx.cn"
 PROXY_HEALTH_CHECK_TIMEOUT = 15
-_RANDOM_IP_API_ENV_KEY = "RANDOM_IP_API_URL"
-
 # ==================== API 端点配置 ====================
 CONTACT_API_URL = _resolve_env_value("CONTACT_API_URL", _DEFAULT_CONTACT_API)
 AUTH_ACTIVATE_ENDPOINT = _resolve_env_value("AUTH_ACTIVATE_ENDPOINT", _DEFAULT_AUTH_ACTIVATE)
 AUTH_TRIAL_ENDPOINT = _resolve_env_value("AUTH_TRIAL_ENDPOINT", _DEFAULT_AUTH_TRIAL)
 AUTH_REFRESH_ENDPOINT = _resolve_env_value("AUTH_REFRESH_ENDPOINT", _DEFAULT_AUTH_REFRESH)
+AUTH_BONUS_CLAIM_ENDPOINT = _resolve_env_value("AUTH_BONUS_CLAIM_ENDPOINT", _DEFAULT_AUTH_BONUS_CLAIM)
 CARD_VALIDATION_ENDPOINT = _resolve_env_value("CARD_VALIDATION_ENDPOINT", _DEFAULT_CARD_VALIDATION)
 IP_EXTRACT_ENDPOINT = _resolve_env_value("IP_EXTRACT_ENDPOINT", _DEFAULT_IP_EXTRACT_ENDPOINT)
 STATUS_ENDPOINT = _resolve_env_value("STATUS_ENDPOINT", _DEFAULT_STATUS_ENDPOINT)

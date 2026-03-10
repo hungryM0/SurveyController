@@ -3,19 +3,16 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
-from PySide6.QtCore import QSettings, QTimer, Qt
-from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog
 from qfluentwidgets import FluentIcon
 
-from wjx.network.proxy.auth import clear_session, has_authenticated_session
+from wjx.network.proxy.auth import has_authenticated_session
 from wjx.network.proxy import (
     _format_status_payload,
     _validate_card,
-    get_ipzan_minute_by_answer_seconds,
+    get_proxy_minute_by_answer_seconds,
     get_quota_cost_by_minute,
     get_random_ip_counter_snapshot_local,
     get_status,
@@ -25,9 +22,7 @@ from wjx.network.proxy import (
 )
 from wjx.ui.dialogs.card_unlock import CardUnlockDialog
 from wjx.ui.dialogs.contact import ContactDialog
-from wjx.utils.app.config import get_bool_from_qsettings
 from wjx.utils.logging.log_utils import log_suppressed_exception
-from wjx.utils.system.registry_manager import RegistryManager
 
 if TYPE_CHECKING:
     from qfluentwidgets import BodyLabel, CheckBox, PushButton
@@ -55,87 +50,10 @@ class DashboardRandomIPMixin:
         _ip_balance_fetching: bool
         _last_ip_balance_fetch_ts: float
         _ip_balance_fetch_interval_sec: float
-        _debug_reset_in_progress: bool
-        _debug_reset_started_at: float
-        _debug_reset_shortcut: Optional[QShortcut]
-        _debugResetFinished: Any  # PySide6.QtCore.Signal，Mixin 中无法精确声明描述符类型
         _ipBalanceChecked: Any   # 同上
 
         def _toast(self, text: str, level: str = "info", duration: int = 2000, show_progress: bool = False) -> Any: ...
         def window(self) -> Any: ...  # 继承自 QWidget，此处仅供类型检查
-
-    @staticmethod
-    def _is_debug_mode_enabled() -> bool:
-        settings = QSettings("FuckWjx", "Settings")
-        return get_bool_from_qsettings(settings.value("debug_mode"), False)
-
-    def _bind_debug_reset_shortcut(self) -> None:
-        """绑定全局调试重置快捷键：Alt+Shift+R。"""
-        if getattr(self, "_debug_reset_shortcut", None) is not None:
-            return
-        shortcut = QShortcut(QKeySequence("Alt+Shift+R"), self)
-        shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
-        shortcut.activated.connect(self._on_debug_reset_shortcut_activated)
-        self._debug_reset_shortcut = shortcut
-
-    def _on_debug_reset_shortcut_activated(self) -> None:
-        """仅在调试模式下触发随机IP额度重置。"""
-        if not self._is_debug_mode_enabled():
-            return
-
-        if self._debug_reset_in_progress:
-            return
-
-        self._debug_reset_in_progress = True
-        self._debug_reset_started_at = time.monotonic()
-        self._toast("正在重置随机IP额度...", "info", duration=-1, show_progress=True)
-
-        thread = threading.Thread(
-            target=self._run_debug_reset_worker,
-            daemon=True,
-            name="DebugResetWorker",
-        )
-        thread.start()
-
-    def _run_debug_reset_worker(self) -> None:
-        """后台执行 debug reset，避免阻塞 GUI。"""
-        payload: Dict[str, Any] = {"ok": False, "quota": None, "error": ""}
-        try:
-            clear_session()
-            RegistryManager.write_submit_count(0)
-            RegistryManager.write_quota_limit(0)
-            RegistryManager.set_card_verified(False)
-            RegistryManager.set_extra_quota_verified(False)
-            RegistryManager.set_confetti_played(False)
-            payload["ok"] = True
-            payload["quota"] = 0
-        except Exception as exc:
-            payload["error"] = str(exc)
-            log_suppressed_exception("dashboard._run_debug_reset_worker", exc, level=logging.WARNING)
-        finally:
-            self._debugResetFinished.emit(payload)
-
-    def _on_debug_reset_finished(self, payload: Any) -> None:
-        data = payload if isinstance(payload, dict) else {}
-        min_loading_ms = 300
-        elapsed_ms = int(max(0.0, time.monotonic() - float(getattr(self, "_debug_reset_started_at", 0.0))) * 1000)
-        delay_ms = max(0, min_loading_ms - elapsed_ms)
-        if delay_ms > 0:
-            QTimer.singleShot(delay_ms, lambda d=data: self._apply_debug_reset_result(d))
-            return
-        self._apply_debug_reset_result(data)
-
-    def _apply_debug_reset_result(self, data: Dict[str, Any]) -> None:
-        self._debug_reset_in_progress = False
-        success = bool(data.get("ok"))
-        if not success:
-            logging.warning("调试重置：清空随机IP状态失败")
-            refresh_ip_counter_display(self.controller.adapter)
-            self._toast("清空随机IP状态失败，请查看日志", "warning", duration=3000)
-            return
-
-        refresh_ip_counter_display(self.controller.adapter)
-        self._toast("已清空随机IP激活状态", "success", duration=2500)
 
     def _set_runtime_ip_switch(self, enabled: bool) -> None:
         """设置运行时页面的随机IP开关，并同步展开区域的启用状态（绕过信号阻塞）。"""
@@ -225,7 +143,7 @@ class DashboardRandomIPMixin:
         except Exception:
             answer_seconds = 0
 
-        minute = int(get_ipzan_minute_by_answer_seconds(answer_seconds))
+        minute = int(get_proxy_minute_by_answer_seconds(answer_seconds))
         if minute <= 1:
             self._ip_cost_infobar.hide()
             return
@@ -252,15 +170,6 @@ class DashboardRandomIPMixin:
 
     def _on_random_ip_toggled(self, state: int):
         enabled = state != 0
-        if enabled:
-            count, limit, custom_api = get_random_ip_counter_snapshot_local()
-            if (not custom_api) and has_authenticated_session() and limit > 0 and count >= limit:
-                self._toast("随机IP剩余额度不足，请补充额度后再启用。", "warning")
-                self.random_ip_cb.blockSignals(True)
-                self.random_ip_cb.setChecked(False)
-                self.random_ip_cb.blockSignals(False)
-                self._set_runtime_ip_switch(False)
-                return
         try:
             self.controller.adapter.random_ip_enabled_var.set(bool(enabled))
             on_random_ip_toggle(self.controller.adapter)

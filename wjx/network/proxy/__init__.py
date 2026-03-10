@@ -3,7 +3,6 @@
 from wjx.network.proxy.provider import (
     PROXY_SOURCE_CUSTOM,
     PROXY_SOURCE_DEFAULT,
-    PROXY_SOURCE_PIKACHU,
     _fetch_new_proxy_batch,
     _format_status_payload,
     _mask_proxy_for_log,
@@ -11,7 +10,7 @@ from wjx.network.proxy.provider import (
     _proxy_is_responsive,
     get_default_proxy_area_code,
     get_effective_proxy_api_url,
-    get_ipzan_minute_by_answer_seconds,
+    get_proxy_minute_by_answer_seconds,
     get_proxy_source,
     get_quota_cost_by_minute,
     get_status,
@@ -42,7 +41,6 @@ from wjx.network.proxy.gui_bridge import (
 __all__ = [
     "PROXY_SOURCE_CUSTOM",
     "PROXY_SOURCE_DEFAULT",
-    "PROXY_SOURCE_PIKACHU",
     "_fetch_new_proxy_batch",
     "_format_status_payload",
     "_mask_proxy_for_log",
@@ -53,7 +51,7 @@ __all__ = [
     "get_default_proxy_area_code",
     "get_random_ip_counter_snapshot_local",
     "get_effective_proxy_api_url",
-    "get_ipzan_minute_by_answer_seconds",
+    "get_proxy_minute_by_answer_seconds",
     "get_proxy_occupy_minute",
     "get_proxy_source",
     "get_quota_cost_by_minute",

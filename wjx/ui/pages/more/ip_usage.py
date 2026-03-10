@@ -6,7 +6,14 @@ import random
 import threading
 import logging
 
-import wjx.network.http_client as http_client
+from wjx.network.proxy.auth import (
+    RandomIPAuthError,
+    claim_easter_egg_bonus,
+    format_random_ip_error,
+    get_fresh_quota_snapshot,
+    has_authenticated_session,
+)
+from wjx.network.proxy import refresh_ip_counter_display
 from wjx.utils.logging.log_utils import log_suppressed_exception
 from wjx.utils.system.registry_manager import RegistryManager
 
@@ -377,19 +384,22 @@ class InteractiveChartView(QChartView):
 
 class IpUsagePage(ScrollArea):
     _dataLoaded = Signal(list, str)
-    _ipBalanceLoaded = Signal(float)
+    _quotaLoaded = Signal(object)
+    _bonusClaimFinished = Signal(object)
     _ENABLE_CONFETTI = True
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._dataLoaded.connect(self._on_data_loaded)
-        self._ipBalanceLoaded.connect(self._on_ip_balance_loaded)
+        self._quotaLoaded.connect(self._on_quota_loaded)
+        self._bonusClaimFinished.connect(self._on_bonus_claim_finished)
         self._load_requested_once = False
         self._last_load_failed = False
         self._load_scheduled = False
         self._confetti_overlay: ConfettiOverlay | None = None
         self._confetti_played = RegistryManager.is_confetti_played()
         self._confetti_pending = False
+        self._bonus_claim_in_progress = False
         self._confetti_retry_timer = QTimer(self)
         self._confetti_retry_timer.setSingleShot(True)
         self._confetti_retry_timer.timeout.connect(self._try_launch_confetti)
@@ -637,32 +647,41 @@ class IpUsagePage(ScrollArea):
             except Exception:
                 return 0
 
-    def _load_ip_balance(self):
+    def _load_quota_summary(self):
         def _do():
             try:
-                response = http_client.get(
-                    "https://service.ipzan.com/userProduct-get",
-                    params={"no": "20260112572376490874", "userId": "72FH7U4E0IG"},
-                    timeout=5,
-                )
-                data = response.json()
-                if data.get("code") in (0, 200) and data.get("status") in (200, "200", None):
-                    balance = data.get("data", {}).get("balance", 0)
-                    try:
-                        self._ipBalanceLoaded.emit(float(balance))
-                    except Exception as exc:
-                        log_suppressed_exception("_load_ip_balance emit", exc, level=logging.WARNING)
+                if not has_authenticated_session():
+                    payload = {"authenticated": False}
+                else:
+                    snapshot = get_fresh_quota_snapshot()
+                    payload = {
+                        "authenticated": True,
+                        "remaining_quota": int(snapshot.get("remaining_quota") or 0),
+                        "total_quota": int(snapshot.get("total_quota") or 0),
+                    }
+                try:
+                    self._quotaLoaded.emit(payload)
+                except Exception as exc:
+                    log_suppressed_exception("_load_quota_summary emit", exc, level=logging.WARNING)
             except Exception as exc:
-                log_suppressed_exception("_load_ip_balance request", exc, level=logging.WARNING)
+                try:
+                    self._quotaLoaded.emit({"error": str(exc)})
+                except Exception as emit_exc:
+                    log_suppressed_exception("_load_quota_summary emit error", emit_exc, level=logging.WARNING)
+                log_suppressed_exception("_load_quota_summary request", exc, level=logging.WARNING)
         threading.Thread(target=_do, daemon=True).start()
 
-    def _on_ip_balance_loaded(self, balance: float):
-        try:
-            ip_count = int(float(balance) / 0.0035)
-            display = str(ip_count)
-        except Exception:
-            display = "--"
-        self._ip_balance_label.setText(f"代理源剩余 IP 数：{display}")
+    def _on_quota_loaded(self, payload: Any):
+        data = payload if isinstance(payload, dict) else {}
+        if data.get("error"):
+            self._ip_balance_label.setText("随机IP额度：同步失败")
+            return
+        if not data.get("authenticated"):
+            self._ip_balance_label.setText("随机IP额度：未激活")
+            return
+        remaining = self._to_int(data.get("remaining_quota"))
+        total = self._to_int(data.get("total_quota"))
+        self._ip_balance_label.setText(f"随机IP额度：{remaining}/{total}")
 
     def _set_loading(self, loading: bool) -> None:
         self._loading = bool(loading)
@@ -679,7 +698,7 @@ class IpUsagePage(ScrollArea):
         if (not self._load_requested_once) or self._last_load_failed:
             self._load_requested_once = True
             self._load_data()
-            self._load_ip_balance()
+            self._load_quota_summary()
 
     def _update_chart_height(self) -> None:
         viewport_height = max(self.viewport().height(), 480)
@@ -751,29 +770,65 @@ class IpUsagePage(ScrollArea):
         self._confetti_pending = False
         self._confetti_played = True
         RegistryManager.set_confetti_played(True)
-        # 彩蛋奖励：额度 +200，并弹出提示
+        self._start_bonus_claim()
+
+    def _start_bonus_claim(self) -> None:
+        if self._bonus_claim_in_progress:
+            return
+        self._bonus_claim_in_progress = True
+        threading.Thread(target=self._claim_bonus_worker, daemon=True, name="EasterEggBonusClaim").start()
+
+    def _claim_bonus_worker(self) -> None:
+        payload: dict[str, Any] = {"level": "success", "message": "🎉恭喜发现彩蛋"}
         try:
-            new_limit = RegistryManager.read_quota_limit() + 200
-            RegistryManager.write_quota_limit(new_limit)
-            # 立即刷新主页额度显示，无需重启
-            from wjx.network.proxy import refresh_ip_counter_display
+            if not has_authenticated_session():
+                payload = {"level": "info", "message": "🎉恭喜发现彩蛋，激活随机IP后可领取隐藏福利"}
+            else:
+                result = claim_easter_egg_bonus()
+                claimed = bool(result.get("claimed"))
+                bonus_quota = int(result.get("bonus_quota") or 0)
+                if claimed and bonus_quota > 0:
+                    payload = {"level": "success", "message": f"🎉恭喜发现彩蛋，额度+{bonus_quota}"}
+                elif claimed:
+                    payload = {"level": "success", "message": "🎉恭喜发现彩蛋，隐藏福利已到账"}
+                else:
+                    payload = {"skip_infobar": True}
+        except RandomIPAuthError as exc:
+            detail = str(exc.detail or "").strip()
+            if detail in {"bonus_already_claimed", "easter_egg_already_claimed"}:
+                payload = {"skip_infobar": True}
+            else:
+                payload = {"level": "warning", "message": format_random_ip_error(exc)}
+        except Exception as exc:
+            payload = {"level": "warning", "message": f"领取彩蛋奖励失败：{exc}"}
+        finally:
+            self._bonusClaimFinished.emit(payload)
+
+    def _on_bonus_claim_finished(self, payload: Any) -> None:
+        self._bonus_claim_in_progress = False
+        try:
             win = self.window()
             controller = getattr(win, "controller", None) if win is not None else None
             if controller is not None and hasattr(controller, "adapter"):
                 refresh_ip_counter_display(controller.adapter)
         except Exception as exc:
-            log_suppressed_exception("confetti_bonus_quota", exc, level=logging.WARNING)
-        QTimer.singleShot(400, self._show_easter_egg_infobar)
+            log_suppressed_exception("_on_bonus_claim_finished refresh counter", exc, level=logging.WARNING)
+        if isinstance(payload, dict) and bool(payload.get("skip_infobar")):
+            return
+        QTimer.singleShot(400, lambda p=payload: self._show_easter_egg_infobar(p))
 
-    def _show_easter_egg_infobar(self):
+    def _show_easter_egg_infobar(self, payload: Any = None):
+        data = payload if isinstance(payload, dict) else {}
+        level = str(data.get("level") or "success").strip().lower()
+        message = str(data.get("message") or "🎉恭喜发现彩蛋").strip()
         try:
-            InfoBar.success(
-                title="",
-                content="🎉恭喜发现彩蛋，额度+200",
-                parent=self.window(),
-                position=InfoBarPosition.TOP,
-                duration=5000,
-            )
+            factory = {
+                "warning": InfoBar.warning,
+                "error": InfoBar.error,
+                "info": InfoBar.info,
+                "success": InfoBar.success,
+            }.get(level, InfoBar.success)
+            factory(title="", content=message, parent=self.window(), position=InfoBarPosition.TOP, duration=5000)
         except Exception as exc:
             log_suppressed_exception("_show_easter_egg_infobar", exc, level=logging.WARNING)
 

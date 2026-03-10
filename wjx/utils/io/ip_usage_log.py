@@ -1,4 +1,4 @@
-"""IP 使用记录数据接口 - 从自建 API 获取品赞每日提取记录"""
+"""IP 使用记录数据接口 - 从自建 API 获取每日提取记录"""
 import wjx.network.http_client as http_client
 from wjx.utils.app.config import DEFAULT_HTTP_HEADERS
 

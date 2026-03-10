@@ -396,14 +396,29 @@ class PlaywrightElement:
             return ""
 
     def click(self) -> None:
+        last_exc: Optional[Exception] = None
         try:
             self._handle.click()
-        except Exception:
+            return
+        except Exception as exc:
+            last_exc = exc
             try:
                 self._handle.scroll_into_view_if_needed()
                 self._handle.click()
+                return
             except Exception as exc:
+                last_exc = exc
                 log_suppressed_exception("browser_driver.PlaywrightElement.click fallback", exc, level=logging.WARNING)
+        try:
+            self._handle.evaluate(
+                "el => { el.click(); return true; }"
+            )
+            return
+        except Exception as exc:
+            last_exc = exc
+            log_suppressed_exception("browser_driver.PlaywrightElement.click js fallback", exc, level=logging.WARNING)
+        if last_exc is not None:
+            raise last_exc
 
     def clear(self) -> None:
         try:
