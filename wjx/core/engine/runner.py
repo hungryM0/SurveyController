@@ -116,9 +116,10 @@ def _submission_blocked_by_security_check(driver: BrowserDriver) -> bool:
 class _BrowserSession:
     """封装单次浏览器会话的创建、注册、销毁逻辑。"""
 
-    def __init__(self, ctx: TaskContext, gui_instance: Any):
+    def __init__(self, ctx: TaskContext, gui_instance: Any, thread_name: str):
         self.ctx = ctx
         self.gui_instance = gui_instance
+        self.thread_name = str(thread_name or "").strip()
         self.driver: Optional[BrowserDriver] = None
         self._browser_manager: Optional[BrowserManager] = None
         self.proxy_address: Optional[str] = None
@@ -139,6 +140,9 @@ class _BrowserSession:
     def dispose(self) -> None:
         """释放本轮浏览器资源（仅 context/page）。"""
         if not self.driver:
+            if self.thread_name:
+                self.ctx.release_proxy_in_use(self.thread_name)
+                self.proxy_address = None
             if self.sem_acquired:
                 try:
                     self._browser_sem.release()
@@ -165,6 +169,10 @@ class _BrowserSession:
             logging.debug("已关闭浏览器 context/page")
         except Exception as exc:
             log_suppressed_exception("_BrowserSession.dispose driver.quit", exc, level=logging.WARNING)
+
+        if self.thread_name:
+            self.ctx.release_proxy_in_use(self.thread_name)
+        self.proxy_address = None
 
         if self.sem_acquired:
             try:
@@ -193,7 +201,7 @@ class _BrowserSession:
         window_y_pos: int,
     ) -> Optional[str]:
         """创建一个新的浏览器实例。返回实际使用的浏览器名称，失败返回 None。"""
-        self.proxy_address = _select_proxy_for_session(self.ctx)
+        self.proxy_address = _select_proxy_for_session(self.ctx, self.thread_name)
 
         if self.ctx.random_proxy_ip_enabled and not self.proxy_address:
             if _record_bad_proxy_and_maybe_pause(self.ctx, self.gui_instance):
@@ -203,6 +211,9 @@ class _BrowserSession:
             if not _proxy_is_responsive(self.proxy_address):
                 logging.warning("提取到的代理质量过低，自动弃用更换下一个")
                 _discard_unresponsive_proxy(self.ctx, self.proxy_address)
+                if self.thread_name:
+                    self.ctx.release_proxy_in_use(self.thread_name)
+                self.proxy_address = None
                 if self.ctx.random_proxy_ip_enabled:
                     _record_bad_proxy_and_maybe_pause(self.ctx, self.gui_instance)
                 return None
@@ -244,6 +255,9 @@ class _BrowserSession:
                 self._browser_sem.release()
                 self.sem_acquired = False
                 logging.debug("创建浏览器失败，已释放信号量")
+            if self.thread_name:
+                self.ctx.release_proxy_in_use(self.thread_name)
+            self.proxy_address = None
             raise
 
         self._register_driver(self.driver)
@@ -407,7 +421,7 @@ def run(
     base_browser_preference = list(ctx.browser_preference or BROWSER_PREFERENCE)
     preferred_browsers = list(base_browser_preference)
 
-    session = _BrowserSession(ctx, gui_instance)
+    session = _BrowserSession(ctx, gui_instance, thread_name)
 
     logging.debug(f"目标份数: {ctx.target_num}, 当前进度: {ctx.cur_num}/{ctx.target_num}")
     if timed_mode_on:

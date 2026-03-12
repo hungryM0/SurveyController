@@ -1,4 +1,5 @@
 """随机 IP / 代理管理 - 获取和切换代理 IP"""
+from datetime import datetime, timezone
 import json
 import logging
 import re
@@ -9,6 +10,7 @@ from typing import Any, List, Optional, Set, Tuple
 
 import wjx.network.http_client as http_client
 from wjx.network.proxy.auth import extract_proxy, format_random_ip_error
+from wjx.core.task_context import ProxyLease
 from wjx.utils.app.config import (
     DEFAULT_HTTP_HEADERS,
     IP_EXTRACT_ENDPOINT,
@@ -55,6 +57,7 @@ _ORDINARY_POOL_PROVINCE_CODES: Set[str] = {
     "410000", "420000", "430000", "440000", "460000", "500000", "510000",
     "610000", "620000", "640000",
 }
+_PROXY_TTL_GRACE_SECONDS = 20
 
 
 class AreaProxyQualityError(RuntimeError):
@@ -81,6 +84,99 @@ def _to_non_negative_int(value: Any, default: int = 0) -> int:
     except Exception:
         return max(0, int(default))
     return max(0, parsed)
+
+
+def _normalize_expected_proxy_count(expected_count: Any) -> int:
+    try:
+        parsed = int(expected_count)
+    except Exception:
+        parsed = 1
+    return max(1, min(PROXY_MAX_PROXIES, parsed))
+
+
+def _parse_expire_at_to_ts(expire_at: Optional[str]) -> float:
+    text = str(expire_at or "").strip()
+    if not text:
+        return 0.0
+    try:
+        parsed = datetime.fromisoformat(text)
+    except Exception:
+        logging.debug("代理 expire_at 解析失败：%s", text, exc_info=True)
+        return 0.0
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return float(parsed.astimezone(timezone.utc).timestamp())
+
+
+def _build_proxy_lease(
+    proxy_address: Optional[str],
+    *,
+    expire_at: Optional[str] = None,
+    poolable: bool = True,
+    source: str = "",
+) -> Optional[ProxyLease]:
+    normalized = _normalize_proxy_address(proxy_address)
+    if not normalized:
+        return None
+    expire_text = str(expire_at or "").strip()
+    return ProxyLease(
+        address=normalized,
+        expire_at=expire_text,
+        expire_ts=_parse_expire_at_to_ts(expire_text),
+        poolable=bool(poolable),
+        source=str(source or "").strip(),
+    )
+
+
+def _coerce_proxy_lease(item: Any, *, source: str = "") -> Optional[ProxyLease]:
+    if isinstance(item, ProxyLease):
+        normalized = _normalize_proxy_address(item.address)
+        if not normalized:
+            return None
+        if normalized == item.address:
+            return item
+        return ProxyLease(
+            address=normalized,
+            expire_at=item.expire_at,
+            expire_ts=float(item.expire_ts or 0.0),
+            poolable=bool(item.poolable),
+            source=item.source,
+        )
+    if isinstance(item, str):
+        return _build_proxy_lease(item, source=source)
+    if isinstance(item, dict):
+        address = item.get("address") or item.get("proxy") or item.get("host")
+        expire_at = item.get("expire_at")
+        poolable = bool(item.get("poolable", True))
+        item_source = str(item.get("source") or source or "").strip()
+        if address and item.get("port") and isinstance(address, str) and ":" not in address:
+            address = f"{address}:{item.get('port')}"
+        return _build_proxy_lease(address, expire_at=expire_at, poolable=poolable, source=item_source)
+    return None
+
+
+def _proxy_lease_address(item: Any) -> str:
+    lease = _coerce_proxy_lease(item)
+    return lease.address if lease is not None else ""
+
+
+def get_proxy_required_ttl_seconds(answer_duration_range_seconds: Optional[Tuple[int, int]]) -> int:
+    max_seconds = 0
+    if isinstance(answer_duration_range_seconds, (list, tuple)):
+        if len(answer_duration_range_seconds) >= 2:
+            max_seconds = _to_non_negative_int(answer_duration_range_seconds[1], 0)
+        elif len(answer_duration_range_seconds) >= 1:
+            max_seconds = _to_non_negative_int(answer_duration_range_seconds[0], 0)
+    return max(0, int(max_seconds)) + _PROXY_TTL_GRACE_SECONDS
+
+
+def proxy_lease_has_sufficient_ttl(lease: Optional[ProxyLease], *, required_ttl_seconds: int) -> bool:
+    if lease is None:
+        return False
+    expire_ts = float(getattr(lease, "expire_ts", 0.0) or 0.0)
+    if expire_ts <= 0:
+        return True
+    return (expire_ts - time.time()) >= max(0, int(required_ttl_seconds or 0))
 
 
 def _map_answer_seconds_to_proxy_minute(total_seconds: int) -> int:
@@ -322,6 +418,10 @@ def _parse_proxy_payload(text: str) -> List[str]:
     return unique
 
 
+def _is_default_batch_extract_payload(payload: Any) -> bool:
+    return isinstance(payload, dict) and isinstance(payload.get("items"), list)
+
+
 def _extract_custom_api_error(data: Any) -> Optional[str]:
     """从常见代理商响应中提取明确的致命错误。"""
     if not isinstance(data, dict):
@@ -433,6 +533,11 @@ def _format_host_port(hostname: str, port: Optional[int]) -> str:
 
 
 def _build_default_proxy_address(payload: dict) -> Optional[str]:
+    lease = _build_default_proxy_lease(payload)
+    return lease.address if lease is not None else None
+
+
+def _build_default_proxy_lease(payload: dict) -> Optional[ProxyLease]:
     if not isinstance(payload, dict):
         return None
     host = str(payload.get("host") or "").strip()
@@ -442,7 +547,30 @@ def _build_default_proxy_address(payload: dict) -> Optional[str]:
     account = str(payload.get("account") or "").strip()
     password = str(payload.get("password") or "").strip()
     raw = f"{account}:{password}@{host}:{port}" if account and password else f"{host}:{port}"
-    return _normalize_proxy_address(raw)
+    expire_at = str(payload.get("expire_at") or "").strip()
+    poolable = True
+    if not expire_at:
+        logging.warning("默认随机IP响应缺少 expire_at，该代理仅允许立即使用，不会进入代理池")
+        poolable = False
+    return _build_proxy_lease(raw, expire_at=expire_at, poolable=poolable, source=PROXY_SOURCE_DEFAULT)
+
+
+def _build_default_proxy_leases_from_batch(payload: dict) -> List[ProxyLease]:
+    if not isinstance(payload, dict):
+        return []
+    raw_items = payload.get("items")
+    if not isinstance(raw_items, list):
+        return []
+    leases: List[ProxyLease] = []
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        lease = _build_default_proxy_lease(raw)
+        if lease is None:
+            continue
+        leases.append(lease)
+        logging.info("获取到代理: %s", _mask_proxy_for_log(lease.address))
+    return leases
 
 
 def _mask_proxy_for_log(proxy_address: Optional[str]) -> str:
@@ -510,7 +638,8 @@ def _fetch_new_proxy_batch(
     proxy_url: Optional[str] = None,
     notify_on_area_error: bool = True,
     stop_signal: Optional[threading.Event] = None,
-) -> List[str]:
+) -> List[ProxyLease]:
+    expected_count = _normalize_expected_proxy_count(expected_count)
     current_source = get_proxy_source()
     is_custom = current_source == PROXY_SOURCE_CUSTOM or is_custom_proxy_api_active()
 
@@ -525,26 +654,36 @@ def _fetch_new_proxy_batch(
     if current_source == PROXY_SOURCE_DEFAULT and not is_custom:
         minute = int(get_proxy_occupy_minute() or 1)
         pool = _resolve_default_pool_by_area(area_code) or _DEFAULT_POOL_ORDINARY
-        fetched: List[str] = []
+        fetched: List[ProxyLease] = []
         errors: List[str] = []
-        for _ in range(max(1, expected_count)):
+        remaining = expected_count
+        while remaining > 0:
             try:
                 payload = extract_proxy(
                     minute=minute,
                     pool=pool,
                     area=_normalize_area_code(area_code) or "",
+                    num=remaining,
                 )
-                addr = _build_default_proxy_address(payload)
-                if addr:
-                    fetched.append(addr)
-                    logging.info("获取到代理: %s", _mask_proxy_for_log(addr))
+                if _is_default_batch_extract_payload(payload):
+                    batch_items = _build_default_proxy_leases_from_batch(payload)
+                    fetched.extend(batch_items)
+                    break
+                lease = _build_default_proxy_lease(payload)
+                if lease is not None:
+                    fetched.append(lease)
+                    logging.info("获取到代理: %s", _mask_proxy_for_log(lease.address))
+                    remaining = max(0, expected_count - len(fetched))
+                    if remaining <= 0:
+                        break
+                    continue
             except Exception as exc:
                 message = format_random_ip_error(exc)
                 errors.append(message)
                 break
         if not fetched:
             raise RuntimeError(f"获取随机IP失败: {'; '.join(errors) if errors else '无可用接口'}")
-        return fetched[: max(1, expected_count)]
+        return fetched[:expected_count]
 
     candidates: List[str] = []
     errors: List[str] = []
@@ -588,17 +727,18 @@ def _fetch_new_proxy_batch(
     if not candidates:
         raise RuntimeError(f"获取随机IP失败: {'; '.join(errors) if errors else '无可用接口'}")
     seen: Set[str] = set()
-    normalized: List[str] = []
+    normalized: List[ProxyLease] = []
     for item in candidates:
-        addr = _normalize_proxy_address(item)
+        lease = _build_proxy_lease(item, source=current_source or PROXY_SOURCE_CUSTOM)
+        addr = lease.address if lease is not None else ""
         if not addr or addr in seen:
             continue
         seen.add(addr)
-        normalized.append(addr)
+        normalized.append(lease)
         if len(normalized) >= PROXY_MAX_PROXIES:
             break
     if not normalized:
         raise RuntimeError("随机IP接口返回为空")
-    return normalized[: max(1, expected_count)]
+    return normalized[:expected_count]
 
 

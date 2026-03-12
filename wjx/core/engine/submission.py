@@ -14,10 +14,13 @@ from wjx.network.browser import By, BrowserDriver, NoSuchElementException, Timeo
 import wjx.network.http_client as http_client
 from wjx.network.proxy import (
     PROXY_SOURCE_CUSTOM,
+    _coerce_proxy_lease,
     _fetch_new_proxy_batch,
     _mask_proxy_for_log,
     _normalize_proxy_address,
+    get_proxy_required_ttl_seconds,
     get_proxy_source,
+    proxy_lease_has_sufficient_ttl,
 )
 from wjx.utils.app.config import (
     HEADLESS_SUBMIT_CLICK_SETTLE_DELAY,
@@ -277,6 +280,12 @@ def _is_retryable_submit_proxy_error(exc: BaseException) -> bool:
     return isinstance(exc, _HEADLESS_SUBMIT_RETRYABLE_ERRORS)
 
 
+def _required_submit_proxy_ttl_seconds(ctx: Optional[TaskContext]) -> int:
+    if ctx is None:
+        return 20
+    return int(get_proxy_required_ttl_seconds(getattr(ctx, "answer_duration_range_seconds", (0, 0))))
+
+
 def _remove_proxy_from_ctx_pool(ctx: TaskContext, proxy_address: Optional[str]) -> bool:
     normalized = _normalize_proxy_address(proxy_address)
     if not normalized:
@@ -284,13 +293,39 @@ def _remove_proxy_from_ctx_pool(ctx: TaskContext, proxy_address: Optional[str]) 
 
     removed = False
     with ctx.lock:
-        while True:
-            try:
-                ctx.proxy_ip_pool.remove(normalized)
+        retained = []
+        for item in list(ctx.proxy_ip_pool or []):
+            lease = _coerce_proxy_lease(item)
+            if lease is None:
+                continue
+            if lease.address == normalized:
                 removed = True
-            except ValueError:
-                break
+                continue
+            retained.append(lease)
+        ctx.proxy_ip_pool = retained
     return removed
+
+
+def _pop_replacement_proxy_from_pool_locked(ctx: TaskContext, current_proxy: Optional[str]) -> Optional[str]:
+    required_ttl = _required_submit_proxy_ttl_seconds(ctx)
+    current = _normalize_proxy_address(current_proxy)
+    retained = []
+    selected = None
+    for item in list(ctx.proxy_ip_pool or []):
+        lease = _coerce_proxy_lease(item)
+        if lease is None:
+            continue
+        if lease.address == current:
+            continue
+        if not proxy_lease_has_sufficient_ttl(lease, required_ttl_seconds=required_ttl):
+            logging.info("已丢弃即将过期的提交代理：%s", _mask_proxy_for_log(lease.address))
+            continue
+        if selected is None:
+            selected = lease.address
+            continue
+        retained.append(lease)
+    ctx.proxy_ip_pool = retained
+    return selected
 
 
 def _acquire_replacement_submit_proxy(
@@ -312,21 +347,19 @@ def _acquire_replacement_submit_proxy(
         logging.debug("已从代理池移除重复的失效提交代理")
 
     with ctx.lock:
-        while ctx.proxy_ip_pool:
-            candidate = _normalize_proxy_address(ctx.proxy_ip_pool.pop(0))
-            if candidate and candidate != current_proxy:
-                setattr(driver, "_submit_proxy_address", candidate)
-                logging.info("无头提交改用代理池中的新代理：%s", _mask_proxy_for_log(candidate))
-                return candidate
+        candidate = _pop_replacement_proxy_from_pool_locked(ctx, current_proxy)
+    if candidate:
+        setattr(driver, "_submit_proxy_address", candidate)
+        logging.info("无头提交改用代理池中的新代理：%s", _mask_proxy_for_log(candidate))
+        return candidate
 
     with ctx._proxy_fetch_lock:
         with ctx.lock:
-            while ctx.proxy_ip_pool:
-                candidate = _normalize_proxy_address(ctx.proxy_ip_pool.pop(0))
-                if candidate and candidate != current_proxy:
-                    setattr(driver, "_submit_proxy_address", candidate)
-                    logging.info("无头提交改用代理池中的新代理：%s", _mask_proxy_for_log(candidate))
-                    return candidate
+            candidate = _pop_replacement_proxy_from_pool_locked(ctx, current_proxy)
+        if candidate:
+            setattr(driver, "_submit_proxy_address", candidate)
+            logging.info("无头提交改用代理池中的新代理：%s", _mask_proxy_for_log(candidate))
+            return candidate
 
         if stop_signal and stop_signal.is_set():
             return None
@@ -337,11 +370,16 @@ def _acquire_replacement_submit_proxy(
             logging.warning("无头提交切换新代理失败：%s", exc)
             return None
         for item in fetched or []:
-            candidate = _normalize_proxy_address(item)
-            if candidate and candidate != current_proxy:
-                setattr(driver, "_submit_proxy_address", candidate)
-                logging.info("无头提交已切换为新提取代理：%s", _mask_proxy_for_log(candidate))
-                return candidate
+            lease = _coerce_proxy_lease(item)
+            candidate = lease.address if lease is not None else ""
+            if not candidate or candidate == current_proxy:
+                continue
+            if not proxy_lease_has_sufficient_ttl(lease, required_ttl_seconds=_required_submit_proxy_ttl_seconds(ctx)):
+                logging.info("已跳过即将过期的新提交代理：%s", _mask_proxy_for_log(candidate))
+                continue
+            setattr(driver, "_submit_proxy_address", candidate)
+            logging.info("无头提交已切换为新提取代理：%s", _mask_proxy_for_log(candidate))
+            return candidate
     return None
 
 

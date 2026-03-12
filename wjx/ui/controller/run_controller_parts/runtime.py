@@ -321,8 +321,12 @@ class RunControllerRuntimeMixin:
         proxy_source = str(getattr(config, "proxy_source", "default") or "default")
         custom_proxy_api = str(getattr(config, "custom_proxy_api", "") or "").strip()
         proxy_api_url = custom_proxy_api if (proxy_source == "custom" and custom_proxy_api) else get_effective_proxy_api_url()
+        initial_proxy_count = min(
+            max(1, int(getattr(config, "threads", 1) or 1)),
+            max(1, int(getattr(config, "target", 1) or 1)),
+        )
         proxy_pool = prefetch_proxy_pool(
-            expected_count=max(1, int(getattr(config, "threads", 1) or 1)),
+            expected_count=initial_proxy_count,
             proxy_api_url=proxy_api_url,
             stop_signal=self.stop_event,
         )

@@ -1,6 +1,7 @@
 """随机 IP / 代理能力聚合导出。"""
 
 from wjx.network.proxy.provider import (
+    _coerce_proxy_lease,
     PROXY_SOURCE_CUSTOM,
     PROXY_SOURCE_DEFAULT,
     _fetch_new_proxy_batch,
@@ -13,8 +14,10 @@ from wjx.network.proxy.provider import (
     get_proxy_minute_by_answer_seconds,
     get_proxy_source,
     get_quota_cost_by_minute,
+    get_proxy_required_ttl_seconds,
     get_status,
     is_custom_proxy_api_active,
+    proxy_lease_has_sufficient_ttl,
     get_proxy_occupy_minute,
     set_proxy_occupy_minute_by_answer_duration,
     set_proxy_api_override,
@@ -38,6 +41,7 @@ from wjx.network.proxy.gui_bridge import (
 __all__ = [
     "PROXY_SOURCE_CUSTOM",
     "PROXY_SOURCE_DEFAULT",
+    "_coerce_proxy_lease",
     "_fetch_new_proxy_batch",
     "_format_status_payload",
     "_mask_proxy_for_log",
@@ -49,6 +53,7 @@ __all__ = [
     "get_proxy_minute_by_answer_seconds",
     "get_proxy_occupy_minute",
     "get_proxy_source",
+    "get_proxy_required_ttl_seconds",
     "get_quota_cost_by_minute",
     "get_random_ip_limit",
     "get_status",
@@ -57,6 +62,7 @@ __all__ = [
     "normalize_random_ip_enabled_value",
     "on_random_ip_toggle",
     "refresh_ip_counter_display",
+    "proxy_lease_has_sufficient_ttl",
     "set_proxy_occupy_minute_by_answer_duration",
     "set_proxy_api_override",
     "set_proxy_area_code",

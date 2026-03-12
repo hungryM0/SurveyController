@@ -33,6 +33,17 @@ class ThreadProgressState:
 
 
 @dataclass
+class ProxyLease:
+    """代理租约对象，保存地址与过期时间信息。"""
+
+    address: str = ""
+    expire_at: str = ""
+    expire_ts: float = 0.0
+    poolable: bool = True
+    source: str = ""
+
+
+@dataclass
 class TaskContext:
     """一次刷问卷任务的完整上下文。
 
@@ -102,12 +113,14 @@ class TaskContext:
 
     # ── 代理 / UA 配置 ────────────────────────────────────────────────────
     random_proxy_ip_enabled: bool = False
-    proxy_ip_pool: List[str] = field(default_factory=list)
+    proxy_ip_pool: List[ProxyLease] = field(default_factory=list)
     random_user_agent_enabled: bool = False
     user_agent_ratios: Dict[str, int] = field(
         default_factory=lambda: {"wechat": 33, "mobile": 33, "pc": 34}
     )
     pause_on_aliyun_captcha: bool = True
+    proxy_waiting_threads: int = 0
+    proxy_in_use_by_thread: Dict[str, ProxyLease] = field(default_factory=dict)
 
     # ── 运行时计数（引擎动态更新，需加锁！） ─────────────────────────────
     cur_num: int = 0
@@ -213,6 +226,36 @@ class TaskContext:
                 else:
                     state.thread_index = idx
                     state.last_update_ts = now
+
+    def register_proxy_waiter(self) -> None:
+        with self.lock:
+            self.proxy_waiting_threads = max(0, int(self.proxy_waiting_threads or 0)) + 1
+
+    def unregister_proxy_waiter(self) -> None:
+        with self.lock:
+            self.proxy_waiting_threads = max(0, int(self.proxy_waiting_threads or 0) - 1)
+
+    def get_proxy_waiter_count(self) -> int:
+        with self.lock:
+            return max(0, int(self.proxy_waiting_threads or 0))
+
+    def mark_proxy_in_use(self, thread_name: str, lease: ProxyLease) -> None:
+        key = str(thread_name or "").strip()
+        if not key or not isinstance(lease, ProxyLease):
+            return
+        with self.lock:
+            self.proxy_in_use_by_thread[key] = lease
+
+    def release_proxy_in_use(self, thread_name: str) -> Optional[ProxyLease]:
+        key = str(thread_name or "").strip()
+        if not key:
+            return None
+        with self.lock:
+            return self.proxy_in_use_by_thread.pop(key, None)
+
+    def get_proxy_in_use_count(self) -> int:
+        with self.lock:
+            return len(self.proxy_in_use_by_thread)
 
     def update_thread_status(
         self,

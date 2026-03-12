@@ -7,7 +7,7 @@ import threading
 import uuid
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import QSettings
 
@@ -358,7 +358,7 @@ def _log_extract_proxy_issue(
     elif error is not None:
         detail = str(error)
     logging.warning(
-        "%s attempt=%s status=%s detail=%s minute=%s pool=%s area=%s cf_ray=%s content_type=%s response=%s",
+        "%s attempt=%s status=%s detail=%s minute=%s pool=%s area=%s num=%s cf_ray=%s content_type=%s response=%s",
         message,
         int(attempt),
         status_code,
@@ -366,6 +366,7 @@ def _log_extract_proxy_issue(
         request_body.get("minute"),
         request_body.get("pool"),
         request_body.get("area", ""),
+        request_body.get("num", 1),
         _response_header_value(response, "CF-RAY") if response is not None else "",
         _response_content_type(response) if response is not None else "",
         _response_body_preview(response) if response is not None else "<no-response>",
@@ -491,11 +492,94 @@ def update_remaining_quota(remaining_quota: int, *, total_hint: Optional[int] = 
     return _update_quota(max(0, int(remaining_quota or 0)), total_hint=total_hint)
 
 
-def extract_proxy(*, minute: int, pool: str, area: Optional[str]) -> Dict[str, Any]:
+def _extract_proxy_item(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    host = str(data.get("host") or "").strip()
+    port = _to_non_negative_int(data.get("port"), 0)
+    account = str(data.get("account") or "").strip()
+    password = str(data.get("password") or "").strip()
+    if not host or port <= 0 or not account or not password:
+        return None
+    return {
+        "host": host,
+        "port": port,
+        "account": account,
+        "password": password,
+        "expire_at": str(data.get("expire_at") or "").strip(),
+    }
+
+
+def _parse_single_extract_payload(
+    data: Dict[str, Any],
+    *,
+    request_body: Dict[str, Any],
+    attempt: int,
+    response: Any,
+) -> Dict[str, Any]:
+    item = _extract_proxy_item(data)
+    if item is None:
+        _log_extract_proxy_issue("随机IP提取响应缺少 host/port/account/password", request_body=request_body, attempt=attempt, response=response)
+        raise RandomIPAuthError("invalid_response")
+    remaining_quota = _to_non_negative_int(data.get("remaining_quota"), 0)
+    quota_cost = _to_non_negative_int(data.get("quota_cost"), 0)
+    total_quota = _to_non_negative_int(data.get("total_quota"), remaining_quota + quota_cost)
+    update_remaining_quota(remaining_quota, total_hint=total_quota)
+    item.update(
+        {
+            "quota_cost": quota_cost,
+            "remaining_quota": remaining_quota,
+            "total_quota": total_quota,
+        }
+    )
+    return item
+
+
+def _parse_batch_extract_payload(
+    data: Dict[str, Any],
+    *,
+    request_body: Dict[str, Any],
+    attempt: int,
+    response: Any,
+) -> Dict[str, Any]:
+    raw_items = data.get("items")
+    if not isinstance(raw_items, list):
+        _log_extract_proxy_issue("随机IP批量提取响应缺少 items", request_body=request_body, attempt=attempt, response=response)
+        raise RandomIPAuthError("invalid_response")
+
+    items: List[Dict[str, Any]] = []
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        item = _extract_proxy_item(raw)
+        if item is not None:
+            items.append(item)
+    if not items:
+        _log_extract_proxy_issue("随机IP批量提取响应中无有效 IP", request_body=request_body, attempt=attempt, response=response)
+        raise RandomIPAuthError("invalid_response")
+
+    returned_count = max(1, _to_non_negative_int(data.get("returned_count"), len(items)))
+    requested_count = max(1, _to_non_negative_int(data.get("requested_count"), request_body.get("num", 1)))
+    quota_cost_total = _to_non_negative_int(data.get("quota_cost_total"), 0)
+    remaining_quota = _to_non_negative_int(data.get("remaining_quota"), 0)
+    total_quota = _to_non_negative_int(data.get("total_quota"), remaining_quota + quota_cost_total)
+    update_remaining_quota(remaining_quota, total_hint=total_quota)
+    return {
+        "items": items,
+        "requested_count": requested_count,
+        "returned_count": min(returned_count, len(items)),
+        "remaining_quota": remaining_quota,
+        "total_quota": total_quota,
+        "quota_cost_total": quota_cost_total,
+    }
+
+
+def extract_proxy(*, minute: int, pool: str, area: Optional[str], num: int = 1) -> Dict[str, Any]:
     body: Dict[str, Any] = {
         "minute": int(minute),
         "pool": str(pool or "").strip(),
     }
+    request_num = max(1, int(num or 1))
+    if request_num > 1:
+        body["num"] = request_num
     area_code = str(area or "").strip()
     if area_code:
         body["area"] = area_code
@@ -523,30 +607,19 @@ def extract_proxy(*, minute: int, pool: str, area: Optional[str]) -> Dict[str, A
             if not isinstance(data, dict):
                 _log_extract_proxy_issue("随机IP提取响应结构异常", request_body=body, attempt=attempt + 1, response=response)
                 raise RandomIPAuthError("invalid_response")
-            host = str(data.get("host") or "").strip()
-            port = _to_non_negative_int(data.get("port"), 0)
-            account = str(data.get("account") or "").strip()
-            password = str(data.get("password") or "").strip()
-            if not host or port <= 0:
-                _log_extract_proxy_issue("随机IP提取响应缺少 host/port", request_body=body, attempt=attempt + 1, response=response)
-                raise RandomIPAuthError("invalid_response")
-            if not account or not password:
-                _log_extract_proxy_issue("随机IP提取响应缺少 account/password", request_body=body, attempt=attempt + 1, response=response)
-                raise RandomIPAuthError("invalid_response")
-            remaining_quota = _to_non_negative_int(data.get("remaining_quota"), 0)
-            quota_cost = _to_non_negative_int(data.get("quota_cost"), 0)
-            total_quota = _to_non_negative_int(data.get("total_quota"), remaining_quota + quota_cost)
-            update_remaining_quota(remaining_quota, total_hint=total_quota)
-            return {
-                "host": host,
-                "port": port,
-                "account": account,
-                "password": password,
-                "expire_at": str(data.get("expire_at") or "").strip(),
-                "quota_cost": quota_cost,
-                "remaining_quota": remaining_quota,
-                "total_quota": total_quota,
-            }
+            if request_num > 1 and isinstance(data.get("items"), list):
+                return _parse_batch_extract_payload(
+                    data,
+                    request_body=body,
+                    attempt=attempt + 1,
+                    response=response,
+                )
+            return _parse_single_extract_payload(
+                data,
+                request_body=body,
+                attempt=attempt + 1,
+                response=response,
+            )
         error = _extract_error_payload(response)
         last_error = error
         _log_extract_proxy_issue("随机IP提取失败", request_body=body, attempt=attempt + 1, response=response, error=error)
