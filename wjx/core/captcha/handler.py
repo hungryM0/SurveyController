@@ -140,7 +140,7 @@ def handle_aliyun_captcha(
 
     challenge_detected = _wait_for_challenge()
     if not challenge_detected:
-        logging.debug("未检测到阿里云智能验证弹窗")
+        logging.info("未检测到阿里云智能验证弹窗")
         return False
     if stop_signal and stop_signal.is_set():
         return False
@@ -151,4 +151,5 @@ def handle_aliyun_captcha(
     if raise_on_detect:
         raise AliyunCaptchaBypassError("检测到阿里云智能验证，按配置直接放弃")
     return True
+
 

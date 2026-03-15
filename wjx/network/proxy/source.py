@@ -33,7 +33,7 @@ def set_proxy_source(source: str) -> None:
     global _current_proxy_source
     with _config_lock:
         _current_proxy_source = source
-    logging.debug(f"代理源已切换为: {source}")
+    logging.info(f"代理源已切换为: {source}")
 
 
 def get_proxy_source() -> str:
@@ -87,7 +87,7 @@ def set_proxy_occupy_minute_by_answer_duration(answer_duration_range_seconds: Op
     required_seconds = get_proxy_required_seconds_by_answer_seconds(max_seconds)
     with _config_lock:
         _proxy_occupy_minute = minute
-    logging.debug(
+    logging.info(
         "已根据作答时长更新代理 minute=%s（min=%s秒, max=%s秒, ttl=%s秒）",
         minute,
         min_seconds,
@@ -193,3 +193,4 @@ def _to_non_negative_int(value: Any, default: int = 0) -> int:
     except Exception:
         return max(0, int(default))
     return max(0, parsed)
+

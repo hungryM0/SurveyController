@@ -17,7 +17,7 @@ class UpdateCheckWorker(QThread):
         try:
             from wjx.utils.update.updater import UpdateManager
 
-            logging.debug("后台检查更新开始...")
+            logging.info("后台检查更新开始...")
             update_info = UpdateManager.check_updates()
 
             # check_updates() 现在始终返回 dict，通过 status 字段区分结果
@@ -30,7 +30,7 @@ class UpdateCheckWorker(QThread):
             if has_update:
                 logging.info(f"发现新版本: {update_info.get('version', 'unknown')}")
             else:
-                logging.debug(f"更新检查状态: {status}")
+                logging.info(f"更新检查状态: {status}")
 
             # 发送结果信号
             self.update_checked.emit(has_update, update_info)
@@ -40,3 +40,4 @@ class UpdateCheckWorker(QThread):
             logging.warning(error_msg)
             # 异常情况也通过 update_checked 发送，status=unknown
             self.update_checked.emit(False, {"has_update": False, "status": "unknown"})
+

@@ -206,7 +206,7 @@ def single(driver: BrowserDriver, current: int, index: int, single_prob_config: 
     probabilities = normalize_droplist_probs(prob_config, len(option_elements))
     if config_len is not None and config_len > len(option_elements):
         # 仅在截断（丢弃多余配置）时提示，补零扩展属正常行为无需提示
-        logging.debug(
+        logging.info(
             "单选题概率配置数(%s)多于实际选项数(%s)（题号%s），多余部分已截断并重新归一化。",
             config_len,
             len(option_elements),
@@ -238,3 +238,4 @@ def single(driver: BrowserDriver, current: int, index: int, single_prob_config: 
     fill_entries = single_option_fill_texts_config[index] if index < len(single_option_fill_texts_config) else None
     fill_value = get_fill_text_from_config(fill_entries, selected_option - 1)
     fill_option_additional_text(driver, current, selected_option - 1, fill_value)
+

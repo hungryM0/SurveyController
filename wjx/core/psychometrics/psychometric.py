@@ -135,7 +135,7 @@ def build_psychometric_plan(
         
         choices[key] = choice
     
-    logger.debug(
+    logger.info(
         "心理测量计划已启用 | 目标α=%.2f 题数=%d θ=%.2f σ_e=%.2f",
         target_alpha, k, theta, sigma_e
     )
@@ -146,3 +146,4 @@ def build_psychometric_plan(
         sigma_e=sigma_e,
         choices=choices,
     )
+

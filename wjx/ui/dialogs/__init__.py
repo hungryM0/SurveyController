@@ -1,6 +1,24 @@
 """UI dialogs module."""
-from .quota_request import QuotaRequestDialog
-from .contact import ContactDialog
-from .terms_of_service import TermsOfServiceDialog
 
-__all__ = ["QuotaRequestDialog", "ContactDialog", "TermsOfServiceDialog"]
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
+
+_EXPORTS = {
+    "QuotaRequestDialog": "wjx.ui.dialogs.quota_request",
+    "ContactDialog": "wjx.ui.dialogs.contact",
+    "TermsOfServiceDialog": "wjx.ui.dialogs.terms_of_service",
+}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    module_name = _EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value

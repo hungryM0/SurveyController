@@ -7,17 +7,8 @@ import subprocess
 import threading
 import time
 import traceback
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple
 from urllib.parse import urlparse
-
-from playwright.sync_api import (
-    Browser,
-    BrowserContext,
-    Page,
-    Playwright,
-    TimeoutError as PlaywrightTimeoutError,
-    sync_playwright,
-)
 
 from wjx.network.proxy import (
     PROXY_SOURCE_CUSTOM,
@@ -26,6 +17,9 @@ from wjx.network.proxy import (
 )
 from wjx.utils.app.config import BROWSER_PREFERENCE, HEADLESS_WINDOW_SIZE, get_proxy_auth
 from wjx.utils.logging.log_utils import log_suppressed_exception
+
+if TYPE_CHECKING:
+    from playwright.sync_api import Browser, BrowserContext, Page, Playwright
 
 _PW_START_LOCK = threading.Lock()
 _EDGE_CLEAN_ARGS = [
@@ -40,6 +34,14 @@ _BROWSER_DISCONNECT_MARKERS = (
     "not connected",
     "has been disconnected",
 )
+
+
+def _load_playwright_sync():
+    """延迟导入 Playwright，避免应用启动阶段就触发底层 asyncio/系统依赖。"""
+    from playwright.sync_api import TimeoutError as playwright_timeout_error
+    from playwright.sync_api import sync_playwright
+
+    return sync_playwright, playwright_timeout_error
 
 
 def _format_exception_chain(exc: BaseException) -> str:
@@ -130,7 +132,7 @@ def _parse_proxy_context_args(proxy_address: Optional[str]) -> Dict[str, Any]:
             proxy_settings["username"] = username
             proxy_settings["password"] = password
         except Exception:
-            logging.debug("代理认证解析失败", exc_info=True)
+            logging.info("代理认证解析失败", exc_info=True)
 
     return {"proxy": proxy_settings}
 
@@ -305,12 +307,13 @@ class BrowserManager:
             )
             try:
                 with _PW_START_LOCK:
+                    sync_playwright, _ = _load_playwright_sync()
                     pw = sync_playwright().start()
                     browser = pw.chromium.launch(**launch_args)
                 self._playwright = pw
                 self._browser = browser
                 self._browser_name = browser_name
-                logging.debug("[Action Log] BrowserManager 启动底座成功：%s", browser_name)
+                logging.info("[Action Log] BrowserManager 启动底座成功：%s", browser_name)
                 return browser, browser_name
             except Exception as exc:
                 last_exc = exc
@@ -517,7 +520,7 @@ class PlaywrightDriver:
             )
             return self._page.evaluate(wrapper, processed_args)
         except Exception as exc:
-            logging.debug("execute_script failed: %s", exc)
+            logging.info("execute_script failed: %s", exc)
             return None
 
     def get(
@@ -526,6 +529,7 @@ class PlaywrightDriver:
         timeout: int = 20000,
         wait_until: Literal["commit", "domcontentloaded", "load", "networkidle"] = "domcontentloaded",
     ) -> None:
+        _, playwright_timeout_error = _load_playwright_sync()
         try:
             self._page.set_default_navigation_timeout(timeout)
             self._page.set_default_timeout(timeout)
@@ -535,12 +539,12 @@ class PlaywrightDriver:
         try:
             self._page.goto(url, wait_until=wait_until, timeout=timeout)
             return
-        except PlaywrightTimeoutError as exc:
-            logging.debug("Page.goto timeout after %d ms: %s", timeout, exc)
+        except playwright_timeout_error as exc:
+            logging.info("Page.goto timeout after %d ms: %s", timeout, exc)
             raise
         except Exception as exc:
             if _is_proxy_tunnel_error(exc):
-                logging.debug("Page.goto proxy tunnel failure: %s", exc)
+                logging.info("Page.goto proxy tunnel failure: %s", exc)
                 raise ProxyConnectionError(str(exc)) from exc
             raise
 
@@ -694,6 +698,7 @@ def _create_transient_driver(
                 append_no_proxy=not bool(normalized_proxy),
             )
             with _PW_START_LOCK:
+                sync_playwright, _ = _load_playwright_sync()
                 pw = sync_playwright().start()
                 browser = pw.chromium.launch(**launch_args)
 
@@ -805,3 +810,4 @@ def create_playwright_driver(
             break
 
     raise RuntimeError(f"创建浏览器上下文失败: {last_exc}")
+

@@ -53,7 +53,7 @@ def _handle_submission_failure(
         try:
             ctx.increment_thread_fail(thread_name, status_text=status_text)
         except Exception:
-            logging.debug("更新线程失败计数失败", exc_info=True)
+            logging.info("更新线程失败计数失败", exc_info=True)
     if ctx.stop_on_fail_enabled and ctx.cur_fail >= ctx.fail_threshold:
         logging.critical("连续失败次数过多，强制停止，请检查配置是否正确")
         if stop_signal:
@@ -95,7 +95,7 @@ def _trigger_target_reached_stop(
             if gui_instance and hasattr(gui_instance, "force_stop_immediately"):
                 gui_instance.force_stop_immediately(reason="任务完成")
         except Exception:
-            logging.debug("达到目标份数时触发强制停止失败", exc_info=True)
+            logging.info("达到目标份数时触发强制停止失败", exc_info=True)
 
     dispatcher = getattr(gui_instance, "_post_to_ui_thread_async", None) if gui_instance else None
     if callable(dispatcher):
@@ -103,14 +103,14 @@ def _trigger_target_reached_stop(
             dispatcher(_notify)
             return
         except Exception:
-            logging.debug("派发任务完成事件到主线程失败", exc_info=True)
+            logging.info("派发任务完成事件到主线程失败", exc_info=True)
     dispatcher = getattr(gui_instance, "_post_to_ui_thread", None) if gui_instance else None
     if callable(dispatcher):
         try:
             dispatcher(_notify)
             return
         except Exception:
-            logging.debug("派发任务完成事件到主线程失败", exc_info=True)
+            logging.info("派发任务完成事件到主线程失败", exc_info=True)
     _notify()
 
 
@@ -123,3 +123,4 @@ def _sleep_with_stop(stop_signal: Optional[threading.Event], seconds: float) -> 
         return bool(interrupted and stop_signal.is_set())
     time.sleep(seconds)
     return False
+

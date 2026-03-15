@@ -372,7 +372,6 @@ class RuntimeAISection(QObject):
             )
             return
         save_ai_settings(enabled=checked)
-        self._show_ai_infobar(f"AI 填空功能已{'开启' if checked else '关闭'}")
 
     def _on_ai_provider_changed(self):
         """AI 提供商选择变化"""
@@ -382,8 +381,6 @@ class RuntimeAISection(QObject):
         provider_key = str(self.ai_provider_combo.itemData(idx)) if idx >= 0 else "deepseek"
         save_ai_settings(provider=provider_key)
         self._update_ai_visibility()
-        provider_config = AI_PROVIDERS.get(provider_key, {})
-        self._show_ai_infobar(f"AI 服务已切换为：{provider_config.get('label', provider_key)}")
 
     def _update_ai_doc_link(self, provider_key: str):
         url = self._PROVIDER_DOCS.get(provider_key, "")

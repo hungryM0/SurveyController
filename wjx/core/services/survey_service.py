@@ -81,10 +81,11 @@ def parse_survey(url: str) -> Tuple[List[Dict[str, Any]], str]:
                 if driver:
                     driver.quit()
             except Exception:
-                logging.debug("关闭解析用浏览器实例失败", exc_info=True)
+                logging.info("关闭解析用浏览器实例失败", exc_info=True)
 
     if not info:
         raise RuntimeError("无法打开问卷链接，请确认链接有效且网络正常")
 
     normalized_title = _normalize_html_text(title) if title else ""
     return info, normalized_title
+

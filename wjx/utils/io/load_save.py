@@ -159,7 +159,6 @@ class RuntimeConfig:
     reliability_priority_mode: str = "reliability_first"  # reliability_first/ratio_first
     psycho_target_alpha: float = 0.85  # 心理测量计划目标 Cronbach's Alpha（0.70-0.95）
     headless_mode: bool = True
-    debug_mode: bool = False
     ai_enabled: bool = False
     ai_provider: str = "deepseek"
     ai_api_key: str = ""
@@ -446,7 +445,6 @@ def _sanitize_runtime_config_payload(raw: Dict[str, Any]) -> RuntimeConfig:
     config.psycho_target_alpha = _as_float(raw.get("psycho_target_alpha") or 0.85, 0.85)
     config.psycho_target_alpha = max(0.70, min(0.95, config.psycho_target_alpha))
     config.headless_mode = _as_bool(raw.get("headless_mode", True), True)
-    config.debug_mode = bool(raw.get("debug_mode", False))
     config.answer_rules = []
     raw_rules = raw.get("answer_rules")
     if isinstance(raw_rules, list):
@@ -479,7 +477,7 @@ def _sanitize_runtime_config_payload(raw: Dict[str, Any]) -> RuntimeConfig:
         try:
             config.question_entries.append(deserialize_question_entry(item))
         except Exception as exc:
-            logging.debug(f"跳过损坏的题目配置: {exc}")
+            logging.info(f"跳过损坏的题目配置: {exc}")
 
     # questions_info: 问卷解析信息（包含多选题限制等）
     questions_info_data = raw.get("questions_info") or []
@@ -634,7 +632,7 @@ def load_config(path: Optional[str] = None, *, strict: bool = False) -> RuntimeC
                     with open(config_path, "w", encoding="utf-8") as fp:
                         fp.write("{}\n")
                 except Exception as repair_exc:
-                    logging.debug(f"自动修复空配置失败: {config_path} -> {repair_exc}")
+                    logging.info(f"自动修复空配置失败: {config_path} -> {repair_exc}")
             raise ValueError("配置文件为空")
         payload = json.loads(clean_text)
     except Exception as exc:
@@ -671,4 +669,5 @@ def save_config(config: RuntimeConfig, path: Optional[str] = None) -> str:
     with open(config_path, "w", encoding="utf-8") as fp:
         json.dump(payload, fp, ensure_ascii=False, indent=2)
     return config_path
+
 

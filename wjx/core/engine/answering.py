@@ -328,7 +328,7 @@ def brush(
     try:
         ctx.update_thread_status(thread_name, "识别题目", running=True)
     except Exception:
-        logging.debug("更新线程状态失败：识别题目", exc_info=True)
+        logging.info("更新线程状态失败：识别题目", exc_info=True)
 
     # 每份问卷开始前：生成画像 → 重置上下文 → 重置倾向
     # 画像必须在 reset_tendency() 之前设置，因为倾向模块会参考画像的满意度
@@ -339,12 +339,12 @@ def brush(
     reset_consistency_context(ctx.answer_rules, list((ctx.questions_metadata or {}).values()))
     psycho_plan = _build_psychometric_plan_for_run(ctx)
     if psycho_plan is not None:
-        logging.debug(
+        logging.info(
             "本轮启用心理测量计划：题目数=%d，目标α=%.2f",
             len(getattr(psycho_plan, "items", []) or []),
             float(getattr(ctx, "psycho_target_alpha", 0.85) or 0.85),
         )
-    logging.debug("本轮画像：%s", persona.to_description())
+    logging.info("本轮画像：%s", persona.to_description())
     questions_per_page = detect(driver, stop_signal=stop_signal)
     headless_mode = _is_headless_mode(ctx)
     try:
@@ -354,7 +354,7 @@ def brush(
     try:
         ctx.update_thread_step(thread_name, 0, total_steps, status_text="答题中", running=True)
     except Exception:
-        logging.debug("初始化线程步骤进度失败", exc_info=True)
+        logging.info("初始化线程步骤进度失败", exc_info=True)
 
     # 各题型计数器统一放入字典，方便 dispatcher 内部修改
     _indices: Dict[str, int] = {
@@ -377,7 +377,7 @@ def brush(
         try:
             ctx.update_thread_status(thread_name, "已中断", running=False)
         except Exception:
-            logging.debug("更新线程状态失败：已中断", exc_info=True)
+            logging.info("更新线程状态失败：已中断", exc_info=True)
         return False
 
     total_pages = len(questions_per_page)
@@ -387,7 +387,7 @@ def brush(
                 try:
                     ctx.update_thread_status(thread_name, "已中断", running=False)
                 except Exception:
-                    logging.debug("更新线程状态失败：已中断", exc_info=True)
+                    logging.info("更新线程状态失败：已中断", exc_info=True)
                 return False
             current_question_number += 1
             if total_steps > 0:
@@ -400,7 +400,7 @@ def brush(
                         running=True,
                     )
                 except Exception:
-                    logging.debug("更新线程步骤进度失败", exc_info=True)
+                    logging.info("更新线程步骤进度失败", exc_info=True)
             question_selector = f"#div{current_question_number}"
             try:
                 question_div = driver.find_element(By.CSS_SELECTOR, question_selector)
@@ -424,14 +424,14 @@ def brush(
 
             # 检测说明页/阅读材料：有 type 属性但无可交互控件
             if question_type is None:
-                logging.debug("跳过第%d题（type 属性为空）", current_question_number)
+                logging.info("跳过第%d题（type 属性为空）", current_question_number)
                 continue
             if _driver_question_looks_like_description(question_div, question_type):
-                logging.debug("跳过第%d题（说明页/阅读材料，type=%s）", current_question_number, question_type)
+                logging.info("跳过第%d题（说明页/阅读材料，type=%s）", current_question_number, question_type)
                 continue
 
             if not question_visible:
-                logging.debug("跳过第%d题（未显示，type=%s）", current_question_number, question_type)
+                logging.info("跳过第%d题（未显示，type=%s）", current_question_number, question_type)
                 continue
 
             # 通过配置映射表查找当前题号在对应题型概率列表中的正确索引
@@ -498,7 +498,7 @@ def brush(
             try:
                 ctx.update_thread_status(thread_name, "已中断", running=False)
             except Exception:
-                logging.debug("更新线程状态失败：已中断", exc_info=True)
+                logging.info("更新线程状态失败：已中断", exc_info=True)
             return False
         buffer_delay = float(HEADLESS_PAGE_BUFFER_DELAY if headless_mode else 0.5)
         if buffer_delay > 0:
@@ -507,7 +507,7 @@ def brush(
                     try:
                         ctx.update_thread_status(thread_name, "已中断", running=False)
                     except Exception:
-                        logging.debug("更新线程状态失败：已中断", exc_info=True)
+                        logging.info("更新线程状态失败：已中断", exc_info=True)
                     return False
             else:
                 time.sleep(buffer_delay)
@@ -517,13 +517,13 @@ def brush(
                 try:
                     ctx.update_thread_status(thread_name, "已中断", running=False)
                 except Exception:
-                    logging.debug("更新线程状态失败：已中断", exc_info=True)
+                    logging.info("更新线程状态失败：已中断", exc_info=True)
                 return False
             if _abort_requested():
                 try:
                     ctx.update_thread_status(thread_name, "已中断", running=False)
                 except Exception:
-                    logging.debug("更新线程状态失败：已中断", exc_info=True)
+                    logging.info("更新线程状态失败：已中断", exc_info=True)
                 return False
             # 最后一页直接跳出循环，由后续的 submit() 处理提交
             break
@@ -537,7 +537,7 @@ def brush(
                     try:
                         ctx.update_thread_status(thread_name, "已中断", running=False)
                     except Exception:
-                        logging.debug("更新线程状态失败：已中断", exc_info=True)
+                        logging.info("更新线程状态失败：已中断", exc_info=True)
                     return False
             else:
                 time.sleep(click_delay)
@@ -545,17 +545,18 @@ def brush(
         try:
             ctx.update_thread_status(thread_name, "已中断", running=False)
         except Exception:
-            logging.debug("更新线程状态失败：已中断", exc_info=True)
+            logging.info("更新线程状态失败：已中断", exc_info=True)
         reset_persona()
         return False
     try:
         ctx.update_thread_status(thread_name, "提交中", running=True)
     except Exception:
-        logging.debug("更新线程状态失败：提交中", exc_info=True)
+        logging.info("更新线程状态失败：提交中", exc_info=True)
     submit(driver, ctx=ctx, stop_signal=active_stop)
     try:
         ctx.update_thread_status(thread_name, "等待结果确认", running=True)
     except Exception:
-        logging.debug("更新线程状态失败：等待结果确认", exc_info=True)
+        logging.info("更新线程状态失败：等待结果确认", exc_info=True)
     reset_persona()
     return True
+

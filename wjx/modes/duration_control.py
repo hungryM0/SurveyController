@@ -75,7 +75,7 @@ def simulate_answer_duration_delay(
 
     if wait_seconds <= 0:
         return False
-    logging.debug(
+    logging.info(
         "[Action Log] Simulating answer duration: waiting %.1f seconds before submit",
         wait_seconds,
     )
@@ -151,3 +151,4 @@ def is_survey_completion_page(driver: Any) -> bool:
         except Exception as exc:
             log_suppressed_exception("is_survey_completion_page: page_text = driver.execute_script(\"return document.body.innerText || '';\") or \"\"", exc, level=logging.WARNING)
     return bool(detected)
+

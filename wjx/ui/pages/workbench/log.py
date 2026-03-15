@@ -27,7 +27,6 @@ LOG_COLORS_DARK = {
     "WARNING": "#eab308", # 黄色
     "INFO": "#d1d5db",    # 浅灰色
     "OK": "#22c55e",      # 绿色
-    "DEBUG": "#6b7280",   # 深灰色
     "DEFAULT": "#9ca3af", # 默认灰色
 }
 
@@ -37,7 +36,6 @@ LOG_COLORS_LIGHT = {
     "WARNING": "#ca8a04", # 深黄色
     "INFO": "#374151",    # 深灰色
     "OK": "#15803d",      # 深绿
-    "DEBUG": "#6b7280",   # 中灰色
     "DEFAULT": "#4b5563", # 默认深灰
 }
 
@@ -47,7 +45,6 @@ LOG_LEVELS = [
     ("仅错误", "ERROR"),
     ("警告及以上", "WARN"),
     ("信息及以上", "INFO"),
-    ("调试", "DEBUG"),
 ]
 
 
@@ -149,17 +146,17 @@ class LogPage(QWidget):
             return "ERROR"
         elif level.startswith("WARN"):
             return "WARN"
+        elif level.startswith("OK"):
+            return "OK"
         elif level.startswith("INFO"):
             return "INFO"
-        elif level.startswith("DEBUG"):
-            return "DEBUG"
         return "DEFAULT"
 
     def _should_show(self, level):
         """根据筛选条件判断是否显示"""
         if self._current_filter is None:
             return True
-        priority = {"ERROR": 4, "WARN": 3, "WARNING": 3, "INFO": 2, "DEBUG": 1, "DEFAULT": 0}
+        priority = {"ERROR": 4, "WARN": 3, "WARNING": 3, "INFO": 2, "OK": 2, "DEFAULT": 0}
         filter_priority = priority.get(self._current_filter, 0)
         level_priority = priority.get(level, 0)
         return level_priority >= filter_priority

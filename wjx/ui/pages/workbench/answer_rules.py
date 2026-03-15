@@ -684,7 +684,6 @@ class AnswerRulesPage(ScrollArea):
             return
         self._rules.append(rule)
         self._refresh_table()
-        self._toast("规则已添加", "success")
 
     def _on_edit_rule(self) -> None:
         rows = self._selected_rows()
@@ -709,7 +708,6 @@ class AnswerRulesPage(ScrollArea):
             return
         self._rules[row] = rule
         self._refresh_table()
-        self._toast("规则已更新", "success")
 
     def _on_delete_rule(self) -> None:
         rows = self._selected_rows()
@@ -730,7 +728,6 @@ class AnswerRulesPage(ScrollArea):
             if 0 <= row < len(self._rules):
                 self._rules.pop(row)
         self._refresh_table()
-        self._toast("规则已删除", "success")
 
     def _question_label_by_num(self, question_num: int, row_index: Optional[int] = None) -> str:
         info = self._question_map.get(question_num)

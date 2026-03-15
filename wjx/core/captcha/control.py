@@ -46,7 +46,7 @@ def _trigger_aliyun_captcha_stop(
             gui_instance.pause_run("触发智能验证")
             logging.warning("智能验证命中：已调用 pause_run")
     except Exception:
-        logging.debug("阿里云智能验证触发暂停失败", exc_info=True)
+        logging.info("阿里云智能验证触发暂停失败", exc_info=True)
 
     def _notify():
         try:
@@ -66,20 +66,20 @@ def _trigger_aliyun_captcha_stop(
                     "检测到阿里云智能验证，为避免继续失败提交已停止所有任务。\n\n"
                     "随机 IP 已启用，建议处理完验证后重新启动任务。\n"
                 )
-                if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
-                    gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
+                if gui_instance and hasattr(gui_instance, "_log_popup_message"):
+                    gui_instance._log_popup_message("智能验证提示", message)
                 else:
                     log_popup_warning("智能验证提示", message)
                 return
-            
+
             used, total, custom_api = get_random_ip_counter_snapshot_local()
             if custom_api:
                 message = (
                     "检测到阿里云智能验证，为避免继续失败提交已停止所有任务。\n\n"
                     "你当前使用的是自定义代理接口，请处理完验证后重新启动任务。"
                 )
-                if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
-                    gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
+                if gui_instance and hasattr(gui_instance, "_log_popup_message"):
+                    gui_instance._log_popup_message("智能验证提示", message)
                 else:
                     log_popup_warning("智能验证提示", message)
                 return
@@ -90,8 +90,8 @@ def _trigger_aliyun_captcha_stop(
                     "默认随机IP现已需要先领取免费试用或提交额度申请。\n"
                     "请先完成试用激活或额度申请，或切换自定义代理接口后再试。"
                 )
-                if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
-                    gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
+                if gui_instance and hasattr(gui_instance, "_log_popup_message"):
+                    gui_instance._log_popup_message("智能验证提示", message)
                 else:
                     log_popup_warning("智能验证提示", message)
                 return
@@ -99,7 +99,7 @@ def _trigger_aliyun_captcha_stop(
             quota_exceeded = is_quota_exhausted(
                 {"authenticated": True, "used_quota": int(used or 0), "total_quota": int(total or 0)}
             )
-            
+
             # 根据配额情况构建不同的提示消息
             if quota_exceeded:
                 message = (
@@ -107,8 +107,8 @@ def _trigger_aliyun_captcha_stop(
                     "建议启用随机 IP，但当前随机IP已用额度已达到上限。\n"
                     "请先补充额度后再启用随机 IP。"
                 )
-                if gui_instance and hasattr(gui_instance, "_log_popup_warning"):
-                    gui_instance._log_popup_warning("智能验证提示", message, icon="warning")
+                if gui_instance and hasattr(gui_instance, "_log_popup_message"):
+                    gui_instance._log_popup_message("智能验证提示", message)
                 else:
                     log_popup_warning("智能验证提示", message)
                 return
@@ -152,14 +152,14 @@ def _trigger_aliyun_captcha_stop(
             dispatcher(_notify)
             return
         except Exception:
-            logging.debug("派发阿里云停止事件到主线程失败", exc_info=True)
+            logging.info("派发阿里云停止事件到主线程失败", exc_info=True)
     root = getattr(gui_instance, "root", None) if gui_instance else None
     if root is not None and threading.current_thread() is threading.main_thread():
         try:
             root.after(0, _notify)
             return
         except Exception:
-            logging.debug("root.after 派发阿里云停止事件失败", exc_info=True)
+            logging.info("root.after 派发阿里云停止事件失败", exc_info=True)
     _notify()
 
 
@@ -182,4 +182,5 @@ def _handle_aliyun_captcha_detected(
         return
 
     _trigger_aliyun_captcha_stop(ctx, gui_instance, stop_signal)
+
 

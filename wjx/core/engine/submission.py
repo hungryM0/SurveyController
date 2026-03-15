@@ -85,13 +85,13 @@ def _click_submit_button(driver: BrowserDriver, max_wait: float = 10.0) -> bool:
 
                 try:
                     element.click()
-                    logging.debug("成功点击提交按钮：%s=%s", by, value)
+                    logging.info("成功点击提交按钮：%s=%s", by, value)
                     return True
                 except Exception:
                     pass
                 try:
                     driver.execute_script("arguments[0].click();", element)
-                    logging.debug("成功通过JS点击提交按钮：%s=%s", by, value)
+                    logging.info("成功通过JS点击提交按钮：%s=%s", by, value)
                     return True
                 except Exception:
                     continue
@@ -140,7 +140,7 @@ def _click_submit_button(driver: BrowserDriver, max_wait: float = 10.0) -> bool:
             )
         )
         if force_triggered:
-            logging.debug("提交按钮常规选择器未命中，已触发问卷星提交兜底入口")
+            logging.info("提交按钮常规选择器未命中，已触发问卷星提交兜底入口")
             return True
     except Exception as exc:
         log_suppressed_exception("submission._click_submit_button force trigger", exc, level=logging.WARNING)
@@ -344,7 +344,7 @@ def _acquire_replacement_submit_proxy(
     if current_proxy:
         logging.warning("无头提交代理疑似失效，已废弃：%s", _mask_proxy_for_log(current_proxy))
     elif removed_from_pool:
-        logging.debug("已从代理池移除重复的失效提交代理")
+        logging.info("已从代理池移除重复的失效提交代理")
 
     with ctx.lock:
         candidate = _pop_replacement_proxy_from_pool_locked(ctx, current_proxy)
@@ -465,7 +465,7 @@ def _capture_submit_request_via_route(
                     )
                 )
                 if force_triggered:
-                    logging.debug("无头抓包未命中，已强制触发问卷星提交入口重试")
+                    logging.info("无头抓包未命中，已强制触发问卷星提交入口重试")
                     _click_submit_confirm_button(driver, settle_delay=settle_delay)
             except Exception as exc:
                 log_suppressed_exception("submission._capture_submit_request_via_route force trigger", exc, level=logging.WARNING)
@@ -545,7 +545,7 @@ def _submit_via_headless_httpx(
 ) -> None:
     """无头模式：先由页面生成提交请求，再用 httpx 真正发出。"""
     setattr(driver, "_headless_httpx_submit_success", False)
-    logging.debug("无头模式启用：走 Playwright 抓包 + httpx 提交路线")
+    logging.info("无头模式启用：走 Playwright 抓包 + httpx 提交路线")
     captured = _capture_submit_request_via_route(
         driver,
         stop_signal=stop_signal,
@@ -567,7 +567,7 @@ def _submit_via_headless_httpx(
         submit_proxy_address = getattr(driver, "_submit_proxy_address", None)
         submit_proxy = _build_submit_proxy_url(submit_proxy_address)
         masked_proxy = _mask_proxy_for_log(submit_proxy_address)
-        logging.debug(
+        logging.info(
             "无头+httpx 提交代理状态: %s, attempt=%s, proxy=%s",
             "enabled" if submit_proxy else "disabled",
             attempt + 1,
@@ -629,7 +629,7 @@ def _submit_via_headless_httpx(
         except Exception as exc:
             log_suppressed_exception("submission._submit_via_headless_httpx open completion url", exc, level=logging.WARNING)
     setattr(driver, "_headless_httpx_submit_success", True)
-    logging.debug("无头+httpx 提交成功，业务码=10")
+    logging.info("无头+httpx 提交成功，业务码=10")
 
 
 def consume_headless_httpx_submit_success(driver: BrowserDriver) -> bool:
@@ -811,4 +811,5 @@ def _is_device_quota_limit_page(driver: BrowserDriver) -> bool:
         return bool(driver.execute_script(script))
     except Exception:
         return False
+
 

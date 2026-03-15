@@ -35,7 +35,7 @@ def _apply_label_color(label: QLabel, light: str, dark: str) -> None:
         getattr(label, 'setTextColor')(QColor(light), QColor(dark))
     except AttributeError as e:
         # setTextColor 方法不存在，使用样式表作为备选方案
-        logger.debug(f"setTextColor 方法不可用，使用样式表: {e}")
+        logger.info(f"setTextColor 方法不可用，使用样式表: {e}")
         style = label.styleSheet() or ""
         style = style.strip()
         if style and not style.endswith(";"):
@@ -60,7 +60,7 @@ def _bind_slider_input(slider: NoWheelSlider, edit: LineEdit) -> None:
         try:
             value = int(text)
         except ValueError:
-            logger.debug(f"滑块输入框数值转换失败: '{text}' 不是有效整数")
+            logger.info(f"滑块输入框数值转换失败: '{text}' 不是有效整数")
             return
         if value < min_value or value > max_value:
             return
@@ -73,7 +73,7 @@ def _bind_slider_input(slider: NoWheelSlider, edit: LineEdit) -> None:
         try:
             value = int(text)
         except ValueError:
-            logger.debug(f"滑块输入框最终值转换失败: '{text}' 不是有效整数")
+            logger.info(f"滑块输入框最终值转换失败: '{text}' 不是有效整数")
             return
         value = max(min_value, min(max_value, value))
         slider.setValue(value)
@@ -177,3 +177,4 @@ def infer_reverse_by_option_texts(option_texts: List[str]) -> bool:
         return False
 
     return False
+

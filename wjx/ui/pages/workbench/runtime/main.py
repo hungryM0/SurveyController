@@ -182,18 +182,18 @@ class RuntimePage(ScrollArea):
                 target_scroll = max(0, int(top_y - 16))
                 self.verticalScrollBar().setValue(target_scroll)
             except Exception as exc:
-                log_suppressed_exception("focus_answer_duration_setting: verticalScrollBar().setValue(...)", exc, level=logging.DEBUG)
+                log_suppressed_exception("focus_answer_duration_setting: verticalScrollBar().setValue(...)", exc, level=logging.INFO)
             try:
                 if target_edit is not None:
                     target_edit.setFocus()
                     target_edit.selectAll()
             except Exception as exc:
-                log_suppressed_exception("focus_answer_duration_setting: self.answer_card.inputEdit.setFocus()", exc, level=logging.DEBUG)
+                log_suppressed_exception("focus_answer_duration_setting: self.answer_card.inputEdit.setFocus()", exc, level=logging.INFO)
             try:
                 # 兜底：极端布局场景下再做一次“至少可见”
                 self.ensureWidgetVisible(self.answer_card, 0, 24)
             except Exception as exc:
-                log_suppressed_exception("focus_answer_duration_setting: ensureWidgetVisible", exc, level=logging.DEBUG)
+                log_suppressed_exception("focus_answer_duration_setting: ensureWidgetVisible", exc, level=logging.INFO)
 
         # 页面切换后做两次定位，避免首帧布局尚未稳定导致的偏移
         QTimer.singleShot(0, _focus_target)
@@ -327,7 +327,7 @@ class RuntimePage(ScrollArea):
         try:
             self.reliability_card._sync_enabled(bool(enabled))
         except Exception as exc:
-            log_suppressed_exception("_on_reliability_mode_toggled: reliability_card._sync_enabled", exc, level=logging.DEBUG)
+            log_suppressed_exception("_on_reliability_mode_toggled: reliability_card._sync_enabled", exc, level=logging.INFO)
 
     def update_config(self, cfg: RuntimeConfig):
         cfg.target = max(1, self.target_spin.value())
@@ -348,7 +348,7 @@ class RuntimePage(ScrollArea):
         try:
             cfg.psycho_target_alpha = self.reliability_card.get_alpha()
         except Exception as exc:
-            log_suppressed_exception("update_config: reliability_card.get_alpha()", exc, level=logging.DEBUG)
+            log_suppressed_exception("update_config: reliability_card.get_alpha()", exc, level=logging.INFO)
         cfg.headless_mode = self.headless_card.switchButton.isChecked()
         try:
             idx = self.proxy_source_combo.currentIndex()
@@ -405,7 +405,7 @@ class RuntimePage(ScrollArea):
             )
             self.reliability_card._sync_enabled(self.reliability_mode_switch.isChecked())
         except Exception as exc:
-            log_suppressed_exception("apply_config: reliability_card.set_alpha", exc, level=logging.DEBUG)
+            log_suppressed_exception("apply_config: reliability_card.set_alpha", exc, level=logging.INFO)
 
         self._suppress_headless_tip = True
         try:
@@ -432,4 +432,5 @@ class RuntimePage(ScrollArea):
         except Exception as exc:
             log_suppressed_exception("apply_config: proxy_source = getattr(cfg, \"proxy_source\", \"default\")", exc, level=logging.WARNING)
         self.ai_section.apply_config(cfg)
+
 

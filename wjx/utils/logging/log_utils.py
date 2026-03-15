@@ -53,9 +53,9 @@ def log_suppressed_exception(
     context: str,
     exc: Optional[BaseException] = None,
     *,
-    level: int = logging.DEBUG,
+    level: int = logging.INFO,
 ) -> None:
-    """记录被吞掉的异常，默认只在调试级别输出。"""
+    """记录被吞掉的异常，默认按 INFO 级别输出。"""
     try:
         if exc is None:
             logging.log(level, "[Suppressed] %s", context)
@@ -299,8 +299,6 @@ class LogBufferHandler(logging.Handler):
             return "ERROR"
         if level == "WARNING":
             return "WARNING"
-        if level == "DEBUG":
-            return "DEBUG"
         if level in {"OK", "SUCCESS"}:
             return "OK"
 
@@ -371,24 +369,6 @@ if not any(isinstance(h, LogBufferHandler) for h in _root_logger.handlers):
 _root_logger.setLevel(logging.INFO)
 
 
-def set_debug_mode(enabled: bool):
-    """动态设置调试模式，开启/关闭 DEBUG 级别日志输出"""
-    root_logger = logging.getLogger()
-    level = logging.DEBUG if enabled else logging.INFO
-    root_logger.setLevel(level)
-    # 同时更新所有 handler 的级别
-    for handler in root_logger.handlers:
-        if not isinstance(handler, LogBufferHandler):  # BufferHandler 保持收集所有级别
-            handler.setLevel(level)
-
-    # 调试模式下允许第三方库输出 DEBUG 日志，否则抑制
-    third_party_level = logging.DEBUG if enabled else logging.WARNING
-    logging.getLogger("urllib3").setLevel(third_party_level)
-    logging.getLogger("httpx").setLevel(third_party_level)
-    logging.getLogger("selenium").setLevel(third_party_level)
-    logging.getLogger("undetected_chromedriver").setLevel(third_party_level)
-
-
 def setup_logging():
     root_logger = logging.getLogger()
     if not root_logger.handlers:
@@ -397,11 +377,11 @@ def setup_logging():
     if not any(isinstance(handler, LogBufferHandler) for handler in root_logger.handlers):
         root_logger.addHandler(LOG_BUFFER_HANDLER)
 
-    # 抑制第三方库的 INFO/DEBUG 日志，避免刷屏
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("selenium").setLevel(logging.WARNING)
-    logging.getLogger("undetected_chromedriver").setLevel(logging.WARNING)
+    # 第三方日志统一到 INFO，避免与项目日志分裂成两套级别策略
+    logging.getLogger("urllib3").setLevel(logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.INFO)
+    logging.getLogger("selenium").setLevel(logging.INFO)
+    logging.getLogger("undetected_chromedriver").setLevel(logging.INFO)
 
     if not getattr(setup_logging, "_streams_hooked", False):
         stdout_logger = StreamToLogger(root_logger, logging.INFO, stream=ORIGINAL_STDOUT)
@@ -441,7 +421,7 @@ def _dispatch_popup(kind: str, title: str, message: str, default: Any = None) ->
         try:
             return _popup_handler(kind, title, message)
         except Exception:  # pragma: no cover - UI handler errors shouldn't crash engine
-            logging.debug("popup handler failed", exc_info=True)
+            logging.info("popup handler failed", exc_info=True)
     return default
 
 
@@ -478,10 +458,10 @@ def dump_threads_to_file(tag: str, runtime_directory: str) -> Optional[str]:
             lines.append("")
         with open(file_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
-        logging.debug(f"[Debug] 线程堆栈已导出：{file_path}")
+        logging.info(f"[Debug] 线程堆栈已导出：{file_path}")
         return file_path
     except Exception as exc:
-        logging.debug(f"导出线程堆栈失败: {exc}", exc_info=True)
+        logging.info(f"导出线程堆栈失败: {exc}", exc_info=True)
         return None
 
 
@@ -528,3 +508,4 @@ def shutdown_logging():
                 pass
     except Exception as exc:
         _safe_internal_log("shutdown_logging failed", exc)
+

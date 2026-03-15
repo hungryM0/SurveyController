@@ -61,21 +61,21 @@ class EngineGuiAdapter:
         try:
             self._dispatcher(callback)
         except Exception:
-            logging.debug("UI 派发失败，尝试直接执行回调", exc_info=True)
+            logging.info("UI 派发失败，尝试直接执行回调", exc_info=True)
             try:
                 callback()
             except Exception:
-                logging.debug("UI 派发失败且回调直接执行失败", exc_info=True)
+                logging.info("UI 派发失败且回调直接执行失败", exc_info=True)
 
     def _post_to_ui_thread_async(self, callback: Callable[[], None]) -> None:
         try:
             self._async_dispatcher(callback)
         except Exception:
-            logging.debug("异步 UI 派发失败，尝试直接执行回调", exc_info=True)
+            logging.info("异步 UI 派发失败，尝试直接执行回调", exc_info=True)
             try:
                 callback()
             except Exception:
-                logging.debug("异步 UI 派发失败且回调直接执行失败", exc_info=True)
+                logging.info("异步 UI 派发失败且回调直接执行失败", exc_info=True)
 
     def pause_run(self, reason: str = "") -> None:
         self._pause_reason = str(reason or "已暂停")
@@ -120,7 +120,7 @@ class EngineGuiAdapter:
             try:
                 callback(bool(loading), str(message or ""))
             except Exception:
-                logging.debug("更新随机IP加载状态失败", exc_info=True)
+                logging.info("更新随机IP加载状态失败", exc_info=True)
 
         self._post_to_ui_thread_async(_apply)
 
@@ -128,7 +128,7 @@ class EngineGuiAdapter:
         drivers = list(self.active_drivers or [])
         self.active_drivers.clear()
         if drivers:
-            logging.debug("[兜底清理] 已清理 %d 个 driver 跟踪引用，底座关闭由工作线程负责", len(drivers))
+            logging.info("[兜底清理] 已清理 %d 个 driver 跟踪引用，底座关闭由工作线程负责", len(drivers))
 
 
 class RunController(
@@ -188,7 +188,7 @@ class RunController(
         try:
             callback()
         except Exception:
-            logging.debug("执行 UI 回调失败", exc_info=True)
+            logging.info("执行 UI 回调失败", exc_info=True)
 
     def _dispatch_to_ui_async(self, callback: Callable[[], None]) -> None:
         if not callable(callback):
@@ -197,13 +197,13 @@ class RunController(
             try:
                 callback()
             except Exception:
-                logging.debug("无 QCoreApplication 时执行回调失败", exc_info=True)
+                logging.info("无 QCoreApplication 时执行回调失败", exc_info=True)
             return
         if threading.current_thread() is threading.main_thread():
             try:
                 callback()
             except Exception:
-                logging.debug("主线程直接执行回调失败", exc_info=True)
+                logging.info("主线程直接执行回调失败", exc_info=True)
             return
         try:
             self._uiCallbackQueued.emit(callback)
@@ -212,4 +212,5 @@ class RunController(
             try:
                 callback()
             except Exception:
-                logging.debug("UI 回调入队失败且直接执行失败", exc_info=True)
+                logging.info("UI 回调入队失败且直接执行失败", exc_info=True)
+

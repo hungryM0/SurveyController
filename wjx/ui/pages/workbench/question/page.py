@@ -66,4 +66,5 @@ class QuestionPage(ScrollArea):
         try:
             self.entriesChanged.emit(int(len(self.entries)))
         except Exception as exc:
-            logger.debug(f"发送 entriesChanged 信号失败: {exc}")
+            logger.info(f"发送 entriesChanged 信号失败: {exc}")
+

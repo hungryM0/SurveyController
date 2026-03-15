@@ -79,7 +79,7 @@ class RunControllerRuntimeMixin:
             try:
                 callback()
             except Exception:
-                logging.debug("无应用实例时同步 UI 回调执行失败", exc_info=True)
+                logging.info("无应用实例时同步 UI 回调执行失败", exc_info=True)
             return
 
         if threading.current_thread() is threading.main_thread():
@@ -350,7 +350,7 @@ class RunControllerRuntimeMixin:
 
             self._dispatch_to_ui_async(lambda: refresh_ip_counter_display(self.adapter))
         except Exception:
-            logging.debug("预取代理后刷新随机IP额度失败", exc_info=True)
+            logging.info("预取代理后刷新随机IP额度失败", exc_info=True)
         return proxy_pool
 
     def _run_initialization_gate(
@@ -471,7 +471,7 @@ class RunControllerRuntimeMixin:
             try:
                 probe_adapter.cleanup_browsers()
             except Exception:
-                logging.debug("初始化门禁清理浏览器失败", exc_info=True)
+                logging.info("初始化门禁清理浏览器失败", exc_info=True)
 
         # run() 在目标达成时会主动 set(stop_signal)，这里的 gate_stop_event 同时承担“外部取消”与“探测内部停止”两种语义。
         # 仅当全局 stop_event 被置位时才视为用户取消；否则按探测结果继续流程。
@@ -521,7 +521,7 @@ class RunControllerRuntimeMixin:
             try:
                 runtime_page.thread_spin.setValue(int(effective_threads))
             except Exception:
-                logging.debug("降级到有头模式后同步并发数失败", exc_info=True)
+                logging.info("降级到有头模式后同步并发数失败", exc_info=True)
 
     def _start_after_init_fallback(self, config: RuntimeConfig, proxy_pool: List[str]) -> None:
         if self.stop_event.is_set():
@@ -608,7 +608,7 @@ class RunControllerRuntimeMixin:
         try:
             set_proxy_occupy_minute_by_answer_duration(proxy_answer_duration)
         except Exception:
-            logging.debug("同步随机IP占用时长失败", exc_info=True)
+            logging.info("同步随机IP占用时长失败", exc_info=True)
 
         logging.info("配置题目概率分布（共%s题）", len(config.question_entries))
         _tmp_ctx = TaskContext()
@@ -752,12 +752,12 @@ class RunControllerRuntimeMixin:
         try:
             self._status_timer.stop()
         except Exception:
-            logging.debug("停止状态定时器失败", exc_info=True)
+            logging.info("停止状态定时器失败", exc_info=True)
         try:
             if self.adapter:
                 self.adapter.resume_run()
         except Exception:
-            logging.debug("停止时恢复暂停状态失败", exc_info=True)
+            logging.info("停止时恢复暂停状态失败", exc_info=True)
         self._schedule_cleanup()
         if self._paused_state:
             self._paused_state = False
@@ -774,7 +774,7 @@ class RunControllerRuntimeMixin:
         try:
             self.adapter.resume_run()
         except Exception:
-            logging.debug("恢复运行时清除暂停状态失败", exc_info=True)
+            logging.info("恢复运行时清除暂停状态失败", exc_info=True)
         if self._paused_state:
             self._paused_state = False
             self.pauseStateChanged.emit(False, "")
@@ -831,7 +831,7 @@ class RunControllerRuntimeMixin:
             try:
                 thread_rows = ctx.snapshot_thread_progress()
             except Exception:
-                logging.debug("获取线程进度快照失败", exc_info=True)
+                logging.info("获取线程进度快照失败", exc_info=True)
                 thread_rows = []
             try:
                 num_threads = max(1, int(getattr(ctx, "num_threads", 1) or 1))
@@ -860,3 +860,4 @@ class RunControllerRuntimeMixin:
         if should_force_cleanup:
             self._completion_cleanup_done = True
             self._schedule_cleanup()
+

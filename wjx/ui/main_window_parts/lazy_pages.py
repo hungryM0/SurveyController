@@ -200,4 +200,5 @@ class MainWindowLazyPagesMixin:
         try:
             self.navigationInterface.setCurrentItem("about_menu")
         except Exception:
-            logging.debug("同步更多侧边栏高亮失败", exc_info=True)
+            logging.info("同步更多侧边栏高亮失败", exc_info=True)
+

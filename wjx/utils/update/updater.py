@@ -53,7 +53,7 @@ def _set_download_source(source_key: str) -> None:
             settings = app_settings()
             settings.setValue("download_source", source_key)
             settings.remove("github_mirror")
-            logging.debug(f"已切换下载源为: {source_key}")
+            logging.info(f"已切换下载源为: {source_key}")
         except Exception as exc:
             log_suppressed_exception("_set_download_source", exc, level=logging.WARNING)
 
@@ -78,12 +78,12 @@ def _apply_download_source_to_url(url: str, source_key: Optional[str] = None) ->
     source_config = DOWNLOAD_SOURCES.get(source_key, {})
     direct_download_url = str(source_config.get("direct_download_url", "")).strip()
     if direct_download_url:
-        logging.debug(f"使用下载源 [{source_key}] 直连地址: {direct_download_url}")
+        logging.info(f"使用下载源 [{source_key}] 直连地址: {direct_download_url}")
         return direct_download_url
     prefix = source_config.get("download_prefix", "")
     if prefix and url.startswith("https://github.com/"):
         mirrored_url = prefix + url
-        logging.debug(f"使用下载源 [{source_key}]: {mirrored_url}")
+        logging.info(f"使用下载源 [{source_key}]: {mirrored_url}")
         return mirrored_url
     return url
 
@@ -141,7 +141,7 @@ class UpdateManager:
                 parsed_current = version.parse(current_version)
                 if parsed_current > parsed_latest:
                     # 本地版本高于远程，属于预览/开发版
-                    logging.debug(f"当前版本 {current_version} 高于远程最新版 {latest_version}，视为预览版")
+                    logging.info(f"当前版本 {current_version} 高于远程最新版 {latest_version}，视为预览版")
                     return {"has_update": False, "status": "preview", "current_version": current_version, "latest_version": latest_version}
                 if parsed_current == parsed_latest:
                     return {"has_update": False, "status": "latest", "current_version": current_version}
@@ -172,10 +172,10 @@ class UpdateManager:
                 "current_version": current_version,
             }
 
-        except http_client.exceptions.Timeout:
+        except http_client.Timeout:
             logging.warning("检查更新超时")
             return {"has_update": False, "status": "unknown"}
-        except http_client.exceptions.RequestException as exc:
+        except http_client.RequestException as exc:
             logging.warning(f"检查更新失败: {exc}")
             return {"has_update": False, "status": "unknown"}
         except Exception as exc:
@@ -224,7 +224,7 @@ class UpdateManager:
             actual_url = _apply_download_source_to_url(download_url, current_source)
             
             try:
-                logging.debug(f"正在连接下载服务器: {actual_url}")
+                logging.info(f"正在连接下载服务器: {actual_url}")
                 # 使用较短的连接超时，较长的读取超时
                 response = http_client.get(actual_url, timeout=(CONNECT_TIMEOUT, 60), stream=True)
                 response.raise_for_status()
@@ -239,7 +239,7 @@ class UpdateManager:
                 last_time = start_time
                 last_downloaded = 0
 
-                logging.debug(f"下载目标目录: {current_dir}")
+                logging.info(f"下载目标目录: {current_dir}")
 
                 last_speed = 0
                 with open(temp_file, "wb") as f:
@@ -262,13 +262,13 @@ class UpdateManager:
                                 progress_callback(downloaded_size, total_size, last_speed)
                             if total_size > 0:
                                 progress = (downloaded_size / total_size) * 100
-                                logging.debug(f"下载进度: {progress:.1f}%")
+                                logging.info(f"下载进度: {progress:.1f}%")
 
                 if os.path.exists(target_file):
                     os.remove(target_file)
                 os.rename(temp_file, target_file)
 
-                logging.debug(f"文件已成功下载到: {target_file}")
+                logging.info(f"文件已成功下载到: {target_file}")
                 
                 # 下载成功，保存当前使用的下载源
                 _set_download_source(current_source)
@@ -279,7 +279,7 @@ class UpdateManager:
 
                 return target_file
 
-            except (http_client.exceptions.ConnectTimeout, http_client.exceptions.ConnectionError) as exc:
+            except (http_client.ConnectTimeout, http_client.ConnectionError) as exc:
                 logging.warning(f"下载源 [{current_source}] 连接失败: {exc}")
                 
                 # 清理临时文件
@@ -296,7 +296,7 @@ class UpdateManager:
                 next_source = _get_next_download_source(current_source)
                 if next_source and next_source not in tried_sources:
                     source_label = DOWNLOAD_SOURCES.get(next_source, {}).get("label", next_source)
-                    logging.debug(f"已自动切换到下载源: {source_label}")
+                    logging.info(f"已自动切换到下载源: {source_label}")
                     current_source = next_source
                     # 通知 GUI 下载源已切换
                     if on_download_source_switch:
@@ -341,7 +341,7 @@ class UpdateManager:
                     continue
                 try:
                     os.remove(file_path)
-                    logging.debug(f"已删除旧版本: {file_path}")
+                    logging.info(f"已删除旧版本: {file_path}")
                 except Exception as exc:
                     logging.warning(f"无法删除旧版本 {file_path}: {exc}")
         except Exception as exc:
@@ -384,7 +384,7 @@ class UpdateManager:
                 ["cmd.exe", "/c", script_path],
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
-            logging.debug(f"已调度删除旧版本执行文件: {current_executable}")
+            logging.info(f"已调度删除旧版本执行文件: {current_executable}")
         except Exception as exc:
             logging.warning(f"调度删除旧版本失败: {exc}")
 
@@ -430,10 +430,10 @@ def show_update_notification(gui) -> None:
     )
 
     if gui._log_popup_confirm("检查到更新", msg):
-        logging.debug("[Action Log] User accepted update notification")
+        logging.info("[Action Log] User accepted update notification")
         perform_update(gui)
     else:
-        logging.debug("[Action Log] User declined update notification")
+        logging.info("[Action Log] User declined update notification")
 
 
 def check_for_updates(gui=None) -> Optional[Dict[str, Any]]:
@@ -448,16 +448,16 @@ def check_for_updates(gui=None) -> Optional[Dict[str, Any]]:
             # 使用与启动时检查更新相同的弹窗样式
             show_update_notification(gui)
         elif status == "latest":
-            gui._log_popup_info("检查更新", f"当前已是最新版本 v{__VERSION__}")
+            gui._log_popup_message("检查更新", f"当前已是最新版本 v{__VERSION__}")
         elif status == "preview":
             latest = update_info.get("latest_version", "?")
-            gui._log_popup_info("检查更新", f"当前版本 v{__VERSION__} 高于远程最新版 v{latest}，属于预览/开发版本")
+            gui._log_popup_message("检查更新", f"当前版本 v{__VERSION__} 高于远程最新版 v{latest}，属于预览/开发版本")
         else:
-            gui._log_popup_error("检查更新失败", "无法连接到更新服务器，请检查网络连接后重试")
+            gui._log_popup_message("检查更新失败", "无法连接到更新服务器，请检查网络连接后重试")
         return update_info
     except Exception as exc:
         if gui:
-            gui._log_popup_error("检查更新失败", f"错误: {str(exc)}")
+            gui._log_popup_message("检查更新失败", f"错误: {str(exc)}")
         else:
             logging.error(f"检查更新失败: {exc}")
         return None
@@ -481,12 +481,12 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
             try:
                 gui._emit_download_progress(downloaded, total, speed)
             except Exception:
-                logging.debug("GUI进度回调失败", exc_info=True)
+                logging.info("GUI进度回调失败", exc_info=True)
         if on_progress:
             try:
                 on_progress(downloaded, total, speed)
             except Exception:
-                logging.debug("更新进度回调失败", exc_info=True)
+                logging.info("更新进度回调失败", exc_info=True)
 
     # 立即显示转圈动画（在开始下载前）
     if hasattr(gui, "downloadStarted"):
@@ -518,7 +518,7 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
                     gui.downloadFinished.emit(downloaded_file)
                 else:
                     # 兼容旧版本
-                    logging.debug(f"下载完成: {downloaded_file}")
+                    logging.info(f"下载完成: {downloaded_file}")
             else:
                 if not gui._download_cancelled:
                     if hasattr(gui, "downloadFailed"):
@@ -532,4 +532,5 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
                     gui.downloadFailed.emit(f"更新过程出错: {str(exc)}")
 
     Thread(target=do_update, daemon=True).start()
+
 

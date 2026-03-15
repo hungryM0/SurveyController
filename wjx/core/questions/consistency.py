@@ -289,7 +289,7 @@ def _apply_rule(
             rule.target_question_num,
         )
         return list(base_probabilities)
-    logging.debug(
+    logging.info(
         "作答规则[%s]已生效：条件题=%s，目标题=%s，动作=%s，目标选项=%s",
         rule.id,
         rule.condition_question_num,
@@ -341,7 +341,7 @@ def get_multiple_rule_constraint(
             rule.target_question_num,
         )
         return set(), set(), rule.id
-    logging.debug(
+    logging.info(
         "作答规则[%s]已生效：条件题=%s，目标题=%s，动作=%s，目标选项=%s",
         rule.id,
         rule.condition_question_num,
@@ -352,3 +352,4 @@ def get_multiple_rule_constraint(
     if rule.action_mode == "must_select":
         return set(valid_indices), set(), rule.id
     return set(), set(valid_indices), rule.id
+

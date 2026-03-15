@@ -147,13 +147,13 @@ class _BrowserSession:
                 try:
                     self._browser_sem.release()
                     self.sem_acquired = False
-                    logging.debug("已释放浏览器信号量（无浏览器实例）")
+                    logging.info("已释放浏览器信号量（无浏览器实例）")
                 except Exception as exc:
                     log_suppressed_exception("_BrowserSession.dispose release semaphore (no driver)", exc, level=logging.WARNING)
             return
 
         if not self.driver.mark_cleanup_done():
-            logging.debug("浏览器实例已被其他线程清理，跳过")
+            logging.info("浏览器实例已被其他线程清理，跳过")
             self.driver = None
             if self.sem_acquired:
                 self._browser_sem.release()
@@ -166,7 +166,7 @@ class _BrowserSession:
 
         try:
             driver_instance.quit()
-            logging.debug("已关闭浏览器 context/page")
+            logging.info("已关闭浏览器 context/page")
         except Exception as exc:
             log_suppressed_exception("_BrowserSession.dispose driver.quit", exc, level=logging.WARNING)
 
@@ -178,7 +178,7 @@ class _BrowserSession:
             try:
                 self._browser_sem.release()
                 self.sem_acquired = False
-                logging.debug("已释放浏览器信号量")
+                logging.info("已释放浏览器信号量")
             except Exception as exc:
                 log_suppressed_exception("_BrowserSession.dispose release semaphore", exc, level=logging.WARNING)
 
@@ -188,7 +188,7 @@ class _BrowserSession:
         if self._browser_manager is not None:
             try:
                 shutdown_browser_manager(self._browser_manager)
-                logging.debug("已关闭 BrowserManager 底座")
+                logging.info("已关闭 BrowserManager 底座")
             except Exception as exc:
                 log_suppressed_exception("_BrowserSession.shutdown manager.close", exc, level=logging.WARNING)
             finally:
@@ -232,7 +232,7 @@ class _BrowserSession:
         if not self.sem_acquired:
             self._browser_sem.acquire()
             self.sem_acquired = True
-            logging.debug("已获取浏览器信号量")
+            logging.info("已获取浏览器信号量")
 
         try:
             if self._browser_manager is None:
@@ -254,7 +254,7 @@ class _BrowserSession:
             if self.sem_acquired:
                 self._browser_sem.release()
                 self.sem_acquired = False
-                logging.debug("创建浏览器失败，已释放信号量")
+                logging.info("创建浏览器失败，已释放信号量")
             if self.thread_name:
                 self.ctx.release_proxy_in_use(self.thread_name)
             self.proxy_address = None
@@ -360,7 +360,7 @@ def _record_successful_submission(
                 f"[OK] 已填写{ctx.cur_num}份 - 连续失败{ctx.cur_fail}次 - {time.strftime('%H:%M:%S', time.localtime(time.time()))}"
             )
             if previous_consecutive_failures > 0:
-                logging.debug("提交成功，连续失败计数已清零（重置前=%s）", previous_consecutive_failures)
+                logging.info("提交成功，连续失败计数已清零（重置前=%s）", previous_consecutive_failures)
             should_handle_random_ip = ctx.random_proxy_ip_enabled
             if ctx.target_num > 0 and ctx.cur_num >= ctx.target_num:
                 trigger_target_stop = True
@@ -371,11 +371,11 @@ def _record_successful_submission(
         try:
             ctx.commit_pending_distribution(thread_name)
         except Exception:
-            logging.debug("提交成功后写入比例统计失败", exc_info=True)
+            logging.info("提交成功后写入比例统计失败", exc_info=True)
         try:
             ctx.increment_thread_success(thread_name, status_text="提交成功")
         except Exception:
-            logging.debug("更新线程成功计数失败", exc_info=True)
+            logging.info("更新线程成功计数失败", exc_info=True)
     if should_break:
         stop_signal.set()
     if trigger_target_stop:
@@ -408,7 +408,7 @@ def run(
     try:
         ctx.update_thread_status(thread_name, "线程启动", running=True)
     except Exception:
-        logging.debug("更新线程状态失败：线程启动", exc_info=True)
+        logging.info("更新线程状态失败：线程启动", exc_info=True)
 
     timed_mode_on = _timed_mode_active(ctx)
     try:
@@ -423,13 +423,13 @@ def run(
 
     session = _BrowserSession(ctx, gui_instance, thread_name)
 
-    logging.debug(f"目标份数: {ctx.target_num}, 当前进度: {ctx.cur_num}/{ctx.target_num}")
+    logging.info(f"目标份数: {ctx.target_num}, 当前进度: {ctx.cur_num}/{ctx.target_num}")
     if timed_mode_on:
-        logging.debug("定时模式已启用")
+        logging.info("定时模式已启用")
     if ctx.random_proxy_ip_enabled:
-        logging.debug("随机IP已启用")
+        logging.info("随机IP已启用")
     if ctx.random_user_agent_enabled:
-        logging.debug("随机UA已启用")
+        logging.info("随机UA已启用")
 
     while True:
         _wait_if_paused(gui_instance, stop_signal)
@@ -454,7 +454,7 @@ def run(
                     running=True,
                 )
             except Exception:
-                logging.debug("更新线程状态失败：准备浏览器", exc_info=True)
+                logging.info("更新线程状态失败：准备浏览器", exc_info=True)
             try:
                 active_browser = session.create_browser(
                     preferred_browsers, window_x_pos, window_y_pos,
@@ -492,9 +492,9 @@ def run(
             try:
                 ctx.update_thread_status(thread_name, "加载问卷", running=True)
             except Exception:
-                logging.debug("更新线程状态失败：加载问卷", exc_info=True)
+                logging.info("更新线程状态失败：加载问卷", exc_info=True)
             if timed_mode_on:
-                logging.debug("[Action Log] 定时模式：开始刷新等待问卷开放")
+                logging.info("[Action Log] 定时模式：开始刷新等待问卷开放")
                 ready = timed_mode.wait_until_open(
                     session.driver,
                     ctx.url,
@@ -529,7 +529,7 @@ def run(
                         running=True,
                     )
                 except Exception:
-                    logging.debug("更新线程状态失败：设备达到填写次数上限", exc_info=True)
+                    logging.info("更新线程状态失败：设备达到填写次数上限", exc_info=True)
                 session.dispose()
                 if stopped:
                     logging.warning("设备达到填写次数上限且连续失败达到阈值，任务停止。")
@@ -540,7 +540,7 @@ def run(
                     try:
                         handle_random_ip_submission(gui_instance, stop_signal)
                     except Exception:
-                        logging.debug("设备上限失败后处理随机IP提交流程失败", exc_info=True)
+                        logging.info("设备上限失败后处理随机IP提交流程失败", exc_info=True)
                 continue
 
             visited_urls: Set[str] = set()
@@ -556,7 +556,7 @@ def run(
                 try:
                     ctx.reset_pending_distribution(thread_name)
                 except Exception:
-                    logging.debug("重置本轮比例统计缓存失败", exc_info=True)
+                    logging.info("重置本轮比例统计缓存失败", exc_info=True)
                 finished = brush(session.driver, ctx=ctx, stop_signal=stop_signal)
                 if stop_signal.is_set() or not finished:
                     break
@@ -666,7 +666,7 @@ def run(
         except TimeoutException as exc:
             if stop_signal.is_set():
                 break
-            logging.debug("提交未完成（未检测到完成页）：%s", exc)
+            logging.info("提交未完成（未检测到完成页）：%s", exc)
 
             # 额外等待完成页
             extra_wait_seconds = max(1.0, float(POST_SUBMIT_URL_MAX_WAIT or 0.0) * 3.0)
@@ -757,7 +757,7 @@ def run(
             try:
                 ctx.update_thread_status(thread_name, "等待提交间隔", running=True)
             except Exception:
-                logging.debug("更新线程状态失败：等待提交间隔", exc_info=True)
+                logging.info("更新线程状态失败：等待提交间隔", exc_info=True)
             wait_seconds = min_wait if max_wait == min_wait else random.uniform(min_wait, max_wait)
             if stop_signal.wait(wait_seconds):
                 break
@@ -765,5 +765,6 @@ def run(
     try:
         ctx.mark_thread_finished(thread_name, status_text="已停止")
     except Exception:
-        logging.debug("更新线程状态失败：已停止", exc_info=True)
+        logging.info("更新线程状态失败：已停止", exc_info=True)
     session.shutdown()
+

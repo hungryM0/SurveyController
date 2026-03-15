@@ -215,7 +215,6 @@ class DashboardEntriesMixin:
                 entries.pop(row)
         self.question_page.set_entries(entries, self.question_page.questions_info)
         self._refresh_entry_table()
-        self._toast(f"已删除 {count} 个题目", "success")
 
     def _clear_all_entries(self):
         entries = self.question_page.get_entries()
@@ -236,7 +235,6 @@ class DashboardEntriesMixin:
 
         self.question_page.set_entries([], [])
         self._refresh_entry_table()
-        self._toast("已清空所有已配置题目", "success")
 
     def _refresh_entry_table(self):
         entries = self.question_page.get_entries()

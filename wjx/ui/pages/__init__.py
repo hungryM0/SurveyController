@@ -1,21 +1,30 @@
-"""UI 页面模块"""
-from wjx.ui.pages.workbench.dashboard import DashboardPage
-from wjx.ui.pages.workbench.runtime import RuntimePage
-from wjx.ui.pages.workbench.answer_rules import AnswerRulesPage
-from wjx.ui.pages.settings.settings import SettingsPage
-from wjx.ui.pages.workbench.question import QuestionPage, QuestionWizardDialog
-from wjx.ui.pages.workbench.log import LogPage
-from wjx.ui.pages.more.support import SupportPage
-from wjx.ui.pages.more.changelog import ChangelogPage
+"""UI 页面模块。"""
 
-__all__ = [
-    "DashboardPage",
-    "RuntimePage",
-    "AnswerRulesPage",
-    "SettingsPage",
-    "QuestionPage",
-    "QuestionWizardDialog",
-    "LogPage",
-    "SupportPage",
-    "ChangelogPage",
-]
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
+
+_EXPORTS = {
+    "DashboardPage": "wjx.ui.pages.workbench.dashboard",
+    "RuntimePage": "wjx.ui.pages.workbench.runtime",
+    "AnswerRulesPage": "wjx.ui.pages.workbench.answer_rules",
+    "SettingsPage": "wjx.ui.pages.settings.settings",
+    "QuestionPage": "wjx.ui.pages.workbench.question",
+    "QuestionWizardDialog": "wjx.ui.pages.workbench.question",
+    "LogPage": "wjx.ui.pages.workbench.log",
+    "SupportPage": "wjx.ui.pages.more.support",
+    "ChangelogPage": "wjx.ui.pages.more.changelog",
+}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    module_name = _EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value

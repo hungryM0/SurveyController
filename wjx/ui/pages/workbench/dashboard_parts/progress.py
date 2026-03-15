@@ -458,8 +458,6 @@ class DashboardProgressMixin:
             self._completion_notified = False
             self.start_btn.setText("执行中...")
             self.start_btn.setEnabled(False)
-            if not self._controller_initializing():
-                self._toast("已启动任务", "success", 1500)
         else:
             if self._thread_progress_rows:
                 self._thread_clear_timer.start()
@@ -485,8 +483,6 @@ class DashboardProgressMixin:
                     "warning",
                     2200,
                 )
-            else:
-                self._toast("任务结束", "info", 1500)
 
     def on_pause_state_changed(self, paused: bool, reason: str = ""):
         self._last_pause_reason = str(reason or "")
@@ -502,7 +498,6 @@ class DashboardProgressMixin:
         else:
             self.resume_btn.setEnabled(False)
             self.resume_btn.hide()
-            self._toast("已继续执行", "success", 1500)
 
     def _on_resume_clicked(self):
         if not getattr(self.controller, "running", False):

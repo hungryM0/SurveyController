@@ -76,7 +76,7 @@ class RegistryManager:
         except FileNotFoundError:
             return default
         except Exception as e:
-            logging.debug(f"读取额度上限失败: {e}")
+            logging.info(f"读取额度上限失败: {e}")
             return default
 
     @staticmethod
@@ -123,3 +123,4 @@ class RegistryManager:
             return True
         except Exception:
             return False
+

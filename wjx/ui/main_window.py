@@ -194,7 +194,7 @@ class MainWindow(
         try:
             setTheme(theme_mode, save=False, lazy=False)
         except Exception:
-            logging.debug("应用主题模式失败", exc_info=True)
+            logging.info("应用主题模式失败", exc_info=True)
 
     def _enable_window_material_effect(self):
         """启用窗口材质效果（Windows 下优先使用 Mica）。"""
@@ -205,7 +205,7 @@ class MainWindow(
         try:
             self.setMicaEffectEnabled(True)
         except Exception:
-            logging.debug("启用窗口材质效果失败", exc_info=True)
+            logging.info("启用窗口材质效果失败", exc_info=True)
 
     def _apply_default_window_size(self):
         """按屏幕可用区域设置默认窗口尺寸，避免高缩放场景越界。"""
@@ -228,7 +228,7 @@ class MainWindow(
                 min(target_height, available.height()),
             )
         except Exception:
-            logging.debug("设置默认窗口尺寸失败", exc_info=True)
+            logging.info("设置默认窗口尺寸失败", exc_info=True)
             self.resize(fallback_width, fallback_height)
 
     def _on_theme_changed(self, _theme: Theme):
@@ -239,7 +239,7 @@ class MainWindow(
             if drawer and hasattr(drawer, "_apply_theme"):
                 drawer._apply_theme()
         except Exception:
-            logging.debug("主题变更后刷新组件失败", exc_info=True)
+            logging.info("主题变更后刷新组件失败", exc_info=True)
 
     def changeEvent(self, event):
         """系统主题/调色板变化时，在 AUTO 模式下重同步主题。"""
@@ -292,7 +292,7 @@ class MainWindow(
             if always_expand:
                 self.navigationInterface.expand(useAni=False)
         except Exception:
-            logging.debug("设置侧边栏状态失败", exc_info=True)
+            logging.info("设置侧边栏状态失败", exc_info=True)
 
     def showEvent(self, e):
         """窗口显示时展开侧边栏"""
@@ -307,7 +307,7 @@ class MainWindow(
         try:
             self.navigationInterface.expand(useAni=False)
         except Exception:
-            logging.debug("showEvent 展开侧边栏失败", exc_info=True)
+            logging.info("showEvent 展开侧边栏失败", exc_info=True)
 
     def closeEvent(self, e):
         """窗口关闭时询问用户是否保存配置"""
@@ -477,7 +477,7 @@ class MainWindow(
             frame.moveCenter(available.center())
             self.move(frame.topLeft())
         except Exception:
-            logging.debug("窗口居中失败", exc_info=True)
+            logging.info("窗口居中失败", exc_info=True)
 
     def apply_topmost_state(self, checked: bool, show: bool = False):
         """应用窗口置顶状态，并刷新无边框特效以保留圆角。"""
@@ -494,7 +494,7 @@ class MainWindow(
             try:
                 self.updateFrameless()
             except Exception:
-                logging.debug("刷新无边框窗口状态失败", exc_info=True)
+                logging.info("刷新无边框窗口状态失败", exc_info=True)
         self._enable_window_material_effect()
         if show:
             self.show()
@@ -590,7 +590,6 @@ class MainWindow(
                 self.question_page.set_questions(info, pending_entries)
                 self.controller.question_entries = pending_entries
                 self.dashboard.update_question_meta(parsed_title, len(pending_entries))
-                self._toast("解析完成，可在'题目配置'页查看", "success")
             else:
                 current_entries = self.question_page.get_entries()
                 self.dashboard.update_question_meta(parsed_title, len(current_entries))
@@ -598,7 +597,6 @@ class MainWindow(
             return
         self.question_page.set_questions(info, self.controller.question_entries)
         self.dashboard.update_question_meta(parsed_title, len(self.controller.question_entries))
-        self._toast("解析完成，可在'题目配置'页查看", "success")
 
     def _on_survey_parse_failed(self, msg: str):
         text = str(msg or "").strip()
@@ -606,7 +604,6 @@ class MainWindow(
             # 该提示已由 dashboard 处理为专用引导文案，主窗口层不重复弹出。
             self.dashboard._open_wizard_after_parse = False
             return
-        self._toast(text, "error")
         self.dashboard._open_wizard_after_parse = False
 
     def _open_quota_request_dialog(self) -> bool:
@@ -622,4 +619,5 @@ class MainWindow(
 def create_window() -> MainWindow:
     """供入口调用的工厂函数。"""
     return MainWindow()
+
 

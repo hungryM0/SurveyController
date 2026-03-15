@@ -19,7 +19,7 @@ from qfluentwidgets import (
     ProgressBar,
 )
 
-from wjx.utils.app.config import DOWNLOAD_SOURCES, app_settings, get_bool_from_qsettings
+from wjx.utils.app.config import app_settings, get_bool_from_qsettings
 from wjx.utils.app.version import __VERSION__
 
 
@@ -32,7 +32,6 @@ class MainWindowUpdateMixin:
         downloadProgress: Any
         _toast: Any
         _log_popup_confirm: Any
-        _log_popup_error: Any
         close: Any
         _settings_page: Any
 
@@ -49,7 +48,7 @@ class MainWindowUpdateMixin:
             self._update_worker.update_checked.connect(self._on_update_checked)
             self._update_worker.start()
 
-            logging.debug("已启动后台更新检查")
+            logging.info("已启动后台更新检查")
 
     def _on_update_checked(self, has_update: bool, update_info: dict):
         """更新检查完成的回调"""
@@ -85,7 +84,7 @@ class MainWindowUpdateMixin:
                 self.titleBar.hBoxLayout.removeWidget(badge)
                 badge.deleteLater()
             except Exception:
-                logging.debug("移除旧徽章失败", exc_info=True)
+                logging.info("移除旧徽章失败", exc_info=True)
             setattr(self, attr, None)
         try:
             spinner = IndeterminateProgressRing(parent=self.titleBar)
@@ -94,7 +93,7 @@ class MainWindowUpdateMixin:
             self.titleBar.hBoxLayout.insertWidget(2, spinner, 0, Qt.AlignmentFlag.AlignVCenter)
             self._update_checking_spinner = spinner
         except Exception:
-            logging.debug("显示更新检查占位失败", exc_info=True)
+            logging.info("显示更新检查占位失败", exc_info=True)
 
     def _clear_update_checking_placeholder(self):
         spinner = self._update_checking_spinner
@@ -104,7 +103,7 @@ class MainWindowUpdateMixin:
             self.titleBar.hBoxLayout.removeWidget(spinner)
             spinner.deleteLater()
         except Exception:
-            logging.debug("清理更新检查占位失败", exc_info=True)
+            logging.info("清理更新检查占位失败", exc_info=True)
         self._update_checking_spinner = None
 
     def _show_update_notification(self):
@@ -138,7 +137,7 @@ class MainWindowUpdateMixin:
             # 将徽章添加到标题栏布局
             self.titleBar.hBoxLayout.insertWidget(2, self._latest_badge, 0, Qt.AlignmentFlag.AlignVCenter)
         except Exception:
-            logging.debug("显示最新版徽章失败", exc_info=True)
+            logging.info("显示最新版徽章失败", exc_info=True)
 
     def _show_unknown_badge(self):
         """在标题栏显示未知状态徽章（灰色，网络失败时使用）"""
@@ -156,7 +155,7 @@ class MainWindowUpdateMixin:
             )
             self.titleBar.hBoxLayout.insertWidget(2, self._unknown_badge, 0, Qt.AlignmentFlag.AlignVCenter)
         except Exception:
-            logging.debug("显示未知状态徽章失败", exc_info=True)
+            logging.info("显示未知状态徽章失败", exc_info=True)
 
     def _show_outdated_badge(self):
         """在标题栏显示过时版本徽章（红色）"""
@@ -169,7 +168,7 @@ class MainWindowUpdateMixin:
                 self._preview_badge.deleteLater()
                 self._preview_badge = None
             except Exception:
-                logging.debug("清理预览版徽章失败", exc_info=True)
+                logging.info("清理预览版徽章失败", exc_info=True)
         try:
             # 在标题栏添加红色徽章
             self._outdated_badge = InfoBadge.custom(
@@ -181,7 +180,7 @@ class MainWindowUpdateMixin:
             # 将徽章添加到标题栏布局
             self.titleBar.hBoxLayout.insertWidget(2, self._outdated_badge, 0, Qt.AlignmentFlag.AlignVCenter)
         except Exception:
-            logging.debug("显示可更新徽章失败", exc_info=True)
+            logging.info("显示可更新徽章失败", exc_info=True)
 
     def _check_preview_version(self):
         """检查是否为预览版本，如果是则显示预览徽章"""
@@ -203,7 +202,7 @@ class MainWindowUpdateMixin:
             # 将徽章添加到标题栏布局
             self.titleBar.hBoxLayout.insertWidget(2, self._preview_badge, 0, Qt.AlignmentFlag.AlignVCenter)
         except Exception:
-            logging.debug("显示预览版徽章失败", exc_info=True)
+            logging.info("显示预览版徽章失败", exc_info=True)
 
     def _show_download_toast(self, total_size: int = 0, show_spinner: bool = False):
         """显示下载进度Toast（右下角）"""
@@ -334,7 +333,7 @@ class MainWindowUpdateMixin:
             try:
                 self._download_infobar.close()
             except Exception:
-                logging.debug("关闭下载进度提示失败", exc_info=True)
+                logging.info("关闭下载进度提示失败", exc_info=True)
             self._download_infobar = None
             self._download_progress_bar = None
             self._download_detail_label = None
@@ -361,14 +360,14 @@ class MainWindowUpdateMixin:
                 self.close()
             except Exception as exc:
                 logging.error("[Action Log] Failed to launch downloaded update")
-                self._log_popup_error("启动失败", f"无法启动新版本: {exc}")
+                self._log_popup_message("启动失败", f"无法启动新版本: {exc}")
         else:
-            logging.debug("[Action Log] Deferred launching downloaded update")
+            logging.info("[Action Log] Deferred launching downloaded update")
 
     def _on_download_failed(self, error_msg: str):
         """下载失败后在主线程显示弹窗"""
         if not getattr(self, "_download_cancelled", False):
-            self._log_popup_error("更新失败", error_msg)
+            self._log_popup_message("更新失败", error_msg)
 
     def _on_download_source_switched(self, new_source_key: str):
         """下载源切换时更新设置页面的下拉框"""
@@ -380,8 +379,5 @@ class MainWindowUpdateMixin:
                     self._settings_page.download_source_combo.blockSignals(True)
                     self._settings_page.download_source_combo.setCurrentIndex(idx)
                     self._settings_page.download_source_combo.blockSignals(False)
-            # 显示提示
-            source_label = DOWNLOAD_SOURCES.get(new_source_key, {}).get("label", new_source_key)
-            self._toast(f"已自动切换到下载源: {source_label}", "info")
         except Exception:
             logging.warning("切换下载源后同步 UI 状态失败", exc_info=True)

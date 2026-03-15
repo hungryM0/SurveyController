@@ -76,7 +76,3 @@ def get_usage_summary() -> dict[str, Any]:
         "remaining_ip": _extract_remaining_ip(payload),
     }
 
-
-def get_usage_history() -> list[dict[str, Any]]:
-    """兼容旧调用，只返回近 30 日每日 IP 提取记录。"""
-    return get_usage_summary()["records"]

@@ -60,7 +60,7 @@ class EventBus:
             try:
                 handler(**kwargs)
             except Exception as exc:
-                logging.debug(
+                logging.info(
                     "EventBus: handler %r raised on event %r: %s",
                     handler,
                     event,
@@ -90,4 +90,4 @@ EVENT_CAPTCHA_DETECTED = "captcha_detected"
 EVENT_SUBMIT_SUCCESS = "submit_success"
 EVENT_SUBMIT_FAILURE = "submit_failure"
 EVENT_IP_COUNTER_UPDATED = "ip_counter_updated"
-EVENT_DEBUG_RESET = "debug_reset"
+

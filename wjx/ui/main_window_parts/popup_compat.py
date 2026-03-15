@@ -67,12 +67,3 @@ class MainWindowPopupCompatMixin:
 
         self._dispatch_to_ui(_show)
 
-    # 保留别名以兼容现有调用
-    def _log_popup_info(self, title: str, message: str, *_args, **_kwargs):
-        self._log_popup_message(title, message)
-
-    def _log_popup_error(self, title: str, message: str, *_args, **_kwargs):
-        self._log_popup_message(title, message)
-
-    def _log_popup_warning(self, title: str, message: str, *_args, **_kwargs):
-        self._log_popup_message(title, message)

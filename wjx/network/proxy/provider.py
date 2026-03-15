@@ -257,11 +257,11 @@ def test_custom_proxy_api(url: str) -> tuple[bool, str, List[str]]:
     try:
         resp = http_client.get(url, timeout=10, headers=DEFAULT_HTTP_HEADERS, proxies={})
         resp.raise_for_status()
-    except http_client.exceptions.Timeout:
+    except http_client.Timeout:
         return False, "请求超时，请检查网络或API地址", []
-    except http_client.exceptions.ConnectionError:
+    except http_client.ConnectionError:
         return False, "连接失败，请检查API地址是否正确", []
-    except http_client.exceptions.HTTPError as e:
+    except http_client.HTTPError as e:
         return False, f"HTTP错误: {e.response.status_code}", []
     except Exception as e:
         return False, f"请求失败: {e}", []

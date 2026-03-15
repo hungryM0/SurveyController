@@ -205,7 +205,7 @@ class DashboardClipboardMixin:
                 if nd is not None:
                     return nd
             except Exception as exc:
-                log_suppressed_exception("_extract_ndarray_from_clipboard: clipboard.image()", exc, level=logging.DEBUG)
+                log_suppressed_exception("_extract_ndarray_from_clipboard: clipboard.image()", exc, level=logging.INFO)
 
         return None
 
@@ -230,3 +230,4 @@ class DashboardClipboardMixin:
         if not path:
             return
         self._process_qrcode_image(path)
+

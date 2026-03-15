@@ -20,11 +20,11 @@ _REORDER_LOGGED_EXCEPTIONS: set[str] = set()
 
 
 def _log_reorder_exception_once(context: str, exc: Exception) -> None:
-    """仅记录一次的调试异常，避免排序题刷屏。"""
+    """仅记录一次异常，避免排序题刷屏。"""
     if context in _REORDER_LOGGED_EXCEPTIONS:
         return
     _REORDER_LOGGED_EXCEPTIONS.add(context)
-    log_suppressed_exception(f"reorder.{context}", exc, level=logging.DEBUG)
+    log_suppressed_exception(f"reorder.{context}", exc, level=logging.INFO)
 
 
 def _extract_reorder_required_from_text(text: Optional[str], total_options: Optional[int] = None) -> Optional[int]:
@@ -835,3 +835,4 @@ def reorder(driver: BrowserDriver, current: int) -> None:
                 selected_count += 1
 
     _wait_until_reorder_done(effective_limit)
+

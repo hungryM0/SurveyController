@@ -69,7 +69,7 @@ def _purge_unusable_proxy_pool_locked(ctx: TaskContext) -> None:
         seen.add(lease.address)
         kept.append(lease)
     if removed:
-        logging.debug("代理池已清理无效/重复代理 %s 个", removed)
+        logging.info("代理池已清理无效/重复代理 %s 个", removed)
     ctx.proxy_ip_pool = kept
 
 
@@ -188,4 +188,5 @@ def _discard_unresponsive_proxy(ctx: TaskContext, proxy_address: str) -> None:
             retained.append(lease)
         ctx.proxy_ip_pool = retained
         if removed:
-            logging.debug(f"已移除无响应代理：{_mask_proxy_for_log(proxy_address)}")
+            logging.info(f"已移除无响应代理：{_mask_proxy_for_log(proxy_address)}")
+

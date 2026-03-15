@@ -129,17 +129,6 @@ class SettingsPage(ScrollArea):
         # 系统工具组
         self.tools_group = SettingCardGroup("系统工具", self.view)
 
-        # 调试模式设置卡片
-        self.debug_mode_card = SwitchSettingCard(
-            FluentIcon.CODE,
-            "调试模式",
-            "开启后将显示更详细日志信息，便于排查问题",
-            self.tools_group
-        )
-        debug_mode = get_bool_from_qsettings(settings.value("debug_mode"), False)
-        self._set_switch_state(self.debug_mode_card, debug_mode)
-        self.tools_group.addSettingCard(self.debug_mode_card)
-
         # 重启程序设置卡片
         self.restart_card = PushSettingCard(
             text="重启",
@@ -168,7 +157,6 @@ class SettingsPage(ScrollArea):
         self.sidebar_card.switchButton.checkedChanged.connect(self._on_sidebar_toggled)
         self.topmost_card.switchButton.checkedChanged.connect(self._on_topmost_toggled)
         self.ask_save_card.switchButton.checkedChanged.connect(self._on_ask_save_on_close_toggled)
-        self.debug_mode_card.switchButton.checkedChanged.connect(self._on_debug_mode_toggled)
         self.restart_card.clicked.connect(self._restart_program)
         self.reset_ui_card.clicked.connect(self._on_reset_ui_settings)
         self.auto_update_card.switchButton.checkedChanged.connect(self._on_auto_update_toggled)
@@ -183,6 +171,7 @@ class SettingsPage(ScrollArea):
         btn.blockSignals(False)
 
     def _apply_sidebar_state(self, checked: bool, persist: bool = True, show_tip: bool = True):
+        _ = show_tip  # 兼容旧调用，设置页切换已改为静默生效
         settings = app_settings()
         if persist:
             settings.setValue("sidebar_always_expand", checked)
@@ -197,18 +186,11 @@ class SettingsPage(ScrollArea):
                     nav.setCollapsible(True)
                     if hasattr(nav, "panel"):
                         nav.panel.collapse()
-                if show_tip:
-                    InfoBar.success(
-                        "",
-                        f"侧边栏已设置为{'始终展开' if checked else '可折叠'}",
-                        parent=win,
-                        position=InfoBarPosition.TOP,
-                        duration=2000
-                    )
             except Exception as exc:
                 log_suppressed_exception("_apply_sidebar_state: if checked: nav.setCollapsible(False) nav.expand() else: nav.setCollapsible(T...", exc, level=logging.WARNING)
 
     def _apply_topmost_state(self, checked: bool, persist: bool = True, show_tip: bool = True):
+        _ = show_tip  # 兼容旧调用，设置页切换已改为静默生效
         settings = app_settings()
         if persist:
             settings.setValue("window_topmost", checked)
@@ -216,72 +198,18 @@ class SettingsPage(ScrollArea):
         if win:
             win.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, checked)
             win.show()
-        if show_tip:
-            InfoBar.success(
-                "",
-                f"窗口置顶已{'开启' if checked else '关闭'}",
-                parent=win,
-                position=InfoBarPosition.TOP,
-                duration=2000
-            )
 
     def _apply_ask_save_state(self, checked: bool, persist: bool = True, show_tip: bool = True):
+        _ = show_tip  # 兼容旧调用，设置页切换已改为静默生效
         settings = app_settings()
         if persist:
             settings.setValue("ask_save_on_close", checked)
-        if show_tip:
-            InfoBar.success(
-                "",
-                f"关闭前保存询问已{'开启' if checked else '关闭'}",
-                parent=self.window(),
-                position=InfoBarPosition.TOP,
-                duration=2000
-            )
 
     def _apply_auto_update_state(self, checked: bool, persist: bool = True, show_tip: bool = True):
+        _ = show_tip  # 兼容旧调用，设置页切换已改为静默生效
         settings = app_settings()
         if persist:
             settings.setValue("auto_check_update", checked)
-        if show_tip:
-            InfoBar.success(
-                "",
-                f"启动时检查更新已{'开启' if checked else '关闭'}",
-                parent=self.window(),
-                position=InfoBarPosition.TOP,
-                duration=2000
-            )
-
-    def _apply_debug_mode_state(self, checked: bool, persist: bool = True, show_tip: bool = True):
-        """应用调试模式设置"""
-        from wjx.utils.logging.log_utils import set_debug_mode
-        
-        settings = app_settings()
-        if persist:
-            settings.setValue("debug_mode", checked)
-        
-        # 动态设置日志级别
-        set_debug_mode(checked)
-
-        # 调试模式切换后，立即重新请求一次随机IP额度，避免显示旧余额。
-        try:
-            from wjx.network.proxy import refresh_ip_counter_display
-
-            win = self.window()
-            controller = getattr(win, "controller", None)
-            adapter = getattr(controller, "adapter", None) if controller is not None else None
-            if adapter is not None:
-                refresh_ip_counter_display(adapter)
-        except Exception as exc:
-            log_suppressed_exception("_apply_debug_mode_state: refresh_random_ip_button", exc, level=logging.DEBUG)
-        
-        if show_tip:
-            InfoBar.success(
-                "",
-                f"调试模式已{'开启' if checked else '关闭'}",
-                parent=self.window(),
-                position=InfoBarPosition.TOP,
-                duration=2000
-            )
 
     def _on_sidebar_toggled(self, checked: bool):
         """侧边栏展开切换"""
@@ -324,10 +252,6 @@ class SettingsPage(ScrollArea):
         """关闭前询问保存切换"""
         self._apply_ask_save_state(checked)
 
-    def _on_debug_mode_toggled(self, checked: bool):
-        """调试模式切换"""
-        self._apply_debug_mode_state(checked)
-
     def _on_reset_ui_settings(self):
         """恢复默认设置"""
         box = MessageBox(
@@ -341,7 +265,7 @@ class SettingsPage(ScrollArea):
             return
 
         settings = app_settings()
-        for key in ("sidebar_always_expand", "window_topmost", "ask_save_on_close", "auto_check_update", "debug_mode"):
+        for key in ("sidebar_always_expand", "window_topmost", "ask_save_on_close", "auto_check_update"):
             settings.remove(key)
 
         defaults = {
@@ -349,16 +273,13 @@ class SettingsPage(ScrollArea):
             "window_topmost": False,
             "ask_save_on_close": True,
             "auto_check_update": True,
-            "debug_mode": False,
         }
         self._set_switch_state(self.sidebar_card, defaults["sidebar_always_expand"])
         self._set_switch_state(self.topmost_card, defaults["window_topmost"])
         self._set_switch_state(self.ask_save_card, defaults["ask_save_on_close"])
         self._set_switch_state(self.auto_update_card, defaults["auto_check_update"])
-        self._set_switch_state(self.debug_mode_card, defaults["debug_mode"])
         self._apply_sidebar_state(defaults["sidebar_always_expand"], persist=False, show_tip=False)
         self._apply_topmost_state(defaults["window_topmost"], persist=False, show_tip=False)
-        self._apply_debug_mode_state(defaults["debug_mode"], persist=False, show_tip=False)
         InfoBar.success(
             "",
             "已恢复默认设置",
@@ -374,11 +295,4 @@ class SettingsPage(ScrollArea):
         settings = app_settings()
         settings.setValue("download_source", source_key)
         settings.remove("github_mirror")
-        source_label = DOWNLOAD_SOURCES.get(source_key, {}).get("label", source_key)
-        InfoBar.success(
-            "",
-            f"下载源已切换为：{source_label}",
-            parent=self.window(),
-            position=InfoBarPosition.TOP,
-            duration=2000
-        )
+

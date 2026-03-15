@@ -49,8 +49,6 @@ class LogHighlighter(QSyntaxHighlighter):
             return "WARN"
         if "[OK]" in upper or "[SUCCESS]" in upper:
             return "OK"
-        if "[DEBUG]" in upper:
-            return "DEBUG"
         if "[INFO]" in upper:
             return "INFO"
         if "TRACEBACK (MOST RECENT CALL LAST)" in upper:

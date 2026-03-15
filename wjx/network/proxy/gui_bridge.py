@@ -64,7 +64,7 @@ def _set_random_ip_loading(gui: Any, loading: bool, message: str = "") -> None:
     try:
         handler(bool(loading), str(message or ""))
     except Exception:
-        logging.debug("更新随机IP加载提示失败", exc_info=True)
+        logging.info("更新随机IP加载提示失败", exc_info=True)
 
 
 def _run_with_loading_dialog(
@@ -118,7 +118,7 @@ def _invoke_popup(gui: Any, kind: str, title: str, message: str) -> Any:
         try:
             return gui_handler(title, message)
         except Exception:
-            logging.debug("GUI popup handler failed; falling back to global handler", exc_info=True)
+            logging.info("GUI popup handler failed; falling back to global handler", exc_info=True)
     popup_map = {"info": log_popup_info, "warning": log_popup_warning, "error": log_popup_error, "confirm": log_popup_confirm}
     handler = popup_map.get(kind)
     return handler(title, message) if handler else None
@@ -132,7 +132,7 @@ def _set_random_ip_enabled(gui: Any, enabled: bool) -> None:
         try:
             var.set(bool(enabled))
         except Exception:
-            logging.debug("无法更新随机IP开关状态", exc_info=True)
+            logging.info("无法更新随机IP开关状态", exc_info=True)
 
 
 def _schedule_on_gui_thread(gui: Any, callback: Callable[[], None]) -> None:
@@ -149,11 +149,11 @@ def _schedule_on_gui_thread(gui: Any, callback: Callable[[], None]) -> None:
                     threading.Thread(target=dispatcher, args=(callback,), daemon=True).start()
                 return
             except Exception:
-                logging.debug("派发到 GUI 线程失败", exc_info=True)
+                logging.info("派发到 GUI 线程失败", exc_info=True)
     try:
         callback()
     except Exception:
-        logging.debug("执行回调失败", exc_info=True)
+        logging.info("执行回调失败", exc_info=True)
 
 
 def _should_retry_incomplete_session_later(exc: BaseException) -> bool:
@@ -402,3 +402,4 @@ def handle_random_ip_submission(gui: Any, stop_signal: Optional[threading.Event]
     except Exception as exc:
         message = format_random_ip_error(exc)
         logging.warning("刷新随机IP状态失败：%s", message)
+

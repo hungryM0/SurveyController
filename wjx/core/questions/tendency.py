@@ -212,7 +212,7 @@ def get_tendency_index(
             blended_choice = _blend_psychometric_choice(choice, option_count, probabilities)
             return _finalize_choice(blended_choice, anchor=choice)
         # 计划未命中时，回退到常规倾向逻辑
-        logging.debug(
+        logging.info(
             "心理测量计划未命中答案（题%d 行%s），回退到常规倾向逻辑",
             question_index, row_index
         )
@@ -352,4 +352,5 @@ def _get_psychometric_answer(
             level=logging.WARNING
         )
         return None
+
 

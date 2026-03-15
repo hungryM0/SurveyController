@@ -77,7 +77,7 @@ def _parse_expire_at_to_ts(expire_at: Optional[str]) -> float:
     try:
         parsed = datetime.fromisoformat(text)
     except Exception:
-        logging.debug("代理 expire_at 解析失败：%s", text, exc_info=True)
+        logging.info("代理 expire_at 解析失败：%s", text, exc_info=True)
         return 0.0
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
@@ -200,7 +200,7 @@ def _build_default_proxy_leases_from_batch(payload: dict) -> List[ProxyLease]:
 def _proxy_is_responsive(proxy_address: str, skip_for_default: bool = True) -> bool:
     masked_proxy = _mask_proxy_for_log(proxy_address)
     if skip_for_default and get_proxy_source() == PROXY_SOURCE_DEFAULT:
-        logging.debug(f"默认代理源，跳过健康检查: {masked_proxy}")
+        logging.info(f"默认代理源，跳过健康检查: {masked_proxy}")
         return True
     proxy_address = _normalize_proxy_address(proxy_address) or ""
     if not proxy_address:
@@ -211,12 +211,12 @@ def _proxy_is_responsive(proxy_address: str, skip_for_default: bool = True) -> b
         response = http_client.get(PROXY_HEALTH_CHECK_URL, proxies=proxies, timeout=PROXY_HEALTH_CHECK_TIMEOUT)
         elapsed = time.perf_counter() - start
     except Exception as exc:
-        logging.debug(f"代理 {masked_proxy} 验证失败: {exc}")
+        logging.info(f"代理 {masked_proxy} 验证失败: {exc}")
         return False
     if response.status_code >= 400:
         logging.warning(f"代理 {masked_proxy} 返回状态码 {response.status_code}")
         return False
-    logging.debug(f"代理 {masked_proxy} 验证通过，耗时 {elapsed:.2f}s")
+    logging.info(f"代理 {masked_proxy} 验证通过，耗时 {elapsed:.2f}s")
     return True
 
 
@@ -230,3 +230,4 @@ def _proxy_is_responsive_fast(proxy_address: str) -> bool:
         return response.status_code < 400
     except Exception:
         return False
+

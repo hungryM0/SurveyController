@@ -106,7 +106,7 @@ def apply_persona_boost(
         for keyword in all_keywords:
             if keyword in text_lower:
                 boosted[i] *= PERSONA_BOOST_FACTOR
-                logging.debug(
+                logging.info(
                     "画像约束：选项[%d]「%s」匹配关键词「%s」，权重 x%.1f",
                     i, text[:20], keyword, PERSONA_BOOST_FACTOR,
                 )
@@ -155,3 +155,4 @@ def build_ai_context_prompt() -> str:
                 parts.append("请保持与前面回答的一致性。")
 
     return "\n".join(parts)
+

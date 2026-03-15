@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 class DashboardRandomIPMixin:
-    """随机 IP、额度提示、额度申请与调试重置逻辑。"""
+    """随机 IP、额度提示与额度申请逻辑。"""
 
     if TYPE_CHECKING:
         # 以下属性由 DashboardPage 主类提供，此处仅用于 Pylance 类型检查

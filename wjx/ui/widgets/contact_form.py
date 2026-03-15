@@ -526,7 +526,6 @@ class ContactForm(StatusPollingMixin, QWidget):
         image = clipboard.image()
         ok, msg = self._attachments.add_qimage(image, "clipboard.png")
         if ok:
-            InfoBar.success("", "已添加粘贴的图片", parent=self, position=InfoBarPosition.TOP, duration=2000)
             self._render_attachments_ui()
         else:
             InfoBar.error("", msg, parent=self, position=InfoBarPosition.TOP, duration=2500)
@@ -905,7 +904,7 @@ class ContactForm(StatusPollingMixin, QWidget):
             if current_type == REQUEST_MESSAGE_TYPE:
                 msg = "申请已提交，请等待人工处理"
             else:
-                msg = "消息已成功发送！"
+                msg = "消息已发送"
             if getattr(self, "_current_has_email", False):
                 msg += "，开发者会优先通过邮箱联系你"
             InfoBar.success("", msg, parent=self, position=InfoBarPosition.TOP, duration=2500)

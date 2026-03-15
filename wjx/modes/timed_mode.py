@@ -152,7 +152,7 @@ def wait_until_open(
             try:
                 logger(message)
             except Exception:
-                logging.debug("Timed mode logger failed", exc_info=True)
+                logging.info("Timed mode logger failed", exc_info=True)
 
     while True:
         if stop_signal is not None and getattr(stop_signal, "is_set", lambda: False)():
@@ -204,4 +204,5 @@ def wait_until_open(
 
         if stop_signal is not None and getattr(stop_signal, "wait", lambda *_: False)(interval):
             return False
+
 
