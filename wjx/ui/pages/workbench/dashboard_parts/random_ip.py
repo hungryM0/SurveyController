@@ -129,7 +129,7 @@ class DashboardRandomIPMixin:
         if unknown_local_quota:
             self.random_ip_hint.setText("待校验")
             self.random_ip_hint.setStyleSheet("color:#D46B08;")
-            self.card_btn.setToolTip("本机还记得随机IP账号，但已用/总额度缓存已经坏成 0/0 了。后续真实提取代理时会自动尝试回填。")
+            self.card_btn.setToolTip("本机还记得随机IP账号，但当前额度状态暂时无法确认。后续真实提取代理时会自动尝试回填。")
             self._update_ip_low_infobar(count, limit, custom_api)
             self._update_ip_cost_infobar(custom_api)
             return

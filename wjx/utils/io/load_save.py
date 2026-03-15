@@ -12,7 +12,7 @@ from dataclasses import dataclass, asdict, field
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from wjx.utils.app.config import DEFAULT_RANDOM_UA_KEYS, USER_AGENT_PRESETS, BROWSER_PREFERENCE
-from wjx.core.questions.consistency import normalize_rule_dict
+from wjx.core.questions.consistency import normalize_rule_dict, sanitize_answer_rules
 from wjx.network.proxy import normalize_random_ip_enabled_value
 
 if TYPE_CHECKING:
@@ -487,6 +487,7 @@ def _sanitize_runtime_config_payload(raw: Dict[str, Any]) -> RuntimeConfig:
         config.questions_info = questions_info_data
     else:
         config.questions_info = []
+    config.answer_rules, _ = sanitize_answer_rules(config.answer_rules, config.questions_info or [])
 
     return config
 

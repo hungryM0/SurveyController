@@ -336,7 +336,7 @@ def brush(
     set_current_persona(persona)
     _reset_answer_context()
     reset_tendency()
-    reset_consistency_context(ctx.answer_rules)
+    reset_consistency_context(ctx.answer_rules, list((ctx.questions_metadata or {}).values()))
     psycho_plan = _build_psychometric_plan_for_run(ctx)
     if psycho_plan is not None:
         logging.debug(

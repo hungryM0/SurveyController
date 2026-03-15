@@ -324,7 +324,7 @@ class RunControllerRuntimeMixin:
             if is_quota_exhausted({**snapshot, "authenticated": True}) and not has_unknown_local_quota(session_snapshot):
                 raise RuntimeError("随机IP已用额度已达到上限，请补充额度后再试，或改用自定义代理接口")
             if has_unknown_local_quota(session_snapshot):
-                logging.warning("检测到随机IP本地已用/总额度缓存异常：user_id 已存在，但额度缓存仍为 0/0；继续预取代理以触发真实额度回填")
+                logging.warning("检测到随机IP本地额度状态未知：账号已存在，但当前额度仍待校验；继续预取代理以触发真实额度回填")
             if _cancelled():
                 return []
 

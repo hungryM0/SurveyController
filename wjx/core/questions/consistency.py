@@ -4,13 +4,21 @@ from __future__ import annotations
 import logging
 import threading
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from wjx.core.persona.context import get_answered
 
 _thread_local = threading.local()
 _CONDITION_MODES = {"selected", "not_selected"}
 _ACTION_MODES = {"must_select", "must_not_select"}
+_SUPPORTED_RULE_TYPE_CODES = {"3", "4", "5", "6"}
+_QUESTION_TYPE_LABELS = {
+    "3": "单选题",
+    "4": "多选题",
+    "5": "量表题",
+    "6": "矩阵题",
+    "7": "下拉题",
+}
 
 
 @dataclass
@@ -45,6 +53,74 @@ def _to_int_list(values: Any) -> List[int]:
         seen.add(idx)
         result.append(idx)
     return sorted(result)
+
+
+def _normalize_question_type_code(value: Any) -> str:
+    try:
+        return str(value or "").strip()
+    except Exception:
+        return ""
+
+
+def get_answer_rule_question_type_label(question: Any) -> str:
+    if not isinstance(question, dict):
+        return ""
+    type_code = _normalize_question_type_code(question.get("type_code"))
+    if type_code == "5" and question.get("is_rating"):
+        return "评价题"
+    return _QUESTION_TYPE_LABELS.get(type_code, "")
+
+
+def question_supports_answer_rule(question: Any) -> bool:
+    if not isinstance(question, dict):
+        return False
+    type_code = _normalize_question_type_code(question.get("type_code"))
+    return type_code in _SUPPORTED_RULE_TYPE_CODES
+
+
+def _build_question_info_map(questions_info: Optional[Sequence[Dict[str, Any]]]) -> Dict[int, Dict[str, Any]]:
+    question_map: Dict[int, Dict[str, Any]] = {}
+    for item in questions_info or []:
+        if not isinstance(item, dict):
+            continue
+        q_num = _to_int(item.get("num"), 0)
+        if q_num <= 0:
+            continue
+        question_map[q_num] = item
+    return question_map
+
+
+def sanitize_answer_rules(
+    answer_rules: Optional[Sequence[Dict[str, Any]]],
+    questions_info: Optional[Sequence[Dict[str, Any]]] = None,
+) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    """清洗规则，并在提供题目信息时移除已不再受支持的题型规则。"""
+    stats = {"invalid": 0, "dropdown": 0, "unsupported": 0}
+    sanitized: List[Dict[str, Any]] = []
+    question_map = _build_question_info_map(questions_info)
+    has_question_info = bool(question_map)
+
+    for item in answer_rules or []:
+        normalized = normalize_rule_dict(item)
+        if not normalized:
+            stats["invalid"] += 1
+            continue
+        if has_question_info:
+            condition_info = question_map.get(normalized["condition_question_num"])
+            target_info = question_map.get(normalized["target_question_num"])
+            if not condition_info or not target_info:
+                stats["unsupported"] += 1
+                continue
+            condition_type = _normalize_question_type_code(condition_info.get("type_code"))
+            target_type = _normalize_question_type_code(target_info.get("type_code"))
+            if condition_type == "7" or target_type == "7":
+                stats["dropdown"] += 1
+                continue
+            if not question_supports_answer_rule(condition_info) or not question_supports_answer_rule(target_info):
+                stats["unsupported"] += 1
+                continue
+        sanitized.append(normalized)
+    return sanitized, stats
 
 
 def normalize_rule_dict(raw: Any) -> Optional[Dict[str, Any]]:
@@ -113,10 +189,14 @@ def _normalize_rule(raw: Any) -> Optional[AnswerRule]:
     )
 
 
-def reset_consistency_context(answer_rules: Optional[Sequence[Dict[str, Any]]] = None) -> None:
+def reset_consistency_context(
+    answer_rules: Optional[Sequence[Dict[str, Any]]] = None,
+    questions_info: Optional[Sequence[Dict[str, Any]]] = None,
+) -> None:
     """每份问卷开始时调用，注入并重置作答规则上下文。"""
     parsed_rules: List[AnswerRule] = []
-    for item in answer_rules or []:
+    sanitized_rules, _ = sanitize_answer_rules(answer_rules, questions_info)
+    for item in sanitized_rules:
         normalized = _normalize_rule(item)
         if normalized:
             parsed_rules.append(normalized)
@@ -180,13 +260,17 @@ def _pick_latest_triggered_rule(question_number: int, row_index: Optional[int] =
     return selected_rule
 
 
+def _resolve_valid_rule_indices(rule: AnswerRule, option_count: int) -> Set[int]:
+    return {idx for idx in rule.target_option_indices if 0 <= idx < option_count}
+
+
 def _apply_rule(
     base_probabilities: List[float],
     rule: AnswerRule,
 ) -> List[float]:
     if not base_probabilities:
         return []
-    valid_indices: Set[int] = {idx for idx in rule.target_option_indices if 0 <= idx < len(base_probabilities)}
+    valid_indices = _resolve_valid_rule_indices(rule, len(base_probabilities))
     if not valid_indices:
         logging.warning(
             "作答规则[%s]命中但目标选项越界，已忽略该规则（题号=%s）",
@@ -220,7 +304,7 @@ def apply_single_like_consistency(
     probabilities: Sequence[float],
     question_number: int,
 ) -> List[float]:
-    """对单选/下拉/量表题的权重进行规则约束。"""
+    """对单选/量表/评价题的权重进行规则约束。"""
     base_probabilities = _sanitize_probabilities(probabilities)
     rule = _pick_latest_triggered_rule(question_number, row_index=None)
     if rule is None:
@@ -239,3 +323,32 @@ def apply_matrix_row_consistency(
     if rule is None:
         return base_probabilities
     return _apply_rule(base_probabilities, rule)
+
+
+def get_multiple_rule_constraint(
+    question_number: int,
+    option_count: int,
+) -> Tuple[Set[int], Set[int], Optional[str]]:
+    """获取多选题规则约束：必选集合 / 禁选集合 / 规则ID。"""
+    rule = _pick_latest_triggered_rule(question_number, row_index=None)
+    if rule is None:
+        return set(), set(), None
+    valid_indices = _resolve_valid_rule_indices(rule, option_count)
+    if not valid_indices:
+        logging.warning(
+            "作答规则[%s]命中但目标选项越界，已忽略该规则（题号=%s）",
+            rule.id,
+            rule.target_question_num,
+        )
+        return set(), set(), rule.id
+    logging.debug(
+        "作答规则[%s]已生效：条件题=%s，目标题=%s，动作=%s，目标选项=%s",
+        rule.id,
+        rule.condition_question_num,
+        rule.target_question_num,
+        rule.action_mode,
+        sorted(valid_indices),
+    )
+    if rule.action_mode == "must_select":
+        return set(valid_indices), set(), rule.id
+    return set(), set(valid_indices), rule.id

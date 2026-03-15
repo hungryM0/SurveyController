@@ -28,11 +28,14 @@ from qfluentwidgets import (
     SubtitleLabel,
     TableWidget,
 )
-from wjx.core.questions.consistency import normalize_rule_dict
+from wjx.core.questions.consistency import (
+    normalize_rule_dict,
+    sanitize_answer_rules,
+)
 
 
-_ALLOWED_TYPE_CODES = {"3", "5", "6", "7"}  # 单选 / 量表 / 矩阵 / 下拉
-_TYPE_CODE_LABELS = {"3": "单选题", "5": "量表题", "6": "矩阵题", "7": "下拉题"}
+_ALLOWED_TYPE_CODES = {"3", "5", "6"}  # 单选 / 量表 / 矩阵
+_TYPE_CODE_LABELS = {"3": "单选题", "5": "量表题", "6": "矩阵题"}
 _CONDITION_MODE_LABELS = {
     "selected": "选择了以下选项",
     "not_selected": "未选择以下选项",
@@ -78,7 +81,10 @@ def _build_question_label(question: Dict[str, Any]) -> str:
     q_num = _to_int(question.get("num"), 0)
     title = str(question.get("title") or "").strip()
     type_code = _normalize_question_type_code(question.get("type_code"))
-    type_label = _TYPE_CODE_LABELS.get(type_code, "")
+    if type_code == "5" and question.get("is_rating"):
+        type_label = "评价题"
+    else:
+        type_label = _TYPE_CODE_LABELS.get(type_code, "")
     suffix = f" [{type_label}]" if type_label else ""
     if title:
         return f"第{q_num}题：{title}{suffix}"
@@ -134,7 +140,7 @@ class AnswerRuleDialog(QDialog):
             type_code = _normalize_question_type_code(item.get("type_code"))
             if type_code not in _ALLOWED_TYPE_CODES:
                 continue
-            # 量表题(type_code="5")中的评价题不支持规则配置
+            # 量表题(type_code="5")中的评价题暂不支持规则配置
             if type_code == "5" and item.get("is_rating"):
                 continue
             self._question_map[q_num] = item
@@ -576,7 +582,7 @@ class AnswerRulesPage(ScrollArea):
         layout.setSpacing(12)
 
         layout.addWidget(SubtitleLabel("作答规则", self.view))
-        layout.addWidget(BodyLabel("按条件控制后续单选/下拉题答案。规则列表中越靠后优先级越高。", self.view))
+        layout.addWidget(BodyLabel("按条件控制后续单选/量表/矩阵题答案。规则列表中越靠后优先级越高。", self.view))
 
         btn_row = QHBoxLayout()
         self.add_btn = PrimaryPushButton("新增规则", self.view)
@@ -620,21 +626,23 @@ class AnswerRulesPage(ScrollArea):
             q_num = _to_int(question.get("num"), 0)
             if q_num > 0:
                 self._question_map[q_num] = question
+        self._rules = self._sanitize_rules(self._rules, show_removed_toast=True)
         self._refresh_table()
 
     def set_rules(self, rules: List[Dict[str, Any]]) -> None:
-        sanitized: List[Dict[str, Any]] = []
-        for raw in rules or []:
-            if not isinstance(raw, dict):
-                continue
-            clean = normalize_rule_dict(raw)
-            if clean:
-                sanitized.append(clean)
-        self._rules = sanitized
+        self._rules = self._sanitize_rules(rules, show_removed_toast=True)
         self._refresh_table()
 
     def get_rules(self) -> List[Dict[str, Any]]:
         return copy.deepcopy(self._rules)
+
+    def _sanitize_rules(self, rules: List[Dict[str, Any]], show_removed_toast: bool = False) -> List[Dict[str, Any]]:
+        sanitized, stats = sanitize_answer_rules(rules or [], self._questions_info or None)
+        if show_removed_toast and stats.get("dropdown", 0):
+            count = int(stats["dropdown"])
+            suffix = "已自动移除旧版下拉题规则" if count == 1 else f"已自动移除 {count} 条旧版下拉题规则"
+            self._toast(suffix, "warning")
+        return sanitized
 
     def _toast(self, message: str, level: str = "warning") -> None:
         parent = self.window() or self
@@ -666,7 +674,7 @@ class AnswerRulesPage(ScrollArea):
     def _on_add_rule(self) -> None:
         selectable = self._get_selectable_questions()
         if len(selectable) < 2:
-            self._toast("当前问卷可用题目不足（需要至少2道单选/下拉题）", "warning")
+            self._toast("当前问卷可用题目不足（需要至少2道单选/量表/矩阵题）", "warning")
             return
         dialog = AnswerRuleDialog(self._questions_info, parent=self.window() or self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
