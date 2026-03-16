@@ -1,6 +1,6 @@
 """配置向导弹窗：用滑块快速设置权重/概率，编辑填空题答案。"""
 import copy
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union, cast
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -38,6 +38,8 @@ from .psycho_config import BIAS_PRESET_CHOICES
 
 class QuestionWizardDialog(WizardSectionsMixin, QDialog):
     """配置向导：用滑块快速设置权重/概率，编辑填空题答案。"""
+
+    TextEditsValue = Union[List[LineEdit], List[List[LineEdit]]]
 
     def _resolve_matrix_weights(self, entry: QuestionEntry, rows: int, columns: int) -> List[List[float]]:
         """解析矩阵题的配比配置，返回按行的默认权重。"""
@@ -123,7 +125,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self.ai_master_enabled = ai_master_enabled
         self.slider_map: Dict[int, List[NoWheelSlider]] = {}
         self.matrix_row_slider_map: Dict[int, List[List[NoWheelSlider]]] = {}
-        self.text_edit_map: Dict[int, List[LineEdit]] = {}
+        self.text_edit_map: Dict[int, QuestionWizardDialog.TextEditsValue] = {}
         self.ai_check_map: Dict[int, CheckBox] = {}
         self.reverse_check_map: Dict[int, CheckBox] = {}
         self.matrix_reverse_check_map: Dict[int, List[CheckBox]] = {}
@@ -288,7 +290,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             header.addWidget(slider_note)
         if entry.question_type == "multiple":
             # 构建多选题提示文本
-            multi_note_text = "概率=该选项独立被选中的机会，不要求总和100%（例：两个选项都50%，可能同时被选中）"
+            multi_note_text = "每个选项被选中的概率相互独立，不要求总和100%"
             if multi_min_limit is not None or multi_max_limit is not None:
                 limit_parts = []
                 if multi_min_limit is not None and multi_max_limit is not None:
@@ -393,14 +395,16 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             if edits and isinstance(edits[0], list):
                 # 多项填空题：二维列表
                 texts = []
-                for row_edits in edits:
+                matrix_edits = cast(List[List[LineEdit]], edits)
+                for row_edits in matrix_edits:
                     row_values = [edit.text().strip() for edit in row_edits]
                     merged = MULTI_TEXT_DELIMITER.join(row_values)
                     if merged:
                         texts.append(merged)
             else:
                 # 普通填空题：一维列表
-                texts = [e.text().strip() for e in edits if e.text().strip()]
+                flat_edits = cast(List[LineEdit], edits)
+                texts = [e.text().strip() for e in flat_edits if e.text().strip()]
             if not texts:
                 texts = [DEFAULT_FILL_TEXT]
             result[idx] = texts

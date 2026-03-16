@@ -11,35 +11,16 @@ from wjx.network.proxy import (
     proxy_lease_has_sufficient_ttl,
 )
 from wjx.utils.io.load_save import _select_user_agent_from_ratios
-from wjx.utils.logging.log_utils import log_suppressed_exception
-
-
 def _record_bad_proxy_and_maybe_pause(
     ctx: TaskContext,
     gui_instance: Optional[Any],
 ) -> bool:
     """
-    记录连续无效代理次数；达到阈值时暂停执行以避免继续消耗代理 API 额度。
-    返回 True 表示已触发暂停。
+    记录代理不可用事件。
+    现阶段不再根据代理异常次数自动暂停任务，统一由提交连续失败止损控制。
     """
-    with ctx.lock:
-        ctx._consecutive_bad_proxy_count += 1
-        streak = int(ctx._consecutive_bad_proxy_count)
-    if streak >= int(ctx.MAX_CONSECUTIVE_BAD_PROXIES):
-        reason = f"代理连续{ctx.MAX_CONSECUTIVE_BAD_PROXIES}次不可用，已暂停以防继续扣费"
-        logging.warning(reason)
-        try:
-            if gui_instance and hasattr(gui_instance, "pause_run"):
-                gui_instance.pause_run(reason)
-        except Exception as exc:
-            log_suppressed_exception("session_policy._record_bad_proxy_and_maybe_pause pause_run", exc, level=logging.WARNING)
-        return True
+    _ = ctx, gui_instance
     return False
-
-
-def _reset_bad_proxy_streak(ctx: TaskContext) -> None:
-    with ctx.lock:
-        ctx._consecutive_bad_proxy_count = 0
 
 
 def _required_proxy_ttl_seconds(ctx: TaskContext) -> int:

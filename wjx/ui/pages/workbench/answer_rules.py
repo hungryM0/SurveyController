@@ -34,8 +34,8 @@ from wjx.core.questions.consistency import (
 )
 
 
-_ALLOWED_TYPE_CODES = {"3", "5", "6"}  # 单选 / 量表 / 矩阵
-_TYPE_CODE_LABELS = {"3": "单选题", "5": "量表题", "6": "矩阵题"}
+_ALLOWED_TYPE_CODES = {"3", "4", "5", "6"}  # 单选 / 多选 / 量表 / 矩阵
+_TYPE_CODE_LABELS = {"3": "单选题", "4": "多选题", "5": "量表题", "6": "矩阵题"}
 _CONDITION_MODE_LABELS = {
     "selected": "选择了以下选项",
     "not_selected": "未选择以下选项",
@@ -582,7 +582,7 @@ class AnswerRulesPage(ScrollArea):
         layout.setSpacing(12)
 
         layout.addWidget(SubtitleLabel("作答规则", self.view))
-        layout.addWidget(BodyLabel("按条件控制后续单选/量表/矩阵题答案。规则列表中越靠后优先级越高。", self.view))
+        layout.addWidget(BodyLabel("按条件控制后续单选/多选/量表/矩阵题答案。规则列表中越靠后优先级越高。", self.view))
 
         btn_row = QHBoxLayout()
         self.add_btn = PrimaryPushButton("新增规则", self.view)
@@ -674,7 +674,7 @@ class AnswerRulesPage(ScrollArea):
     def _on_add_rule(self) -> None:
         selectable = self._get_selectable_questions()
         if len(selectable) < 2:
-            self._toast("当前问卷可用题目不足（需要至少2道单选/量表/矩阵题）", "warning")
+            self._toast("当前问卷可用题目不足（需要至少2道单选/多选/量表/矩阵题）", "warning")
             return
         dialog = AnswerRuleDialog(self._questions_info, parent=self.window() or self)
         if dialog.exec() != QDialog.DialogCode.Accepted:

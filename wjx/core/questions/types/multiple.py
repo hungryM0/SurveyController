@@ -27,6 +27,7 @@ from wjx.core.questions.utils import (
     extract_text_from_element,
 )
 from wjx.core.persona.context import apply_persona_boost, record_answer
+from wjx.core.questions.consistency import get_multiple_rule_constraint
 
 # 缓存检测到的多选限制
 _DETECTED_MULTI_LIMITS: Dict[Tuple[str, int], Optional[int]] = {}
@@ -525,6 +526,105 @@ def _normalize_selected_indices(indices: List[int], option_count: int) -> List[i
     return normalized
 
 
+def _resolve_rule_sets(
+    must_select_indices: Set[int],
+    must_not_select_indices: Set[int],
+    option_count: int,
+    current: int,
+    rule_id: Optional[str],
+) -> Tuple[List[int], Set[int]]:
+    required = sorted(idx for idx in must_select_indices if 0 <= idx < option_count)
+    blocked = {idx for idx in must_not_select_indices if 0 <= idx < option_count}
+    overlap = blocked.intersection(required)
+    if overlap:
+        blocked -= set(required)
+        logging.warning(
+            "第%d题（多选）：作答规则[%s]同时将选项%s标记为必选和禁选，已按必选优先处理。",
+            current,
+            rule_id or "-",
+            sorted(overlap),
+        )
+    return required, blocked
+
+
+def _apply_rule_constraints(
+    selected_indices: List[int],
+    option_count: int,
+    min_required: int,
+    max_allowed: int,
+    required_indices: List[int],
+    blocked_indices: Set[int],
+    positive_priority_indices: Optional[List[int]],
+    current: int,
+    rule_id: Optional[str],
+) -> List[int]:
+    required = _normalize_selected_indices(required_indices, option_count)
+    if len(required) > max_allowed:
+        logging.warning(
+            "第%d题（多选）：作答规则[%s]要求必选 %d 项，但题目最多只能选 %d 项，已截断必选集合。",
+            current,
+            rule_id or "-",
+            len(required),
+            max_allowed,
+        )
+        required = required[:max_allowed]
+
+    base_selected = _normalize_selected_indices(selected_indices, option_count)
+    filtered_selected = [
+        idx for idx in base_selected
+        if idx not in blocked_indices and idx not in required
+    ]
+    available = [
+        idx for idx in range(option_count)
+        if idx not in blocked_indices and idx not in required
+    ]
+
+    extra_capacity = max(0, max_allowed - len(required))
+    if len(filtered_selected) > extra_capacity:
+        random.shuffle(filtered_selected)
+        filtered_selected = filtered_selected[:extra_capacity]
+
+    resolved = list(required)
+    resolved.extend(filtered_selected)
+
+    if len(resolved) < min_required:
+        needed = min_required - len(resolved)
+        priority: List[int] = []
+        seen: Set[int] = set()
+        for idx in positive_priority_indices or []:
+            if idx in seen or idx in required or idx in blocked_indices:
+                continue
+            if idx < 0 or idx >= option_count:
+                continue
+            if idx in filtered_selected:
+                continue
+            seen.add(idx)
+            priority.append(idx)
+        fallback = [
+            idx for idx in available
+            if idx not in seen and idx not in filtered_selected
+        ]
+        random.shuffle(fallback)
+        fill_pool = priority + fallback
+        resolved.extend(fill_pool[:needed])
+        if len(resolved) < min_required:
+            logging.warning(
+                "第%d题（多选）：作答规则[%s]生效后可用选项不足，要求最少选 %d 项，实际最多可选 %d 项。",
+                current,
+                rule_id or "-",
+                min_required,
+                len(resolved),
+            )
+
+    if len(resolved) > max_allowed:
+        keep_required = [idx for idx in resolved if idx in required]
+        keep_optional = [idx for idx in resolved if idx not in required]
+        optional_capacity = max(0, max_allowed - len(keep_required))
+        resolved = keep_required[:max_allowed] + keep_optional[:optional_capacity]
+
+    return _normalize_selected_indices(resolved, option_count)
+
+
 def multiple(driver: BrowserDriver, current: int, index: int, multiple_prob_config: List, multiple_option_fill_texts_config: List) -> None:
     """多选题处理主函数"""
     option_elements, option_source = _collect_multiple_option_elements(driver, current)
@@ -560,6 +660,15 @@ def multiple(driver: BrowserDriver, current: int, index: int, multiple_prob_conf
     for elem in option_elements:
         option_texts.append(extract_text_from_element(elem))
 
+    must_select_indices, must_not_select_indices, rule_id = get_multiple_rule_constraint(current, len(option_elements))
+    required_indices, blocked_indices = _resolve_rule_sets(
+        must_select_indices,
+        must_not_select_indices,
+        len(option_elements),
+        current,
+        rule_id,
+    )
+
     def _apply_selected_indices(selected_indices: List[int]) -> List[int]:
         confirmed_indices: List[int] = []
         for option_idx in selected_indices:
@@ -577,11 +686,37 @@ def multiple(driver: BrowserDriver, current: int, index: int, multiple_prob_conf
         return confirmed_indices
 
     if selection_probabilities == -1 or (isinstance(selection_probabilities, list) and len(selection_probabilities) == 1 and selection_probabilities[0] == -1):
-        pool = list(range(len(option_elements)))
-        max_select = min(max_allowed, len(pool))
-        num_to_select = random.randint(min_required, max_select)
-        selected_indices = random.sample(pool, num_to_select)
-        selected_indices = _normalize_selected_indices(selected_indices, len(option_elements))
+        available_pool = [
+            idx for idx in range(len(option_elements))
+            if idx not in blocked_indices and idx not in required_indices
+        ]
+        min_total = max(min_required, len(required_indices))
+        max_total = min(max_allowed, len(required_indices) + len(available_pool))
+        if min_total > max_total:
+            logging.warning(
+                "第%d题（多选）：作答规则[%s]与题目选择数量限制冲突，已按最多可选 %d 项处理。",
+                current,
+                rule_id or "-",
+                max_total,
+            )
+            min_total = max_total
+        extra_min = max(0, min_total - len(required_indices))
+        extra_max = max(0, max_total - len(required_indices))
+        extra_count = random.randint(extra_min, extra_max) if extra_max >= extra_min else 0
+        sampled = random.sample(available_pool, extra_count) if extra_count > 0 else []
+        selected_indices = list(required_indices)
+        selected_indices.extend(sampled)
+        selected_indices = _apply_rule_constraints(
+            selected_indices,
+            len(option_elements),
+            min_required,
+            max_allowed,
+            required_indices,
+            blocked_indices,
+            positive_priority_indices=available_pool,
+            current=current,
+            rule_id=rule_id,
+        )
         confirmed_indices = _apply_selected_indices(selected_indices)
         if not confirmed_indices:
             logging.warning("第%d题（多选）：随机模式点击失败，未选中任何选项。", current)
@@ -622,12 +757,16 @@ def multiple(driver: BrowserDriver, current: int, index: int, multiple_prob_conf
     # 多选题概率是 0-100 的百分比，加成后上限仍为 100
     boosted = apply_persona_boost(option_texts, selection_probabilities)
     selection_probabilities = [min(100.0, p) for p in boosted]
+    for idx in blocked_indices:
+        selection_probabilities[idx] = 0.0
+    for idx in required_indices:
+        selection_probabilities[idx] = 0.0
 
     selection_mask: List[int] = []
     attempts = 0
     max_attempts = 32
     positive_indices = [i for i, p in enumerate(selection_probabilities) if p > 0]
-    if not positive_indices:
+    if not positive_indices and not required_indices:
         if current not in _WARNED_PROB_MISMATCH:
             _WARNED_PROB_MISMATCH.add(current)
             logging.warning(
@@ -635,52 +774,42 @@ def multiple(driver: BrowserDriver, current: int, index: int, multiple_prob_conf
                 current,
             )
         return
-    while sum(selection_mask) == 0 and attempts < max_attempts:
-        selection_mask = [1 if random.random() < (prob / 100.0) else 0 for prob in selection_probabilities]
-        attempts += 1
-    if sum(selection_mask) == 0:
-        # 32次尝试都没选中任何选项，从正概率选项中随机选一个
-        selection_mask = [0] * len(option_elements)
-        selection_mask[random.choice(positive_indices)] = 1
+    if positive_indices:
+        while sum(selection_mask) == 0 and attempts < max_attempts:
+            selection_mask = [1 if random.random() < (prob / 100.0) else 0 for prob in selection_probabilities]
+            attempts += 1
+        if sum(selection_mask) == 0:
+            # 32次尝试都没选中任何选项，从正概率选项中随机选一个
+            selection_mask = [0] * len(option_elements)
+            selection_mask[random.choice(positive_indices)] = 1
     selected_indices = [
         idx
         for idx, selected in enumerate(selection_mask)
         if selected == 1 and selection_probabilities[idx] > 0
     ]
-    if max_select_limit is not None and len(selected_indices) > max_allowed:
-        random.shuffle(selected_indices)
-        selected_indices = selected_indices[:max_allowed]
-    if len(selected_indices) < min_required:
-        # 补齐到最低选择数时，严格只从概率 > 0 的未选选项中补充
-        remaining_positive = [i for i in positive_indices if i not in selected_indices]
-        random.shuffle(remaining_positive)
-        needed = min_required - len(selected_indices)
-
-        if len(remaining_positive) >= needed:
-            # 有足够的正概率选项可以补齐
-            selected_indices.extend(remaining_positive[:needed])
-        else:
-            # 正概率选项不够，只补充现有的正概率选项，不强制选择 0% 概率的选项
-            selected_indices.extend(remaining_positive)
-            actual_min = len(selected_indices)
-            if current not in _WARNED_PROB_MISMATCH:
-                _WARNED_PROB_MISMATCH.add(current)
-                logging.warning(
-                    "第%d题（多选）：最低选择数要求为 %d，但配置的正概率选项只有 %d 个，"
-                    "实际只选择 %d 个选项（严格遵守概率配置，不会选择 0%% 概率的选项）。",
-                    current, min_required, len(positive_indices), actual_min
-                )
-    if not selected_indices:
+    selected_indices = _apply_rule_constraints(
+        selected_indices,
+        len(option_elements),
+        min_required,
+        max_allowed,
+        required_indices,
+        blocked_indices,
+        positive_priority_indices=positive_indices,
+        current=current,
+        rule_id=rule_id,
+    )
+    if not selected_indices and positive_indices:
         selected_indices = [random.choice(positive_indices)]
     selected_indices = _normalize_selected_indices(selected_indices, len(option_elements))
     confirmed_indices = _apply_selected_indices(selected_indices)
     if len(confirmed_indices) < min_required:
         logging.warning(
-            "第%d题（多选）：题目最少需选 %d 项，实际点击成功 %d 项（正概率选项 %d）。",
+            "第%d题（多选）：题目最少需选 %d 项，实际点击成功 %d 项（可用正概率选项 %d，规则必选 %d）。",
             current,
             min_required,
             len(confirmed_indices),
             len(positive_indices),
+            len(required_indices),
         )
     if not confirmed_indices:
         return

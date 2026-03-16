@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import py_compile
@@ -155,6 +156,17 @@ def extract_child_payload(stdout: str, stderr: str) -> dict | None:
     return None
 
 
+def summarize_child_output(stdout: str, stderr: str) -> str:
+    chunks: list[str] = []
+    stdout_text = stdout.strip()
+    stderr_text = stderr.strip()
+    if stdout_text:
+        chunks.append(f"stdout: {stdout_text.splitlines()[-1]}")
+    if stderr_text:
+        chunks.append(f"stderr: {stderr_text.splitlines()[-1]}")
+    return " | ".join(chunks)
+
+
 def run_compile_checks(files: Iterable[Path]) -> list[dict]:
     issues: list[dict] = []
     for path in files:
@@ -243,7 +255,8 @@ def run_module_import_checks(modules: Iterable[str]) -> list[dict]:
             continue
 
         error_type = payload.get("error_type", "ImportError")
-        message = payload.get("message") or "模块导入失败"
+        fallback_message = summarize_child_output(result.stdout, result.stderr)
+        message = payload.get("message") or fallback_message or "模块导入失败"
         traceback_text = payload.get("traceback", "").strip()
         signature = (error_type, message, traceback_text)
         issue = issues_by_signature.setdefault(
@@ -282,9 +295,10 @@ def run_window_smoke_check() -> dict | None:
     if result.returncode == 0 and payload.get("ok"):
         return None
 
+    fallback_message = summarize_child_output(result.stdout, result.stderr)
     return {
         "phase": "window",
-        "message": payload.get("message") or "主窗口创建失败",
+        "message": payload.get("message") or fallback_message or "主窗口创建失败",
         "error_type": payload.get("error_type", "RuntimeError"),
         "traceback": payload.get("traceback", "").strip(),
     }
@@ -334,7 +348,21 @@ def print_issues(title: str, issues: Iterable[dict]) -> None:
                     print(f"   {line}")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="检查 wjx/ 目录下 Python 文件的语法、静态导入和启动链问题。"
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="启用全量模块导入检查。默认仅执行快检模式。",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
+
     if not TARGET_DIR.exists():
         print(f"[ERROR] 目录不存在: {TARGET_DIR}")
         return 2
@@ -343,15 +371,20 @@ def main() -> int:
     python_files = iter_python_files()
     compile_targets = iter_compile_targets()
     modules = iter_module_names(python_files)
+    quick_mode = not args.full
 
     print(f"[INFO] 扫描目录: {TARGET_DIR}")
+    print(f"[INFO] 检查模式: {'快检' if quick_mode else '完整'}")
     print(f"[INFO] Python 文件数: {len(python_files)}")
     print(f"[INFO] 编译目标数: {len(compile_targets)}")
-    print(f"[INFO] 模块导入检查数: {len(modules)}")
+    if quick_mode:
+        print("[INFO] 模块导入检查数: 已跳过（使用 --full 可启用）")
+    else:
+        print(f"[INFO] 模块导入检查数: {len(modules)}")
 
     compile_issues = run_compile_checks(compile_targets)
     ruff_issues, ruff_error = run_ruff_check()
-    import_issues = run_module_import_checks(modules)
+    import_issues = run_module_import_checks(modules) if args.full else []
     window_issue = run_window_smoke_check()
 
     if ruff_error:
@@ -368,7 +401,11 @@ def main() -> int:
     print(f"[INFO] 总耗时: {elapsed:.2f} 秒")
 
     if total_issues == 0:
-        print("[PASS] 语法编译、Ruff 静态检查、模块导入和主窗口冒烟全部通过。")
+        if quick_mode:
+            print("[PASS] 快检通过：语法编译、Ruff 静态检查和主窗口冒烟全部通过。")
+            print("[INFO] 如需额外检查包级循环导入等问题，请运行: python test_wjx_imports.py --full")
+        else:
+            print("[PASS] 完整检查通过：语法编译、Ruff 静态检查、模块导入和主窗口冒烟全部通过。")
         return 0
 
     print(f"[FAIL] 发现 {total_issues} 处问题：")

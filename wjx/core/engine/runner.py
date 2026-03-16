@@ -40,7 +40,6 @@ from wjx.network.proxy import _proxy_is_responsive, handle_random_ip_submission
 from wjx.network.session_policy import (
     _discard_unresponsive_proxy,
     _record_bad_proxy_and_maybe_pause,
-    _reset_bad_proxy_streak,
     _select_proxy_for_session,
     _select_user_agent_for_session,
 )
@@ -217,8 +216,6 @@ class _BrowserSession:
                 if self.ctx.random_proxy_ip_enabled:
                     _record_bad_proxy_and_maybe_pause(self.ctx, self.gui_instance)
                 return None
-            else:
-                _reset_bad_proxy_streak(self.ctx)
 
         browser_proxy_address = self.proxy_address
         submit_proxy_address = None
@@ -472,6 +469,17 @@ def run(
                 # create_browser 返回 None 意味着代理不可用或触发暂停
                 if stop_signal.is_set():
                     break
+                if ctx.random_proxy_ip_enabled:
+                    stopped = _handle_submission_failure(
+                        ctx,
+                        stop_signal,
+                        thread_name=thread_name,
+                        failure_reason="proxy_unavailable",
+                        status_text="代理不可用",
+                        log_message="代理不可用，本轮按失败处理",
+                    )
+                    if stopped:
+                        break
                 stop_signal.wait(0.8)
                 continue
 
@@ -728,6 +736,16 @@ def run(
                 _discard_unresponsive_proxy(ctx, session.proxy_address)
             if ctx.random_proxy_ip_enabled and session.proxy_address:
                 if _record_bad_proxy_and_maybe_pause(ctx, gui_instance):
+                    break
+                stopped = _handle_submission_failure(
+                    ctx,
+                    stop_signal,
+                    thread_name=thread_name,
+                    failure_reason="proxy_unavailable",
+                    status_text="代理不可用",
+                    log_message="代理质量过低，本轮按失败处理",
+                )
+                if stopped:
                     break
                 stop_signal.wait(0.8)
                 continue

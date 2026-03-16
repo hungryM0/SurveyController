@@ -48,7 +48,6 @@ from wjx.ui.controller import RunController
 from wjx.ui.pages.workbench.answer_rules import AnswerRulesPage
 from wjx.ui.pages.workbench.question import QuestionPage
 from wjx.ui.pages.workbench.runtime import RuntimePage
-from wjx.core.task_context import TaskContext
 from wjx.utils.io.load_save import RuntimeConfig, build_default_config_filename, get_runtime_directory
 from wjx.network.proxy import (
     refresh_ip_counter_display,
@@ -606,13 +605,7 @@ class DashboardPage(
             self.progress_pct.setText("0%")
             self._last_progress = 0
             self._completion_notified = False
-            if cfg.random_ip_enabled:
-                max_bad_proxy_streak = int(getattr(TaskContext, "MAX_CONSECUTIVE_BAD_PROXIES", 0) or 0)
-                self.status_label.setText(
-                    f"已提交 0/{cfg.target} 份 | 提交连续失败 0 次 | 代理异常 0/{max_bad_proxy_streak} 次"
-                )
-            else:
-                self.status_label.setText(f"已提交 0/{cfg.target} 份 | 提交连续失败 0 次")
+            self.status_label.setText(f"已提交 0/{cfg.target} 份 | 提交连续失败 0 次")
         self.controller.start_run(cfg)
 
     def update_question_meta(self, title: str, count: int):

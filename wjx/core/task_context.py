@@ -141,9 +141,6 @@ class TaskContext:
     _target_reached_stop_triggered: bool = False
     _target_reached_stop_lock: threading.Lock = field(default_factory=threading.Lock)
 
-    # ── 代理连续失败计数 ──────────────────────────────────────────────────
-    _consecutive_bad_proxy_count: int = 0
-    MAX_CONSECUTIVE_BAD_PROXIES: int = 8
     _proxy_fetch_lock: threading.Lock = field(default_factory=threading.Lock)
 
     # ── 浏览器信号量（私有，通过 get_browser_semaphore 访问） ────────────
