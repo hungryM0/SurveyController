@@ -67,7 +67,7 @@ for plugin in required_plugins:
 # 使用相对路径，PyInstaller 会正确地将这些文件打包进 EXE
 datas = [
     ('assets', 'assets'),
-    ('wjx/assets', 'wjx/assets'),
+    ('wjx/assets', 'wjx/assets'),  # 含 legal/*.txt（服务条款与隐私声明）
     ('wjx/ui/theme.json', 'wjx/ui'),  # 主题配置（深浅色适配）
     ('icon.ico', '.'),
 ] + qfw_datas + pyside_datas

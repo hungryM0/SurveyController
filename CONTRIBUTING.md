@@ -35,7 +35,8 @@
 wjx/
 ├── main.py                # GUI 程序入口
 ├── boot.py                # 启动流程相关
-├── assets/                # 针对指定地区随机ip的地区行政编码
+├── assets/                # 静态资源（地区行政编码、法律文本等）
+│   └── legal/             # 法律文本（service_terms.txt、privacy_statement.txt）
 ├── core/                  # 核心业务逻辑
 │   ├── task_context.py    # 单次任务上下文数据
 │   ├── engine/            # 执行引擎（driver_factory/runtime_control/dom_helpers/navigation/question_detection/submission/answering/runner）
