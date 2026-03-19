@@ -586,7 +586,8 @@ def _call_free_ai_api(
     if question_type == FREE_QUESTION_TYPE_MULTI:
         payload["blank_count"] = int(blank_count or 0)
 
-    response = http_client.post(AI_FREE_ENDPOINT, headers=headers, json=payload, timeout=timeout)
+    # AI 填空请求强制直连本机网络，不读取系统代理环境变量。
+    response = http_client.post(AI_FREE_ENDPOINT, headers=headers, json=payload, timeout=timeout, proxies={})
     status_code = int(getattr(response, "status_code", 0) or 0)
     if status_code != 200:
         detail = _extract_free_error_detail(response)
@@ -647,7 +648,7 @@ def _call_chat_completions(
         "temperature": 0.7,
     }
     try:
-        resp = http_client.post(url, headers=headers, json=payload, timeout=timeout)
+        resp = http_client.post(url, headers=headers, json=payload, timeout=timeout, proxies={})
         resp.raise_for_status()
         data = resp.json()
         return _extract_chat_completion_text(data)
@@ -676,7 +677,7 @@ def _call_responses_api(
         "temperature": 0.7,
     }
     try:
-        resp = http_client.post(url, headers=headers, json=payload, timeout=timeout)
+        resp = http_client.post(url, headers=headers, json=payload, timeout=timeout, proxies={})
         resp.raise_for_status()
         data = resp.json()
         return _extract_responses_text(data)

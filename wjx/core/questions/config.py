@@ -383,7 +383,20 @@ def configure_probabilities(
                     text_value = ""
                 if text_value:
                     normalized_values.append(text_value)
-            ai_enabled = bool(getattr(entry, "ai_enabled", False)) if entry.question_type == "text" else False
+            normalized_blank_ai_flags: List[bool] = []
+            if entry.question_type == "multi_text":
+                raw_blank_ai_flags = getattr(entry, "multi_text_blank_ai_flags", []) or []
+                if isinstance(raw_blank_ai_flags, list):
+                    normalized_blank_ai_flags = [bool(flag) for flag in raw_blank_ai_flags]
+            if entry.question_type == "text":
+                ai_enabled = bool(getattr(entry, "ai_enabled", False))
+            elif entry.question_type == "multi_text":
+                # 多项填空只在「全空位启用 AI」时走批量 multi_fill_blank。
+                ai_enabled = bool(getattr(entry, "ai_enabled", False)) or (
+                    bool(normalized_blank_ai_flags) and all(normalized_blank_ai_flags)
+                )
+            else:
+                ai_enabled = False
             if entry.question_type == "text" and text_random_mode in (_TEXT_RANDOM_NAME, _TEXT_RANDOM_MOBILE):
                 ai_enabled = False
                 normalized_values = [
@@ -404,7 +417,7 @@ def configure_probabilities(
             _target.text_ai_flags.append(ai_enabled)
             _target.text_titles.append(str(getattr(entry, "question_title", "") or ""))
             _target.multi_text_blank_modes.append(getattr(entry, "multi_text_blank_modes", []))
-            _target.multi_text_blank_ai_flags.append(getattr(entry, "multi_text_blank_ai_flags", []))
+            _target.multi_text_blank_ai_flags.append(normalized_blank_ai_flags)
 
 
 def validate_question_config(entries: List[QuestionEntry], questions_info: Optional[List[dict]] = None) -> Optional[str]:

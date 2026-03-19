@@ -396,7 +396,10 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             if not select_options:
                 continue
             try:
-                option_index = int(item.get("option_index"))
+                raw_option_index = item.get("option_index")
+                if raw_option_index is None:
+                    raise ValueError("option_index is missing")
+                option_index = int(raw_option_index)
             except Exception:
                 option_index = len(stored_configs)
             option_text = str(item.get("option_text") or "").strip() or f"第{option_index + 1}项"

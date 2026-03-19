@@ -384,6 +384,16 @@ def text(
     fallback_title = ""
     if text_titles and index < len(text_titles):
         fallback_title = str(text_titles[index] or "")
+    blank_modes = None
+    blank_ai_flags = None
+    if entry_kind == "multi_text":
+        if multi_text_blank_modes and index < len(multi_text_blank_modes):
+            blank_modes = multi_text_blank_modes[index]
+        if multi_text_blank_ai_flags and index < len(multi_text_blank_ai_flags):
+            blank_ai_flags = multi_text_blank_ai_flags[index]
+
+    selected_index = weighted_index(selection_probabilities)
+    selected_answer = resolved_candidates[selected_index] if resolved_candidates else DEFAULT_FILL_TEXT
 
     if entry_kind == "text" and ai_enabled:
         try:
@@ -404,32 +414,39 @@ def text(
 
     # 多项填空题AI模式
     if entry_kind == "multi_text" and ai_enabled:
+        blank_count = max(1, int(resolve_multi_blank_count(driver, current) or 1))
+        title = fallback_title
         try:
             title = resolve_question_title_for_ai(driver, current, fallback_title)
-            blank_count = resolve_multi_blank_count(driver, current)
             selected_answer = generate_ai_answer(
                 title,
                 question_type="multi_fill_blank",
                 blank_count=blank_count,
             )
         except AIRuntimeError as exc:
-            raise AIRuntimeError(f"第{current}题 AI 生成失败：{exc}") from exc
+            logging.warning("第%d题多项填空批量 AI 失败，回退逐空 AI：%s", current, exc)
+            fallback_blank_ai_flags = [bool(flag) for flag in (blank_ai_flags or [])]
+            if not any(fallback_blank_ai_flags):
+                fallback_blank_ai_flags = [True] * max(1, int(blank_count or 1))
+            applied_values, applied_sources = _handle_multi_text(
+                driver,
+                current,
+                selected_answer,
+                blank_modes,
+                fallback_blank_ai_flags,
+                title,
+                default_source="配置",
+            )
+            _log_text_answer(current, title or fallback_title, _summarize_multi_text_sources(applied_sources), applied_values)
+            record_answer(current, "text", text_answer=" | ".join(applied_values))
+            return
         applied_values, applied_sources = _handle_multi_text(driver, current, selected_answer, default_source="AI")
         _log_text_answer(current, title or fallback_title, _summarize_multi_text_sources(applied_sources), applied_values)
         record_text_answer = " | ".join(applied_values)
         record_answer(current, "text", text_answer=record_text_answer)
         return
 
-    selected_index = weighted_index(selection_probabilities)
-    selected_answer = resolved_candidates[selected_index] if resolved_candidates else DEFAULT_FILL_TEXT
-
     if entry_kind == "multi_text":
-        blank_modes = None
-        blank_ai_flags = None
-        if multi_text_blank_modes and index < len(multi_text_blank_modes):
-            blank_modes = multi_text_blank_modes[index]
-        if multi_text_blank_ai_flags and index < len(multi_text_blank_ai_flags):
-            blank_ai_flags = multi_text_blank_ai_flags[index]
         title = resolve_question_title_for_ai(driver, current, fallback_title) if blank_ai_flags and any(blank_ai_flags) else ""
         applied_values, applied_sources = _handle_multi_text(
             driver,

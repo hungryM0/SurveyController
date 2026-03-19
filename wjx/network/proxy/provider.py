@@ -25,6 +25,9 @@ from wjx.utils.logging.log_utils import (
 
 # 从 source.py 导入配置管理函数
 from wjx.network.proxy.source import (
+    PROXY_SOURCE_BENEFIT,
+    PROXY_UPSTREAM_BENEFIT,
+    PROXY_UPSTREAM_DEFAULT,
     _normalize_area_code,
     _resolve_default_pool_by_area,
     get_effective_proxy_api_url,
@@ -99,6 +102,21 @@ def _normalize_expected_proxy_count(expected_count: Any) -> int:
     except Exception:
         parsed = 1
     return max(1, min(PROXY_MAX_PROXIES, parsed))
+
+
+def _normalize_final_upstream(value: Any) -> str:
+    upstream = str(value or "").strip().lower()
+    if upstream in {PROXY_UPSTREAM_DEFAULT, PROXY_UPSTREAM_BENEFIT}:
+        return upstream
+    return ""
+
+
+def _resolve_final_source(final_upstream: str, fallback_source: str) -> str:
+    if final_upstream == PROXY_UPSTREAM_BENEFIT:
+        return PROXY_SOURCE_BENEFIT
+    if final_upstream == PROXY_UPSTREAM_DEFAULT:
+        return PROXY_SOURCE_DEFAULT
+    return fallback_source
 
 
 def _extract_proxy_from_string(s: str) -> Optional[str]:
@@ -345,13 +363,26 @@ def _fetch_new_proxy_batch(
                     num=remaining,
                     upstream=upstream,
                 )
+                final_upstream = _normalize_final_upstream(payload.get("provider"))
+                final_source = _resolve_final_source(final_upstream, current_source)
                 if _is_default_batch_extract_payload(payload):
-                    batch_items = _build_default_proxy_leases_from_batch(payload, source=current_source)
+                    batch_items = _build_default_proxy_leases_from_batch(payload, source=final_source)
                     fetched.extend(batch_items)
+                    logging.info(
+                        "随机IP提取成功：请求上游=%s，最终成功上游=%s，返回数量=%s",
+                        upstream,
+                        final_upstream or "unknown",
+                        len(batch_items),
+                    )
                     break
-                lease = _build_default_proxy_lease(payload, source=current_source)
+                lease = _build_default_proxy_lease(payload, source=final_source)
                 if lease is not None:
                     fetched.append(lease)
+                    logging.info(
+                        "随机IP提取成功：请求上游=%s，最终成功上游=%s",
+                        upstream,
+                        final_upstream or "unknown",
+                    )
                     logging.info("获取到代理: %s", _mask_proxy_for_log(lease.address))
                     remaining = max(0, expected_count - len(fetched))
                     if remaining <= 0:

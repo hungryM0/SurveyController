@@ -912,6 +912,13 @@ def _extract_proxy_item(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+def _normalize_extract_provider(value: Any) -> str:
+    provider = str(value or "").strip().lower()
+    if provider in {"default", "idiot"}:
+        return provider
+    return ""
+
+
 def _parse_single_extract_payload(
     data: Dict[str, Any],
     *,
@@ -931,6 +938,7 @@ def _parse_single_extract_payload(
             "remaining_quota": int(session.remaining_quota),
             "total_quota": int(session.total_quota),
             "used_quota": int(session.used_quota),
+            "provider": _normalize_extract_provider(data.get("provider")),
         }
     )
     return item
@@ -971,6 +979,7 @@ def _parse_batch_extract_payload(
         "total_quota": int(session.total_quota),
         "used_quota": int(session.used_quota),
         "quota_cost_total": quota_cost_total,
+        "provider": _normalize_extract_provider(data.get("provider")),
     }
 
 

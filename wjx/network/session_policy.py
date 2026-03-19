@@ -72,6 +72,12 @@ def _mark_proxy_in_use(ctx: TaskContext, thread_name: str, lease: Optional[Proxy
         return None
     if thread_name:
         ctx.mark_proxy_in_use(thread_name, lease)
+    logging.info(
+        "线程[%s] 已分配随机IP：%s（来源=%s）",
+        thread_name or "?",
+        _mask_proxy_for_log(lease.address),
+        str(getattr(lease, "source", "") or "unknown"),
+    )
     return lease.address
 
 
