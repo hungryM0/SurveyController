@@ -111,7 +111,7 @@ class StatusPollingMixin:
         if parsed_status_code >= 400:
             return "未知：状态获取失败", "#666666"
 
-        raw_bytes = bytes(reply.readAll())
+        raw_bytes = bytes(reply.readAll().data())
         if not raw_bytes:
             return "未知：状态未知", "#666666"
 
