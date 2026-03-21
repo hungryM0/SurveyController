@@ -36,7 +36,7 @@ from wjx.network.browser import (
     ProxyConnectionError,
     TimeoutException,
 )
-from wjx.network.proxy import _proxy_is_responsive, handle_random_ip_submission
+from wjx.network.proxy.pool import is_proxy_responsive
 from wjx.network.session_policy import (
     _discard_unresponsive_proxy,
     _record_bad_proxy_and_maybe_pause,
@@ -207,7 +207,7 @@ class _BrowserSession:
                 return None  # 触发暂停
 
         if self.proxy_address:
-            if not _proxy_is_responsive(self.proxy_address):
+            if not is_proxy_responsive(self.proxy_address):
                 logging.warning("提取到的代理质量过低，自动弃用更换下一个")
                 _discard_unresponsive_proxy(self.ctx, self.proxy_address)
                 if self.thread_name:
@@ -379,7 +379,9 @@ def _record_successful_submission(
         stop_signal.set()
         _trigger_target_reached_stop(ctx, stop_signal, gui_instance)
     if should_handle_random_ip:
-        handle_random_ip_submission(gui_instance, stop_signal)
+        handler = getattr(gui_instance, "handle_random_ip_submission", None)
+        if callable(handler):
+            handler(stop_signal)
 
     return should_break or trigger_target_stop
 
@@ -546,7 +548,9 @@ def run(
                     break
                 if ctx.random_proxy_ip_enabled:
                     try:
-                        handle_random_ip_submission(gui_instance, stop_signal)
+                        handler = getattr(gui_instance, "handle_random_ip_submission", None)
+                        if callable(handler):
+                            handler(stop_signal)
                     except Exception:
                         logging.info("设备上限失败后处理随机IP提交流程失败", exc_info=True)
                 continue

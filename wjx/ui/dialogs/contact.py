@@ -13,7 +13,7 @@ class ContactDialog(QDialog):
         parent=None,
         default_type: str = "报错反馈",
         lock_message_type: bool = False,
-        status_fetcher=None,
+        status_endpoint: str = "",
         status_formatter=None,
     ):
         super().__init__(parent)
@@ -29,7 +29,7 @@ class ContactDialog(QDialog):
             self,
             default_type=default_type,
             lock_message_type=lock_message_type,
-            status_fetcher=status_fetcher,
+            status_endpoint=status_endpoint,
             status_formatter=status_formatter,
             show_cancel_button=True,
             auto_clear_on_success=False,

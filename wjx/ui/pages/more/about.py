@@ -34,7 +34,7 @@ from qfluentwidgets import (
 
 from wjx.utils.app.version import __VERSION__, GITHUB_OWNER, GITHUB_REPO
 from wjx.ui.widgets.full_width_infobar import FullWidthInfoBar
-from wjx.utils.app.runtime_paths import _get_resource_path as get_resource_path
+from wjx.utils.app.runtime_paths import get_resource_path
 
 
 class AboutPage(ScrollArea):

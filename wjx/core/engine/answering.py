@@ -1,8 +1,9 @@
 """答题核心逻辑 - 按配置策略自动填写问卷"""
+from dataclasses import dataclass
 import logging
 import threading
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from wjx.core.task_context import TaskContext
 from wjx.core.engine.dom_helpers import (
@@ -41,6 +42,16 @@ from wjx.utils.app.config import HEADLESS_PAGE_BUFFER_DELAY, HEADLESS_PAGE_CLICK
 
 
 _PSYCHO_BIAS_CHOICES = {"left", "center", "right"}
+QuestionHandler = Callable[..., Optional[int]]
+
+
+@dataclass(frozen=True)
+class _QuestionHandlerSpec:
+    index_key: str
+    handler: QuestionHandler
+    config_aliases: Tuple[str, ...] = ()
+    needs_question_div: bool = False
+    needs_psycho_plan: bool = False
 
 
 def _question_title_for_log(driver: BrowserDriver, question_num: int, question_div) -> str:
@@ -188,25 +199,49 @@ class _QuestionDispatcher:
         - False  : 是一个哨兵标识（不支持/跳过）
     """
 
-    #: type_code -> (index_key, handler)
-    #  index_key: 在 _indices 字典中的键名
-    _REGISTRY: Dict[str, Tuple[str, Any]] = {}
-
     def __init__(self) -> None:
-        self._build_registry()
+        self._registry: Dict[str, _QuestionHandlerSpec] = {}
+        self._lock = threading.Lock()
+        self._register_defaults()
 
-    def _build_registry(self) -> None:
-        """(re)build 注册表。"""
-        self._REGISTRY = {
-            # type_code -> (index_key, handler_fn)
-            # handler_fn signature: (driver, q_num, index, ctx) -> int | None
-            "3":  ("single",   self._handle_single),
-            "4":  ("multiple", self._handle_multiple),
-            "5":  ("scale",    self._handle_scale),
-            "6":  ("matrix",   self._handle_matrix),
-            "7":  ("dropdown", self._handle_dropdown),
-            "8":  ("slider",   self._handle_slider),
-        }
+    def register(
+        self,
+        question_type: str,
+        *,
+        index_key: str,
+        handler: QuestionHandler,
+        config_aliases: Tuple[str, ...] = (),
+        needs_question_div: bool = False,
+        needs_psycho_plan: bool = False,
+    ) -> None:
+        with self._lock:
+            self._registry[str(question_type)] = _QuestionHandlerSpec(
+                index_key=index_key,
+                handler=handler,
+                config_aliases=tuple(config_aliases),
+                needs_question_div=bool(needs_question_div),
+                needs_psycho_plan=bool(needs_psycho_plan),
+            )
+
+    def _register_defaults(self) -> None:
+        self.register("3", index_key="single", handler=self._handle_single)
+        self.register("4", index_key="multiple", handler=self._handle_multiple)
+        self.register(
+            "5",
+            index_key="scale",
+            handler=self._handle_scale,
+            config_aliases=("score",),
+            needs_question_div=True,
+            needs_psycho_plan=True,
+        )
+        self.register(
+            "6",
+            index_key="matrix",
+            handler=self._handle_matrix,
+            needs_psycho_plan=True,
+        )
+        self.register("7", index_key="dropdown", handler=self._handle_dropdown)
+        self.register("8", index_key="slider", handler=self._handle_slider)
 
     # -- 各题型处理器 --------------------------------------------------
 
@@ -304,36 +339,24 @@ class _QuestionDispatcher:
             return None  # 文本题内部已处理计数，返回 None
 
         # 常规题型分发
-        entry = self._REGISTRY.get(question_type)
-        if entry is None:
+        with self._lock:
+            spec = self._registry.get(question_type)
+        if spec is None:
             return False  # 未知题型
 
-        index_key, handler = entry
+        index_key = spec.index_key
         _idx = (
             config_entry[1]
-            if config_entry and config_entry[0] in (index_key, "score" if index_key == "scale" else None)
+            if config_entry and config_entry[0] in (index_key, *spec.config_aliases)
             else indices.get(index_key, 0)
         )
 
-        if question_type == "5":  # scale / score 需要传 question_div
-            result = handler(
-                driver,
-                question_num,
-                _idx,
-                ctx,
-                question_div=question_div,
-                psycho_plan=psycho_plan,
-            )
-        elif question_type == "6":  # matrix 需要传 psycho_plan
-            result = handler(
-                driver,
-                question_num,
-                _idx,
-                ctx,
-                psycho_plan=psycho_plan,
-            )
-        else:
-            result = handler(driver, question_num, _idx, ctx)
+        handler_kwargs: Dict[str, Any] = {}
+        if spec.needs_question_div:
+            handler_kwargs["question_div"] = question_div
+        if spec.needs_psycho_plan:
+            handler_kwargs["psycho_plan"] = psycho_plan
+        result = spec.handler(driver, question_num, _idx, ctx, **handler_kwargs)
 
         if isinstance(result, int):
             indices[index_key] = result
@@ -343,6 +366,26 @@ class _QuestionDispatcher:
 
 
 _dispatcher = _QuestionDispatcher()
+
+
+def register_question_handler(
+    question_type: str,
+    *,
+    index_key: str,
+    handler: QuestionHandler,
+    config_aliases: Tuple[str, ...] = (),
+    needs_question_div: bool = False,
+    needs_psycho_plan: bool = False,
+) -> None:
+    """为题型执行注册扩展处理器。"""
+    _dispatcher.register(
+        question_type,
+        index_key=index_key,
+        handler=handler,
+        config_aliases=config_aliases,
+        needs_question_div=needs_question_div,
+        needs_psycho_plan=needs_psycho_plan,
+    )
 
 
 def brush(

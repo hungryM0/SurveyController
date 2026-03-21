@@ -7,9 +7,7 @@ from wjx.utils.app.config import (
     DEFAULT_FILL_TEXT,
 )
 from wjx.utils.app.version import __VERSION__, GITHUB_OWNER, GITHUB_REPO
-from wjx.utils.app.runtime_paths import (
-    _get_resource_path,
-)
+from wjx.utils.app.runtime_paths import get_bundle_resource_root, get_resource_path
 
 __all__ = [
     "DEFAULT_HTTP_HEADERS",
@@ -20,5 +18,6 @@ __all__ = [
     "__VERSION__",
     "GITHUB_OWNER",
     "GITHUB_REPO",
-    "_get_resource_path",
+    "get_bundle_resource_root",
+    "get_resource_path",
 ]

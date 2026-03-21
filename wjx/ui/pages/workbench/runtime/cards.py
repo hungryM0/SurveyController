@@ -397,14 +397,14 @@ class RandomIPSettingCard(ExpandGroupSettingCard):
         self._apply_area_override(self.cityCombo.currentData())
 
     def _apply_area_override(self, area_code: Optional[str]) -> None:
-        from wjx.network.proxy import set_proxy_area_code
+        from wjx.network.proxy.settings import apply_proxy_area_code
         if not self.areaRow.isVisible():
-            set_proxy_area_code(None)
+            apply_proxy_area_code(None)
             return
         if area_code is None:
-            set_proxy_area_code(None)
+            apply_proxy_area_code(None)
             return
-        set_proxy_area_code(str(area_code))
+        apply_proxy_area_code(str(area_code))
 
     def get_area_code(self) -> Optional[str]:
         if not self.areaRow.isVisible():
@@ -416,9 +416,9 @@ class RandomIPSettingCard(ExpandGroupSettingCard):
         return str(city_code or "")
 
     def set_area_code(self, area_code: Optional[str]) -> None:
-        from wjx.network.proxy import get_default_proxy_area_code
+        from wjx.network.proxy.settings import get_proxy_settings
         if area_code is None:
-            area_code = get_default_proxy_area_code()
+            area_code = get_proxy_settings().default_area_code
         area_code = str(area_code or "").strip()
         is_benefit = self._area_source == _PROXY_SOURCE_BENEFIT
         self._area_updating = True
@@ -486,7 +486,7 @@ class RandomIPSettingCard(ExpandGroupSettingCard):
                 self.url = url
 
             def run(self):
-                from wjx.network.proxy import test_custom_proxy_api
+                from wjx.network.proxy.provider import test_custom_proxy_api
                 success, error, proxies = test_custom_proxy_api(self.url)
                 self.finished.emit(success, error, proxies)
 
@@ -532,12 +532,12 @@ class RandomIPSettingCard(ExpandGroupSettingCard):
 
     def _on_api_edit_finished(self):
         """API地址输入完成时同步到全局变量"""
-        from wjx.network.proxy import set_proxy_api_override
+        from wjx.network.proxy.settings import apply_custom_proxy_api
         api_url = self.customApiEdit.text().strip()
         if self._get_selected_source() == _PROXY_SOURCE_CUSTOM:
-            set_proxy_api_override(api_url if api_url else None)
+            apply_custom_proxy_api(api_url if api_url else None)
         else:
-            set_proxy_api_override(None)
+            apply_custom_proxy_api(None)
 
     def isChecked(self):
         return self.switchButton.isChecked()

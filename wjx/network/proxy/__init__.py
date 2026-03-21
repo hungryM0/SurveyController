@@ -1,4 +1,5 @@
 """随机 IP / 代理能力聚合导出。"""
+from __future__ import annotations
 
 from wjx.network.proxy.source import (
     PROXY_SOURCE_BENEFIT,
@@ -8,13 +9,13 @@ from wjx.network.proxy.source import (
     get_proxy_area_code,
     get_proxy_minute_by_answer_seconds,
     get_proxy_occupy_minute,
-    get_proxy_upstream,
     get_proxy_required_seconds_by_answer_seconds,
     get_proxy_source,
+    get_proxy_upstream,
     get_quota_cost_by_minute,
     has_custom_proxy_api_override,
-    is_custom_proxy_source,
     is_custom_proxy_api_active,
+    is_custom_proxy_source,
     is_official_proxy_source,
     normalize_proxy_source,
     set_proxy_api_override,
@@ -25,36 +26,29 @@ from wjx.network.proxy.source import (
     source_uses_custom_api_override,
 )
 from wjx.network.proxy.pool import (
-    _coerce_proxy_lease,
-    _mask_proxy_for_log,
-    _normalize_proxy_address,
-    _proxy_is_responsive,
     get_proxy_required_ttl_seconds,
     proxy_lease_has_sufficient_ttl,
 )
 from wjx.network.proxy.provider import (
     AreaProxyQualityError,
     ProxyApiFatalError,
-    _fetch_new_proxy_batch,
-    _format_status_payload,
+    format_status_payload,
     get_status,
     test_custom_proxy_api,
-)
-from wjx.utils.app.config import (
-    PROXY_SOURCE_CUSTOM,
-    PROXY_SOURCE_DEFAULT,
 )
 from wjx.network.proxy.quota import (
     get_random_ip_counter_snapshot_local,
     get_random_ip_limit,
     normalize_random_ip_enabled_value,
 )
-from wjx.network.proxy.gui_bridge import (
-    handle_random_ip_submission,
-    on_random_ip_toggle,
-    refresh_ip_counter_display,
-    show_random_ip_activation_dialog,
+from wjx.network.proxy.settings import (
+    ProxySettings,
+    apply_custom_proxy_api,
+    apply_proxy_area_code,
+    apply_proxy_source_settings,
+    get_proxy_settings,
 )
+from wjx.utils.app.config import PROXY_SOURCE_CUSTOM, PROXY_SOURCE_DEFAULT
 from wjx.network.proxy.auth import format_quota_value
 
 __all__ = [
@@ -63,18 +57,18 @@ __all__ = [
     "PROXY_SOURCE_BENEFIT",
     "PROXY_SOURCE_CUSTOM",
     "PROXY_SOURCE_DEFAULT",
-    "_coerce_proxy_lease",
-    "_fetch_new_proxy_batch",
-    "_format_status_payload",
-    "_mask_proxy_for_log",
-    "_normalize_proxy_address",
-    "_proxy_is_responsive",
+    "ProxySettings",
+    "apply_custom_proxy_api",
+    "apply_proxy_area_code",
+    "apply_proxy_source_settings",
+    "format_status_payload",
     "get_custom_proxy_api_override",
     "get_default_proxy_area_code",
     "get_effective_proxy_api_url",
     "get_proxy_area_code",
     "get_proxy_minute_by_answer_seconds",
     "get_proxy_occupy_minute",
+    "get_proxy_settings",
     "get_proxy_upstream",
     "get_proxy_required_seconds_by_answer_seconds",
     "get_proxy_required_ttl_seconds",
@@ -84,22 +78,18 @@ __all__ = [
     "get_random_ip_counter_snapshot_local",
     "get_random_ip_limit",
     "get_status",
-    "handle_random_ip_submission",
     "has_custom_proxy_api_override",
     "is_custom_proxy_source",
     "is_custom_proxy_api_active",
     "is_official_proxy_source",
     "normalize_proxy_source",
     "normalize_random_ip_enabled_value",
-    "on_random_ip_toggle",
     "proxy_lease_has_sufficient_ttl",
-    "refresh_ip_counter_display",
     "set_proxy_api_override",
     "set_proxy_area_code",
     "set_proxy_occupy_minute_by_answer_duration",
     "set_proxy_source",
     "source_supports_quota_session",
     "source_uses_custom_api_override",
-    "show_random_ip_activation_dialog",
     "test_custom_proxy_api",
 ]

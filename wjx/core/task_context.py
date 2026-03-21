@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 # 答题内容配置（由 configure_probabilities 写入）
 # ---------------------------------------------------------------------------
 
-
 @dataclass
 class ThreadProgressState:
     """单个工作线程的运行状态快照。"""

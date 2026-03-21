@@ -27,7 +27,7 @@ from qfluentwidgets import (
 )
 
 from wjx.utils.app.version import GITHUB_OWNER, GITHUB_REPO
-from wjx.utils.io.load_save import get_assets_directory
+from wjx.utils.app.runtime_paths import get_assets_directory
 from wjx.utils.logging.log_utils import log_suppressed_exception
 
 _GITHUB_URL = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}"

@@ -50,12 +50,12 @@ wjx/
 │   └── services/          # 核心服务层（area_service/proxy_service/survey_service）
 ├── ui/                    # 界面层
 │   ├── main_window.py     # 主窗口编排
-│   ├── main_window_parts/ # 主窗口拆分模块（dialogs/lazy_pages/update）
+│   ├── main_window_parts/ # 主窗口拆分模块（dialogs/lifecycle/lazy_pages/update）
 │   ├── controller/        # 运行控制器入口（run_controller.py）与拆分模块（run_controller_parts/）
 │   ├── dialogs/           # 对话框（contact/terms_of_service）
 │   ├── helpers/           # 界面辅助逻辑（ai_fill/image_attachments）
 │   ├── workers/           # 后台任务（ai_test_worker/update_worker）
-│   ├── widgets/           # 通用 UI 组件（setting_cards/config_drawer/contact_form/full_width_infobar/log_highlighter/no_wheel/ratio_slider/status_polling_mixin/status_worker/time_range_slider）
+│   ├── widgets/           # 通用 UI 组件（setting_cards/config_drawer/contact_form/full_width_infobar/log_highlighter/no_wheel/ratio_slider/status_polling_mixin/time_range_slider）
 │   └── pages/             # 各页面（workbench/settings/more/community）
 │       ├── community.py   # 社区页（一级菜单）
 │       ├── settings/      # 设置页（settings.py）
@@ -73,6 +73,7 @@ wjx/
 │   ├── proxy/
 │   │   ├── auth.py        # 随机IP鉴权、会话与令牌刷新
 │   │   ├── source.py      # 代理源配置管理（源切换、地区、API覆盖、占用时长）
+│   │   ├── settings.py    # 代理设置共享入口（公开配置读写接口）
 │   │   ├── pool.py        # 代理池和租约管理（租约构建、TTL检查、健康检查）
 │   │   ├── provider.py    # 代理获取主逻辑（批量获取、解析、API测试）
 │   │   ├── quota.py       # 额度管理（以后端会话与默认额度缓存为准）

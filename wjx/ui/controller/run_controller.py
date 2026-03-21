@@ -196,6 +196,8 @@ class RunController(
     threadProgressUpdated = Signal(dict)
     pauseStateChanged = Signal(bool, str)
     cleanupFinished = Signal()
+    runtimeUiStateChanged = Signal(dict)
+    randomIpLoadingChanged = Signal(bool, str)
     _uiCallbackQueued = Signal(object)
 
     def __init__(self, parent=None):
@@ -231,6 +233,7 @@ class RunController(
         self._init_current_step_key = ""
         self._init_gate_stop_event: Optional[threading.Event] = None
         self._pending_question_ctx: Optional[TaskContext] = None
+        self._runtime_ui_state: Dict[str, Any] = {}
         self._uiCallbackQueued.connect(self._execute_ui_callback)
 
     def is_initializing(self) -> bool:
@@ -283,6 +286,54 @@ class RunController(
         self.message_dialog_handler = message_handler
         self.confirm_dialog_handler = confirm_handler
         self._sync_adapter_ui_bridge()
+
+    @staticmethod
+    def _normalize_runtime_ui_value(key: str, value: Any) -> Any:
+        if key in {"target", "threads"}:
+            return max(1, int(value or 1))
+        if key in {"random_ip_enabled", "headless_mode", "timed_mode_enabled"}:
+            return bool(value)
+        if key == "proxy_source":
+            normalized = str(value or "default").strip().lower()
+            return normalized if normalized in {"default", "benefit", "custom"} else "default"
+        if key == "answer_duration":
+            raw = value if isinstance(value, (list, tuple)) else (0, 0)
+            low = max(0, int(raw[0] if len(raw) >= 1 else 0))
+            high = max(low, int(raw[1] if len(raw) >= 2 else low))
+            return (low, high)
+        return value
+
+    def get_runtime_ui_state(self) -> Dict[str, Any]:
+        return dict(self._runtime_ui_state)
+
+    def set_runtime_ui_state(self, emit: bool = True, **updates: Any) -> Dict[str, Any]:
+        normalized: Dict[str, Any] = {}
+        changed = False
+        for key, value in updates.items():
+            normalized_value = self._normalize_runtime_ui_value(key, value)
+            normalized[key] = normalized_value
+            if self._runtime_ui_state.get(key) != normalized_value:
+                changed = True
+        if normalized:
+            self._runtime_ui_state.update(normalized)
+        if emit and changed:
+            self.runtimeUiStateChanged.emit(dict(self._runtime_ui_state))
+        return dict(self._runtime_ui_state)
+
+    def sync_runtime_ui_state_from_config(self, config: RuntimeConfig, *, emit: bool = True) -> Dict[str, Any]:
+        return self.set_runtime_ui_state(
+            emit=emit,
+            target=getattr(config, "target", 1),
+            threads=getattr(config, "threads", 1),
+            random_ip_enabled=getattr(config, "random_ip_enabled", False),
+            headless_mode=getattr(config, "headless_mode", True),
+            timed_mode_enabled=getattr(config, "timed_mode_enabled", False),
+            proxy_source=getattr(config, "proxy_source", "default"),
+            answer_duration=getattr(config, "answer_duration", (0, 0)),
+        )
+
+    def notify_random_ip_loading(self, loading: bool, message: str = "") -> None:
+        self.randomIpLoadingChanged.emit(bool(loading), str(message or ""))
 
     def _sync_adapter_ui_bridge(self, adapter: Optional[EngineGuiAdapter] = None) -> None:
         target = adapter or self.adapter

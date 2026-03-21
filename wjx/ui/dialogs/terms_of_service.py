@@ -7,7 +7,7 @@ from qfluentwidgets import (
     TitleLabel,
     PrimaryPushButton,
 )
-from wjx.utils.app import _get_resource_path
+from wjx.utils.app import get_resource_path
 
 
 LEGAL_TEXT_FILES = (
@@ -18,7 +18,7 @@ LEGAL_TEXT_FILES = (
 
 def _read_legal_text(relative_path: str) -> str:
     """读取法律文本文件，缺失时给出可读提示。"""
-    full_path = _get_resource_path(relative_path)
+    full_path = get_resource_path(relative_path)
     try:
         with open(full_path, "r", encoding="utf-8") as file:
             return file.read().strip()

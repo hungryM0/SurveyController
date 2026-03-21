@@ -129,7 +129,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         parent: Optional[QWidget] = None,
         default_type: str = "报错反馈",
         lock_message_type: bool = False,
-        status_fetcher: Optional[Callable] = None,
+        status_endpoint: str = "",
         status_formatter: Optional[Callable] = None,
         show_cancel_button: bool = False,
         auto_clear_on_success: bool = True,
@@ -138,7 +138,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         super().__init__(parent)
         self._sendFinished.connect(self._on_send_finished)
         self._verifyCodeFinished.connect(self._on_verify_code_finished)
-        self._init_status_polling(status_fetcher, status_formatter)
+        self._init_status_polling(status_endpoint, status_formatter)
         self._attachments = ImageAttachmentManager(max_count=3, max_size_bytes=10 * 1024 * 1024)
         self._current_message_type: str = ""
         self._current_has_email: bool = False
@@ -479,7 +479,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         super().closeEvent(event)
 
     def __del__(self):
-        """析构函数：确保线程被清理"""
+        """析构函数：确保轮询请求被清理"""
         try:
             self.stop_status_polling()
         except Exception:

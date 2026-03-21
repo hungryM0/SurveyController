@@ -1,18 +1,15 @@
 """联系开发者页面"""
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import ScrollArea, SubtitleLabel, CardWidget
-import logging
-from wjx.utils.logging.log_utils import log_suppressed_exception
 
 
 from wjx.ui.widgets.contact_form import ContactForm
-from wjx.network.proxy import get_status, _format_status_payload
+from wjx.network.proxy.provider import format_status_payload
+from wjx.utils.app.config import STATUS_ENDPOINT
 
 
 class SupportPage(ScrollArea):
     """客服与支持页面，直接内嵌联系开发者表单。"""
-
-
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -21,21 +18,6 @@ class SupportPage(ScrollArea):
         self.setWidgetResizable(True)
         self.enableTransparentBackground()
         self._build_ui()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        try:
-            self.contact_form.start_status_polling()
-        except Exception as exc:
-            log_suppressed_exception("showEvent: self.contact_form.start_status_polling()", exc, level=logging.WARNING)
-
-    def hideEvent(self, event):
-        """页面隐藏时停止轮询，避免线程泄漏"""
-        try:
-            self.contact_form.stop_status_polling()
-        except Exception as exc:
-            log_suppressed_exception("hideEvent: self.contact_form.stop_status_polling()", exc, level=logging.WARNING)
-        super().hideEvent(event)
 
     def _build_ui(self):
         layout = QVBoxLayout(self.view)
@@ -51,8 +33,8 @@ class SupportPage(ScrollArea):
         
         self.contact_form = ContactForm(
             self,
-            status_fetcher=get_status,
-            status_formatter=_format_status_payload,
+            status_endpoint=STATUS_ENDPOINT,
+            status_formatter=format_status_payload,
             show_cancel_button=False,
             auto_clear_on_success=True,
         )

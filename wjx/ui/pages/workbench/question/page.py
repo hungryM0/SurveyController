@@ -2,7 +2,7 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QDialog
 from qfluentwidgets import ScrollArea
 
@@ -13,58 +13,99 @@ from .add_dialog import QuestionAddDialog
 logger = logging.getLogger(__name__)
 
 
-class QuestionPage(ScrollArea):
-    """隐藏页面：仅维护题目条目数据，不再承载可见 UI。"""
+class QuestionStore(QObject):
+    """题目配置共享状态仓库。"""
 
     entriesChanged = Signal(int)  # 当前题目配置条目数
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.entries: List[QuestionEntry] = []
-        self.questions_info: List[Dict[str, Any]] = []
-        self.view = QWidget(self)
-        self.setWidget(self.view)
-        self.setWidgetResizable(True)
-        self.enableTransparentBackground()
-        self._build_ui()
+        self._entries: List[QuestionEntry] = []
+        self._questions_info: List[Dict[str, Any]] = []
 
-    def _build_ui(self):
-        QVBoxLayout(self.view).setContentsMargins(0, 0, 0, 0)
+    @property
+    def entries(self) -> List[QuestionEntry]:
+        return self._entries
 
-    # ---------- data helpers ----------
+    @property
+    def questions_info(self) -> List[Dict[str, Any]]:
+        return self._questions_info
+
     def set_questions(self, info: List[Dict[str, Any]], entries: List[QuestionEntry]):
-        self.questions_info = info or []
+        self._questions_info = info or []
         self.set_entries(entries, info)
 
     def set_entries(self, entries: List[QuestionEntry], info: Optional[List[Dict[str, Any]]] = None):
-        self.questions_info = info or self.questions_info
-        self.entries = list(entries or [])
-        if self.questions_info:
-            for idx, entry in enumerate(self.entries):
+        self._questions_info = info or self._questions_info
+        self._entries = list(entries or [])
+        if self._questions_info:
+            for idx, entry in enumerate(self._entries):
                 if getattr(entry, "question_title", None):
                     continue
-                if idx < len(self.questions_info):
-                    title = self.questions_info[idx].get("title")
+                if idx < len(self._questions_info):
+                    title = self._questions_info[idx].get("title")
                     if title:
                         entry.question_title = str(title).strip()
         self._refresh_data()
 
     def get_entries(self) -> List[QuestionEntry]:
-        return list(self.entries)
+        return list(self._entries)
+
+    def append_entry(self, entry: QuestionEntry) -> None:
+        if not entry:
+            return
+        self._entries.append(entry)
+        self._refresh_data()
+
+    def _refresh_data(self):
+        try:
+            self.entriesChanged.emit(int(len(self._entries)))
+        except Exception as exc:
+            logger.info(f"发送 entriesChanged 信号失败: {exc}")
+
+
+class QuestionPage(ScrollArea):
+    """隐藏页面壳：内部使用 QuestionStore 维护题目状态。"""
+
+    entriesChanged = Signal(int)  # 当前题目配置条目数
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.store = QuestionStore(self)
+        self.view = QWidget(self)
+        self.setWidget(self.view)
+        self.setWidgetResizable(True)
+        self.enableTransparentBackground()
+        self._build_ui()
+        self.store.entriesChanged.connect(self.entriesChanged.emit)
+
+    def _build_ui(self):
+        QVBoxLayout(self.view).setContentsMargins(0, 0, 0, 0)
+
+    @property
+    def entries(self) -> List[QuestionEntry]:
+        return self.store.entries
+
+    @property
+    def questions_info(self) -> List[Dict[str, Any]]:
+        return self.store.questions_info
+
+    def get_entries(self) -> List[QuestionEntry]:
+        return self.store.get_entries()
+
+    # ---------- data helpers ----------
+    def set_questions(self, info: List[Dict[str, Any]], entries: List[QuestionEntry]):
+        self.store.set_questions(info, entries)
+
+    def set_entries(self, entries: List[QuestionEntry], info: Optional[List[Dict[str, Any]]] = None):
+        self.store.set_entries(entries, info)
 
     # ---------- UI actions ----------
     def _add_entry(self):
         """显示新增题目的交互式弹窗。"""
-        dialog = QuestionAddDialog(self.entries, self.window() or self)
+        dialog = QuestionAddDialog(self.store.entries, self.window() or self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_entry = dialog.get_entry()
             if new_entry:
-                self.entries.append(new_entry)
-                self._refresh_data()
-
-    def _refresh_data(self):
-        try:
-            self.entriesChanged.emit(int(len(self.entries)))
-        except Exception as exc:
-            logger.info(f"发送 entriesChanged 信号失败: {exc}")
+                self.store.append_entry(new_entry)
 

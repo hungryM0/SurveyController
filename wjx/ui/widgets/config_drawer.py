@@ -22,7 +22,7 @@ from qfluentwidgets import (
     isDarkTheme,
 )
 
-from wjx.utils.io.load_save import get_runtime_directory
+from wjx.utils.app.runtime_paths import get_runtime_directory
 
 
 class _OverlayWidget(QWidget):

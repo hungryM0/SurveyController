@@ -94,6 +94,11 @@ def _format_status_payload(payload: Any) -> tuple[str, str]:
     return f"{prefix}：{message}", color
 
 
+def format_status_payload(payload: Any) -> tuple[str, str]:
+    """公开的状态文案格式化接口。"""
+    return _format_status_payload(payload)
+
+
 # ==================== 代理解析 ====================
 
 def _normalize_expected_proxy_count(expected_count: Any) -> int:
@@ -451,3 +456,29 @@ def _fetch_new_proxy_batch(
     if not normalized:
         raise RuntimeError("随机IP接口返回为空")
     return normalized[:expected_count]
+
+
+def fetch_proxy_batch(
+    expected_count: int = 1,
+    *,
+    proxy_url: Optional[str] = None,
+    notify_on_area_error: bool = True,
+    stop_signal: Optional[threading.Event] = None,
+) -> List[ProxyLease]:
+    """公开的代理批量获取接口。"""
+    return _fetch_new_proxy_batch(
+        expected_count=expected_count,
+        proxy_url=proxy_url,
+        notify_on_area_error=notify_on_area_error,
+        stop_signal=stop_signal,
+    )
+
+
+__all__ = [
+    "AreaProxyQualityError",
+    "ProxyApiFatalError",
+    "fetch_proxy_batch",
+    "format_status_payload",
+    "get_status",
+    "test_custom_proxy_api",
+]

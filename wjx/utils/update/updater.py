@@ -25,6 +25,7 @@ except ImportError:
 
 from wjx.utils.app.version import __VERSION__, GITHUB_API_URL, GITHUB_RELEASES_URL
 from wjx.utils.app.config import DOWNLOAD_SOURCES, DEFAULT_DOWNLOAD_SOURCE, app_settings
+from wjx.utils.app.runtime_paths import get_runtime_directory
 
 
 def _get_download_source() -> str:
@@ -79,19 +80,11 @@ def _apply_download_source_to_url(url: str, source_key: Optional[str] = None) ->
         logging.info(f"使用下载源 [{source_key}]: {mirrored_url}")
         return mirrored_url
     return url
-
-
-def _get_runtime_directory() -> str:
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
 # 可选：设置 GitHub Token 以避免 API 速率限制
 # 优先从环境变量读取，如果没有则尝试从配置文件读取
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 if not GITHUB_TOKEN:
-    token_file = os.path.join(_get_runtime_directory(), ".github_token")
+    token_file = os.path.join(get_runtime_directory(), ".github_token")
     if os.path.exists(token_file):
         try:
             with open(token_file, "r", encoding="utf-8") as f:
@@ -224,7 +217,7 @@ class UpdateManager:
 
                 total_size = int(response.headers.get("content-length", 0))
 
-                current_dir = _get_runtime_directory()
+                current_dir = get_runtime_directory()
                 target_file = os.path.join(current_dir, file_name)
                 temp_file = target_file + ".tmp"
                 downloaded_size = 0
@@ -277,13 +270,13 @@ class UpdateManager:
                 
                 # 清理临时文件
                 try:
-                    current_dir = _get_runtime_directory()
+                    current_dir = get_runtime_directory()
                     target_file = os.path.join(current_dir, file_name)
                     temp_file = target_file + ".tmp"
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
                 except Exception as exc:
-                    log_suppressed_exception("download_update: current_dir = _get_runtime_directory()", exc, level=logging.WARNING)
+                    log_suppressed_exception("download_update: current_dir = get_runtime_directory()", exc, level=logging.WARNING)
                 
                 # 尝试切换到下一个下载源
                 next_source = _get_next_download_source(current_source)
@@ -303,13 +296,13 @@ class UpdateManager:
             except Exception as exc:
                 logging.error(f"下载文件失败: {exc}")
                 try:
-                    current_dir = _get_runtime_directory()
+                    current_dir = get_runtime_directory()
                     target_file = os.path.join(current_dir, file_name)
                     temp_file = target_file + ".tmp"
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
                 except Exception as exc:
-                    log_suppressed_exception("download_update: current_dir = _get_runtime_directory()", exc, level=logging.WARNING)
+                    log_suppressed_exception("download_update: current_dir = get_runtime_directory()", exc, level=logging.WARNING)
                 return None
 
     @staticmethod

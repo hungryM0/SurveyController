@@ -54,7 +54,7 @@ def _trigger_aliyun_captcha_stop(
                 return
             
             # 先检查当前随机IP状态和配额情况
-            from wjx.network.proxy import get_random_ip_counter_snapshot_local
+            from wjx.network.proxy.quota import get_random_ip_counter_snapshot_local
             from wjx.network.proxy.auth import has_authenticated_session, is_quota_exhausted
 
             is_enabled = bool(gui_instance.is_random_ip_enabled()) if gui_instance else False
@@ -130,8 +130,9 @@ def _trigger_aliyun_captcha_stop(
                     gui_instance.set_random_ip_enabled(True)
 
                     # 刷新显示
-                    from wjx.network.proxy import refresh_ip_counter_display
-                    refresh_ip_counter_display(gui_instance)
+                    refresh_counter = getattr(gui_instance, "refresh_random_ip_counter", None)
+                    if callable(refresh_counter):
+                        refresh_counter()
                     
                     logging.info("智能验证触发：用户已确认启用随机IP")
                 except Exception:

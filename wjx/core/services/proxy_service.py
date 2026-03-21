@@ -5,10 +5,8 @@ import threading
 from typing import List, Optional
 
 from wjx.core.task_context import ProxyLease
-from wjx.network.proxy import (
-    _fetch_new_proxy_batch,
-    get_effective_proxy_api_url,
-)
+from wjx.network.proxy import get_effective_proxy_api_url
+from wjx.network.proxy.provider import fetch_proxy_batch
 
 
 def prefetch_proxy_pool(
@@ -18,7 +16,7 @@ def prefetch_proxy_pool(
 ) -> List[ProxyLease]:
     """预取一批代理 IP。"""
     effective_url = proxy_api_url or get_effective_proxy_api_url()
-    proxy_pool = _fetch_new_proxy_batch(
+    proxy_pool = fetch_proxy_batch(
         expected_count=max(1, expected_count),
         proxy_url=effective_url,
         notify_on_area_error=False,

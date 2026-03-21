@@ -13,7 +13,7 @@ from qfluentwidgets import (
     CardWidget,
     StrongBodyLabel,
 )
-from wjx.utils.app.runtime_paths import _get_resource_path as get_resource_path
+from wjx.utils.app.runtime_paths import get_resource_path
 
 
 class DonatePage(ScrollArea):

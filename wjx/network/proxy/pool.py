@@ -232,3 +232,33 @@ def _proxy_is_responsive_fast(proxy_address: str) -> bool:
     except Exception:
         return False
 
+
+def normalize_proxy_address(proxy_address: Optional[str]) -> Optional[str]:
+    """公开的代理地址规范化接口。"""
+    return _normalize_proxy_address(proxy_address)
+
+
+def mask_proxy_for_log(proxy_address: Optional[str]) -> str:
+    """公开的代理日志脱敏接口。"""
+    return _mask_proxy_for_log(proxy_address)
+
+
+def coerce_proxy_lease(item: Any, *, source: str = "") -> Optional[ProxyLease]:
+    """公开的代理租约标准化接口。"""
+    return _coerce_proxy_lease(item, source=source)
+
+
+def is_proxy_responsive(proxy_address: str, *, skip_for_default: bool = True) -> bool:
+    """公开的代理可用性检测接口。"""
+    return _proxy_is_responsive(proxy_address, skip_for_default=skip_for_default)
+
+
+__all__ = [
+    "coerce_proxy_lease",
+    "get_proxy_required_ttl_seconds",
+    "is_proxy_responsive",
+    "mask_proxy_for_log",
+    "normalize_proxy_address",
+    "proxy_lease_has_sufficient_ttl",
+]
+

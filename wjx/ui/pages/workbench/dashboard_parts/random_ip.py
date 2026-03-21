@@ -15,16 +15,13 @@ from wjx.network.proxy.auth import (
 from wjx.network.proxy import (
     PROXY_SOURCE_BENEFIT,
     format_quota_value,
-    get_proxy_source,
-    _format_status_payload,
+    format_status_payload,
     get_proxy_minute_by_answer_seconds,
     get_quota_cost_by_minute,
     get_random_ip_counter_snapshot_local,
-    get_status,
-    on_random_ip_toggle,
-    refresh_ip_counter_display,
 )
 from wjx.ui.dialogs.contact import ContactDialog
+from wjx.utils.app.config import STATUS_ENDPOINT
 from wjx.utils.logging.log_utils import log_suppressed_exception
 
 if TYPE_CHECKING:
@@ -62,16 +59,6 @@ class DashboardRandomIPMixin:
         def _toast(self, text: str, level: str = "info", duration: int = 2000, show_progress: bool = False) -> Any: ...
         def window(self) -> Any: ...  # 继承自 QWidget，此处仅供类型检查
 
-    def _set_runtime_ip_switch(self, enabled: bool) -> None:
-        """设置运行时页面的随机IP开关，并同步展开区域的启用状态（绕过信号阻塞）。"""
-        try:
-            self.runtime_page.random_ip_card.switchButton.blockSignals(True)
-            self.runtime_page.random_ip_card.switchButton.setChecked(enabled)
-            self.runtime_page.random_ip_card.switchButton.blockSignals(False)
-            self.runtime_page.random_ip_card._sync_ip_enabled(enabled)
-        except Exception as exc:
-            log_suppressed_exception("_set_runtime_ip_switch", exc, level=logging.WARNING)
-
     def set_random_ip_loading(self, loading: bool, message: str = "") -> None:
         active = bool(loading)
         text = str(message or "正在处理...") if active else ""
@@ -82,11 +69,6 @@ class DashboardRandomIPMixin:
             self.random_ip_cb.setEnabled(not active)
         except Exception as exc:
             log_suppressed_exception("set_random_ip_loading dashboard", exc, level=logging.WARNING)
-        try:
-            if hasattr(self.runtime_page, "random_ip_card"):
-                self.runtime_page.random_ip_card.setLoading(active, text)
-        except Exception as exc:
-            log_suppressed_exception("set_random_ip_loading runtime", exc, level=logging.WARNING)
 
     def update_random_ip_counter(self, count: float, limit: float, custom_api: bool):
         snapshot = get_session_snapshot()
@@ -120,6 +102,7 @@ class DashboardRandomIPMixin:
                 self.random_ip_cb.blockSignals(True)
                 self.random_ip_cb.setChecked(False)
                 self.random_ip_cb.blockSignals(False)
+                self.controller.set_runtime_ui_state(random_ip_enabled=False)
             return
         if unknown_local_quota:
             self.random_ip_hint.setText("待校验")
@@ -139,7 +122,7 @@ class DashboardRandomIPMixin:
             self.random_ip_cb.blockSignals(True)
             self.random_ip_cb.setChecked(False)
             self.random_ip_cb.blockSignals(False)
-            self._set_runtime_ip_switch(False)
+            self.controller.set_runtime_ui_state(random_ip_enabled=False)
 
     @staticmethod
     def _format_duration_text(seconds: int) -> str:
@@ -185,23 +168,25 @@ class DashboardRandomIPMixin:
             self._ip_cost_infobar.hide()
             return
 
-        current_source = str(get_proxy_source() or "").strip().lower()
+        try:
+            state = self.controller.get_runtime_ui_state()
+            current_source = str(state.get("proxy_source") or "").strip().lower()
+            timed_enabled = bool(state.get("timed_mode_enabled", False))
+        except Exception as exc:
+            log_suppressed_exception("_update_ip_cost_infobar: self.controller.get_runtime_ui_state()", exc, level=logging.WARNING)
+            return
         if current_source == PROXY_SOURCE_BENEFIT:
             self._ip_cost_infobar.hide()
             if self._ip_benefit_infobar:
                 self._ip_benefit_infobar.show()
             return
-
-        try:
-            timed_enabled = bool(self.runtime_page.timed_card.switchButton.isChecked())
-        except Exception:
-            timed_enabled = False
         if timed_enabled:
             self._ip_cost_infobar.hide()
             return
 
         try:
-            answer_seconds = int(self.runtime_page.answer_card.getValue())
+            answer_duration = state.get("answer_duration", (0, 0))
+            answer_seconds = int(answer_duration[1] if isinstance(answer_duration, (list, tuple)) and len(answer_duration) >= 2 else 0)
         except Exception:
             answer_seconds = 0
 
@@ -227,15 +212,15 @@ class DashboardRandomIPMixin:
         enabled = state != 0
         try:
             self.controller.adapter.random_ip_enabled_var.set(bool(enabled))
-            on_random_ip_toggle(self.controller.adapter)
+            enabled = bool(self.controller.toggle_random_ip(bool(enabled)))
             enabled = bool(self.controller.adapter.random_ip_enabled_var.get())
         except Exception:
             enabled = bool(enabled)
         self.random_ip_cb.blockSignals(True)
         self.random_ip_cb.setChecked(enabled)
         self.random_ip_cb.blockSignals(False)
-        self._set_runtime_ip_switch(enabled)
-        refresh_ip_counter_display(self.controller.adapter)
+        self.controller.set_runtime_ui_state(random_ip_enabled=enabled)
+        self.controller.refresh_random_ip_counter()
 
     def _open_contact_dialog(self, default_type: str = "报错反馈", lock_message_type: bool = False):
         """打开联系对话框"""
@@ -249,15 +234,15 @@ class DashboardRandomIPMixin:
             self,
             default_type=default_type,
             lock_message_type=lock_message_type,
-            status_fetcher=get_status,
-            status_formatter=_format_status_payload,
+            status_endpoint=STATUS_ENDPOINT,
+            status_formatter=format_status_payload,
         )
         dlg.exec()
 
     def _on_request_quota_clicked(self):
         """用户主动打开额度申请表单。"""
         if self._open_contact_dialog(default_type="额度申请", lock_message_type=True):
-            refresh_ip_counter_display(self.controller.adapter)
+            self.controller.refresh_random_ip_counter()
 
     def _on_ip_low_infobar_closed(self):
         self._ip_low_infobar_dismissed = True

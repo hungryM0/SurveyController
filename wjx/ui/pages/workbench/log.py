@@ -16,8 +16,8 @@ from qfluentwidgets import (
     qconfig,
 )
 from wjx.utils.logging.log_utils import LOG_BUFFER_HANDLER, save_log_records_to_file, log_suppressed_exception
+from wjx.utils.app.runtime_paths import get_runtime_directory
 from wjx.utils.app.config import LOG_BUFFER_CAPACITY, LOG_REFRESH_INTERVAL_MS
-from wjx.utils.io.load_save import get_runtime_directory
 from wjx.ui.widgets.log_highlighter import LogHighlighter
 
 

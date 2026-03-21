@@ -14,14 +14,12 @@ from wjx.network.browser import By, BrowserDriver, NoSuchElementException, Timeo
 import wjx.network.http_client as http_client
 from wjx.network.proxy import (
     PROXY_SOURCE_CUSTOM,
-    _coerce_proxy_lease,
-    _fetch_new_proxy_batch,
-    _mask_proxy_for_log,
-    _normalize_proxy_address,
     get_proxy_required_ttl_seconds,
     get_proxy_source,
     proxy_lease_has_sufficient_ttl,
 )
+from wjx.network.proxy.pool import coerce_proxy_lease, mask_proxy_for_log, normalize_proxy_address
+from wjx.network.proxy.provider import fetch_proxy_batch
 from wjx.utils.app.config import (
     HEADLESS_SUBMIT_CLICK_SETTLE_DELAY,
     HEADLESS_SUBMIT_INITIAL_DELAY,
@@ -236,7 +234,7 @@ def _collect_page_cookies(driver: BrowserDriver, submit_url: str) -> dict:
 
 def _build_submit_proxy_url(proxy_address: Optional[str]) -> Optional[str]:
     """构造给 httpx 使用的代理 URL，必要时补全认证信息。"""
-    normalized = _normalize_proxy_address(proxy_address)
+    normalized = normalize_proxy_address(proxy_address)
     if not normalized:
         return None
 
@@ -287,7 +285,7 @@ def _required_submit_proxy_ttl_seconds(ctx: Optional[TaskContext]) -> int:
 
 
 def _remove_proxy_from_ctx_pool(ctx: TaskContext, proxy_address: Optional[str]) -> bool:
-    normalized = _normalize_proxy_address(proxy_address)
+    normalized = normalize_proxy_address(proxy_address)
     if not normalized:
         return False
 
@@ -295,7 +293,7 @@ def _remove_proxy_from_ctx_pool(ctx: TaskContext, proxy_address: Optional[str]) 
     with ctx.lock:
         retained = []
         for item in list(ctx.proxy_ip_pool or []):
-            lease = _coerce_proxy_lease(item)
+            lease = coerce_proxy_lease(item)
             if lease is None:
                 continue
             if lease.address == normalized:
@@ -308,17 +306,17 @@ def _remove_proxy_from_ctx_pool(ctx: TaskContext, proxy_address: Optional[str]) 
 
 def _pop_replacement_proxy_from_pool_locked(ctx: TaskContext, current_proxy: Optional[str]) -> Optional[str]:
     required_ttl = _required_submit_proxy_ttl_seconds(ctx)
-    current = _normalize_proxy_address(current_proxy)
+    current = normalize_proxy_address(current_proxy)
     retained = []
     selected = None
     for item in list(ctx.proxy_ip_pool or []):
-        lease = _coerce_proxy_lease(item)
+        lease = coerce_proxy_lease(item)
         if lease is None:
             continue
         if lease.address == current:
             continue
         if not proxy_lease_has_sufficient_ttl(lease, required_ttl_seconds=required_ttl):
-            logging.info("已丢弃即将过期的提交代理：%s", _mask_proxy_for_log(lease.address))
+            logging.info("已丢弃即将过期的提交代理：%s", mask_proxy_for_log(lease.address))
             continue
         if selected is None:
             selected = lease.address
@@ -339,10 +337,10 @@ def _acquire_replacement_submit_proxy(
     if stop_signal and stop_signal.is_set():
         return None
 
-    current_proxy = _normalize_proxy_address(getattr(driver, "_submit_proxy_address", None))
+    current_proxy = normalize_proxy_address(getattr(driver, "_submit_proxy_address", None))
     removed_from_pool = _remove_proxy_from_ctx_pool(ctx, current_proxy)
     if current_proxy:
-        logging.warning("无头提交代理疑似失效，已废弃：%s", _mask_proxy_for_log(current_proxy))
+        logging.warning("无头提交代理疑似失效，已废弃：%s", mask_proxy_for_log(current_proxy))
     elif removed_from_pool:
         logging.info("已从代理池移除重复的失效提交代理")
 
@@ -350,7 +348,7 @@ def _acquire_replacement_submit_proxy(
         candidate = _pop_replacement_proxy_from_pool_locked(ctx, current_proxy)
     if candidate:
         setattr(driver, "_submit_proxy_address", candidate)
-        logging.info("无头提交改用代理池中的新代理：%s", _mask_proxy_for_log(candidate))
+        logging.info("无头提交改用代理池中的新代理：%s", mask_proxy_for_log(candidate))
         return candidate
 
     with ctx._proxy_fetch_lock:
@@ -358,27 +356,27 @@ def _acquire_replacement_submit_proxy(
             candidate = _pop_replacement_proxy_from_pool_locked(ctx, current_proxy)
         if candidate:
             setattr(driver, "_submit_proxy_address", candidate)
-            logging.info("无头提交改用代理池中的新代理：%s", _mask_proxy_for_log(candidate))
+            logging.info("无头提交改用代理池中的新代理：%s", mask_proxy_for_log(candidate))
             return candidate
 
         if stop_signal and stop_signal.is_set():
             return None
 
         try:
-            fetched = _fetch_new_proxy_batch(expected_count=1, stop_signal=stop_signal)
+            fetched = fetch_proxy_batch(expected_count=1, stop_signal=stop_signal)
         except Exception as exc:
             logging.warning("无头提交切换新代理失败：%s", exc)
             return None
         for item in fetched or []:
-            lease = _coerce_proxy_lease(item)
+            lease = coerce_proxy_lease(item)
             candidate = lease.address if lease is not None else ""
             if not candidate or candidate == current_proxy:
                 continue
             if not proxy_lease_has_sufficient_ttl(lease, required_ttl_seconds=_required_submit_proxy_ttl_seconds(ctx)):
-                logging.info("已跳过即将过期的新提交代理：%s", _mask_proxy_for_log(candidate))
+                logging.info("已跳过即将过期的新提交代理：%s", mask_proxy_for_log(candidate))
                 continue
             setattr(driver, "_submit_proxy_address", candidate)
-            logging.info("无头提交已切换为新提取代理：%s", _mask_proxy_for_log(candidate))
+            logging.info("无头提交已切换为新提取代理：%s", mask_proxy_for_log(candidate))
             return candidate
     return None
 
@@ -566,7 +564,7 @@ def _submit_via_headless_httpx(
     for attempt in range(_HEADLESS_SUBMIT_PROXY_RETRY_LIMIT + 1):
         submit_proxy_address = getattr(driver, "_submit_proxy_address", None)
         submit_proxy = _build_submit_proxy_url(submit_proxy_address)
-        masked_proxy = _mask_proxy_for_log(submit_proxy_address)
+        masked_proxy = mask_proxy_for_log(submit_proxy_address)
         logging.info(
             "无头+httpx 提交代理状态: %s, attempt=%s, proxy=%s",
             "enabled" if submit_proxy else "disabled",

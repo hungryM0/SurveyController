@@ -7,11 +7,11 @@ from wjx.utils.logging.log_utils import log_suppressed_exception
 import json
 import os
 import random
-import sys
 from dataclasses import dataclass, asdict, field
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from wjx.utils.app.config import DEFAULT_RANDOM_UA_KEYS, USER_AGENT_PRESETS, BROWSER_PREFERENCE
+from wjx.utils.app.runtime_paths import get_runtime_directory
 from wjx.core.questions.consistency import normalize_rule_dict, sanitize_answer_rules
 from wjx.network.proxy import normalize_random_ip_enabled_value
 
@@ -21,42 +21,6 @@ if TYPE_CHECKING:
 _CURRENT_CONFIG_SCHEMA_VERSION = 3
 _LEGACY_CONFIG_KEYS = ("random_proxy_api", "ai_enabled")
 _TEXT_RANDOM_MODES = {"none", "name", "mobile"}
-
-
-def get_runtime_directory() -> str:
-    """获取运行时目录（项目根目录）"""
-
-
-    if getattr(sys, "frozen", False):
-        exe_dir = os.path.dirname(sys.executable)
-        # 如果 exe 在 lib 目录中，返回上一级目录
-        if os.path.basename(exe_dir) == "lib":
-            return os.path.dirname(exe_dir)
-        return exe_dir
-    # __file__ = wjx/utils/io/load_save.py -> 需要向上四层到项目根目录
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-
-def get_assets_directory() -> str:
-    """获取 assets 资源目录"""
-    if getattr(sys, "frozen", False):
-        # exe 所在目录就是 lib 目录，assets 也在 lib 目录中
-        exe_dir = os.path.dirname(sys.executable)
-        assets_path = os.path.join(exe_dir, "assets")
-        if os.path.isdir(assets_path):
-            return assets_path
-        
-        # 兼容旧的 _internal 结构
-        internal_assets = os.path.join(exe_dir, "_internal", "assets")
-        if os.path.isdir(internal_assets):
-            return internal_assets
-            
-        # 兼容 sys._MEIPASS（单文件模式）
-        meipass = getattr(sys, "_MEIPASS", None)
-        if meipass:
-            return os.path.join(meipass, "assets")
-    return os.path.join(get_runtime_directory(), "assets")
-
 __all__ = [
     "_sanitize_filename",
     "_select_user_agent_from_ratios",
@@ -66,8 +30,8 @@ __all__ = [
     "deserialize_question_entry",
     "load_config",
     "save_config",
-    "get_runtime_directory",
-    "get_assets_directory",
+    "serialize_runtime_config",
+    "deserialize_runtime_config",
 ]
 
 
@@ -331,8 +295,8 @@ def deserialize_question_entry(data: Dict[str, Any]) -> "QuestionEntry":
     )
 
 
-def _sanitize_runtime_config_payload(raw: Dict[str, Any]) -> RuntimeConfig:
-    """Guard against malformed persisted data."""
+def normalize_runtime_config_payload(raw: Dict[str, Any]) -> RuntimeConfig:
+    """将磁盘载荷规整为 RuntimeConfig。"""
     def _as_int(value: Any, default: int = 0) -> int:
         try:
             return int(value)
@@ -493,8 +457,6 @@ def _sanitize_runtime_config_payload(raw: Dict[str, Any]) -> RuntimeConfig:
     config.answer_rules, _ = sanitize_answer_rules(config.answer_rules, config.questions_info or [])
 
     return config
-
-
 def _strip_json_comments(raw_text: str) -> str:
     """移除 JSON 文本中的 // 与 /* */ 注释（保留字符串内容）。"""
     text = str(raw_text or "").lstrip("\ufeff")
@@ -635,15 +597,33 @@ def load_config(path: Optional[str] = None, *, strict: bool = False) -> RuntimeC
             raise ValueError(error_message) from exc
         logging.warning(error_message)
         return RuntimeConfig()
-    return _sanitize_runtime_config_payload(payload)
+    return deserialize_runtime_config(payload)
+
+
+def serialize_runtime_config(config: RuntimeConfig) -> Dict[str, Any]:
+    """将 RuntimeConfig 转成可落盘的纯数据。"""
+    payload: Dict[str, Any] = asdict(config)
+    payload["question_entries"] = [
+        serialize_question_entry(entry) for entry in list(config.question_entries or [])
+    ]
+    payload["config_schema_version"] = _CURRENT_CONFIG_SCHEMA_VERSION
+    return payload
+
+
+def deserialize_runtime_config(payload: Dict[str, Any]) -> RuntimeConfig:
+    """将经过版本兼容处理后的磁盘载荷恢复为 RuntimeConfig。
+
+    这是对外暴露的反序列化入口，调用方应始终使用此函数而非直接调用
+    normalize_runtime_config_payload。版本迁移、字段重命名等预处理逻辑
+    应在此函数中扩展（调用 normalize_runtime_config_payload 之前）。
+    """
+    return normalize_runtime_config_payload(payload)
 
 
 def save_config(config: RuntimeConfig, path: Optional[str] = None) -> str:
     """Persist runtime configuration to disk and return the saved path."""
     config_path = os.fspath(path or _default_config_path())
-    payload: Dict[str, Any] = asdict(config)
-    payload["question_entries"] = [serialize_question_entry(entry) for entry in config.question_entries]
-    payload["config_schema_version"] = _CURRENT_CONFIG_SCHEMA_VERSION
+    payload = serialize_runtime_config(config)
     with open(config_path, "w", encoding="utf-8") as fp:
         json.dump(payload, fp, ensure_ascii=False, indent=2)
     return config_path

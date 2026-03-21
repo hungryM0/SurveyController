@@ -10,11 +10,8 @@ import traceback
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple
 from urllib.parse import urlparse
 
-from wjx.network.proxy import (
-    PROXY_SOURCE_CUSTOM,
-    _normalize_proxy_address,
-    get_proxy_source,
-)
+from wjx.network.proxy.source import PROXY_SOURCE_CUSTOM, get_proxy_source
+from wjx.network.proxy.pool import normalize_proxy_address
 from wjx.utils.app.config import BROWSER_PREFERENCE, HEADLESS_WINDOW_SIZE, get_proxy_auth
 from wjx.utils.logging.log_utils import log_suppressed_exception
 
@@ -106,7 +103,7 @@ def _is_browser_disconnected_error(exc: Exception) -> bool:
 
 
 def _parse_proxy_context_args(proxy_address: Optional[str]) -> Dict[str, Any]:
-    normalized_proxy = _normalize_proxy_address(proxy_address)
+    normalized_proxy = normalize_proxy_address(proxy_address)
     if not normalized_proxy:
         return {}
 
@@ -685,7 +682,7 @@ def _create_transient_driver(
     if not candidates:
         candidates = list(BROWSER_PREFERENCE)
 
-    normalized_proxy = _normalize_proxy_address(proxy_address)
+    normalized_proxy = normalize_proxy_address(proxy_address)
     last_exc: Optional[Exception] = None
 
     for browser_name in candidates:

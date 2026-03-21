@@ -9,7 +9,7 @@ from PySide6.QtCore import QEvent, QMimeData, QTimer
 from PySide6.QtGui import QClipboard, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QFileDialog
 
-from wjx.utils.io.load_save import get_runtime_directory
+from wjx.utils.app.runtime_paths import get_runtime_directory
 from wjx.utils.io.qrcode_utils import decode_qrcode
 from wjx.utils.logging.log_utils import log_suppressed_exception
 

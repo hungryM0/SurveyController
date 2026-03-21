@@ -48,10 +48,8 @@ from wjx.ui.controller import RunController
 from wjx.ui.pages.workbench.answer_rules import AnswerRulesPage
 from wjx.ui.pages.workbench.question import QuestionPage
 from wjx.ui.pages.workbench.runtime import RuntimePage
-from wjx.utils.io.load_save import RuntimeConfig, build_default_config_filename, get_runtime_directory
-from wjx.network.proxy import (
-    refresh_ip_counter_display,
-)
+from wjx.utils.app.runtime_paths import get_runtime_directory
+from wjx.utils.io.load_save import RuntimeConfig, build_default_config_filename
 
 
 class _PasteOnlyMenu(QObject):
@@ -119,6 +117,7 @@ class DashboardPage(
         self._build_ui()
         self.config_drawer = ConfigDrawer(self, self._load_config_from_path)
         self._bind_events()
+        self._apply_runtime_ui_state(self.controller.get_runtime_ui_state())
         self._sync_start_button_state()
         self._refresh_ip_cost_infobar()
 
@@ -399,14 +398,13 @@ class DashboardPage(
         self.qr_btn.clicked.connect(self._on_qr_clicked)
         self._bind_progress_events()
         self.thread_view_seg.currentItemChanged.connect(self._on_thread_view_changed)
-        self.target_spin.valueChanged.connect(lambda v: self.runtime_page.target_card.spinBox.setValue(int(v)))
-        self.thread_spin.valueChanged.connect(lambda v: self.runtime_page.thread_card.spinBox.setValue(int(v)))
+        self.target_spin.valueChanged.connect(lambda v: self.controller.set_runtime_ui_state(target=int(v)))
+        self.thread_spin.valueChanged.connect(lambda v: self.controller.set_runtime_ui_state(threads=int(v)))
         self.random_ip_cb.stateChanged.connect(self._on_random_ip_toggled)
         self.card_btn.clicked.connect(self._on_request_quota_clicked)
         self.more_settings_btn.clicked.connect(self._go_to_runtime_page)
-        self.runtime_page.random_ip_card.proxyCombo.currentIndexChanged.connect(lambda _v: self._refresh_ip_cost_infobar())
-        self.runtime_page.answer_card.valueChanged.connect(lambda _v: self._refresh_ip_cost_infobar())
-        self.runtime_page.timed_card.switchButton.checkedChanged.connect(lambda _v: self._refresh_ip_cost_infobar())
+        self.controller.runtimeUiStateChanged.connect(self._apply_runtime_ui_state)
+        self.controller.randomIpLoadingChanged.connect(self.set_random_ip_loading)
         # 监听剪贴板变化，自动处理粘贴的图片
         from PySide6.QtWidgets import QApplication
         clipboard = QApplication.clipboard()
@@ -577,7 +575,7 @@ class DashboardPage(
         except Exception as exc:
             log_suppressed_exception("_load_config_from_path: self.update_question_meta(...)", exc, level=logging.WARNING)
         self._sync_start_button_state()
-        refresh_ip_counter_display(self.controller.adapter)
+        self.controller.refresh_random_ip_counter()
         self._toast("已载入配置", "success")
 
     def _on_save_config(self):
@@ -633,6 +631,30 @@ class DashboardPage(
         self._sync_start_button_state()
         self._refresh_ip_cost_infobar()
 
+    def _apply_runtime_ui_state(self, state: dict) -> None:
+        target = state.get("target")
+        if target is not None and int(self.target_spin.value()) != int(target):
+            self.target_spin.blockSignals(True)
+            self.target_spin.setValue(max(1, int(target)))
+            self.target_spin.blockSignals(False)
+
+        headless_enabled = bool(state.get("headless_mode", True))
+        self.thread_spin.setRange(1, 16 if headless_enabled else 8)
+
+        threads = state.get("threads")
+        if threads is not None and int(self.thread_spin.value()) != int(threads):
+            self.thread_spin.blockSignals(True)
+            self.thread_spin.setValue(max(1, int(threads)))
+            self.thread_spin.blockSignals(False)
+
+        random_ip_enabled = state.get("random_ip_enabled")
+        if random_ip_enabled is not None and bool(self.random_ip_cb.isChecked()) != bool(random_ip_enabled):
+            self.random_ip_cb.blockSignals(True)
+            self.random_ip_cb.setChecked(bool(random_ip_enabled))
+            self.random_ip_cb.blockSignals(False)
+
+        self._refresh_ip_cost_infobar()
+
     def apply_config(self, cfg: RuntimeConfig):
         self.url_edit.setText(cfg.url)
         self.target_spin.setValue(max(1, int(cfg.target or 1)))
@@ -650,6 +672,7 @@ class DashboardPage(
         self._refresh_entry_table()
         self._sync_start_button_state()
         self._refresh_ip_cost_infobar()
+        self.controller.sync_runtime_ui_state_from_config(cfg)
 
     def _go_to_runtime_page(self):
         main_win = self.window()

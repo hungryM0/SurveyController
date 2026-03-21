@@ -55,8 +55,20 @@ class RuntimePage(ScrollArea):
         self.view.setObjectName("settings_view")
         self._build_ui()
         self._bind_events()
+        self.controller.runtimeUiStateChanged.connect(self._apply_runtime_ui_state)
+        self.controller.randomIpLoadingChanged.connect(self._apply_random_ip_loading)
         self._sync_random_ua(self.random_ua_card.isChecked())
         self._apply_thread_limit_by_headless(self.headless_card.isChecked())
+        self.controller.set_runtime_ui_state(
+            emit=False,
+            target=self.target_card.spinBox.value(),
+            threads=self.thread_card.spinBox.value(),
+            random_ip_enabled=self.random_ip_card.switchButton.isChecked(),
+            headless_mode=self.headless_card.switchButton.isChecked(),
+            timed_mode_enabled=self.timed_card.switchButton.isChecked(),
+            proxy_source=self._get_selected_proxy_source(),
+            answer_duration=self.answer_card.getRange(),
+        )
 
     def _build_ui(self):
         layout = QVBoxLayout(self.view)
@@ -156,12 +168,12 @@ class RuntimePage(ScrollArea):
         layout.addStretch(1)
 
     def _bind_events(self):
-        self.target_card.spinBox.valueChanged.connect(self._sync_target_to_dashboard)
-        self.thread_card.spinBox.valueChanged.connect(self._sync_threads_to_dashboard)
+        self.target_card.spinBox.valueChanged.connect(lambda value: self.controller.set_runtime_ui_state(target=int(value)))
+        self.thread_card.spinBox.valueChanged.connect(lambda value: self.controller.set_runtime_ui_state(threads=int(value)))
         self.random_ip_card.switchButton.checkedChanged.connect(self._on_random_ip_toggled)
         self.random_ua_card.switchButton.checkedChanged.connect(self._on_random_ua_toggled)
         self.headless_card.switchButton.checkedChanged.connect(self._on_headless_toggled)
-        self.timed_card.switchButton.checkedChanged.connect(self._sync_timed_mode)
+        self.timed_card.switchButton.checkedChanged.connect(self._on_timed_mode_toggled)
         self.timed_card.helpButton.clicked.connect(self._show_timed_mode_help)
         self.random_ip_card.proxyCombo.currentIndexChanged.connect(self._on_proxy_source_changed)
         self.answer_card.valueChanged.connect(self._on_answer_duration_changed)
@@ -265,15 +277,6 @@ class RuntimePage(ScrollArea):
         if clamped:
             self.thread_card.spinBox.setValue(max_threads)
 
-        main_win = self.window()
-        dashboard = getattr(main_win, "dashboard", None)
-        if dashboard is not None and hasattr(dashboard, "thread_spin"):
-            dashboard.thread_spin.setRange(self.MIN_THREADS, max_threads)
-            if dashboard.thread_spin.value() > max_threads:
-                dashboard.thread_spin.blockSignals(True)
-                dashboard.thread_spin.setValue(max_threads)
-                dashboard.thread_spin.blockSignals(False)
-
         return clamped
 
     def _show_headless_limit_tip(self):
@@ -288,24 +291,12 @@ class RuntimePage(ScrollArea):
 
     def _on_headless_toggled(self, enabled: bool):
         clamped = self._apply_thread_limit_by_headless(bool(enabled))
+        self.controller.set_runtime_ui_state(
+            headless_mode=bool(enabled),
+            threads=int(self.thread_card.spinBox.value()),
+        )
         if (not enabled) and clamped and not self._suppress_headless_tip:
             self._show_headless_limit_tip()
-
-    def _sync_target_to_dashboard(self, value: int):
-        main_win = self.window()
-        dashboard = getattr(main_win, "dashboard", None)
-        if dashboard is not None and hasattr(dashboard, "target_spin"):
-            dashboard.target_spin.blockSignals(True)
-            dashboard.target_spin.setValue(int(value))
-            dashboard.target_spin.blockSignals(False)
-
-    def _sync_threads_to_dashboard(self, value: int):
-        main_win = self.window()
-        dashboard = getattr(main_win, "dashboard", None)
-        if dashboard is not None and hasattr(dashboard, "thread_spin"):
-            dashboard.thread_spin.blockSignals(True)
-            dashboard.thread_spin.setValue(int(value))
-            dashboard.thread_spin.blockSignals(False)
 
     def _show_timed_mode_help(self):
         """显示定时模式说明"""
@@ -329,43 +320,42 @@ class RuntimePage(ScrollArea):
         )
 
     def _on_random_ip_toggled(self, enabled: bool):
-        """参数页随机IP开关切换时，同步到主页并显示弹窗"""
-        main_win = self.window()
-        dashboard = getattr(main_win, "dashboard", None)
-        if dashboard is not None:
-            self.random_ip_card.switchButton.blockSignals(True)
-            try:
-                dashboard._on_random_ip_toggled(2 if enabled else 0)
-            finally:
-                self.random_ip_card.switchButton.blockSignals(False)
+        """参数页随机IP开关切换时，通过 controller 同步共享状态。"""
+        final_enabled = bool(enabled)
+        try:
+            final_enabled = bool(self.controller.toggle_random_ip(bool(enabled)))
+        except Exception as exc:
+            log_suppressed_exception("_on_random_ip_toggled: controller.toggle_random_ip", exc, level=logging.WARNING)
+        self.random_ip_card.switchButton.blockSignals(True)
+        try:
+            self.random_ip_card.switchButton.setChecked(final_enabled)
+            self.random_ip_card._sync_ip_enabled(final_enabled)
+        finally:
+            self.random_ip_card.switchButton.blockSignals(False)
+        self.controller.set_runtime_ui_state(random_ip_enabled=final_enabled)
+        self.controller.refresh_random_ip_counter()
 
     def _on_random_ua_toggled(self, enabled: bool):
-        main_win = self.window()
-        dashboard = getattr(main_win, "dashboard", None)
-        if dashboard is not None and hasattr(dashboard, "random_ua_cb"):
-            dashboard.random_ua_cb.blockSignals(True)
-            dashboard.random_ua_cb.setChecked(enabled)
-            dashboard.random_ua_cb.blockSignals(False)
         self._sync_random_ua(enabled)
 
     def _on_proxy_source_changed(self):
         """代理源选择变化时更新设置"""
         source = self._get_selected_proxy_source()
         try:
-            from wjx.network.proxy import set_proxy_source, set_proxy_api_override
-
+            from wjx.network.proxy.settings import apply_proxy_source_settings
             if source == _PROXY_SOURCE_CUSTOM:
                 api_url = self.random_ip_card.customApiEdit.text().strip()
-                set_proxy_api_override(api_url if api_url else None)
+                apply_proxy_source_settings(source, custom_api_url=api_url if api_url else None)
             else:
-                set_proxy_api_override(None)
-            set_proxy_source(source)
+                apply_proxy_source_settings(source, custom_api_url=None)
         except Exception as exc:
-            log_suppressed_exception("_on_proxy_source_changed: from wjx.network.proxy import set_proxy_source, set_proxy_api_override", exc, level=logging.WARNING)
+            log_suppressed_exception("_on_proxy_source_changed: apply_proxy_source_settings", exc, level=logging.WARNING)
         self._evaluate_benefit_proxy_compatibility(show_tip=(source == _PROXY_SOURCE_BENEFIT))
+        self.controller.set_runtime_ui_state(proxy_source=source)
 
     def _on_answer_duration_changed(self, _value: int):
         self._evaluate_benefit_proxy_compatibility(show_tip=True)
+        self.controller.set_runtime_ui_state(answer_duration=self.answer_card.getRange())
 
     def _sync_random_ua(self, enabled: bool):
         try:
@@ -380,6 +370,10 @@ class RuntimePage(ScrollArea):
             self.answer_card.setEnabled(not enabled)
         except Exception as exc:
             log_suppressed_exception("_sync_timed_mode: self.interval_card.setEnabled(not enabled)", exc, level=logging.WARNING)
+
+    def _on_timed_mode_toggled(self, enabled: bool):
+        self._sync_timed_mode(bool(enabled))
+        self.controller.set_runtime_ui_state(timed_mode_enabled=bool(enabled))
 
     def _on_reliability_mode_toggled(self, enabled: bool):
         try:
@@ -480,17 +474,81 @@ class RuntimePage(ScrollArea):
                 self.random_ip_card.proxyCombo.setCurrentIndex(idx)
             self.random_ip_card.customApiEdit.setText(custom_api)
             self.random_ip_card._on_source_changed()
-            from wjx.network.proxy import set_proxy_source, set_proxy_api_override
-            if proxy_source == _PROXY_SOURCE_CUSTOM and custom_api:
-                set_proxy_api_override(custom_api)
-            else:
-                set_proxy_api_override(None)
-            set_proxy_source(proxy_source)
+            from wjx.network.proxy.settings import apply_proxy_source_settings
+            apply_proxy_source_settings(
+                proxy_source,
+                custom_api_url=custom_api if (proxy_source == _PROXY_SOURCE_CUSTOM and custom_api) else None,
+            )
             area_code = getattr(cfg, "proxy_area_code", None)
             self.random_ip_card.set_area_code(area_code)
             self._evaluate_benefit_proxy_compatibility(show_tip=False)
         except Exception as exc:
             log_suppressed_exception("apply_config: proxy_source = getattr(cfg, \"proxy_source\", \"default\")", exc, level=logging.WARNING)
         self.ai_section.apply_config(cfg)
+        self.controller.sync_runtime_ui_state_from_config(cfg)
+
+    def _apply_runtime_ui_state(self, state: dict) -> None:
+        target = state.get("target")
+        if target is not None and int(self.target_card.spinBox.value()) != int(target):
+            self.target_card.spinBox.blockSignals(True)
+            self.target_card.spinBox.setValue(max(1, int(target)))
+            self.target_card.spinBox.blockSignals(False)
+
+        threads = state.get("threads")
+        headless = state.get("headless_mode")
+        if headless is not None and bool(self.headless_card.switchButton.isChecked()) != bool(headless):
+            self._suppress_headless_tip = True
+            try:
+                self.headless_card.switchButton.blockSignals(True)
+                self.headless_card.switchButton.setChecked(bool(headless))
+            finally:
+                self.headless_card.switchButton.blockSignals(False)
+                self._suppress_headless_tip = False
+        if headless is not None:
+            self._apply_thread_limit_by_headless(bool(headless))
+        if threads is not None and int(self.thread_card.spinBox.value()) != int(threads):
+            self.thread_card.spinBox.blockSignals(True)
+            self.thread_card.spinBox.setValue(max(1, int(threads)))
+            self.thread_card.spinBox.blockSignals(False)
+
+        random_ip_enabled = state.get("random_ip_enabled")
+        if random_ip_enabled is not None and bool(self.random_ip_card.switchButton.isChecked()) != bool(random_ip_enabled):
+            self.random_ip_card.switchButton.blockSignals(True)
+            self.random_ip_card.switchButton.setChecked(bool(random_ip_enabled))
+            self.random_ip_card.switchButton.blockSignals(False)
+            self.random_ip_card._sync_ip_enabled(bool(random_ip_enabled))
+
+        timed_mode_enabled = state.get("timed_mode_enabled")
+        if timed_mode_enabled is not None and bool(self.timed_card.switchButton.isChecked()) != bool(timed_mode_enabled):
+            self.timed_card.switchButton.blockSignals(True)
+            self.timed_card.switchButton.setChecked(bool(timed_mode_enabled))
+            self.timed_card.switchButton.blockSignals(False)
+            self._sync_timed_mode(bool(timed_mode_enabled))
+
+        answer_duration = state.get("answer_duration")
+        if isinstance(answer_duration, (list, tuple)) and len(answer_duration) >= 2:
+            current_range = tuple(int(v) for v in self.answer_card.getRange())
+            desired_range = (max(0, int(answer_duration[0])), max(0, int(answer_duration[1])))
+            if desired_range[1] < desired_range[0]:
+                desired_range = (desired_range[0], desired_range[0])
+            if current_range != desired_range:
+                self.answer_card.blockSignals(True)
+                self.answer_card.setRange(*desired_range)
+                self.answer_card.blockSignals(False)
+
+        proxy_source = state.get("proxy_source")
+        if proxy_source is not None:
+            idx = self.random_ip_card.proxyCombo.findData(self._normalize_proxy_source(proxy_source))
+            if idx >= 0 and self.random_ip_card.proxyCombo.currentIndex() != idx:
+                self.random_ip_card.proxyCombo.blockSignals(True)
+                self.random_ip_card.proxyCombo.setCurrentIndex(idx)
+                self.random_ip_card.proxyCombo.blockSignals(False)
+                self.random_ip_card._on_source_changed()
+
+    def _apply_random_ip_loading(self, loading: bool, message: str) -> None:
+        try:
+            self.random_ip_card.setLoading(bool(loading), str(message or ""))
+        except Exception as exc:
+            log_suppressed_exception("_apply_random_ip_loading", exc, level=logging.WARNING)
 
 

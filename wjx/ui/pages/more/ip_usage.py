@@ -13,7 +13,6 @@ from wjx.network.proxy.auth import (
     format_random_ip_error,
     has_authenticated_session,
 )
-from wjx.network.proxy import refresh_ip_counter_display
 from wjx.utils.logging.log_utils import log_suppressed_exception
 from wjx.utils.system.registry_manager import RegistryManager
 
@@ -813,8 +812,8 @@ class IpUsagePage(ScrollArea):
         try:
             win = self.window()
             controller = getattr(win, "controller", None) if win is not None else None
-            if controller is not None and hasattr(controller, "adapter"):
-                refresh_ip_counter_display(controller.adapter)
+            if controller is not None:
+                controller.refresh_random_ip_counter()
         except Exception as exc:
             log_suppressed_exception("_on_bonus_claim_finished refresh counter", exc, level=logging.WARNING)
         if isinstance(payload, dict) and bool(payload.get("skip_infobar")):

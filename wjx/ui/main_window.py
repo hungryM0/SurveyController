@@ -5,12 +5,11 @@ import copy
 import logging
 import os
 import sys
-import threading
 from typing import Any, Dict, List
 
 from PySide6.QtCore import Qt, QTimer, Signal, QEvent
 from PySide6.QtGui import QIcon, QGuiApplication, QColor
-from PySide6.QtWidgets import QDialog, QFileDialog
+from PySide6.QtWidgets import QDialog
 from qfluentwidgets import (
     DotInfoBadge,
     FluentWindow,
@@ -18,7 +17,6 @@ from qfluentwidgets import (
     InfoBar,
     InfoBarPosition,
     MessageBox,
-    PushButton,
     Theme,
     qconfig,
     setTheme,
@@ -34,25 +32,23 @@ from wjx.ui.dialogs.contact import ContactDialog
 
 from wjx.ui.controller import RunController
 from wjx.ui.main_window_parts.dialogs import MainWindowDialogsMixin
+from wjx.ui.main_window_parts.lifecycle import MainWindowLifecycleMixin
 from wjx.ui.main_window_parts.lazy_pages import MainWindowLazyPagesMixin
 from wjx.ui.main_window_parts.update import MainWindowUpdateMixin
-from wjx.utils.app.config import APP_ICON_RELATIVE_PATH, app_settings, get_bool_from_qsettings
-from wjx.utils.io.load_save import RuntimeConfig, get_runtime_directory
-from wjx.utils.logging.log_utils import LOG_BUFFER_HANDLER, register_popup_handler, log_suppressed_exception
+from wjx.utils.app.config import APP_ICON_RELATIVE_PATH, STATUS_ENDPOINT, app_settings, get_bool_from_qsettings
+from wjx.utils.logging.log_utils import register_popup_handler
 from wjx.utils.app.version import __VERSION__
 from wjx.network.proxy import (
-    get_status,
-    _format_status_payload,
-    refresh_ip_counter_display,
+    format_status_payload,
 )
-from wjx.network.proxy.auth import get_session_snapshot
-from wjx.utils.app.runtime_paths import _get_resource_path as get_resource_path
+from wjx.utils.app.runtime_paths import get_resource_path
 
 from wjx.boot import create_boot_splash, finish_boot_splash
 
 
 class MainWindow(
     MainWindowDialogsMixin,
+    MainWindowLifecycleMixin,
     MainWindowLazyPagesMixin,
     MainWindowUpdateMixin,
     FluentWindow,
@@ -146,7 +142,6 @@ class MainWindow(
         self.controller.configure_ui_bridge(
             quota_request_form_opener=self._open_quota_request_form,
             on_ip_counter=self._on_random_ip_counter_update,
-            on_random_ip_loading=self.dashboard.set_random_ip_loading,
             message_handler=self._show_dialog_message,
             confirm_handler=self.show_confirm_dialog,
         )
@@ -303,102 +298,10 @@ class MainWindow(
 
     def closeEvent(self, e):
         """窗口关闭时询问用户是否保存配置"""
-        # 先停止所有定时器和网络请求，防止在关闭过程中触发回调
-        try:
-            # 停止启动画面的进度条和定时器
-            if self._boot_splash:
-                try:
-                    self._boot_splash.cleanup()
-                except Exception as exc:
-                    log_suppressed_exception("closeEvent: self._boot_splash.cleanup()", exc)
-
-            # 停止日志页面定时器
-            if self._log_page and hasattr(self._log_page, '_refresh_timer'):
-                self._log_page._refresh_timer.stop()
-
-            # 停止联系表单轮询
-            if self._support_page and hasattr(self._support_page, 'contact_form'):
-                try:
-                    self._support_page.contact_form.stop_status_polling()
-                except Exception as exc:
-                    log_suppressed_exception("closeEvent: self._support_page.contact_form.stop_status_polling()", exc)
-        except Exception as exc:
-            log_suppressed_exception("closeEvent: 清理资源时出错", exc)
-        
-        if not self._skip_save_on_close:
-            settings = app_settings()
-            ask_save = get_bool_from_qsettings(settings.value("ask_save_on_close"), True)
-            if ask_save:
-                # 询问用户是否保存配置
-                box = MessageBox("保存配置", "是否保存当前配置？", self)
-                box.yesButton.setText("保存")
-                box.cancelButton.setText("取消")
-                
-                # 添加"不保存"按钮
-                no_btn = PushButton("不保存", self)
-                box.buttonLayout.insertWidget(1, no_btn)
-                no_btn.clicked.connect(lambda: box.done(2))  # 2 表示"不保存"
-                
-                reply = box.exec()
-                
-                if reply == 0 or not reply:  # 取消
-                    # 用户取消关闭
-                    e.ignore()
-                    return
-                elif reply == 1 or reply == True:  # 保存
-                    # 用户选择保存
-                    try:
-                        cfg = self.dashboard._build_config()
-                        cfg.question_entries = list(self.question_page.get_entries())
-                        self.controller.config = cfg
-                        
-                        # 弹出文件保存对话框，默认位置在 configs 目录
-                        configs_dir = os.path.join(get_runtime_directory(), "configs")
-                        os.makedirs(configs_dir, exist_ok=True)
-                        
-                        default_path = configs_dir
-                        
-                        path, _ = QFileDialog.getSaveFileName(
-                            self,
-                            "保存配置",
-                            default_path,
-                            "JSON 文件 (*.json);;所有文件 (*.*)"
-                        )
-                        
-                        if path:
-                            from wjx.utils.io.load_save import save_config
-                            save_config(cfg, path)
-                            import logging
-                            logging.info(f"配置已保存到: {path}")
-                        else:
-                            # 用户取消了保存对话框，询问是否继续退出
-                            continue_box = MessageBox("确认", "未保存配置，是否继续退出？", self)
-                            continue_box.yesButton.setText("退出")
-                            continue_box.cancelButton.setText("取消")
-                            if not continue_box.exec():
-                                e.ignore()
-                                return
-                    except Exception as exc:
-                        import logging
-                        logging.error(f"保存配置失败: {exc}", exc_info=True)
-                        error_box = MessageBox("错误", f"保存配置失败：{exc}\n\n是否继续退出？", self)
-                        error_box.yesButton.setText("退出")
-                        error_box.cancelButton.setText("取消")
-                        if not error_box.exec():
-                            e.ignore()
-                            return
-            
-            # 自动保存日志到固定文件
-            try:
-                log_path = os.path.join(get_runtime_directory(), "logs", "last_session.log")
-                os.makedirs(os.path.dirname(log_path), exist_ok=True)
-                records = LOG_BUFFER_HANDLER.get_records()
-                with open(log_path, "w", encoding="utf-8") as f:
-                    f.write("\n".join([entry.text for entry in records]))
-            except Exception as log_exc:
-                import logging
-                logging.warning(f"保存日志失败: {log_exc}")
-        
+        self._cleanup_runtime_resources_on_close()
+        if not self._confirm_close_with_optional_save():
+            e.ignore()
+            return
         super().closeEvent(e)
 
     def _init_community_hint_badge_state(self):
@@ -458,8 +361,8 @@ class MainWindow(
             self,
             default_type=default_type,
             lock_message_type=lock_message_type,
-            status_fetcher=get_status,
-            status_formatter=_format_status_payload,
+            status_endpoint=STATUS_ENDPOINT,
+            status_formatter=format_status_payload,
         )
         dlg.form.quotaRequestSucceeded.connect(self._on_quota_request_sent)
         return dlg.exec() == QDialog.DialogCode.Accepted
@@ -511,36 +414,6 @@ class MainWindow(
         self.controller.cleanupFinished.connect(self.dashboard.on_cleanup_finished)
         self.controller.on_ip_counter = self._on_random_ip_counter_update
 
-    def _on_random_ip_counter_update(self, count: float, limit: float, custom_api: bool) -> None:
-        try:
-            self.dashboard.update_random_ip_counter(count, limit, custom_api)
-        except Exception as exc:
-            log_suppressed_exception("_on_random_ip_counter_update dashboard", exc, level=logging.WARNING)
-        self._refresh_title_random_ip_user_id()
-
-    def _refresh_title_random_ip_user_id(self) -> None:
-        user_id = 0
-        authenticated = False
-        try:
-            snapshot = get_session_snapshot()
-            authenticated = bool(snapshot.get("authenticated"))
-            user_id = int(snapshot.get("user_id") or 0)
-        except Exception as exc:
-            log_suppressed_exception("_refresh_title_random_ip_user_id snapshot", exc, level=logging.WARNING)
-
-        suffix = ""
-        if authenticated and user_id > 0:
-            suffix = f" <span style='color:#8A8A8A;'>({user_id})</span>"
-        title_label = getattr(getattr(self, "titleBar", None), "titleLabel", None)
-        if title_label is None:
-            return
-        try:
-            title_label.setTextFormat(Qt.TextFormat.RichText)
-            title_label.setText(f"{self._base_window_title}{suffix}")
-            title_label.adjustSize()
-        except Exception as exc:
-            log_suppressed_exception("_refresh_title_random_ip_user_id render", exc, level=logging.WARNING)
-
     def _register_popups(self):
         def handler(kind: str, title: str, message: str):
             def _show():
@@ -561,19 +434,6 @@ class MainWindow(
             return self._dispatch_to_ui(_show)
 
         register_popup_handler(handler)
-
-    def _load_saved_config(self):
-        cfg = RuntimeConfig()
-        self.runtime_page.apply_config(cfg)
-        self.dashboard.apply_config(cfg)
-        self.question_page.set_entries(cfg.question_entries or [], self.controller.questions_info)
-        self.answer_rules_page.set_questions_info(self.controller.questions_info)
-        self.answer_rules_page.set_rules(getattr(cfg, "answer_rules", []) or [])
-        # 启动后异步请求线上余额，避免展示过期的本地额度缓存。
-        threading.Thread(
-            target=lambda: refresh_ip_counter_display(self.controller.adapter),
-            daemon=True
-        ).start()
 
     # ---------- controller callbacks ----------
     def _on_survey_parsed(self, info: List[Dict[str, Any]], title: str):

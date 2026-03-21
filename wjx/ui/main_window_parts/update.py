@@ -5,7 +5,7 @@ import logging
 import subprocess
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QThread, QTimer, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -35,6 +35,8 @@ class MainWindowUpdateMixin:
         show_message_dialog: Any
         close: Any
         _settings_page: Any
+        _update_check_thread: Any
+        _update_check_worker: Any
 
     def _check_update_on_startup(self):
         """根据设置在启动时检查更新（后台异步执行）"""
@@ -43,13 +45,37 @@ class MainWindowUpdateMixin:
             from wjx.ui.workers.update_worker import UpdateCheckWorker
 
             self._show_update_checking_placeholder()
-
-            # 创建后台Worker
-            self._update_worker = UpdateCheckWorker(self)
-            self._update_worker.update_checked.connect(self._on_update_checked)
-            self._update_worker.start()
+            self._stop_update_check_worker()
+            worker = UpdateCheckWorker()
+            thread = QThread(self)
+            worker.moveToThread(thread)
+            thread.started.connect(worker.run)
+            worker.finished.connect(self._on_update_checked)
+            worker.finished.connect(thread.quit)
+            worker.finished.connect(worker.deleteLater)
+            thread.finished.connect(thread.deleteLater)
+            thread.finished.connect(self._clear_update_check_worker_refs)
+            self._update_check_worker = worker
+            self._update_check_thread = thread
+            thread.start()
 
             logging.info("已启动后台更新检查")
+
+    def _clear_update_check_worker_refs(self):
+        self._update_check_thread = None
+        self._update_check_worker = None
+
+    def _stop_update_check_worker(self):
+        thread = getattr(self, "_update_check_thread", None)
+        if thread is None:
+            return
+        try:
+            thread.quit()
+            thread.wait(1500)
+        except Exception:
+            logging.info("停止后台更新检查线程失败", exc_info=True)
+        finally:
+            self._clear_update_check_worker_refs()
 
     def _on_update_checked(self, has_update: bool, update_info: dict):
         """更新检查完成的回调"""
