@@ -95,6 +95,56 @@ def _cleanup_question_title(raw_title: str) -> str:
     return title.strip()
 
 
+def _extract_display_question_number(raw_title: Any) -> Optional[int]:
+    text = _normalize_html_text(str(raw_title or ""))
+    if not text:
+        return None
+    match = re.match(r"^\*?\s*(\d+)\.\s*", text)
+    if not match:
+        return None
+    try:
+        number = int(match.group(1))
+    except Exception:
+        return None
+    return number if number > 0 else None
+
+
+def _extract_display_heading_text(question_div) -> str:
+    if question_div is None:
+        return ""
+    for class_name in ("topichtml", "field-label", "qtypetip"):
+        try:
+            title_element = question_div.find(class_=class_name)
+        except Exception:
+            title_element = None
+        if not title_element:
+            continue
+        try:
+            text = title_element.get_text(" ", strip=True)
+        except Exception:
+            text = ""
+        text = _normalize_html_text(text)
+        if text:
+            return text
+    try:
+        blockquote = question_div.find("blockquote")
+    except Exception:
+        blockquote = None
+    if blockquote is not None:
+        try:
+            text = blockquote.get_text(" ", strip=True)
+        except Exception:
+            text = ""
+        text = _normalize_html_text(text)
+        if text:
+            return text
+    try:
+        text = question_div.get_text(" ", strip=True)
+    except Exception:
+        text = ""
+    return _normalize_html_text(text)
+
+
 _FORCE_SELECT_COMMAND_RE = re.compile(r"请(?:务必|一定|必须|直接)?\s*选(?:择)?")
 _FORCE_SELECT_INDEX_RE = re.compile(r"^第?\s*(\d{1,3})\s*(?:个|项|选项|分|星)?$")
 _FORCE_SELECT_SENTENCE_SPLIT_RE = re.compile(r"[。；;！？!\n\r]")
@@ -1252,9 +1302,14 @@ def parse_survey_questions_from_html(html: str) -> List[Dict[str, Any]]:
         question_divs = fieldset.find_all("div", attrs={"topic": True}, recursive=False)
         if not question_divs:
             question_divs = fieldset.find_all("div", attrs={"topic": True})
+        current_display_num: Optional[int] = None
         for question_div in question_divs:
+            raw_heading_text = _extract_display_heading_text(question_div)
             question_number = _extract_question_number_from_div(question_div)
             if question_number is None:
+                heading_num = _extract_display_question_number(raw_heading_text)
+                if heading_num is not None:
+                    current_display_num = heading_num
                 continue
             type_code = str(question_div.get("type") or "").strip() or "0"
             if type_code != "11" and _soup_question_looks_like_reorder(question_div):
@@ -1267,6 +1322,11 @@ def parse_survey_questions_from_html(html: str) -> List[Dict[str, Any]]:
                 if is_rating:
                     rating_max = _extract_rating_option_count(question_div)
             is_location = type_code in {"1", "2"} and _soup_question_is_location(question_div)
+            display_num = _extract_display_question_number(raw_heading_text)
+            if display_num is None:
+                display_num = current_display_num
+            elif display_num > 0:
+                current_display_num = display_num
             title_text = _extract_question_title(question_div, question_number)
             (
                 option_texts,
@@ -1314,6 +1374,7 @@ def parse_survey_questions_from_html(html: str) -> List[Dict[str, Any]]:
                 )
             questions_info.append({
                 "num": question_number,
+                "display_num": display_num,
                 "title": title_text,
                 "type_code": type_code,
                 "options": option_count,

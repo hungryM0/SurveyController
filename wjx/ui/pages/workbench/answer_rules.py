@@ -79,6 +79,7 @@ def _normalize_question_type_code(value: Any) -> str:
 
 def _build_question_label(question: Dict[str, Any]) -> str:
     q_num = _to_int(question.get("num"), 0)
+    display_num = _to_int(question.get("display_num"), 0)
     title = str(question.get("title") or "").strip()
     type_code = _normalize_question_type_code(question.get("type_code"))
     if type_code == "5" and question.get("is_rating"):
@@ -86,9 +87,12 @@ def _build_question_label(question: Dict[str, Any]) -> str:
     else:
         type_label = _TYPE_CODE_LABELS.get(type_code, "")
     suffix = f" [{type_label}]" if type_label else ""
+    number_text = f"第{display_num}题" if display_num > 0 else f"第{q_num}题"
+    if display_num > 0 and q_num > 0 and display_num != q_num:
+        number_text = f"{number_text}（内部{q_num}）"
     if title:
-        return f"第{q_num}题：{title}{suffix}"
-    return f"第{q_num}题{suffix}"
+        return f"{number_text}：{title}{suffix}"
+    return f"{number_text}{suffix}"
 
 
 def _clear_layout(layout: QVBoxLayout) -> None:

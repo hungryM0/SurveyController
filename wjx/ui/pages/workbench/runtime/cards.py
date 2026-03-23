@@ -716,13 +716,6 @@ class ReliabilitySettingCard(ExpandGroupSettingCard):
 
         layout.addLayout(alpha_row)
 
-        strict_ratio_hint = BodyLabel(
-            "说明：自定义配比属于硬约束；0 权重绝不选中，信效度与画像不会改写该题配比。",
-            self._groupContainer,
-        )
-        strict_ratio_hint.setWordWrap(True)
-        layout.addWidget(strict_ratio_hint)
-
         self.addGroupWidget(self._groupContainer)
         self.setExpand(True)
 

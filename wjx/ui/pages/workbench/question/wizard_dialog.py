@@ -241,6 +241,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         """构建单个题目的配置卡片。"""
         # 获取题目信息
         qnum = ""
+        display_qnum = ""
         title_text = ""
         option_texts: List[str] = []
         row_texts: List[str] = []
@@ -248,6 +249,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         multi_max_limit: Optional[int] = None
         if idx < len(self.info):
             qnum = str(self.info[idx].get("num") or "")
+            display_qnum = str(self.info[idx].get("display_num") or "")
             title_text = str(self.info[idx].get("title") or "")
             opt_raw = self.info[idx].get("option_texts")
             if isinstance(opt_raw, list):
@@ -269,7 +271,8 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         # 题目标题行
         header = QHBoxLayout()
         header.setSpacing(12)
-        title = SubtitleLabel(f"第{qnum or idx + 1}题", card)
+        visible_qnum = display_qnum or qnum or str(idx + 1)
+        title = SubtitleLabel(f"第{visible_qnum}题", card)
         title.setStyleSheet("font-size: 15px; font-weight: 600;")
         header.addWidget(title)
         type_label = BodyLabel(f"[{_get_entry_type_label(entry)}]", card)

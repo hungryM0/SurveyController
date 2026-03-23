@@ -340,11 +340,27 @@ class _QuestionDispatcher:
             return False  # 未知题型
 
         index_key = spec.index_key
-        _idx = (
-            config_entry[1]
-            if config_entry and config_entry[0] in (index_key, *spec.config_aliases)
-            else indices.get(index_key, 0)
-        )
+        sequential_idx = int(indices.get(index_key, 0) or 0)
+        mapped_idx: Optional[int] = None
+        if config_entry and config_entry[0] in (index_key, *spec.config_aliases):
+            try:
+                mapped_idx = max(0, int(config_entry[1]))
+            except Exception:
+                mapped_idx = None
+        if mapped_idx is not None:
+            if mapped_idx < sequential_idx:
+                logging.warning(
+                    "题型索引回拨已拦截：题号=%s 类型=%s 映射索引=%s 当前顺序索引=%s，继续沿用顺序索引",
+                    question_num,
+                    question_type,
+                    mapped_idx,
+                    sequential_idx,
+                )
+                _idx = sequential_idx
+            else:
+                _idx = mapped_idx
+        else:
+            _idx = sequential_idx
 
         handler_kwargs: Dict[str, Any] = {}
         if spec.needs_question_div:
