@@ -66,7 +66,7 @@ software/
 │   ├── helpers/           # UI 侧辅助门面
 │   │   └── qfluent_compat.py # QFluentWidgets 动画兼容补丁
 │   ├── pages/
-│   │   └── workbench/     # dashboard/question_editor/runtime_panel/log_panel
+│   │   └── workbench/     # dashboard/question_editor（含配置向导与 preview_panel 只读预览）/runtime_panel/log_panel
 │   └── widgets/           # 通用组件（contact_form 已拆成包）
 └── update/                # 更新检查与升级
 

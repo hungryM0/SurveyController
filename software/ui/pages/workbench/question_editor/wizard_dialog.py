@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QStyleOptionViewItem,
     QListWidget,
     QStyle,
+    QSplitter,
 )
 from qfluentwidgets import (
     ScrollArea,
@@ -38,6 +39,7 @@ from .constants import _get_entry_type_label
 from .utils import _shorten_text, _apply_label_color, _bind_slider_input
 from .wizard_sections import WizardSectionsMixin, _TEXT_RANDOM_NONE, _get_segmented_route_key
 from .psycho_config import BIAS_PRESET_CHOICES
+from .preview_panel import SurveyPreviewPanel
 
 
 # ---------------------------------------------------------------------------
@@ -296,6 +298,8 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         entries: List[QuestionEntry],
         info: List[Dict[str, Any]],
         survey_title: Optional[str] = None,
+        survey_url: Optional[str] = None,
+        survey_provider: str = "wjx",
         parent=None,
         reliability_mode_enabled: bool = True,
     ):
@@ -304,9 +308,11 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         if survey_title:
             window_title = f"{window_title} - {_shorten_text(survey_title, 36)}"
         self.setWindowTitle(window_title)
-        self.resize(900, 800)
+        self.resize(1360, 820)
         self.entries = entries
         self.info = info or []
+        self.survey_url = str(survey_url or "").strip()
+        self.survey_provider = str(survey_provider or "wjx").strip().lower() or "wjx"
         self.reliability_mode_enabled = reliability_mode_enabled
         self.slider_map: Dict[int, List[NoWheelSlider]] = {}
         self.matrix_row_slider_map: Dict[int, List[List[NoWheelSlider]]] = {}
@@ -327,6 +333,8 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self._scroll_area: Optional[ScrollArea] = None
         self._content_container: Optional[QWidget] = None
         self._content_layout: Optional[QVBoxLayout] = None
+        self._preview_panel: Optional[SurveyPreviewPanel] = None
+        self._navigation_host: Optional[QWidget] = None
         self._question_shell: Optional[FloatingPagerShell] = None
         self._question_pager: Optional[StableVerticalPipsPager] = None
         self._navigation_item_count = 0
@@ -342,18 +350,42 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         _apply_label_color(intro, "#666666", "#bfbfbf")
         layout.addWidget(intro)
 
-        scroll = ScrollArea(self)
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(8)
+        layout.addWidget(splitter, 1)
+
+        self._preview_panel = SurveyPreviewPanel(
+            survey_url=self.survey_url,
+            survey_provider=self.survey_provider,
+            questions_info=self.info,
+            parent=splitter,
+        )
+        splitter.addWidget(self._preview_panel)
+
+        right_panel = QWidget(splitter)
+        self._navigation_host = right_panel
+        splitter.addWidget(right_panel)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([620, 740])
+
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(16)
+
+        scroll = ScrollArea(right_panel)
         scroll.setWidgetResizable(True)
         scroll.enableTransparentBackground()
         self._scroll_area = scroll
-        container = QWidget(self)
+        container = QWidget(right_panel)
         scroll.setWidget(container)
         self._content_container = container
         inner = QVBoxLayout(container)
         inner.setContentsMargins(4, 4, 12, 4)
         inner.setSpacing(20)
         self._content_layout = inner
-        layout.addWidget(scroll, 1)
+        right_layout.addWidget(scroll, 1)
 
         # 批量倾向预设（在滚动区内最顶部）
         master_row = QHBoxLayout()
@@ -407,7 +439,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             inner.addWidget(empty_label)
 
         inner.addStretch(1)
-        self._question_shell = self._build_navigation_shell(self)
+        self._question_shell = self._build_navigation_shell(right_panel)
         self._question_pager = self._question_shell.pager
         self._configure_navigation_pager(len(self._question_cards))
         self._refresh_navigation_state(len(self._question_cards))
@@ -419,13 +451,13 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(12)
         btn_row.addStretch(1)
-        cancel_btn = PushButton("取消", self)
+        cancel_btn = PushButton("取消", right_panel)
         cancel_btn.setFixedWidth(80)
-        ok_btn = PrimaryPushButton("保存", self)
+        ok_btn = PrimaryPushButton("保存", right_panel)
         ok_btn.setFixedWidth(80)
         btn_row.addWidget(cancel_btn)
         btn_row.addWidget(ok_btn)
-        layout.addLayout(btn_row)
+        right_layout.addLayout(btn_row)
 
         ok_btn.clicked.connect(self.accept)
         cancel_btn.clicked.connect(self.reject)
@@ -460,10 +492,11 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
     def _update_navigation_pager_geometry(self) -> None:
         if self._question_shell is None or self._scroll_area is None:
             return
+        host = self._navigation_host or self
         scroll_geo = self._scroll_area.geometry()
         content_left = scroll_geo.left() + 4
         if self._question_cards:
-            first_card_pos = self._question_cards[0].mapTo(self, self._question_cards[0].rect().topLeft())
+            first_card_pos = self._question_cards[0].mapTo(host, self._question_cards[0].rect().topLeft())
             content_left = max(content_left, first_card_pos.x())
         if self._question_pager is not None:
             total = max(1, len(self._question_cards))
@@ -500,12 +533,20 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             self._current_question_idx = 0
             self._refresh_navigation_state(0)
             self._scroll_to_question(None, animate=False)
+            self._sync_preview_to_current_question()
             return
 
         clamped = max(0, min(question_idx, total - 1))
         self._current_question_idx = clamped
         self._refresh_navigation_state(total)
         self._scroll_to_question(clamped, animate=animate)
+        self._sync_preview_to_current_question()
+
+    def _sync_preview_to_current_question(self) -> None:
+        if self._preview_panel is None:
+            return
+        info = self.info[self._current_question_idx] if 0 <= self._current_question_idx < len(self.info) else {}
+        self._preview_panel.sync_to_question(self._current_question_idx, info)
 
     def _refresh_navigation_state(self, total: int) -> None:
         if self._question_pager is not None:
@@ -604,6 +645,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             return
         self._current_question_idx = current_idx
         self._refresh_navigation_state(len(self._question_cards))
+        self._sync_preview_to_current_question()
 
     # ------------------------------------------------------------------ #
     #  题目配置卡片                                                        #

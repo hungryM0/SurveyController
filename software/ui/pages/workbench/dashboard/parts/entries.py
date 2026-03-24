@@ -91,6 +91,7 @@ class DashboardEntriesMixin:
         _survey_title: Any
         runtime_page: Any
         window: Any
+        controller: Any
 
     def _show_add_question_dialog(self):
         """新增题目 - 委托给 QuestionPage"""
@@ -176,7 +177,19 @@ class DashboardEntriesMixin:
             return False
         title = survey_title if survey_title is not None else self._survey_title
         reliability_mode_enabled = self.runtime_page.reliability_card.switchButton.isChecked()
-        dlg = QuestionWizardDialog(entries, info, title, self, reliability_mode_enabled=reliability_mode_enabled)
+        survey_url = str(getattr(getattr(self.controller, "config", None), "url", "") or "").strip()
+        survey_provider = str(getattr(getattr(self.controller, "config", None), "survey_provider", "") or "").strip()
+        if not survey_provider:
+            survey_provider = str(getattr(self.controller, "survey_provider", "wjx") or "wjx")
+        dlg = QuestionWizardDialog(
+            entries,
+            info,
+            title,
+            survey_url=survey_url,
+            survey_provider=survey_provider,
+            parent=self,
+            reliability_mode_enabled=reliability_mode_enabled,
+        )
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._apply_wizard_results(entries, dlg)
             return True
