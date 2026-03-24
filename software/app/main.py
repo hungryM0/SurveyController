@@ -6,6 +6,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
 from software.logging.log_utils import setup_logging
+from software.ui.helpers import install_qfluentwidgets_animation_guards
 
 
 def _qt_message_handler(mode, context, message):
@@ -25,6 +26,7 @@ def main():
 
     qInstallMessageHandler(_qt_message_handler)
     app = QApplication(sys.argv)
+    install_qfluentwidgets_animation_guards()
 
     # 设置默认字体
     font = QFont("Microsoft YaHei UI", 9)

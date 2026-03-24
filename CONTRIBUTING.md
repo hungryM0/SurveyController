@@ -64,25 +64,24 @@ software/
 │   ├── shell/             # 主窗口、启动页、页面装配
 │   ├── controller/        # Qt 协调器
 │   ├── helpers/           # UI 侧辅助门面
+│   │   └── qfluent_compat.py # QFluentWidgets 动画兼容补丁
 │   ├── pages/
 │   │   └── workbench/     # dashboard/question_editor/runtime_panel/log_panel
 │   └── widgets/           # 通用组件（contact_form 已拆成包）
 └── update/                # 更新检查与升级
 
 wjx/
-├── __init__.py            # 兼容入口；真正平台实现看 provider/
+├── __init__.py            # 包导出入口；真正平台实现看 provider/
 └── provider/              # 问卷星专属实现（解析、检测、导航、运行时、提交）
 
 tencent/
-├── __init__.py
-├── parser.py              # 旧路径兼容转发到 tencent/provider/parser.py
-├── runtime.py             # 旧路径兼容转发到 tencent/provider/runtime.py
+├── __init__.py            # 包导出入口；真正平台实现看 provider/
 └── provider/              # 腾讯问卷专属实现（解析/运行时）
 ```
 
 ## PR 流程（推荐）
 1. Fork 仓库本仓库
-2. 开发时遵守三主包边界：共享业务、GUI、平台总调度放 `software`；问卷星专属实现只放 `wjx/provider`；腾讯问卷专属实现放 `tencent/provider`；旧兼容入口 `tencent/parser.py`、`tencent/runtime.py` 不再作为新代码落点
+2. 开发时遵守三主包边界：共享业务、GUI、平台总调度放 `software`；问卷星专属实现只放 `wjx/provider`；腾讯问卷专属实现放 `tencent/provider`；顶层包仅做导出，不要再把实现代码塞回 `tencent/`、`wjx/` 根目录
 3. 自测：运行 `python test_wjx_imports.py` 检查 import 和语法错误；至少手动跑一次核心流程（启动、加载问卷、配置、开始运行），确保无报错
 4. 提交：保持清晰提交信息，必要时补充中文注释和变更说明
 5. PR 描述：写明变更目的、主要改动点、测试方式与结果，关联相关 Issue（如有）

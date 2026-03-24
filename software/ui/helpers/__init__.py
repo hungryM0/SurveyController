@@ -26,6 +26,7 @@ from software.ui.helpers.proxy_access import (
     load_supported_area_codes,
     test_custom_proxy_api,
 )
+from software.ui.helpers.qfluent_compat import install_qfluentwidgets_animation_guards
 
 __all__ = [
     "PROXY_SOURCE_BENEFIT",
@@ -46,6 +47,7 @@ __all__ = [
     "get_session_snapshot",
     "has_authenticated_session",
     "has_unknown_local_quota",
+    "install_qfluentwidgets_animation_guards",
     "is_quota_exhausted",
     "load_area_codes",
     "load_benefit_supported_areas",
