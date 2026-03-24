@@ -2,7 +2,8 @@
 import copy
 from typing import List, Dict, Any, Optional, Union, cast
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QPointF, QTimer, QSize, Signal
+from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -36,6 +37,126 @@ from .psycho_config import BIAS_PRESET_CHOICES
 # ---------------------------------------------------------------------------
 # QuestionWizardDialog — 主对话框
 # ---------------------------------------------------------------------------
+
+
+class QuestionDotNavigator(QWidget):
+    """自绘题目导航点阵：整条都能点，不再依赖 PipsPager 的命中逻辑。"""
+
+    currentIndexChanged = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._page_count = 0
+        self._current_index = 0
+        self._spacing = 10
+        self._visible_number = 0
+        self._dot_size = 8
+        self._selected_dot_size = 12
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def count(self) -> int:
+        return self._page_count
+
+    def currentIndex(self) -> int:
+        return self._current_index
+
+    def setCurrentIndex(self, index: int) -> None:
+        if self._page_count <= 0:
+            return
+        clamped = max(0, min(int(index), self._page_count - 1))
+        if clamped == self._current_index:
+            return
+        self._current_index = clamped
+        self.update()
+        self.currentIndexChanged.emit(clamped)
+
+    def setPageNumber(self, count: int) -> None:
+        self._page_count = max(0, int(count))
+        if self._page_count <= 0:
+            self._current_index = 0
+        else:
+            self._current_index = max(0, min(self._current_index, self._page_count - 1))
+        self.update()
+
+    def setVisibleNumber(self, count: int) -> None:
+        self._visible_number = max(0, int(count))
+
+    def visibleNumber(self) -> int:
+        return self._visible_number
+
+    def setSpacing(self, spacing: int) -> None:
+        self._spacing = max(0, int(spacing))
+        self.update()
+
+    def spacing(self) -> int:
+        return self._spacing
+
+    def sizeHint(self) -> QSize:
+        return QSize(18, 200)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(18, 120)
+
+    def paintEvent(self, event) -> None:
+        if self._page_count <= 0:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+
+        center_x = self.width() / 2
+        for idx, center_y in enumerate(self._dot_positions()):
+            selected = idx == self._current_index
+            radius = self._selected_dot_size / 2 if selected else self._dot_size / 2
+            color = QColor(92, 184, 255, 255) if selected else QColor(255, 255, 255, 165)
+            painter.setBrush(color)
+            painter.drawEllipse(QPointF(center_x, center_y), radius, radius)
+
+    def mousePressEvent(self, event) -> None:
+        super().mousePressEvent(event)
+        target_index = self._index_from_y(event.position().y())
+        if target_index is not None:
+            self.setCurrentIndex(target_index)
+
+    def _dot_positions(self) -> List[float]:
+        if self._page_count <= 0:
+            return []
+        max_dot_diameter = self._selected_dot_size
+        if self._page_count <= 1:
+            step = 0
+        else:
+            available_span = max(max_dot_diameter, self.height() - max_dot_diameter)
+            preferred_step = max_dot_diameter + self._spacing
+            max_step = available_span / float(self._page_count - 1)
+            step = min(preferred_step, max_step)
+        top = self._selected_dot_size / 2
+        return [top + idx * step for idx in range(self._page_count)]
+
+    def _index_from_y(self, y: float) -> Optional[int]:
+        positions = self._dot_positions()
+        if not positions:
+            return None
+        nearest_index = 0
+        nearest_distance = None
+        for idx, center_y in enumerate(positions):
+            distance = abs(float(y) - center_y)
+            if nearest_distance is None or distance < nearest_distance:
+                nearest_distance = distance
+                nearest_index = idx
+        return nearest_index
+
+
+class FloatingPagerShell(QWidget):
+    """透明外壳：只负责把分页器摆在左侧空白带中间。"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.pager = QuestionDotNavigator(self)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.pager.setGeometry(0, 0, self.width(), self.height())
+
 
 class QuestionWizardDialog(WizardSectionsMixin, QDialog):
     """配置向导：用滑块快速设置权重/概率，编辑填空题答案。"""
@@ -144,6 +265,16 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self.attached_select_slider_map: Dict[int, List[Dict[str, Any]]] = {}
         self._entry_snapshots: List[QuestionEntry] = [copy.deepcopy(entry) for entry in entries]
         self._has_content = False
+        self._current_question_idx = 0
+        self._question_cards: List[CardWidget] = []
+        self._scroll_area: Optional[ScrollArea] = None
+        self._content_container: Optional[QWidget] = None
+        self._content_layout: Optional[QVBoxLayout] = None
+        self._question_shell: Optional[FloatingPagerShell] = None
+        self._question_pager: Optional[QuestionDotNavigator] = None
+        self._navigation_item_count = 0
+        self._scroll_animation: Optional[QPropertyAnimation] = None
+        self._is_animating_scroll = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -154,15 +285,18 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         _apply_label_color(intro, "#666666", "#bfbfbf")
         layout.addWidget(intro)
 
-        # 单一滚动页面
         scroll = ScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.enableTransparentBackground()
+        self._scroll_area = scroll
         container = QWidget(self)
         scroll.setWidget(container)
+        self._content_container = container
         inner = QVBoxLayout(container)
         inner.setContentsMargins(4, 4, 12, 4)
         inner.setSpacing(20)
+        self._content_layout = inner
+        layout.addWidget(scroll, 1)
 
         # 批量倾向预设（在滚动区内最顶部）
         master_row = QHBoxLayout()
@@ -180,7 +314,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         inner.addLayout(master_row)
 
         for idx, entry in enumerate(self.entries):
-            self._build_entry_card(idx, entry, container, inner)
+            self._question_cards.append(self._build_entry_card(idx, entry, container, inner))
 
         self._master_applying = False
 
@@ -216,7 +350,13 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
             inner.addWidget(empty_label)
 
         inner.addStretch(1)
-        layout.addWidget(scroll, 1)
+        self._question_shell = self._build_navigation_shell(self)
+        self._question_pager = self._question_shell.pager
+        self._configure_navigation_pager(len(self._question_cards))
+        self._refresh_navigation_state(len(self._question_cards))
+        self._navigate_to_question(0, animate=False)
+        scroll.verticalScrollBar().valueChanged.connect(self._on_scroll_value_changed)
+        QTimer.singleShot(0, self._update_navigation_pager_geometry)
 
         # 底部按钮
         btn_row = QHBoxLayout()
@@ -233,11 +373,177 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         ok_btn.clicked.connect(self.accept)
         cancel_btn.clicked.connect(self.reject)
 
+    def _build_navigation_shell(self, parent: QWidget) -> FloatingPagerShell:
+        shell = FloatingPagerShell(parent)
+        shell.pager.currentIndexChanged.connect(self._on_question_pager_changed)
+        shell.raise_()
+        return shell
+
+    def _configure_navigation_pager(self, total: int) -> None:
+        if self._question_pager is None:
+            return
+        normalized_total = max(1, int(total))
+        if self._navigation_item_count == normalized_total:
+            return
+        self._navigation_item_count = normalized_total
+        self._question_pager.blockSignals(True)
+        self._question_pager.setPageNumber(normalized_total)
+        self._question_pager.setVisibleNumber(normalized_total)
+        self._question_pager.blockSignals(False)
+
+    def _update_navigation_pager_geometry(self) -> None:
+        if self._question_shell is None or self._scroll_area is None:
+            return
+        scroll_geo = self._scroll_area.geometry()
+        content_left = scroll_geo.left() + 4
+        if self._question_cards:
+            first_card_pos = self._question_cards[0].mapTo(self, self._question_cards[0].rect().topLeft())
+            content_left = max(content_left, first_card_pos.x())
+        if self._question_pager is not None:
+            total = max(1, len(self._question_cards))
+            preferred_spacing = 12
+            if total >= 12:
+                preferred_spacing = 10
+            if total >= 18:
+                preferred_spacing = 8
+            if total >= 26:
+                preferred_spacing = 6
+            if total >= 36:
+                preferred_spacing = 4
+            available_height = max(120, scroll_geo.height() - 96)
+            max_spacing = 0
+            if total > 1:
+                max_spacing = max(0, (available_height - 30 - total * 12) // (total - 1))
+            spacing = min(preferred_spacing, max_spacing)
+            self._question_pager.setSpacing(spacing)
+            shell_height = min(available_height, max(120, 30 + total * 12 + max(0, total - 1) * spacing))
+        else:
+            shell_height = max(120, min(scroll_geo.height() - 96, 160))
+        shell_width = 24
+        x = max(0, (content_left - shell_width) // 2)
+        y = scroll_geo.top() + max(12, (scroll_geo.height() - shell_height) // 2)
+        self._question_shell.setGeometry(x, y, shell_width, shell_height)
+        self._question_shell.raise_()
+
+    def _on_question_pager_changed(self, question_idx: int) -> None:
+        self._navigate_to_question(question_idx, animate=True)
+
+    def _navigate_to_question(self, question_idx: int, animate: bool) -> None:
+        total = len(self._question_cards)
+        if total <= 0:
+            self._current_question_idx = 0
+            self._refresh_navigation_state(0)
+            self._scroll_to_question(None, animate=False)
+            return
+
+        clamped = max(0, min(question_idx, total - 1))
+        self._current_question_idx = clamped
+        self._refresh_navigation_state(total)
+        self._scroll_to_question(clamped, animate=animate)
+
+    def _refresh_navigation_state(self, total: int) -> None:
+        if self._question_pager is not None:
+            self._question_pager.blockSignals(True)
+            current = max(0, min(self._current_question_idx, max(total - 1, 0)))
+            if self._question_pager.currentIndex() != current:
+                self._question_pager.setCurrentIndex(current)
+            self._question_pager.setEnabled(total > 1)
+            self._question_pager.blockSignals(False)
+
+    def _scroll_to_question(self, question_idx: Optional[int], animate: bool) -> None:
+        if self._scroll_area is None or self._content_layout is None or self._content_container is None:
+            return
+        scroll_bar = self._scroll_area.verticalScrollBar()
+        if question_idx is None or not (0 <= question_idx < len(self._question_cards)):
+            scroll_bar.setValue(0)
+            return
+        card = self._question_cards[question_idx]
+        target_value = max(0, min(card.y() - 12, scroll_bar.maximum()))
+        if not animate:
+            self._stop_scroll_animation()
+            scroll_bar.setValue(target_value)
+            return
+        self._animate_scroll_to(target_value)
+
+    def _animate_scroll_to(self, target_value: int) -> None:
+        if self._scroll_area is None:
+            return
+        scroll_bar = self._scroll_area.verticalScrollBar()
+        start_value = scroll_bar.value()
+        if abs(target_value - start_value) <= 1:
+            scroll_bar.setValue(target_value)
+            return
+
+        self._stop_scroll_animation()
+        curve = QEasingCurve(QEasingCurve.Type.BezierSpline)
+        curve.addCubicBezierSegment(QPointF(0.215, 0.61), QPointF(0.355, 1.0), QPointF(1.0, 1.0))
+
+        self._scroll_animation = QPropertyAnimation(scroll_bar, b"value", self)
+        self._scroll_animation.setStartValue(start_value)
+        self._scroll_animation.setEndValue(target_value)
+        self._scroll_animation.setDuration(self._resolve_scroll_duration(start_value, target_value))
+        self._scroll_animation.setEasingCurve(curve)
+        self._is_animating_scroll = True
+        self._scroll_animation.finished.connect(self._on_scroll_animation_finished)
+        self._scroll_animation.start()
+
+    @staticmethod
+    def _resolve_scroll_duration(start_value: int, target_value: int) -> int:
+        distance = abs(int(target_value) - int(start_value))
+        return max(160, min(420, 160 + int(distance * 0.11)))
+
+    def _stop_scroll_animation(self) -> None:
+        if self._scroll_animation is None:
+            return
+        try:
+            self._scroll_animation.stop()
+        except Exception:
+            pass
+        self._scroll_animation.deleteLater()
+        self._scroll_animation = None
+        self._is_animating_scroll = False
+
+    def _on_scroll_animation_finished(self) -> None:
+        self._is_animating_scroll = False
+        if self._scroll_animation is not None:
+            self._scroll_animation.deleteLater()
+            self._scroll_animation = None
+        self._sync_current_question_from_scroll()
+
+    def _on_scroll_value_changed(self, _value: int) -> None:
+        if self._is_animating_scroll:
+            return
+        self._sync_current_question_from_scroll()
+
+    def _sync_current_question_from_scroll(self) -> None:
+        if self._is_animating_scroll or self._scroll_area is None or not self._question_cards:
+            return
+        scroll_bar = self._scroll_area.verticalScrollBar()
+        if scroll_bar.value() >= max(0, scroll_bar.maximum() - 2):
+            current_idx = len(self._question_cards) - 1
+            if current_idx == self._current_question_idx:
+                return
+            self._current_question_idx = current_idx
+            self._refresh_navigation_state(len(self._question_cards))
+            return
+        viewport_height = max(0, self._scroll_area.viewport().height())
+        current_value = scroll_bar.value() + max(24, viewport_height // 2)
+        current_idx = 0
+        for idx, card in enumerate(self._question_cards):
+            if card.y() <= current_value:
+                current_idx = idx
+            else:
+                break
+        if current_idx == self._current_question_idx:
+            return
+        self._current_question_idx = current_idx
+        self._refresh_navigation_state(len(self._question_cards))
+
     # ------------------------------------------------------------------ #
     #  题目配置卡片                                                        #
     # ------------------------------------------------------------------ #
 
-    def _build_entry_card(self, idx: int, entry: QuestionEntry, container: QWidget, inner: QVBoxLayout) -> None:
+    def _build_entry_card(self, idx: int, entry: QuestionEntry, container: QWidget, inner: QVBoxLayout) -> CardWidget:
         """构建单个题目的配置卡片。"""
         # 获取题目信息
         qnum = ""
@@ -360,6 +666,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self._build_attached_select_section(idx, entry, card, card_layout)
 
         inner.addWidget(card)
+        return card
 
     def _build_attached_select_section(self, idx: int, entry: QuestionEntry, card: CardWidget, card_layout: QVBoxLayout) -> None:
         raw_configs = getattr(entry, "attached_option_selects", None) or []
@@ -493,6 +800,10 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
     def reject(self) -> None:
         self._restore_entries()
         super().reject()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._update_navigation_pager_geometry()
 
     # ------------------------------------------------------------------ #
     #  结果获取接口                                                        #
