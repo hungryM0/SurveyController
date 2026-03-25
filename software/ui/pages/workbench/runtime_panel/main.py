@@ -69,7 +69,7 @@ class RuntimePage(ScrollArea):
             headless_mode=self.headless_card.switchButton.isChecked(),
             timed_mode_enabled=self.timed_card.switchButton.isChecked(),
             proxy_source=self._get_selected_proxy_source(),
-            answer_duration=self.answer_card.getRange(),
+            answer_duration=self._card_value_as_range(self.answer_card),
         )
 
     def _build_ui(self):
@@ -249,8 +249,7 @@ class RuntimePage(ScrollArea):
 
     def _current_proxy_required_minute(self) -> int:
         try:
-            _, answer_max = self.answer_card.getRange()
-            return int(get_proxy_minute_by_answer_seconds(answer_max))
+            return int(get_proxy_minute_by_answer_seconds(self.answer_card.getValue()))
         except Exception as exc:
             log_suppressed_exception("_current_proxy_required_minute", exc, level=logging.WARNING)
             return 1
@@ -260,8 +259,7 @@ class RuntimePage(ScrollArea):
         try:
             from software.app.config import PROXY_TTL_GRACE_SECONDS
 
-            _, answer_max = self.answer_card.getRange()
-            raw_answer_seconds = max(0, int(answer_max))
+            raw_answer_seconds = max(0, int(self.answer_card.getValue()))
             # get_proxy_minute_by_answer_seconds() 内部会自动加缓冲秒，这里先减掉，
             # 等价于“按用户输入时长本身判断”，避免 50 秒被提示为 3 分钟。
             normalized_seconds = max(0, raw_answer_seconds - int(PROXY_TTL_GRACE_SECONDS))
@@ -448,7 +446,7 @@ class RuntimePage(ScrollArea):
 
     def _on_answer_duration_changed(self, _value: int):
         self._evaluate_benefit_proxy_compatibility(show_tip=True)
-        self.controller.set_runtime_ui_state(answer_duration=self.answer_card.getRange())
+        self.controller.set_runtime_ui_state(answer_duration=self._card_value_as_range(self.answer_card))
 
     def _sync_random_ua(self, enabled: bool):
         try:
@@ -494,10 +492,8 @@ class RuntimePage(ScrollArea):
         cfg.target = max(1, self.target_card.spinBox.value())
         cfg.threads = max(1, self.thread_card.spinBox.value())
         cfg.browser_preference = []  # 固定使用默认顺序：Edge → Chrome
-        interval_min, interval_max = self.interval_card.getRange()
-        cfg.submit_interval = (interval_min, interval_max)
-        answer_min, answer_max = self.answer_card.getRange()
-        cfg.answer_duration = (answer_min, answer_max)
+        cfg.submit_interval = self._card_value_as_range(self.interval_card)
+        cfg.answer_duration = self._card_value_as_range(self.answer_card)
         cfg.timed_mode_enabled = self.timed_card.switchButton.isChecked()
         cfg.random_ip_enabled = self.random_ip_card.switchButton.isChecked()
         cfg.random_ua_enabled = self.random_ua_card.switchButton.isChecked()
@@ -525,13 +521,11 @@ class RuntimePage(ScrollArea):
         self.target_card.spinBox.setValue(max(1, cfg.target))
         self.thread_card.spinBox.setValue(max(1, cfg.threads))
 
-        interval_min = max(0, cfg.submit_interval[0])
-        interval_max = max(interval_min, cfg.submit_interval[1])
-        self.interval_card.setRange(interval_min, interval_max)
+        interval_value = self._range_start_value(cfg.submit_interval)
+        self.interval_card.setValue(interval_value)
 
-        answer_min = max(0, cfg.answer_duration[0])
-        answer_max = max(answer_min, cfg.answer_duration[1])
-        self.answer_card.setRange(answer_min, answer_max)
+        answer_value = self._range_start_value(cfg.answer_duration)
+        self.answer_card.setValue(answer_value)
 
         self.timed_card.switchButton.setChecked(cfg.timed_mode_enabled)
         self._sync_timed_mode(cfg.timed_mode_enabled)
@@ -631,13 +625,11 @@ class RuntimePage(ScrollArea):
 
         answer_duration = state.get("answer_duration")
         if isinstance(answer_duration, (list, tuple)) and len(answer_duration) >= 2:
-            current_range = tuple(int(v) for v in self.answer_card.getRange())
-            desired_range = (max(0, int(answer_duration[0])), max(0, int(answer_duration[1])))
-            if desired_range[1] < desired_range[0]:
-                desired_range = (desired_range[0], desired_range[0])
-            if current_range != desired_range:
+            current_value = int(self.answer_card.getValue())
+            desired_value = self._range_start_value(answer_duration)
+            if current_value != desired_value:
                 self.answer_card.blockSignals(True)
-                self.answer_card.setRange(*desired_range)
+                self.answer_card.setValue(desired_value)
                 self.answer_card.blockSignals(False)
 
         proxy_source = state.get("proxy_source")
@@ -654,6 +646,23 @@ class RuntimePage(ScrollArea):
             self.random_ip_card.setLoading(bool(loading), str(message or ""))
         except Exception as exc:
             log_suppressed_exception("_apply_random_ip_loading", exc, level=logging.WARNING)
+
+    @staticmethod
+    def _card_value_as_range(card: TimeRangeSettingCard) -> tuple[int, int]:
+        value = max(0, int(card.getValue()))
+        return value, value
+
+    @staticmethod
+    def _range_start_value(raw_range) -> int:
+        if isinstance(raw_range, (list, tuple)) and raw_range:
+            try:
+                return max(0, int(raw_range[0]))
+            except Exception:
+                return 0
+        try:
+            return max(0, int(raw_range))
+        except Exception:
+            return 0
 
 
 

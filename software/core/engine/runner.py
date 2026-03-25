@@ -384,14 +384,10 @@ def run(
     window_y_pos: int,
     stop_signal: threading.Event,
     gui_instance: Any = None,
-    ctx: Optional[TaskContext] = None,
+    *,
+    ctx: TaskContext,
 ):
     """引擎主循环 - 创建浏览器、填写问卷、处理结果。"""
-    # 如果没传 ctx，从 gui_instance 获取
-    if ctx is None and gui_instance and hasattr(gui_instance, 'task_ctx'):
-        ctx = gui_instance.task_ctx
-    if ctx is None:
-        raise ValueError("run() 必须传入 TaskContext，全局 state 兼容层已移除")
     thread_name = threading.current_thread().name or "Worker-?"
     try:
         ctx.update_thread_status(thread_name, "线程启动", running=True)

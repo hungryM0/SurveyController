@@ -25,7 +25,7 @@ from qfluentwidgets import (
 
 from software.ui.pages.workbench.dashboard import DashboardPage
 from software.ui.pages.workbench.runtime_panel import RuntimePage
-from software.ui.pages.workbench.question_editor import QuestionPage
+from software.ui.pages.workbench.question_editor.page import QuestionPage
 from software.ui.pages.workbench.answer_rules import AnswerRulesPage
 
 from software.ui.dialogs.contact import ContactDialog

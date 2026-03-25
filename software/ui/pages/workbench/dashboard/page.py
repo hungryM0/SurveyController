@@ -42,12 +42,13 @@ from software.ui.pages.workbench.dashboard.parts.clipboard import DashboardClipb
 from software.ui.pages.workbench.dashboard.parts.entries import DashboardEntriesMixin
 from software.ui.pages.workbench.dashboard.parts.progress import DashboardProgressMixin
 from software.ui.pages.workbench.dashboard.parts.random_ip import DashboardRandomIPMixin
-from software.ui.widgets import ConfigDrawer
+from software.ui.helpers.qfluent_compat import install_tooltip_filter
+from software.ui.widgets.config_drawer import ConfigDrawer
 from software.ui.widgets.full_width_infobar import FullWidthInfoBar
 from software.ui.widgets.no_wheel import NoWheelSpinBox
 from software.ui.controller import RunController
 from software.ui.pages.workbench.answer_rules import AnswerRulesPage
-from software.ui.pages.workbench.question_editor import QuestionPage
+from software.ui.pages.workbench.question_editor.page import QuestionPage
 from software.ui.pages.workbench.runtime_panel import RuntimePage
 from software.providers.common import (
     detect_survey_provider,
@@ -274,6 +275,7 @@ class DashboardPage(
         ip_row.addWidget(self.random_ip_hint)
         ip_row.addSpacing(4)
         self.card_btn = PushButton("申请额度", self, FluentIcon.FINGERPRINT)
+        install_tooltip_filter(self.card_btn)
         ip_row.addWidget(self.card_btn)
         ip_row.addStretch(1)
         exec_layout.addLayout(ip_row)
@@ -524,7 +526,7 @@ class DashboardPage(
             self._toast("请粘贴问卷链接", "warning")
             return
         # 第一层检测：是否为受支持的问卷平台
-        if not self._is_wjx_domain(url):
+        if not is_supported_survey_url(url):
             log_action(
                 "UI",
                 "parse_survey",
@@ -537,7 +539,8 @@ class DashboardPage(
             self._toast("仅支持问卷星与腾讯问卷链接", "error")
             return
         # 第二层检测：是否为具体的问卷链接（排除问卷星投票/考试等）
-        if not self._is_survey_domain(url):
+        provider = detect_survey_provider(url)
+        if not (provider == "qq" or is_wjx_survey_url(url)):
             log_action(
                 "UI",
                 "parse_survey",
@@ -619,18 +622,6 @@ class DashboardPage(
             # 显示解析失败消息
             self._toast(f"解析失败：{text or '请确认链接有效且网络正常'}", "error", duration=3000)
         self._open_wizard_after_parse = False
-
-    @staticmethod
-    def _is_wjx_domain(url: str) -> bool:
-        """兼容旧命名：当前表示受支持的平台链接。"""
-        return is_supported_survey_url(url)
-
-    @staticmethod
-    def _is_survey_domain(url: str) -> bool:
-        provider = detect_survey_provider(url)
-        if provider == "qq":
-            return True
-        return is_wjx_survey_url(url)
 
     def _on_show_config_list(self):
         try:

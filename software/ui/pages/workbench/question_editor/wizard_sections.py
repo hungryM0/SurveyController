@@ -12,6 +12,7 @@ from software.ui.widgets.no_wheel import NoWheelSlider
 from software.core.questions.config import QuestionEntry
 from software.app.config import DEFAULT_FILL_TEXT
 from software.ui.helpers.ai_fill import ensure_ai_ready
+from software.ui.helpers.qfluent_compat import install_tooltip_filter, install_tooltip_filters
 
 from .utils import (
     _shorten_text,
@@ -136,6 +137,7 @@ class WizardSectionsMixin:
         percentages = self._compute_ratio_percentages([slider.value() for slider in sliders])
         label.setText(self._build_ratio_preview_text(option_names, percentages, prefix))
         label.setToolTip("这里显示的是目标占比，实际作答会受信效度和一致性约束影响而小幅波动。")
+        install_tooltip_filter(label)
 
     @staticmethod
     def _create_integer_range_edit(parent: QWidget, initial_value: Optional[int], placeholder: str) -> LineEdit:
@@ -284,6 +286,7 @@ class WizardSectionsMixin:
 
             ai_cb = CheckBox("启用 AI", card)
             ai_cb.setToolTip("运行时每次填空都会调用 AI")
+            install_tooltip_filters((random_name_cb, random_mobile_cb, random_integer_cb, ai_cb))
             ai_cb.setChecked(bool(getattr(entry, "ai_enabled", False)))
             ai_cb.toggled.connect(lambda checked, i=idx: self._on_entry_ai_toggled(i, checked))
             btn_row.addWidget(ai_cb)
@@ -494,6 +497,7 @@ class WizardSectionsMixin:
             # 每个填空项的AI复选框
             ai_cb = CheckBox("启用AI", card)
             ai_cb.setToolTip("运行时每次填空都会调用 AI")
+            install_tooltip_filter(ai_cb)
             ai_cb.setChecked(saved_ai_flags[blank_idx] if blank_idx < len(saved_ai_flags) else False)
             blank_row.addWidget(ai_cb)
             blank_ai_checkboxes.append(ai_cb)

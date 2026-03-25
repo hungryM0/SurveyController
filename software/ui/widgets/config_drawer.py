@@ -23,6 +23,7 @@ from qfluentwidgets import (
 )
 
 from software.app.runtime_paths import get_runtime_directory
+from software.ui.helpers.qfluent_compat import install_tooltip_filter
 
 
 class _OverlayWidget(QWidget):
@@ -72,6 +73,7 @@ class ConfigDrawer(QWidget):
         header.addStretch(1)
         self.close_btn = TransparentToolButton(FluentIcon.CLOSE, self.card)
         self.close_btn.setToolTip("关闭")
+        install_tooltip_filter(self.close_btn)
         self.close_btn.setFixedSize(28, 28)
         header.addWidget(self.close_btn)
         card_layout.addLayout(header)

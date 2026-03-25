@@ -20,11 +20,6 @@ if TYPE_CHECKING:
     from software.io.config import RuntimeConfig
 
 
-def _is_wjx_domain(url_value: str) -> bool:
-    """兼容旧命名：当前表示“是否为受支持的问卷链接”。"""
-    return is_supported_survey_url(url_value)
-
-
 class RunControllerParsingMixin:
     if TYPE_CHECKING:
         surveyParsed: Any
@@ -41,7 +36,7 @@ class RunControllerParsingMixin:
             self.surveyParseFailed.emit("请填写问卷链接")
             return
         normalized_url = str(url or "").strip()
-        if not _is_wjx_domain(normalized_url):
+        if not is_supported_survey_url(normalized_url):
             logging.warning("收到不支持的问卷链接：%r", normalized_url)
             self.surveyParseFailed.emit("仅支持问卷星与腾讯问卷链接")
             return

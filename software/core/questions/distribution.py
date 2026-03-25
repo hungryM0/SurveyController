@@ -45,10 +45,8 @@ def _resolve_runtime_counts(
 
 
 def _resolve_correction_params(
-    ctx: Optional[Any],
     psycho_plan: Optional[Any],
 ) -> Tuple[int, float, float, float, float]:
-    del ctx  # 兼容旧接口：优先级开关已废弃，不再参与运行时决策
     profile = _CORRECTION_PROFILE_DEFAULT
 
     if psycho_plan is not None:
@@ -87,7 +85,7 @@ def resolve_distribution_probabilities(
     if total <= 0:
         return target
 
-    warmup_samples, gain, min_factor, max_factor, gap_limit = _resolve_correction_params(ctx, psycho_plan)
+    warmup_samples, gain, min_factor, max_factor, gap_limit = _resolve_correction_params(psycho_plan)
     sample_factor = min(1.0, float(total) / float(max(1, warmup_samples)))
     if sample_factor <= 0.0:
         return target

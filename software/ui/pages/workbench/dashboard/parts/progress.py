@@ -17,6 +17,7 @@ from qfluentwidgets import (
     StrongBodyLabel,
 )
 from software.logging.action_logger import bind_logged_action, log_action
+from software.ui.helpers.qfluent_compat import install_tooltip_filter
 
 if TYPE_CHECKING:
     from software.ui.controller import RunController
@@ -233,6 +234,7 @@ class DashboardProgressMixin:
         self.stop_btn = PushButton("停止", self)
         self.stop_btn.setEnabled(False)
         self.start_btn.setToolTip("请先配置题目（至少 1 题）")
+        install_tooltip_filter(self.start_btn)
 
         top_row.addWidget(self.status_label)
         top_row.addWidget(self.progress_bar, 1)

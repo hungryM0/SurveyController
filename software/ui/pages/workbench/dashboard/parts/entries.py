@@ -9,7 +9,8 @@ from qfluentwidgets import MessageBox
 
 from software.core.questions.config import QuestionEntry
 from software.core.questions.utils import describe_random_int_range, parse_random_int_token
-from software.ui.pages.workbench.question_editor import QuestionWizardDialog, _get_entry_type_label
+from software.ui.pages.workbench.question_editor.constants import _get_entry_type_label
+from software.ui.pages.workbench.question_editor.wizard_dialog import QuestionWizardDialog
 from software.ui.pages.workbench.question_editor.psycho_config import PSYCHO_SUPPORTED_TYPES
 
 _TEXT_RANDOM_NAME_TOKEN = "__RANDOM_NAME__"

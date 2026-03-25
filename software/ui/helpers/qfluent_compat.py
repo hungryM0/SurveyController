@@ -1,7 +1,11 @@
-"""QFluentWidgets 兼容补丁。"""
+"""QFluentWidgets 兼容补丁与通用适配工具。"""
 from __future__ import annotations
 
+from typing import Iterable, Optional
+
 from PySide6.QtCore import QAbstractAnimation, QEvent, QParallelAnimationGroup, QPropertyAnimation
+from PySide6.QtWidgets import QWidget
+from qfluentwidgets import ToolTipFilter, ToolTipPosition
 from shiboken6 import isValid
 
 
@@ -217,7 +221,78 @@ def _install_infobar_manager_guards(info_bar_manager_cls) -> None:
         manager_cls._surveycontroller_remove_guard_installed = True
 
 
-install_qfluentwidgets_animation_guards()
+class CompatToolTipFilter(ToolTipFilter):
+    """兼容禁用控件的 Fluent tooltip 过滤器。"""
+
+    def __init__(
+        self,
+        parent: QWidget,
+        showDelay: int = 300,
+        position: ToolTipPosition = ToolTipPosition.TOP,
+        showOnDisabled: bool = True,
+    ):
+        super().__init__(parent, showDelay=showDelay, position=position)
+        self._show_on_disabled = bool(showOnDisabled)
+
+    def _canShowToolTip(self) -> bool:
+        parent = self.parent()
+        if not isinstance(parent, QWidget):
+            return False
+        if not parent.isWidgetType() or not parent.toolTip():
+            return False
+        return self._show_on_disabled or parent.isEnabled()
 
 
-__all__ = ["install_qfluentwidgets_animation_guards"]
+def install_tooltip_filter(
+    widget: Optional[QWidget],
+    *,
+    position: ToolTipPosition = ToolTipPosition.TOP,
+    show_delay: int = 300,
+    show_on_disabled: bool = True,
+) -> Optional[CompatToolTipFilter]:
+    """给控件安装统一的 Fluent tooltip 过滤器。"""
+    if widget is None:
+        return None
+
+    current = next(
+        (child for child in widget.children() if isinstance(child, CompatToolTipFilter)),
+        None,
+    )
+    if current is not None:
+        current.position = position
+        current.setToolTipDelay(int(show_delay))
+        current._show_on_disabled = bool(show_on_disabled)
+        return current
+
+    tooltip_filter = CompatToolTipFilter(
+        widget,
+        showDelay=int(show_delay),
+        position=position,
+        showOnDisabled=show_on_disabled,
+    )
+    widget.installEventFilter(tooltip_filter)
+    return tooltip_filter
+
+
+def install_tooltip_filters(
+    widgets: Iterable[Optional[QWidget]],
+    *,
+    position: ToolTipPosition = ToolTipPosition.TOP,
+    show_delay: int = 300,
+    show_on_disabled: bool = True,
+) -> None:
+    """批量安装统一的 Fluent tooltip 过滤器。"""
+    for widget in widgets:
+        install_tooltip_filter(
+            widget,
+            position=position,
+            show_delay=show_delay,
+            show_on_disabled=show_on_disabled,
+        )
+
+__all__ = [
+    "CompatToolTipFilter",
+    "install_qfluentwidgets_animation_guards",
+    "install_tooltip_filter",
+    "install_tooltip_filters",
+]

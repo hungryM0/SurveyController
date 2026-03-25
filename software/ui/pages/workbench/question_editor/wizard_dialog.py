@@ -36,6 +36,7 @@ from qfluentwidgets.components.widgets.tool_tip import ItemViewToolTipDelegate, 
 from qfluentwidgets.components.widgets.pips_pager import PipsScrollButtonDisplayMode
 
 from software.core.questions.utils import serialize_random_int_range, try_parse_random_int_range
+from software.ui.helpers.qfluent_compat import install_tooltip_filters
 from software.ui.widgets.no_wheel import NoWheelSlider
 from software.core.questions.config import QuestionEntry
 from software.app.config import DEFAULT_FILL_TEXT
@@ -660,6 +661,7 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self._question_pager.setNextButtonDisplayMode(display_mode)
         self._question_pager.preButton.setToolTip("上一题")
         self._question_pager.nextButton.setToolTip("下一题")
+        install_tooltip_filters((self._question_pager.preButton, self._question_pager.nextButton))
 
     def _build_navigation_tooltips(self) -> List[str]:
         labels: List[str] = []

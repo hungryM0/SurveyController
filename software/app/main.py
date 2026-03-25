@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication
 from software.app.config import LOG_DIR_NAME
 from software.app.runtime_paths import get_runtime_directory
 from software.logging.log_utils import setup_logging
-from software.ui.helpers import install_qfluentwidgets_animation_guards
+from software.ui.helpers.qfluent_compat import install_qfluentwidgets_animation_guards
 
 
 _FAULT_HANDLER_STREAM = None

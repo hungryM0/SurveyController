@@ -1,25 +1,3 @@
-"""应用配置与版本信息。"""
-from software.app.config import (
-    DEFAULT_HTTP_HEADERS,
-    USER_AGENT_PRESETS,
-    BROWSER_PREFERENCE,
-    QUESTION_TYPE_LABELS,
-    DEFAULT_FILL_TEXT,
-)
-from software.app.version import __VERSION__, GITHUB_OWNER, GITHUB_REPO
-from software.app.runtime_paths import get_bundle_resource_root, get_resource_path
-
-__all__ = [
-    "DEFAULT_HTTP_HEADERS",
-    "USER_AGENT_PRESETS",
-    "BROWSER_PREFERENCE",
-    "QUESTION_TYPE_LABELS",
-    "DEFAULT_FILL_TEXT",
-    "__VERSION__",
-    "GITHUB_OWNER",
-    "GITHUB_REPO",
-    "get_bundle_resource_root",
-    "get_resource_path",
-]
+"""应用包。"""
 
 

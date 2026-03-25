@@ -476,26 +476,21 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
         return getattr(gui, "_download_cancelled", False)
 
     def update_progress(downloaded, total, speed=0):
-        # 优先使用GUI的进度信号
-        if hasattr(gui, "_emit_download_progress"):
-            try:
-                gui._emit_download_progress(downloaded, total, speed)
-            except Exception:
-                logging.info("GUI进度回调失败", exc_info=True)
+        try:
+            gui._emit_download_progress(downloaded, total, speed)
+        except Exception:
+            logging.info("GUI进度回调失败", exc_info=True)
         if on_progress:
             try:
                 on_progress(downloaded, total, speed)
             except Exception:
                 logging.info("更新进度回调失败", exc_info=True)
 
-    # 立即显示转圈动画（在开始下载前）
-    if hasattr(gui, "downloadStarted"):
-        gui.downloadStarted.emit()
+    gui.downloadStarted.emit()
 
     def on_download_source_switch(new_source_key):
         """下载源切换时的回调"""
-        if hasattr(gui, "downloadSourceSwitched"):
-            gui.downloadSourceSwitched.emit(new_source_key)
+        gui.downloadSourceSwitched.emit(new_source_key)
 
     def do_update():
         try:
@@ -513,23 +508,14 @@ def perform_update(gui, *, on_progress: Optional[Callable[[int, int, float], Non
             if downloaded_file:
                 if on_progress:
                     on_progress(1, 1, 0)
-                # 使用信号通知主线程显示弹窗
-                if hasattr(gui, "downloadFinished"):
-                    gui.downloadFinished.emit(downloaded_file)
-                else:
-                    # 兼容旧版本
-                    logging.info(f"下载完成: {downloaded_file}")
+                gui.downloadFinished.emit(downloaded_file)
             else:
                 if not gui._download_cancelled:
-                    if hasattr(gui, "downloadFailed"):
-                        gui.downloadFailed.emit("下载文件失败，请稍后重试")
-                    else:
-                        logging.error("下载文件失败")
+                    gui.downloadFailed.emit("下载文件失败，请稍后重试")
         except Exception as exc:
             if not gui._download_cancelled:
                 logging.error(f"更新过程中出错: {exc}")
-                if hasattr(gui, "downloadFailed"):
-                    gui.downloadFailed.emit(f"更新过程出错: {str(exc)}")
+                gui.downloadFailed.emit(f"更新过程出错: {str(exc)}")
 
     Thread(target=do_update, daemon=True).start()
 

@@ -22,6 +22,7 @@ from qfluentwidgets import (
     SwitchButton,
     TransparentToolButton,
 )
+from software.ui.helpers.qfluent_compat import install_tooltip_filter
 from software.ui.helpers.proxy_access import (
     apply_custom_proxy_api,
     apply_proxy_area_code,
@@ -794,6 +795,7 @@ class TimeRangeSettingCard(SettingCard):
         self.inputEdit.setFixedHeight(36)
         self.inputEdit.setText("0")
         self.inputEdit.setToolTip(f"允许范围：0-{max_seconds} 秒")
+        install_tooltip_filter(self.inputEdit)
         self.inputEdit.textChanged.connect(self._on_text_changed)
         self.inputEdit.editingFinished.connect(self._normalize_text)
 
@@ -845,15 +847,6 @@ class TimeRangeSettingCard(SettingCard):
             self.inputEdit.blockSignals(False)
         if value != previous:
             self.valueChanged.emit(value)
-
-    def getRange(self) -> tuple:
-        """兼容调用方：返回 (秒数, 秒数)"""
-        sec = self.getValue()
-        return sec, sec
-
-    def setRange(self, min_sec: int, max_sec: int):
-        """兼容调用方：仅使用 min_sec 作为固定秒数"""
-        self.setValue(min_sec)
 
 
 

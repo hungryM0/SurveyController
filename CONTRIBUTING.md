@@ -67,7 +67,7 @@ software/
 │   │   └── qfluent_compat.py # QFluentWidgets 动画兼容补丁
 │   ├── pages/
 │   │   └── workbench/     # dashboard/question_editor（含单栏配置向导）/runtime_panel/log_panel
-│   └── widgets/           # 通用组件（contact_form 已拆成包）
+│   └── widgets/           # 通用组件（contact_form 已拆成包；旧 time_range_slider 已移除）
 └── update/                # 更新检查与升级
 
 tencent/

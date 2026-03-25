@@ -39,6 +39,7 @@ from qfluentwidgets import (
 )
 
 from software.ui.helpers.contact_api import format_quota_value, get_session_snapshot, post as http_post
+from software.ui.helpers.qfluent_compat import install_tooltip_filters
 from software.ui.widgets.status_polling_mixin import StatusPollingMixin
 from software.ui.helpers.image_attachments import ImageAttachmentManager
 from software.app.config import CONTACT_API_URL, EMAIL_VERIFY_ENDPOINT
@@ -398,6 +399,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         self.donated_cb.installEventFilter(self)
         self.donated_cb.toggled.connect(lambda _: self._update_send_button_state())
         self.open_donate_btn.clicked.connect(self._open_donate_page)
+        install_tooltip_filters((self.open_donate_btn, self.donated_cb, self.send_btn))
         QTimer.singleShot(0, self._on_type_changed)
         if default_type:
             idx = self.type_combo.findText(default_type)

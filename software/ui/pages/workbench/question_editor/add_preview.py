@@ -9,6 +9,7 @@ from qfluentwidgets import SubtitleLabel, BodyLabel, CardWidget, PushButton, Lin
 from software.ui.widgets.no_wheel import NoWheelSlider
 from software.app.config import DEFAULT_FILL_TEXT
 from software.ui.helpers.ai_fill import ensure_ai_ready
+from software.ui.helpers.qfluent_compat import install_tooltip_filter
 from software.logging.log_utils import log_suppressed_exception
 
 from .constants import _get_type_label
@@ -205,6 +206,7 @@ class AddPreviewMixin:
         if q_type == "text":
             self.ai_toggle = CheckBox("启用 AI", card)
             self.ai_toggle.setToolTip("运行时每次填空都会调用 AI")
+            install_tooltip_filter(self.ai_toggle)
             self.ai_toggle.setChecked(bool(self._ai_enabled))
             self.ai_toggle.toggled.connect(self._on_ai_toggled)
             btn_row.addWidget(self.ai_toggle)
