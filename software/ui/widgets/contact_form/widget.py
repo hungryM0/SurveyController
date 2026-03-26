@@ -215,9 +215,9 @@ class ContactForm(StatusPollingMixin, QWidget):
 
         # 4. 额度申请参数
         self.amount_row = QHBoxLayout()
-        self.amount_label = BodyLabel("赞助金额：￥", self)
+        self.amount_label = BodyLabel("支付金额：￥", self)
         self.amount_edit = EditableComboBox(self)
-        self.amount_edit.setPlaceholderText("😔")
+        self.amount_edit.setPlaceholderText("必填")
         self.amount_edit.setMaximumWidth(100)
         validator = QDoubleValidator(0.01, 9999.99, 2, self)
         validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -347,12 +347,12 @@ class ContactForm(StatusPollingMixin, QWidget):
         wrapper.addLayout(msg_layout, 1) # 给消息框最大的 stretch
         wrapper.addLayout(attachments_box)
 
-        # 捐助复选框行
+        # 支付确认行
         donated_row = QHBoxLayout()
         donated_row.setSpacing(8)
-        self.donated_cb = CheckBox("我已完成捐助，且确认随机ip可用", self)
-        self.open_donate_btn = PushButton(FluentIcon.HEART, "去捐助", self)
-        self.open_donate_btn.setToolTip("打开捐助页面")
+        self.donated_cb = CheckBox("我已完成支付，且确认随机ip可用", self)
+        self.open_donate_btn = PushButton(FluentIcon.HEART, "去支付", self)
+        self.open_donate_btn.setToolTip("打开支付页面")
         donated_row.addStretch(1)
         donated_row.addWidget(self.open_donate_btn)
         donated_row.addWidget(self.donated_cb)
@@ -525,13 +525,13 @@ class ContactForm(StatusPollingMixin, QWidget):
             return ""
         amount_text = (self.amount_edit.currentText() or "").strip()
         if not amount_text:
-            return "请先填写支持金额后，再勾选“我已完成捐助，且确认随机ip可用”。"
+            return "请先填写支付金额后，再勾选“我已完成支付，且确认随机ip可用”。"
         if self._random_ip_user_id > 0:
             return ""
         return "你还没有成功使用过随机IP，暂时不能勾选。请先启用并实际跑通一次随机IP，确认能正常用，再来申请。"
 
     def _sync_donation_check_state(self) -> None:
-        """当勾选条件失效时，自动撤销“已捐助”勾选。"""
+        """当勾选条件失效时，自动撤销“已支付”勾选。"""
         if not hasattr(self, "donated_cb"):
             return
         if self._get_donation_check_block_reason() and self.donated_cb.isChecked():
@@ -559,7 +559,7 @@ class ContactForm(StatusPollingMixin, QWidget):
             widget = widget.parentWidget()
         InfoBar.warning(
             "",
-            "暂时打不开捐助页，请从“更多 -> 捐助”进入",
+                    "暂时打不开支付页，请从“更多 -> 捐助”进入",
             parent=self,
             position=InfoBarPosition.TOP,
             duration=2500,
@@ -736,7 +736,7 @@ class ContactForm(StatusPollingMixin, QWidget):
             if block_reason:
                 self.send_btn.setToolTip(block_reason)
             else:
-                self.send_btn.setToolTip("请先勾选“我已完成捐助，且确认随机ip可用”后再发送申请")
+                self.send_btn.setToolTip("请先勾选“我已完成支付，且确认随机ip可用”后再发送申请")
         else:
             self.send_btn.setToolTip("")
 
@@ -869,7 +869,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         self._sync_amount_rule_warning()
 
     def _on_quantity_changed(self, text: str):
-        """申请额度变化时刷新赞助金额选项。"""
+        """申请额度变化时刷新支付金额选项。"""
         normalized_text = (text or "").strip()
         if not normalized_text:
             self._last_valid_quantity_text = ""
@@ -931,10 +931,6 @@ class ContactForm(StatusPollingMixin, QWidget):
         request_quota_text = ""
         request_urgency_text = ""
         if mtype == REQUEST_MESSAGE_TYPE:
-            if not self.donated_cb.isChecked():
-                InfoBar.warning("", "请先勾选“我已完成捐助”后再发送申请", parent=self, position=InfoBarPosition.TOP, duration=2000)
-                self._update_send_button_state()
-                return
             self._normalize_amount_if_needed()
             self._normalize_quantity_if_needed()
             amount_text = (self.amount_edit.currentText() or "").strip()
@@ -943,6 +939,13 @@ class ContactForm(StatusPollingMixin, QWidget):
             request_amount_text = amount_text
             request_quota_text = self._normalize_quantity_text(quantity_text)
             request_urgency_text = (self.urgency_combo.currentText() or "").strip()
+            if not amount_text:
+                InfoBar.warning("", "请输入支付金额", parent=self, position=InfoBarPosition.TOP, duration=2000)
+                return
+            if not self.donated_cb.isChecked():
+                InfoBar.warning("", "请先勾选“我已完成支付”后再发送申请", parent=self, position=InfoBarPosition.TOP, duration=2000)
+                self._update_send_button_state()
+                return
             if not quantity_text:
                 InfoBar.warning("", "请输入申请额度", parent=self, position=InfoBarPosition.TOP, duration=2000)
                 return
@@ -974,8 +977,8 @@ class ContactForm(StatusPollingMixin, QWidget):
                 return
 
         message = (self.message_edit.toPlainText() or "").strip()
-        if not message:
-            warn_text = "请填写补充说明" if mtype == REQUEST_MESSAGE_TYPE else "请输入消息内容"
+        if not message and mtype != REQUEST_MESSAGE_TYPE:
+            warn_text = "请输入消息内容"
             InfoBar.warning("", warn_text, parent=self, position=InfoBarPosition.TOP, duration=2000)
             return
 
@@ -1001,7 +1004,7 @@ class ContactForm(StatusPollingMixin, QWidget):
         if mtype == REQUEST_MESSAGE_TYPE:
             confirm_email_box = MessageBox(
                 "确认邮箱地址",
-                f"当前输入的邮箱地址是：{email}\n\n申请提交后，开发者会根据随机IP用户ID人工处理额度，请确认该邮箱可以正常接收回复。支持金额是可选信息，不填写也可以直接申请。",
+                f"当前输入的邮箱地址是：{email}\n\n请确认邮箱地址正确无误。开发者会在2小时内发放额度并通过邮件通知",
                 self.window() or self,
             )
             confirm_email_box.yesButton.setText("确认发送")
@@ -1024,14 +1027,14 @@ class ContactForm(StatusPollingMixin, QWidget):
         full_message = f"来源：SurveyController v{version_str}\n类型：{mtype}\n"
         if email:
             full_message += f"联系邮箱： {email}\n"
-        full_message += f"已捐助：{'是' if self.donated_cb.isChecked() else '否'}\n"
+        full_message += f"已支付：{'是' if self.donated_cb.isChecked() else '否'}\n"
         if self._random_ip_user_id > 0:
             full_message += f"随机IP用户ID：{self._random_ip_user_id}\n"
         if mtype == REQUEST_MESSAGE_TYPE:
-            full_message += f"支持金额：{'￥' + request_amount_text if request_amount_text else '未填写'}\n"
+            full_message += f"支付金额：￥{request_amount_text}\n"
             full_message += f"申请额度：{request_quota_text}\n"
             full_message += f"紧急程度：{request_urgency_text or '中'}\n"
-            full_message += f"补充说明：{message}"
+            full_message += f"补充说明：{message or '未填写'}"
         else:
             full_message += f"消息：{message}"
 

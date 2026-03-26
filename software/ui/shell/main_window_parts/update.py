@@ -45,10 +45,12 @@ class MainWindowUpdateMixin:
         if get_bool_from_qsettings(settings.value("auto_check_update"), True):
             from software.ui.workers.update_worker import UpdateCheckWorker
 
+            from typing import cast
+            from PySide6.QtCore import QObject
             self._show_update_checking_placeholder()
             self._stop_update_check_worker()
             worker = UpdateCheckWorker()
-            thread = QThread(self)
+            thread = QThread(cast(QObject, self))
             worker.moveToThread(thread)
             thread.started.connect(worker.run)
             worker.finished.connect(self._on_update_checked)
@@ -114,11 +116,16 @@ class MainWindowUpdateMixin:
         container = QWidget(title_bar)
         container.hide()
         host_layout = QHBoxLayout(container)
-        host_layout.setContentsMargins(8, 0, 0, 0)
+        host_layout.setContentsMargins(0, 0, 0, 0)
         host_layout.setSpacing(0)
-        host_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        # InfoBadge 自带的文字基线比标题标签略高一点，底对齐后视觉上才在一条线上。
+        host_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
 
         title_label = getattr(title_bar, "titleLabel", None)
+        if title_label is not None:
+            title_height = max(int(title_label.height() or 0), int(title_label.sizeHint().height() or 0))
+            if title_height > 0:
+                container.setFixedHeight(title_height)
         insert_index = layout.indexOf(title_label) + 1 if title_label is not None else -1
         if insert_index <= 0:
             insert_index = max(layout.count() - 1, 0)
@@ -279,8 +286,13 @@ class MainWindowUpdateMixin:
     def _show_preview_badge(self):
         """在标题栏显示预览版本徽章（黄色）"""
         if self._preview_badge:
+            if self._update_checking_spinner:
+                self._clear_update_checking_placeholder()
             return
         try:
+            # 预览徽章优先贴在标题后面，别让更新检测转圈把它顶到右边去。
+            if self._update_checking_spinner:
+                self._clear_update_checking_placeholder()
             # 在标题栏添加黄色徽章
             self._preview_badge = InfoBadge.custom(
                 "预览",

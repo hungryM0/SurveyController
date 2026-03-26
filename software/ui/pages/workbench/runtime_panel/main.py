@@ -123,7 +123,7 @@ class RuntimePage(ScrollArea):
         # ========== 时间控制组 ==========
         time_group = SettingCardGroup("时间控制", self.view)
         # 在标题后添加小字提示（保持原标题字号）
-        time_hint = BodyLabel("（其实问卷星官方并不会因为你提交过快就封你号）", time_group)
+        time_hint = BodyLabel("（其实官方并不会因为你提交过快就封你号）", time_group)
         time_hint.setStyleSheet("color: green; font-size: 12px;")
         # 创建水平布局放置标题和提示
         title_container = QWidget(time_group)
@@ -654,13 +654,16 @@ class RuntimePage(ScrollArea):
 
     @staticmethod
     def _range_start_value(raw_range) -> int:
-        if isinstance(raw_range, (list, tuple)) and raw_range:
-            try:
-                return max(0, int(raw_range[0]))
-            except Exception:
-                return 0
+        if isinstance(raw_range, (list, tuple)):
+            if raw_range:
+                try:
+                    return max(0, int(raw_range[0]))
+                except Exception:
+                    pass
+            return 0
         try:
-            return max(0, int(raw_range))
+            from typing import Any, cast
+            return max(0, int(cast(Any, raw_range)))
         except Exception:
             return 0
 
