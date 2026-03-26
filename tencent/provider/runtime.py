@@ -498,90 +498,6 @@ def _wait_dropdown_popup_index(driver: BrowserDriver, provider_question_id: str,
     return _resolve_dropdown_popup_index(driver, provider_question_id)
 
 
-def _select_dropdown_option_via_js(driver: BrowserDriver, provider_question_id: str, option_text: str) -> bool:
-    normalized_target = str(option_text or "").strip()
-    if not provider_question_id or not normalized_target:
-        return False
-    page = _page(driver)
-    try:
-        applied = bool(
-            page.evaluate(
-                """({ questionId, targetText }) => {
-                    const visible = (el) => {
-                        if (!el) return false;
-                        const style = window.getComputedStyle(el);
-                        if (!style) return false;
-                        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
-                        const rect = el.getBoundingClientRect();
-                        return rect.width > 0 && rect.height > 0;
-                    };
-                    const normalize = (text) => String(text || '').trim().replace(/\\s+/g, ' ');
-                    const popupScore = (popup, anchorRect) => {
-                        if (!popup || !anchorRect) return Number.POSITIVE_INFINITY;
-                        const rect = popup.getBoundingClientRect();
-                        const dx = Math.abs(rect.left - anchorRect.left);
-                        const dyTop = Math.abs(rect.top - anchorRect.bottom);
-                        const dyBottom = Math.abs(rect.bottom - anchorRect.top);
-                        return dx + Math.min(dyTop, dyBottom);
-                    };
-                    const pickPopup = (anchor) => {
-                        const anchorRect = anchor?.getBoundingClientRect?.() || null;
-                        const candidates = Array.from(document.querySelectorAll('.t-popup.t-select__dropdown')).filter((popup) => {
-                            if (!visible(popup)) return false;
-                            const refHidden = String(popup.getAttribute('data-popper-reference-hidden') || '').toLowerCase();
-                            return refHidden !== 'true';
-                        });
-                        if (!candidates.length) return null;
-                        if (!anchorRect) return candidates[candidates.length - 1];
-                        return candidates
-                            .map((popup) => ({ popup, score: popupScore(popup, anchorRect) }))
-                            .sort((a, b) => a.score - b.score)[0]?.popup || candidates[candidates.length - 1];
-                    };
-                    const setValue = (input, value) => {
-                        if (!input) return;
-                        try { input.focus(); } catch (e) {}
-                        try { input.value = value; } catch (e) {}
-                        try { input.setAttribute('value', value); } catch (e) {}
-                        ['input', 'change', 'keyup'].forEach((name) => {
-                            try { input.dispatchEvent(new Event(name, { bubbles: true })); } catch (e) {}
-                        });
-                    };
-                    const findMatch = (root) => {
-                        const base = root || document;
-                        const candidates = Array.from(base.querySelectorAll('.t-select-option, [role="listitem"]')).filter(visible);
-                        return candidates.find((el) => normalize(el.innerText || el.textContent) === targetText)
-                            || candidates.find((el) => normalize(el.innerText || el.textContent).includes(targetText));
-                    };
-                    const section = document.querySelector(`section.question[data-question-id="${questionId}"]`);
-                    const input = section?.querySelector('input.t-input__inner');
-                    if (!section || !input) return false;
-                    const popup = pickPopup(input);
-                    let match = findMatch(popup);
-                    const searchInput = popup?.querySelector('input.t-input__inner');
-                    if (match) {
-                        try { match.scrollIntoView({ block: 'nearest' }); } catch (e) {}
-                        try { match.click(); } catch (e) {}
-                        if (normalize(input.value) === targetText) return true;
-                    }
-                    if (searchInput) {
-                        setValue(searchInput, targetText);
-                        match = findMatch(popup);
-                    }
-                    if (!match) return false;
-                    try { match.scrollIntoView({ block: 'nearest' }); } catch (e) {}
-                    try { match.click(); } catch (e) {}
-                    return normalize(input.value) === targetText;
-                }""",
-                {"questionId": provider_question_id, "targetText": normalized_target},
-            )
-        )
-    except Exception:
-        applied = False
-    if applied:
-        return True
-    return _wait_dropdown_value(driver, provider_question_id, normalized_target, timeout_ms=1200)
-
-
 def _select_dropdown_option(driver: BrowserDriver, provider_question_id: str, option_text: str) -> bool:
     if not provider_question_id or not str(option_text or "").strip():
         return False
@@ -589,14 +505,14 @@ def _select_dropdown_option(driver: BrowserDriver, provider_question_id: str, op
     normalized_target = str(option_text or "").strip()
     popup_index = _wait_dropdown_popup_index(driver, provider_question_id, timeout_ms=2500)
     if popup_index < 0:
-        return _select_dropdown_option_via_js(driver, provider_question_id, normalized_target)
+        return False
     try:
         popup_locator = page.locator('.t-popup.t-select__dropdown').nth(popup_index)
         popup_locator.wait_for(state="visible", timeout=1800)
         candidates = popup_locator.locator('.t-select-option, [role="listitem"]')
         count = candidates.count()
     except Exception:
-        return _select_dropdown_option_via_js(driver, provider_question_id, normalized_target)
+        return False
     for index in range(count):
         try:
             candidate = candidates.nth(index)
@@ -611,14 +527,17 @@ def _select_dropdown_option(driver: BrowserDriver, provider_question_id: str, op
             candidate.scroll_into_view_if_needed(timeout=1500)
             candidate.click(timeout=1500)
         except Exception:
-            continue
+            try:
+                candidate.click(timeout=1500, force=True)
+            except Exception:
+                continue
         try:
             page.wait_for_timeout(150)
         except Exception:
             time.sleep(0.15)
         if _wait_dropdown_value(driver, provider_question_id, normalized_target, timeout_ms=1200):
             return True
-    return _select_dropdown_option_via_js(driver, provider_question_id, normalized_target)
+    return False
 
 
 def _click_matrix_cell(driver: BrowserDriver, provider_question_id: str, row_index: int, column_index: int) -> bool:
