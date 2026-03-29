@@ -115,6 +115,12 @@ def reorder(driver: BrowserDriver, current: int) -> None:
             break
     if not order_items:
         return
+    rank_item_texts: List[str] = []
+    for li in order_items:
+        try:
+            rank_item_texts.append(extract_text_from_element(li).strip())
+        except Exception:
+            rank_item_texts.append("")
     numeric_rank_mode = False
     try:
         numeric_inputs_probe = 0
@@ -312,6 +318,31 @@ def reorder(driver: BrowserDriver, current: int) -> None:
                 selectors.append(selector)
         return selectors
 
+    def _playwright_click_rank_target(option_idx: int, timeout_ms: int = 1200) -> bool:
+        page = getattr(driver, "page", None)
+        if not page:
+            return False
+        uid = rank_item_uids[option_idx] if option_idx < len(rank_item_uids) else ""
+        if uid:
+            try:
+                locator = page.locator(f"#div{current} li[data-wjx-rank-uid='{uid}']").first
+                if locator.count() > 0:
+                    locator.click(timeout=timeout_ms)
+                    return True
+            except Exception:
+                pass
+
+        item_text = rank_item_texts[option_idx] if option_idx < len(rank_item_texts) else ""
+        if item_text:
+            try:
+                locator = page.locator(f"#div{current} li", has_text=item_text).first
+                if locator.count() > 0:
+                    locator.click(timeout=timeout_ms)
+                    return True
+            except Exception:
+                pass
+        return False
+
     def _force_mark_rank_selected(li, rank: int) -> None:
         """强制通过 DOM 操作标记排序项为已选中"""
         if not li:
@@ -352,16 +383,9 @@ def reorder(driver: BrowserDriver, current: int) -> None:
             return True
 
         count_before = _count_selected()
-        uid = rank_item_uids[option_idx] if option_idx < len(rank_item_uids) else ""
-        selectors = []
-        if uid:
-            selectors.append(f"#div{current} li[data-wjx-rank-uid='{uid}']")
-        selectors.extend(_build_option_click_selectors(option_idx))
 
         for _ in range(4):
-            for selector in selectors:
-                if not _playwright_click_selector(selector, timeout_ms=1200):
-                    continue
+            if _playwright_click_rank_target(option_idx, timeout_ms=1200):
                 deadline = time.time() + 0.55
                 while time.time() < deadline:
                     li = _get_rank_item(option_idx)

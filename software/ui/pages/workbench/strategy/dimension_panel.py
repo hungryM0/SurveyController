@@ -3,14 +3,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from PySide6.QtCore import QPoint, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
-    Action,
     BodyLabel,
     CardWidget,
     ComboBox,
-    FluentIcon,
     HorizontalSeparator,
     InfoBar,
     InfoBarPosition,
@@ -18,7 +16,6 @@ from qfluentwidgets import (
     MessageBox,
     MessageBoxBase,
     PrimaryPushButton,
-    RoundMenu,
     SubtitleLabel,
     TitleLabel,
 )
@@ -100,7 +97,7 @@ class DimensionGroupingPanel(QWidget):
         content_layout.setSpacing(10)
         content_layout.addWidget(SubtitleLabel("维度分组", self.content_card))
         content_layout.addWidget(
-            BodyLabel("把题目拖到目标维度下完成分组，右键维度可重命名或删除。", self.content_card)
+            BodyLabel("把题目拖到目标维度下完成分组，点击维度右侧按钮可重命名或删除。", self.content_card)
         )
 
         add_row = QHBoxLayout()
@@ -166,8 +163,8 @@ class DimensionGroupingPanel(QWidget):
             section = DimensionSectionWidget(group_name, self.sections_container)
             section.set_rows(rows_by_group.get(group_name, []))
             section.entriesDropped.connect(self._on_entries_dropped)
-            section.groupContextMenuRequested.connect(self._show_group_context_menu)
             section.renameRequested.connect(self._on_rename_dimension)
+            section.deleteRequested.connect(self._on_delete_dimension)
             self.sections_layout.addWidget(section)
             self._section_widgets[group_name] = section
             if index < last_index:
@@ -265,21 +262,6 @@ class DimensionGroupingPanel(QWidget):
         self._refresh_sections()
         self.changed.emit()
         self._toast(f"已新增维度“{normalized}”", "success")
-
-    def _show_group_context_menu(self, group_name: str, global_pos: QPoint) -> None:
-        if group_name == DIMENSION_UNGROUPED:
-            return
-        menu = RoundMenu(parent=self.sections_container)
-
-        rename_action = Action(FluentIcon.EDIT, "重命名维度", parent=menu)
-        rename_action.triggered.connect(lambda checked=False, name=group_name: self._on_rename_dimension(name))
-        menu.addAction(rename_action)
-
-        delete_action = Action(FluentIcon.DELETE, "删除维度", parent=menu)
-        delete_action.triggered.connect(lambda checked=False, name=group_name: self._on_delete_dimension(name))
-        menu.addAction(delete_action)
-
-        menu.exec(global_pos)
 
     def _on_rename_dimension(self, group_name: Optional[str] = None) -> None:
         current_name = str(group_name or "").strip()

@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Dict, List, Sequence
 
-from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QMimeData, QSize, Qt, Signal
 from PySide6.QtGui import QDrag
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -49,6 +49,11 @@ class DimensionEntryTable(TableWidget):
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.empty_hint_label = CaptionLabel("将题目拖动到此处以划分维度", self.viewport())
+        self.empty_hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_hint_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.empty_hint_label.setStyleSheet("color: rgba(255, 255, 255, 0.58);")
+        self.empty_hint_label.hide()
 
         header = self.horizontalHeader()
         header.setSectionResizeMode(0, header.ResizeMode.Stretch)
@@ -111,6 +116,23 @@ class DimensionEntryTable(TableWidget):
         self.entriesDropped.emit(entry_indices, self.group_name)
         event.acceptProposedAction()
 
+    def viewportEvent(self, event) -> bool:
+        event_type = event.type()
+        if event_type in (QEvent.Type.DragEnter, QEvent.Type.DragMove, QEvent.Type.Drop):
+            mime_data = event.mimeData() if hasattr(event, "mimeData") else None
+            if mime_data is None or not mime_data.hasFormat(ENTRY_DRAG_MIME):
+                event.ignore()
+                return True
+            if event_type == QEvent.Type.Drop:
+                entry_indices = self._decode_entry_indices(mime_data)
+                if not entry_indices:
+                    event.ignore()
+                    return True
+                self.entriesDropped.emit(entry_indices, self.group_name)
+            event.acceptProposedAction()
+            return True
+        return super().viewportEvent(event)
+
     def _set_row(self, row_index: int, row: Dict[str, object]) -> None:
         from PySide6.QtWidgets import QTableWidgetItem
 
@@ -125,8 +147,30 @@ class DimensionEntryTable(TableWidget):
         frame = self.frameWidth() * 2
         header_height = self.horizontalHeader().height()
         row_height = sum(self.rowHeight(i) for i in range(self.rowCount()))
-        empty_padding = 54 if self.rowCount() == 0 else 10
-        self.setFixedHeight(frame + header_height + row_height + empty_padding)
+        min_drop_zone_height = 120
+        content_height = max(row_height, min_drop_zone_height)
+        self.setFixedHeight(frame + header_height + content_height + 10)
+        self._update_empty_hint()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._layout_empty_hint()
+
+    def _layout_empty_hint(self) -> None:
+        if not self.empty_hint_label.isVisible():
+            return
+        self.empty_hint_label.adjustSize()
+        viewport_rect = self.viewport().rect()
+        x = max(0, (viewport_rect.width() - self.empty_hint_label.width()) // 2)
+        y = max(8, (viewport_rect.height() - self.empty_hint_label.height()) // 2)
+        self.empty_hint_label.move(x, y)
+
+    def _update_empty_hint(self) -> None:
+        is_empty = self.rowCount() == 0
+        self.empty_hint_label.setVisible(is_empty)
+        if is_empty:
+            self._layout_empty_hint()
+            self.empty_hint_label.raise_()
 
     @staticmethod
     def _decode_entry_indices(mime_data: QMimeData) -> List[int]:
@@ -147,8 +191,8 @@ class DimensionEntryTable(TableWidget):
 class DimensionSectionWidget(QWidget):
     """单个维度区块：标题 + 表格。"""
 
-    groupContextMenuRequested = Signal(str, QPoint)
     renameRequested = Signal(str)
+    deleteRequested = Signal(str)
     entriesDropped = Signal(list, object)
 
     def __init__(self, group_name: str, parent=None):
@@ -162,8 +206,6 @@ class DimensionSectionWidget(QWidget):
         layout.setSpacing(8)
 
         self.header = QWidget(self)
-        self.header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.header.customContextMenuRequested.connect(self._on_header_context_menu)
 
         header_layout = QHBoxLayout(self.header)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -175,6 +217,7 @@ class DimensionSectionWidget(QWidget):
             self.header,
         )
         self.rename_button = ToolButton(self.header)
+        self.delete_button = ToolButton(self.header)
         self.count_label = BodyLabel("0 题", self.header)
         self.separator = HorizontalSeparator(self)
         self.table = DimensionEntryTable(self.group_name, self)
@@ -183,6 +226,7 @@ class DimensionSectionWidget(QWidget):
         header_layout.addWidget(self.name_label)
         header_layout.addWidget(self.meta_label)
         header_layout.addWidget(self.rename_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        header_layout.addWidget(self.delete_button, 0, Qt.AlignmentFlag.AlignVCenter)
         header_layout.addStretch(1)
         header_layout.addWidget(self.count_label)
 
@@ -193,6 +237,13 @@ class DimensionSectionWidget(QWidget):
         self.rename_button.setToolTip("重命名维度")
         self.rename_button.setVisible(self.group_name != DIMENSION_UNGROUPED)
         self.rename_button.clicked.connect(lambda: self.renameRequested.emit(self.group_name))
+        self.delete_button.setIcon(FluentIcon.DELETE)
+        self.delete_button.setIconSize(QSize(14, 14))
+        self.delete_button.setFixedSize(28, 28)
+        self.delete_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.delete_button.setToolTip("删除维度")
+        self.delete_button.setVisible(self.group_name != DIMENSION_UNGROUPED)
+        self.delete_button.clicked.connect(lambda: self.deleteRequested.emit(self.group_name))
 
         self.count_label.setObjectName("countLabel")
         self.header.setObjectName("dimensionSectionHeader")
@@ -217,6 +268,3 @@ class DimensionSectionWidget(QWidget):
     def set_rows(self, rows: Sequence[Dict[str, object]]) -> None:
         self.table.set_rows(rows)
         self.count_label.setText(f"{len(rows)} 题")
-
-    def _on_header_context_menu(self, pos: QPoint) -> None:
-        self.groupContextMenuRequested.emit(self.group_name, self.header.mapToGlobal(pos))
