@@ -29,6 +29,7 @@ from qfluentwidgets import (
     RadioButton,
     SwitchButton,
     SegmentedWidget,
+    SearchLineEdit,
     MessageBox,
     isDarkTheme,
     themeColor,
@@ -410,6 +411,114 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         if focus_widget is not None:
             QTimer.singleShot(0, focus_widget.setFocus)
 
+    @staticmethod
+    def _normalize_search_text(text: Any) -> str:
+        try:
+            raw = str(text or "")
+        except Exception:
+            return ""
+        return "".join(raw.lower().split())
+
+    def _build_question_search_text(self, idx: int) -> str:
+        cached = self._question_search_cache.get(idx)
+        if cached is not None:
+            return cached
+
+        info = self._get_entry_info(idx)
+        entry = self.entries[idx] if 0 <= idx < len(self.entries) else None
+        chunks: List[str] = [
+            str(info.get("num") or idx + 1),
+            str(info.get("title") or getattr(entry, "question_title", "") or ""),
+        ]
+
+        for key in ("option_texts", "row_texts"):
+            raw_values = info.get(key)
+            if isinstance(raw_values, list):
+                chunks.extend(str(value or "") for value in raw_values)
+
+        raw_attached_configs = getattr(entry, "attached_option_selects", None) if entry is not None else None
+        if isinstance(raw_attached_configs, list):
+            for item in raw_attached_configs:
+                if not isinstance(item, dict):
+                    continue
+                chunks.append(str(item.get("option_text") or ""))
+                select_options = item.get("select_options")
+                if isinstance(select_options, list):
+                    chunks.extend(str(option or "") for option in select_options)
+
+        normalized = self._normalize_search_text(" ".join(chunks))
+        self._question_search_cache[idx] = normalized
+        return normalized
+
+    def _find_matching_question_indices(self, keyword: str) -> List[int]:
+        normalized_keyword = self._normalize_search_text(keyword)
+        if not normalized_keyword:
+            return []
+
+        matches: List[int] = []
+        for idx in range(len(self.entries)):
+            if normalized_keyword in self._build_question_search_text(idx):
+                matches.append(idx)
+        return matches
+
+    def _set_search_status(self, text: str, light: str = "#666666", dark: str = "#bfbfbf") -> None:
+        if self._search_status_label is None:
+            return
+        self._search_status_label.setText(text)
+        _apply_label_color(self._search_status_label, light, dark)
+
+    def _on_search_text_changed(self, text: str) -> None:
+        normalized_text = self._normalize_search_text(text)
+        if not normalized_text:
+            self._clear_question_search()
+            return
+        if normalized_text == self._last_search_keyword:
+            return
+        self._search_match_indices = []
+        self._last_search_keyword = ""
+        self._last_search_match_cursor = -1
+        self._set_search_status("回车或点搜索图标定位匹配题目", "#666666", "#bfbfbf")
+
+    def _clear_question_search(self) -> None:
+        self._search_match_indices = []
+        self._last_search_keyword = ""
+        self._last_search_match_cursor = -1
+        self._set_search_status("输入关键词后回车，可在多个匹配结果间依次跳转", "#666666", "#bfbfbf")
+
+    def _handle_question_search(self, keyword: str) -> None:
+        raw_keyword = str(keyword or "").strip()
+        normalized_keyword = self._normalize_search_text(raw_keyword)
+        if not normalized_keyword:
+            self._clear_question_search()
+            return
+
+        matches = self._find_matching_question_indices(normalized_keyword)
+        if not matches:
+            self._search_match_indices = []
+            self._last_search_keyword = normalized_keyword
+            self._last_search_match_cursor = -1
+            self._set_search_status(f"未找到“{raw_keyword}”", "#c42b1c", "#ff99a4")
+            return
+
+        match_cursor = 0
+        is_same_query = normalized_keyword == self._last_search_keyword and matches == self._search_match_indices
+        if is_same_query and 0 <= self._last_search_match_cursor < len(matches):
+            match_cursor = (self._last_search_match_cursor + 1) % len(matches)
+
+        target_idx = matches[match_cursor]
+        self._search_match_indices = matches
+        self._last_search_keyword = normalized_keyword
+        self._last_search_match_cursor = match_cursor
+
+        info = self._get_entry_info(target_idx)
+        qnum = str(info.get("num") or target_idx + 1)
+        self._set_search_status(
+            f"匹配 {len(matches)} 题，当前定位到第{qnum}题（{match_cursor + 1}/{len(matches)}）",
+            "#0f6cbd",
+            "#63b3ff",
+        )
+        self._navigate_to_question(target_idx, animate=True)
+
     def _validate_random_integer_inputs(self) -> bool:
         for idx, mode in self.text_random_mode_map.items():
             if str(mode or "").strip().lower() != "integer":
@@ -537,6 +646,10 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self.attached_select_slider_map: Dict[int, List[Dict[str, Any]]] = {}
         self.option_fill_edit_map: Dict[int, Dict[int, LineEdit]] = {}
         self.option_fill_state_map: Dict[int, Dict[int, Dict[str, Any]]] = {}
+        self._question_search_cache: Dict[int, str] = {}
+        self._search_match_indices: List[int] = []
+        self._last_search_keyword = ""
+        self._last_search_match_cursor = -1
         self._entry_snapshots: List[QuestionEntry] = [copy.deepcopy(entry) for entry in entries]
         self._has_content = False
         self._current_question_idx = 0
@@ -551,6 +664,8 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         self._navigation_lane_width = 26
         self._scroll_animation: Optional[QPropertyAnimation] = None
         self._is_animating_scroll = False
+        self._search_edit: Optional[SearchLineEdit] = None
+        self._search_status_label: Optional[BodyLabel] = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -582,6 +697,24 @@ class QuestionWizardDialog(WizardSectionsMixin, QDialog):
         inner.setSpacing(20)
         self._content_layout = inner
         right_layout.addWidget(scroll, 1)
+
+        search_row = QHBoxLayout()
+        search_row.setSpacing(12)
+        search_edit = SearchLineEdit(container)
+        search_edit.setPlaceholderText("搜索题干 / 选项内容，回车或点图标定位")
+        search_edit.returnPressed.connect(search_edit.search)
+        search_edit.searchSignal.connect(self._handle_question_search)
+        search_edit.clearSignal.connect(self._clear_question_search)
+        search_edit.textChanged.connect(self._on_search_text_changed)
+        search_row.addWidget(search_edit, 1)
+
+        search_status = BodyLabel("输入关键词后回车，可在多个匹配结果间依次跳转", container)
+        search_status.setStyleSheet("font-size: 12px;")
+        _apply_label_color(search_status, "#666666", "#bfbfbf")
+        search_row.addWidget(search_status, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        inner.addLayout(search_row)
+        self._search_edit = search_edit
+        self._search_status_label = search_status
 
         # 批量倾向预设（在滚动区内最顶部）
         master_row = QHBoxLayout()
