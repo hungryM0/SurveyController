@@ -278,22 +278,33 @@ def _extract_force_select_option(
     return None, None
 
 
+def _is_text_input_element(element) -> bool:
+    if element is None:
+        return False
+    try:
+        tag_name = (element.name or '').lower()
+    except Exception:
+        tag_name = ''
+    try:
+        input_type = (element.get('type') or '').lower()
+    except Exception:
+        input_type = ''
+    if tag_name == 'textarea':
+        return True
+    return tag_name == 'input' and input_type in ('', 'text', 'search', 'tel', 'number')
+
+
 def _element_contains_text_input(element) -> bool:
     if element is None:
         return False
+    if _is_text_input_element(element):
+        return True
     try:
         candidates = element.find_all(['input', 'textarea'])
     except Exception:
         return False
     for candidate in candidates:
-        try:
-            tag_name = (candidate.name or '').lower()
-        except Exception:
-            tag_name = ''
-        input_type = (candidate.get('type') or '').lower()
-        if tag_name == 'textarea':
-            return True
-        if input_type in ('', 'text', 'search', 'tel', 'number'):
+        if _is_text_input_element(candidate):
             return True
     return False
 
@@ -305,18 +316,16 @@ def _question_div_has_shared_text_input(question_div) -> bool:
         shared_inputs = question_div.select('.ui-other input, .ui-other textarea')
     except Exception:
         shared_inputs = []
-    if shared_inputs:
+    if any(_element_contains_text_input(element) for element in shared_inputs):
         return True
     try:
-        keyword_inputs = question_div.select("input[id*='other'], input[name*='other'], textarea[id*='other'], textarea[name*='other']")
-        if keyword_inputs:
+        keyword_inputs = question_div.select(
+            "input[id*='other'], input[name*='other'], textarea[id*='other'], textarea[name*='other']"
+        )
+        if any(_element_contains_text_input(element) for element in keyword_inputs):
             return True
     except Exception as exc:
         log_suppressed_exception("survey.parser._question_div_has_shared_text_input keyword", exc, level=logging.ERROR)
-    text_blob = _normalize_html_text(question_div.get_text(' ', strip=True))
-    option_fill_keywords = ["请注明", "其他", "其他内容", "填空", "填写"]
-    if any(keyword in text_blob for keyword in option_fill_keywords):
-        return True
     return False
 
 
