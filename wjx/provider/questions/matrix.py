@@ -122,6 +122,7 @@ def _normalize_row_probabilities(
                 resolved_question_index,
                 row_index=row_offset,
                 psycho_plan=psycho_plan,
+                priority_mode=getattr(task_ctx, "reliability_priority_mode", None),
             )
     else:
         uniform_probs = apply_matrix_row_consistency([1.0] * candidate_count, current, row_offset)
@@ -133,6 +134,7 @@ def _normalize_row_probabilities(
                 resolved_question_index,
                 row_index=row_offset,
                 psycho_plan=psycho_plan,
+                priority_mode=getattr(task_ctx, "reliability_priority_mode", None),
             )
     return row_probabilities, strict_reference
 
@@ -249,6 +251,7 @@ def _fill_slider_matrix(
                 psycho_plan=psycho_plan,
                 question_index=resolved_question_index,
                 row_index=row_offset,
+                priority_mode=getattr(task_ctx, "reliability_priority_mode", None),
             )
         selected_value = candidate_values[selected_index]
         try:
@@ -329,6 +332,7 @@ def matrix(
                     resolved_question_index,
                     row_index=row_index - 1,
                     psycho_plan=psycho_plan,
+                    priority_mode=getattr(task_ctx, "reliability_priority_mode", None),
                 )
         else:
             uniform_probs = apply_matrix_row_consistency([1.0] * len(candidate_columns), current, row_index - 1)
@@ -340,6 +344,7 @@ def matrix(
                     resolved_question_index,
                     row_index=row_index - 1,
                     psycho_plan=psycho_plan,
+                    priority_mode=getattr(task_ctx, "reliability_priority_mode", None),
                 )
         if strict_ratio_question and isinstance(row_probabilities, list):
             row_probabilities = enforce_reference_rank_order(
@@ -353,6 +358,7 @@ def matrix(
             psycho_plan=psycho_plan,
             question_index=resolved_question_index,
             row_index=row_index - 1,
+            priority_mode=getattr(task_ctx, "reliability_priority_mode", None),
         )
         selected_column = candidate_columns[selected_index]
         driver.find_element(

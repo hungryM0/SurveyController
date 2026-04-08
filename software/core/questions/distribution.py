@@ -1,18 +1,10 @@
 import math
 from typing import Any, List, Optional, Tuple, Union
 
+from software.core.questions.reliability_mode import get_reliability_priority_profile, normalize_reliability_priority_mode
 from software.core.questions.utils import normalize_droplist_probs
 
-_CORRECTION_PROFILE_DEFAULT = {
-    "warmup_samples": 12,
-    "gain": 4.2,
-    "gain_psycho": 2.05,
-    "min_factor": 0.45,
-    "max_factor": 2.2,
-    "min_factor_psycho": 0.72,
-    "max_factor_psycho": 1.34,
-    "gap_limit": 0.42,
-}
+_STANDARD_CORRECTION_PARAMS = (12, 4.2, 0.45, 2.2, 0.42)
 
 
 def build_distribution_stat_key(question_index: int, row_index: Optional[int] = None) -> str:
@@ -45,25 +37,19 @@ def _resolve_runtime_counts(
 
 
 def _resolve_correction_params(
-    psycho_plan: Optional[Any],
+    priority_mode: Any,
+    *,
+    use_priority_profile: bool,
 ) -> Tuple[int, float, float, float, float]:
-    profile = _CORRECTION_PROFILE_DEFAULT
-
-    if psycho_plan is not None:
-        return (
-            int(profile["warmup_samples"]),
-            float(profile["gain_psycho"]),
-            float(profile["min_factor_psycho"]),
-            float(profile["max_factor_psycho"]),
-            float(profile["gap_limit"]),
-        )
-
+    if not use_priority_profile:
+        return _STANDARD_CORRECTION_PARAMS
+    profile = get_reliability_priority_profile(priority_mode)
     return (
-        int(profile["warmup_samples"]),
-        float(profile["gain"]),
-        float(profile["min_factor"]),
-        float(profile["max_factor"]),
-        float(profile["gap_limit"]),
+        int(profile.distribution_warmup_samples),
+        float(profile.distribution_gain),
+        float(profile.distribution_min_factor),
+        float(profile.distribution_max_factor),
+        float(profile.distribution_gap_limit),
     )
 
 
@@ -75,6 +61,7 @@ def resolve_distribution_probabilities(
     *,
     row_index: Optional[int] = None,
     psycho_plan: Optional[Any] = None,
+    priority_mode: Optional[str] = None,
 ) -> List[float]:
     target = _normalize_distribution_target(probabilities, option_count)
     if option_count <= 0 or not target or question_index is None or ctx is None:
@@ -85,7 +72,14 @@ def resolve_distribution_probabilities(
     if total <= 0:
         return target
 
-    warmup_samples, gain, min_factor, max_factor, gap_limit = _resolve_correction_params(psycho_plan)
+    use_priority_profile = psycho_plan is not None or priority_mode is not None
+    resolved_priority_mode = normalize_reliability_priority_mode(
+        priority_mode if priority_mode is not None else getattr(ctx, "reliability_priority_mode", None)
+    )
+    warmup_samples, gain, min_factor, max_factor, gap_limit = _resolve_correction_params(
+        resolved_priority_mode,
+        use_priority_profile=use_priority_profile,
+    )
     sample_factor = min(1.0, float(total) / float(max(1, warmup_samples)))
     if sample_factor <= 0.0:
         return target
