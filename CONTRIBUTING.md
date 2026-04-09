@@ -6,6 +6,10 @@
 - **Bug/功能建议**：首选 GitHub Issues。
 - **快速反馈**：QQ群（见 README）。
 
+## 参考文档
+在着手修改或新增功能前，建议先阅读以下关键文档：
+- [wjx-web-structure.md](doc/wjx-web-structure.md) — 问卷星网页结构与解析指南。详细说明了如何识别 DOM 节点、题型以及复杂的跳转逻辑。
+
 ## 开发环境与依赖
 - 操作系统：仅考虑对 Windows 10/11 的支持
 - Python：3.8+
@@ -23,6 +27,8 @@
 │   │   └── release-to-r2.yml  # CI/CD 自动发布到 R2
 │   └── ISSUE_TEMPLATE/        # Issue 模板（报错反馈、新功能请求）
 ├── SurveyController.py
+├── doc/                  # 项目文档目录
+│   └── wjx-web-structure.md  # 问卷星网页结构与解析指南 (推荐必读)
 ├── rthook_pyside6.py     # PySide6 打包钩子
 ├── test_imports.py       # 导入检测脚本
 ├── test_deadcode.py      # 死代码检测脚本
@@ -102,7 +108,7 @@ wjx/
 - **举报违规** - 发现不当使用请邮件 `mail@hungrym0.top` 举报
 
 欢迎贡献 PR 改进以下方向：
-- 增加新的问卷题型支持（选择、填空、矩阵等）
+- 增加新的问卷题型支持（请参考 [问卷星网页结构解析指南](doc/wjx-web-structure.md)）
 - 增加新的问卷平台支持
 - 性能优化与用户体验改进
 - 文档完善与示例补充
