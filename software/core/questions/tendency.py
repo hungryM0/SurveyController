@@ -8,17 +8,14 @@ from typing import Any, Dict, List, Optional, Union
 import logging
 from software.logging.log_utils import log_suppressed_exception
 
+from software.core.questions.reliability_mode import get_reliability_priority_profile
 from software.core.questions.utils import weighted_index
 from software.app.config import DIMENSION_UNGROUPED
 
 # 线程局部存储：每个浏览器线程有自己独立的答题倾向
 _thread_local = threading.local()
 
-# 波动参数：按量程自适应窗口，避免小量程过度跳变、大量程过度僵硬
-_FLUCTUATION_RATIO = 0.15
-_FLUCTUATION_MAX = 8
 _SMALL_SCALE_STATIC_MAX_OPTIONS = 3
-_OUTSIDE_WINDOW_DECAY = 0.02
 
 
 def reset_tendency() -> None:
@@ -140,14 +137,16 @@ def _blend_psychometric_choice(
     anchor_index: int,
     option_count: int,
     probabilities: Union[List[float], int, None],
+    priority_mode: Optional[str] = None,
 ) -> int:
     anchor = max(0, min(option_count - 1, int(anchor_index)))
     if option_count <= 0 or not isinstance(probabilities, list) or len(probabilities) != option_count:
         return anchor
 
-    fluctuation_window = _resolve_fluctuation_window(option_count)
+    fluctuation_window = _resolve_fluctuation_window(option_count, priority_mode=priority_mode)
     if fluctuation_window <= 0:
         return anchor
+    profile = get_reliability_priority_profile(priority_mode)
 
     low = max(0, anchor - fluctuation_window)
     high = min(option_count - 1, anchor + fluctuation_window)
@@ -162,9 +161,9 @@ def _blend_psychometric_choice(
             continue
         if low <= idx <= high:
             distance = abs(idx - anchor)
-            adjusted_probs.append(weight * _window_decay(distance, fluctuation_window))
+            adjusted_probs.append(weight * _window_decay(distance, fluctuation_window, priority_mode=priority_mode))
         else:
-            adjusted_probs.append(weight * (_OUTSIDE_WINDOW_DECAY * 0.5))
+            adjusted_probs.append(weight * (profile.consistency_outside_decay * 0.5))
 
     total = sum(adjusted_probs)
     if total <= 0.0:
@@ -181,6 +180,7 @@ def get_tendency_index(
     psycho_plan: Optional[Any] = None,
     question_index: Optional[int] = None,
     row_index: Optional[int] = None,
+    priority_mode: Optional[str] = None,
 ) -> int:
     """获取带有一致性倾向的选项索引。"""
     if option_count <= 0:
@@ -198,7 +198,12 @@ def get_tendency_index(
     if psycho_plan is not None and question_index is not None:
         choice = _get_psychometric_answer(psycho_plan, question_index, row_index, option_count)
         if choice is not None:
-            blended_choice = _blend_psychometric_choice(choice, option_count, probabilities)
+            blended_choice = _blend_psychometric_choice(
+                choice,
+                option_count,
+                probabilities,
+                priority_mode=priority_mode,
+            )
             return _finalize_choice(blended_choice, anchor=choice)
         # 计划未命中时，回退到常规倾向逻辑
         logging.info(
@@ -229,7 +234,7 @@ def get_tendency_index(
     base = int(round(base_ratio * (option_count - 1)))
     base = max(0, min(option_count - 1, base))
 
-    selected = _apply_consistency(base, option_count, probabilities)
+    selected = _apply_consistency(base, option_count, probabilities, priority_mode=priority_mode)
     return _finalize_choice(selected, anchor=base)
 
 
@@ -237,11 +242,12 @@ def _apply_consistency(
     base: int,
     option_count: int,
     probabilities: Union[List[float], int, None],
+    priority_mode: Optional[str] = None,
 ) -> int:
     """在基准附近的自适应窗口内应用一致性约束选择选项。"""
     # 当前题目选项数可能与生成 base 时不同，需要夹到合法范围
     effective_base = min(base, option_count - 1)
-    fluctuation_window = _resolve_fluctuation_window(option_count)
+    fluctuation_window = _resolve_fluctuation_window(option_count, priority_mode=priority_mode)
     if fluctuation_window <= 0:
         return effective_base
 
@@ -255,10 +261,12 @@ def _apply_consistency(
         for i in range(option_count):
             if low <= i <= high:
                 distance = abs(i - effective_base)
-                decay = _window_decay(distance, fluctuation_window)
+                decay = _window_decay(distance, fluctuation_window, priority_mode=priority_mode)
                 adjusted_probs.append(probabilities[i] * decay)
             else:
-                adjusted_probs.append(probabilities[i] * _OUTSIDE_WINDOW_DECAY)
+                adjusted_probs.append(
+                    probabilities[i] * get_reliability_priority_profile(priority_mode).consistency_outside_decay
+                )
 
         total = sum(adjusted_probs)
         if total > 0:
@@ -270,7 +278,7 @@ def _apply_consistency(
     weights = []
     for c in candidates:
         distance = abs(c - effective_base)
-        weights.append(_window_decay(distance, fluctuation_window))
+        weights.append(_window_decay(distance, fluctuation_window, priority_mode=priority_mode))
 
     total = sum(weights)
     pivot = random.random() * total
@@ -282,28 +290,32 @@ def _apply_consistency(
     return candidates[-1]
 
 
-def _resolve_fluctuation_window(option_count: int) -> int:
+def _resolve_fluctuation_window(option_count: int, *, priority_mode: Optional[str] = None) -> int:
     """根据量程动态计算波动窗口。"""
     if option_count <= _SMALL_SCALE_STATIC_MAX_OPTIONS:
         # 3级及以下量表不做波动，避免语义直接翻转
         return 0
 
+    profile = get_reliability_priority_profile(priority_mode)
     span = max(option_count, 1)
-    window = int(round(span * _FLUCTUATION_RATIO))
+    window = int(round(span * profile.consistency_window_ratio))
     if window < 1:
         window = 1
-    return min(window, _FLUCTUATION_MAX)
+    return min(window, profile.consistency_window_max)
 
 
-def _window_decay(distance: int, window: int) -> float:
+def _window_decay(distance: int, window: int, *, priority_mode: Optional[str] = None) -> float:
     """窗口内距离衰减：中心最高，边缘次之。"""
+    profile = get_reliability_priority_profile(priority_mode)
     if distance <= 0:
-        return 1.6
+        return profile.consistency_center_weight
     if window <= 0:
         return 0.0
 
     normalized = min(1.0, float(distance) / float(window))
-    return max(0.8, 1.6 - 0.8 * normalized)
+    center = profile.consistency_center_weight
+    edge = min(center, profile.consistency_edge_weight)
+    return max(edge, center - (center - edge) * normalized)
 
 
 def _get_psychometric_answer(

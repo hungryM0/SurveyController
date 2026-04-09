@@ -1,8 +1,7 @@
 <div align="center">
   <img src="assets/icon.png" alt="SurveyController" width="120" height="120" />
   <h1>SurveyController</h1>
-  <p>一个支持问卷星、腾讯问卷自动填写的图形化工具，支持定制数据与指定ip。</p>
-
+  
   [![GitHub Stars](https://img.shields.io/github/stars/hungryM0/SurveyController?style=flat&logo=github&color=yellow)](https://github.com/hungryM0/SurveyController/stargazers)
   [![GitHub Forks](https://img.shields.io/github/forks/hungryM0/SurveyController?style=flat&logo=github)](https://github.com/hungryM0/SurveyController/network/members)
   [![GitHub Release](https://img.shields.io/github/v/release/hungryM0/SurveyController?style=flat&logo=github&color=blue)](https://github.com/hungryM0/SurveyController/releases/latest)
@@ -10,10 +9,11 @@
   [![License](https://img.shields.io/github/license/hungryM0/SurveyController?style=flat&color=orange)](./LICENSE)
   [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
   [![Issues](https://img.shields.io/github/issues/hungryM0/SurveyController?style=flat&logo=github)](https://github.com/hungryM0/SurveyController/issues)
+  <p><strong>一个支持问卷星、腾讯问卷自动填写的图形化工具，支持定制数据与指定ip。</strong></p>
+
+> 参考了 [Zemelee/wjx](https://github.com/Zemelee/wjx)，别忘了给这位大佬点个star
 
 </div>
-
-> 参考了 [Zemelee/wjx](https://github.com/Zemelee/wjx)，别忘了给大佬点个star
 
 > [!WARNING]
 > **该项目仅供 Playwright 的学习与测试使用。** 请确保拥有目标测试问卷的授权再使用，**严禁污染他人问卷数据！**
@@ -25,7 +25,7 @@
 ## 主要特性
 
 1. **多平台支持** - 同时支持问卷星和腾讯问卷，一套工具搞定两个平台
-2. **WinUI 3界面** - 无需编写代码，通过可视化UI完成所有操作
+2. **Fluent 界面** - 无需编写代码，通过可视化UI完成所有操作
 3. **支持二维码解析** - 上传问卷二维码图片自动转链接（支持问卷星平台）
 4. **定制答案配置** - 支持自定义各选项权重与多选题命中概率分布
 5. **指定ip设置** - 支持随机IP或指定特定地区IP提交
@@ -41,18 +41,15 @@
 
 ### 从源码运行
 
-克隆本仓库：
+克隆、安装依赖、运行源码：
 ```bash
 git clone https://github.com/hungryM0/SurveyController.git
-```
-
-安装依赖并运行：
-```bash
+cd SurveyController
 pip install -r requirements.txt
 python SurveyController.py
 ```
 
-**环境要求：** Windows 10/11，Python 3.8+
+**环境要求：** Windows 10/11，Python 3.8+，Git，Microsoft Edge
 
 ---
 

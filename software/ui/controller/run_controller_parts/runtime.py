@@ -12,6 +12,7 @@ from PySide6.QtCore import QCoreApplication
 from software.core.engine.runner import run
 from software.core.questions.config import configure_probabilities, validate_question_config
 from software.core.task import TaskContext
+from software.core.questions.reliability_mode import normalize_reliability_priority_mode
 from software.network.proxy.session import (
     activate_trial,
     RandomIPAuthError,
@@ -357,6 +358,9 @@ class RunControllerRuntimeMixin:
         except Exception:
             psycho_target_alpha = 0.9
         psycho_target_alpha = max(0.70, min(0.95, psycho_target_alpha))
+        reliability_priority_mode = normalize_reliability_priority_mode(
+            getattr(config, "reliability_priority_mode", None)
+        )
 
         ctx = TaskContext(
             url=config.url,
@@ -380,6 +384,7 @@ class RunControllerRuntimeMixin:
             user_agent_ratios=dict(getattr(config, "random_ua_ratios", {"wechat": 33, "mobile": 33, "pc": 34})),
             answer_rules=copy.deepcopy(getattr(config, "answer_rules", []) or []),
             psycho_target_alpha=psycho_target_alpha,
+            reliability_priority_mode=reliability_priority_mode,
             stop_on_fail_enabled=config.fail_stop_enabled,
             pause_on_aliyun_captcha=bool(getattr(config, "pause_on_aliyun_captcha", True)),
         )
