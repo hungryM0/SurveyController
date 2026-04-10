@@ -1,5 +1,6 @@
 playwright
-opencv-python
+zxing-cpp
+Pillow
 httpx
 packaging
 beautifulsoup4
