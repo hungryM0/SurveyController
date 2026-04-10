@@ -14,9 +14,11 @@ from software.app.config import (
     _MULTI_MIN_LIMIT_VALUE_KEYSET,
     _SELECTION_KEYWORDS_CN,
     _SELECTION_KEYWORDS_EN,
+    _CHINESE_MULTI_EXACT_PATTERNS,
     _CHINESE_MULTI_LIMIT_PATTERNS,
     _CHINESE_MULTI_RANGE_PATTERNS,
     _CHINESE_MULTI_MIN_PATTERNS,
+    _ENGLISH_MULTI_EXACT_PATTERNS,
     _ENGLISH_MULTI_LIMIT_PATTERNS,
     _ENGLISH_MULTI_RANGE_PATTERNS,
     _ENGLISH_MULTI_MIN_PATTERNS,
@@ -194,6 +196,10 @@ def _extract_multi_limit_range_from_text(text: Optional[str]) -> Tuple[Optional[
     max_limit: Optional[int] = None
     contains_cn_keyword = any(keyword in normalized for keyword in _SELECTION_KEYWORDS_CN)
     contains_en_keyword = any(keyword in normalized_lower for keyword in _SELECTION_KEYWORDS_EN)
+    contains_cn_min_hint = any(keyword in normalized for keyword in ("至少", "最少", "不少于"))
+    contains_cn_max_hint = any(keyword in normalized for keyword in ("最多", "至多", "不超过", "不超過", "限选", "限選"))
+    contains_en_min_hint = any(keyword in normalized_lower for keyword in ("at least", "minimum"))
+    contains_en_max_hint = any(keyword in normalized_lower for keyword in ("up to", "at most", "no more than"))
     if contains_cn_keyword:
         for pattern in _CHINESE_MULTI_RANGE_PATTERNS:
             match = pattern.search(normalized)
@@ -204,6 +210,15 @@ def _extract_multi_limit_range_from_text(text: Optional[str]) -> Tuple[Optional[
                     min_limit = min(first, second)
                     max_limit = max(first, second)
                     break
+    if min_limit is None and max_limit is None and contains_cn_keyword and not contains_cn_min_hint and not contains_cn_max_hint:
+        for pattern in _CHINESE_MULTI_EXACT_PATTERNS:
+            match = pattern.search(normalized)
+            if match:
+                candidate = _safe_positive_int(match.group(1))
+                if candidate:
+                    min_limit = candidate
+                    max_limit = candidate
+                    break
     if min_limit is None and max_limit is None and contains_en_keyword:
         for pattern in _ENGLISH_MULTI_RANGE_PATTERNS:
             match = pattern.search(normalized)
@@ -213,6 +228,15 @@ def _extract_multi_limit_range_from_text(text: Optional[str]) -> Tuple[Optional[
                 if first and second:
                     min_limit = min(first, second)
                     max_limit = max(first, second)
+                    break
+    if min_limit is None and max_limit is None and contains_en_keyword and not contains_en_min_hint and not contains_en_max_hint:
+        for pattern in _ENGLISH_MULTI_EXACT_PATTERNS:
+            match = pattern.search(normalized_lower)
+            if match:
+                candidate = _safe_positive_int(match.group(1))
+                if candidate:
+                    min_limit = candidate
+                    max_limit = candidate
                     break
     if min_limit is None and contains_cn_keyword:
         for pattern in _CHINESE_MULTI_MIN_PATTERNS:
