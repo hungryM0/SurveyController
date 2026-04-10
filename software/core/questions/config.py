@@ -588,7 +588,9 @@ def validate_question_config(entries: List[QuestionEntry], questions_info: Optio
     for item in questions_info or []:
         if not isinstance(item, dict):
             continue
-        q_num = getattr(item, "get", lambda *_args, **_kwargs: None)("num")
+        q_num = item.get("num")
+        if q_num is None:
+            continue
         try:
             q_num = int(q_num)
         except Exception:

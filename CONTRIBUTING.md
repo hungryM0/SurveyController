@@ -71,28 +71,28 @@ software/
 ├── network/
 │   ├── http/              # httpx 客户端封装
 │   ├── browser/           # 浏览器驱动
-│   └── proxy/             # 代理 API / 会话 / 策略 / 地区 / 代理池
+│   └── proxy/             # 代理 API / 会话 / 策略 / 地区 / 代理池；session/auth.py 仅保留状态与入口，HTTP/归一化/模型拆到 session/client.py、normalize.py、models.py
 ├── providers/             # 平台识别、注册、分发总入口
 ├── system/                # Windows/系统级能力（安全存储、注册表）
 ├── ui/
 │   ├── shell/             # 主窗口、启动页、页面装配
-│   ├── controller/        # Qt 协调器
+│   ├── controller/        # Qt 协调器；run_controller_parts/runtime.py 已拆成 runtime_constants.py、runtime_random_ip.py、runtime_init_gate.py、runtime_execution.py
 │   ├── helpers/           # UI 侧辅助门面
 │   │   ├── fluent_tooltip.py # Fluent tooltip 安装器
 │   │   └── qfluent_compat.py # QFluentWidgets 动画 / InfoBar 稳定性补丁
 │   ├── pages/
-│   │   ├── workbench/     # dashboard（page.py 负责首页骨架，cards.py 放首页专用卡片，parts/ 放首页交互拆分）/question_editor（含单栏配置向导）/runtime_panel/strategy（题目策略：条件规则 + 维度分组；dimension_panel.py 负责面板装配，dimension_sections.py 负责分组区块与跨表拖拽）/log_panel
+│   │   ├── workbench/     # dashboard（page.py 负责首页骨架，parts/ 下含 survey_parse.py、config_io.py、run_actions.py）/question_editor（单栏配置向导已拆成 wizard_dialog.py + wizard_search.py + wizard_navigation.py + wizard_cards.py + wizard_sections_*.py）/runtime_panel/strategy（题目策略：条件规则 + 维度分组；dimension_panel.py 负责面板装配，dimension_sections.py 负责分组区块与跨表拖拽）/log_panel
 │   │   └── settings/      # 应用程序设置页；settings.py 负责页面骨架，group_widgets.py 放设置页专用右侧控件
-│   └── widgets/           # 通用组件（contact_form 已拆成包；旧 time_range_slider 已移除）
+│   └── widgets/           # 通用组件（contact_form 已拆成包，widget.py 只做主组装，输入/附件/验证码/赞助/提交拆到 constants.py、inputs.py、attachments.py、verification.py、donation.py、submission.py；旧 time_range_slider 已移除）
 └── update/                # 更新检查与升级
 
 tencent/
 ├── __init__.py            # 包标记文件；真正平台实现请直接看 provider/
-└── provider/              # 腾讯问卷专属实现（解析、运行时、导航、提交）
+└── provider/              # 腾讯问卷专属实现（解析、运行时、导航、提交）；runtime.py 仅保留入口，交互/答题/流程拆到 runtime_interactions.py、runtime_answerers.py、runtime_flow.py
 
 wjx/
 ├── __init__.py            # 包标记文件；仅保留版本信息，真实实现在 provider/ 子模块
-└── provider/              # 问卷星专属实现（解析、检测、导航、运行时、提交、questions/ 题型执行器）
+└── provider/              # 问卷星专属实现（解析、检测、导航、运行时、提交、questions/ 题型执行器）；html_parser.py 已拆到 html_parser_common.py、html_parser_choice.py、html_parser_matrix.py、html_parser_rules.py，questions/multiple.py 已拆到 multiple_limits.py、multiple_dom.py、multiple_rules.py
 ```
 
 ## PR 流程（推荐）
