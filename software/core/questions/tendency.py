@@ -198,13 +198,18 @@ def get_tendency_index(
     if psycho_plan is not None and question_index is not None:
         choice = _get_psychometric_answer(psycho_plan, question_index, row_index, option_count)
         if choice is not None:
-            blended_choice = _blend_psychometric_choice(
-                choice,
-                option_count,
-                probabilities,
-                priority_mode=priority_mode,
-            )
-            return _finalize_choice(blended_choice, anchor=choice)
+            # ------------- reliability_first 模式：直接返回锚点，仅做零权重保护 ------------------
+            if priority_mode == "reliability_first":
+                return _finalize_choice(choice, anchor=choice)
+            # 其他模式：现有混合逻辑
+            else:
+                blended_choice = _blend_psychometric_choice(
+                    choice,
+                    option_count,
+                    probabilities,
+                    priority_mode=priority_mode,
+                )
+                return _finalize_choice(blended_choice, anchor=choice)
         # 计划未命中时，回退到常规倾向逻辑
         logging.info(
             "心理测量计划未命中答案（题%d 行%s），回退到常规倾向逻辑",
