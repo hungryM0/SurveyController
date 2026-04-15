@@ -1,0 +1,41 @@
+name: Python Import CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  import-check:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run quick import check on push
+        if: github.event_name == 'push'
+        run: python CI/test_imports.py
+
+      - name: Run full import check on pull request
+        if: github.event_name == 'pull_request'
+        run: python CI/test_imports.py --full
+
+      - name: Run quick import check on manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: python CI/test_imports.py

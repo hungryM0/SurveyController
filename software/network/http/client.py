@@ -10,8 +10,30 @@ from typing import Any, Dict, Iterator, Optional, Tuple, Union
 from urllib.parse import urlsplit
 
 import httpx
+from packaging.version import InvalidVersion, Version
 
 from software.logging.log_utils import log_suppressed_exception
+
+
+_MIN_HTTPX_VERSION = Version("0.27.0")
+
+
+def _ensure_supported_httpx() -> None:
+    raw_version = getattr(httpx, "__version__", "")
+    try:
+        current_version = Version(raw_version)
+    except InvalidVersion as exc:
+        raise RuntimeError(
+            f"检测到无法识别的 httpx 版本：{raw_version!r}。请安装兼容版本：pip install \"httpx>=0.27,<1\""
+        ) from exc
+    if current_version < _MIN_HTTPX_VERSION:
+        raise RuntimeError(
+            f"当前 httpx 版本过旧：{current_version}。本项目需要 httpx>={_MIN_HTTPX_VERSION},<1。"
+            "请执行：pip install -U \"httpx>=0.27,<1\""
+        )
+
+
+_ensure_supported_httpx()
 
 
 _CLIENT_LIMITS = httpx.Limits(max_connections=20, max_keepalive_connections=10)

@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from typing import Iterable
 
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 TARGET_DIRS = [
     ROOT_DIR / "wjx",
     ROOT_DIR / "software",
@@ -581,7 +581,7 @@ def main() -> int:
     if total_issues == 0:
         if quick_mode:
             print("[PASS] 快检通过：语法编译、Ruff 静态检查和主窗口冒烟全部通过。")
-            print("[INFO] 如需额外检查包级循环导入等问题，请运行: python test_imports.py --full")
+            print("[INFO] 如需额外检查包级循环导入等问题，请运行: python CI/test_imports.py --full")
         else:
             print("[PASS] 完整检查通过：语法编译、Ruff 静态检查、模块导入和主窗口冒烟全部通过。")
         return 0

@@ -1,0 +1,4 @@
+name = "bot"
+main = "worker.js"
+compatibility_date = "2026-04-15"
+keep_vars = true

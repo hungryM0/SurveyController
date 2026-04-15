@@ -309,16 +309,18 @@ class ContactForm(
         wrapper.addWidget(self.attachments_section)
         wrapper.addWidget(self.request_payment_section)
 
-        # 支付确认行
-        donated_row = QHBoxLayout()
+        self.request_payment_confirm_section = QWidget(self)
+        donated_row = QHBoxLayout(self.request_payment_confirm_section)
+        donated_row.setContentsMargins(0, 0, 0, 0)
         donated_row.setSpacing(8)
-        self.donated_cb = CheckBox("我已完成支付，且确认随机ip可用", self)
-        self.open_donate_btn = PushButton(FluentIcon.HEART, "去支付", self)
+        self.donated_cb = CheckBox("我已完成支付，且确认随机ip可用", self.request_payment_confirm_section)
+        self.open_donate_btn = PushButton(FluentIcon.HEART, "去支付", self.request_payment_confirm_section)
         self.open_donate_btn.setToolTip("打开支付页面")
         donated_row.addStretch(1)
         donated_row.addWidget(self.open_donate_btn)
         donated_row.addWidget(self.donated_cb)
-        wrapper.addLayout(donated_row)
+        self.request_payment_confirm_section.hide()
+        wrapper.addWidget(self.request_payment_confirm_section)
 
         # 第四部分：底部状态与按钮
         bottom_layout = QHBoxLayout()
@@ -511,6 +513,7 @@ class ContactForm(
         if current_type == REQUEST_MESSAGE_TYPE:
             self.attachments_section.hide()
             self.request_payment_section.show()
+            self.request_payment_confirm_section.show()
             self.amount_label.show()
             self.amount_edit.show()
             self.quantity_label.show()
@@ -525,6 +528,7 @@ class ContactForm(
         else:
             self.attachments_section.show()
             self.request_payment_section.hide()
+            self.request_payment_confirm_section.hide()
             self.amount_label.hide()
             self.amount_edit.hide()
             self.quantity_label.hide()

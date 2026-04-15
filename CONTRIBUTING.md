@@ -15,8 +15,7 @@
 - Python：3.8+
 - 安装依赖：`pip install -r requirements.txt`。
 - 从源码运行：`python SurveyController.py`。
-- 导入检测：`python test_imports.py`（扫描 `wjx/`、`software/`、`tencent/` 下所有 `.py` 文件的 `import` 是否报错）。
-- 死代码检测：`python test_deadcode.py`（基于 vulture，扫描 `wjx/`、`software/`、`tencent/` 下未引用的死代码）。
+- 导入检测：`python CI/test_imports.py`（扫描 `wjx/`、`software/`、`tencent/` 下所有 `.py` 文件的 `import` 是否报错）。
 
 ## 仓库根目录
 
@@ -24,7 +23,9 @@
 仓库根目录
 ├── .github/
 │   ├── workflows/
-│   │   └── release-to-r2.yml  # CI/CD 自动发布到 R2
+│   │   ├── python-ci.yml     # Windows 平台 Python 导入/语法/主窗口快检
+│   │   ├── release-to-r2.yml   # CI/CD 自动发布安装包到 R2
+│   │   └── deploy-worker.yml   # CI/CD 自动部署 Cloudflare Worker
 │   └── ISSUE_TEMPLATE/        # Issue 模板（报错反馈、新功能请求）
 ├── README.md
 ├── LICENSE
@@ -37,8 +38,9 @@
 ├── doc/                  # 项目文档目录
 │   └── wjx-web-structure.md  # 问卷星网页结构与解析指南 (推荐必读)
 ├── rthook_pyside6.py     # PySide6 打包钩子
-├── test_imports.py       # 导入检测脚本
-├── test_deadcode.py      # 死代码检测脚本
+├── CI/                   # CI 与自动化辅助目录
+│   ├── test_imports.py   # 导入检测脚本
+│   └── worker/           # Cloudflare Worker 相关配置，用于发送联系开发者消息
 ├── test_reliability_modes.py  # 三模式信效度策略的最小回归检查
 ├── software/             # 软件主包（应用壳 + 共享核心 + 平台总调度）
 ├── tencent/              # 腾讯问卷主包
@@ -102,7 +104,7 @@ wjx/
    - **问卷星专属** → `wjx/provider/`（平台特定的解析、导航、提交和题型执行）
    - **腾讯问卷专属** → `tencent/provider/`（平台特定的解析、导航、提交和运行逻辑）
    - **顶层包** → 仅保留包标记文件，不要把实现代码再塞回 `tencent/`、`wjx/` 目录
-3. 自测：运行 `python test_imports.py` 和 `python test_deadcode.py` 检查 import、语法和死代码错误；至少手动跑一次核心流程（启动APP、加载问卷、配置参数、开始执行），确保无报错
+3. 自测：运行 `python CI/test_imports.py` 检查 import 和语法错误；至少手动跑一次核心流程（启动APP、加载问卷、配置参数、开始执行），确保无报错
 4. 提交：保持清晰提交信息，必要时补充中文注释和变更说明
 5. PR 描述：写明变更目的、主要改动点、测试方式与结果，关联相关 Issue（如有）
 
