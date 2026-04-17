@@ -119,7 +119,7 @@ def _collect_matrix_option_texts(soup, question_div, question_number: int) -> Tu
         # row_texts 已经按HTML顺序填充，无需再从map中提取
         pass
     elif table:
-        # 兼容没有 rowindex 的矩阵题：用表格行作为兜底
+        # 某些矩阵题没有 rowindex，直接按表格数据行提取行信息。
         data_rows = []
         header_id = f"drv{question_number}_1"
         for row in table.find_all("tr"):
@@ -150,7 +150,7 @@ def _collect_matrix_option_texts(soup, question_div, question_number: int) -> Tu
             if max_cols > 0:
                 option_texts = [str(i + 1) for i in range(max_cols)]
     if matrix_rows == 0 and question_div is not None:
-        # 再兜底：从输入控件名推断行列数
+        # 当表格结构不足以识别时，改从输入控件命名中推断行列数。
         try:
             inputs = question_div.find_all("input")
         except Exception:
@@ -218,7 +218,7 @@ def _collect_matrix_option_texts(soup, question_div, question_number: int) -> Tu
             option_texts = [text for text in option_texts if text]
     raw_option_texts = list(option_texts)
     option_texts = _postprocess_matrix_option_texts(option_texts)
-    # 兜底：若表头文本全为空或清洗后为空，按已有列数生成数字标题。
+    # 表头文本缺失时，按已识别的列数补数字标题。
     if not option_texts:
         fallback_columns = len([text for text in raw_option_texts if _normalize_html_text(text)])
         if fallback_columns > 0:

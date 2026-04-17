@@ -113,8 +113,6 @@ def apply_persona_boost(
                 break  # 一个选项只加成一次
     return boosted
 
-
-# TODO(清理): 疑似未使用，先保留，确认外部是否有引用再决定删除。
 def get_persona_name_gender() -> Tuple[Optional[str], Optional[str]]:
     """获取当前画像的性别信息，用于填空题生成姓名时保持一致。"""
     persona = get_current_persona()

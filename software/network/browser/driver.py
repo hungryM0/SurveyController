@@ -294,7 +294,7 @@ class BrowserManager:
                     return bool(checker())
             except Exception:
                 return False
-            # 旧版本 API 兜底：能读 contexts 认为还活着
+            # 某些浏览器实现没有 is_connected()，改用 contexts 可读性判断连接状态。
             try:
                 _ = browser.contexts
                 return True

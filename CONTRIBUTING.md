@@ -59,7 +59,7 @@ software/
 │   ├── engine/            # 共享执行流程；runner.py 仅保留薄入口，浏览器生命周期/停止策略/提交判定/线程主循环已拆到 browser_session_service.py、run_stop_policy.py、submission_service.py、execution_loop.py
 │   ├── modes/             # 作答模式与时长控制
 │   ├── persona/           # 人设与上下文生成
-│   ├── psychometrics/     # 心理测量题辅助逻辑；joint_optimizer.py 负责“保比例优先”的整批联合优化与样本槽位答案计划
+│   ├── psychometrics/     # 心理测量题辅助逻辑；orientation.py 负责按最终配比推断题目方向/维度锚点/反向题，joint_optimizer.py 负责“保比例优先”的整批联合优化与样本槽位答案计划
 │   ├── questions/         # 题目配置、分布、共享判定与文本共享常量；config.py 仅保留门面导出，schema.py/default_builder.py/normalization.py/validation.py 才是当前权威拆分
 │   └── task/              # 事件总线与执行模型；当前权威模型为 ExecutionConfig + ExecutionState，task_context.py 内只保留过渡别名供旧类型引用
 ├── integrations/

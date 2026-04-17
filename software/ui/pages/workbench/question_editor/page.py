@@ -1,5 +1,4 @@
 """题目配置数据容器。"""
-import logging
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import QObject, Signal
@@ -10,8 +9,6 @@ from software.core.questions.config import QuestionEntry
 
 from .add_dialog import QuestionAddDialog
 from .utils import build_entry_info_list
-
-logger = logging.getLogger(__name__)
 
 
 class QuestionStore(QObject):
@@ -67,8 +64,8 @@ class QuestionStore(QObject):
     def _refresh_data(self):
         try:
             self.entriesChanged.emit(int(len(self._entries)))
-        except Exception as exc:
-            logger.info(f"发送 entriesChanged 信号失败: {exc}")
+        except Exception:
+            pass
 
 
 class QuestionPage(ScrollArea):

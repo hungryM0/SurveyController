@@ -104,7 +104,7 @@ class RunControllerExecutionMixin:
             try:
                 callback()
             except Exception:
-                logging.info("无应用实例时同步 UI 回调执行失败", exc_info=True)
+                logging.debug("无应用实例时同步 UI 回调执行失败", exc_info=True)
             return
 
         if threading.current_thread() is threading.main_thread():
@@ -125,7 +125,7 @@ class RunControllerExecutionMixin:
             return None
         return result_container.get("value")
     def start_run(self, config: RuntimeConfig):  # noqa: C901
-        logging.info("收到启动请求")
+        logging.debug("收到启动请求")
 
         if self.running or self._starting:
             logging.warning("任务已在运行中，忽略重复启动请求")
@@ -136,7 +136,7 @@ class RunControllerExecutionMixin:
             self.runFailed.emit('未配置任何题目，无法开始执行（请先在"题目配置"页添加/配置题目）')
             return
 
-        logging.info("验证题目配置...")
+        logging.debug("验证题目配置...")
         questions_info = getattr(config, "questions_info", None)
         validation_error = validate_question_config(config.question_entries, questions_info)
         if validation_error:
@@ -144,7 +144,7 @@ class RunControllerExecutionMixin:
             self.runFailed.emit(f"题目配置存在冲突，无法启动：\n\n{validation_error}")
             return
 
-        logging.info("开始配置任务：目标%s份，%s个线程", config.target, config.threads)
+        logging.debug("开始配置任务：目标%s份，%s个线程", config.target, config.threads)
 
         self.config = config
         self.sync_runtime_ui_state_from_config(config)
@@ -172,9 +172,9 @@ class RunControllerExecutionMixin:
         try:
             set_proxy_occupy_minute_by_answer_duration(proxy_answer_duration)
         except Exception:
-            logging.info("同步随机IP占用时长失败", exc_info=True)
+            logging.debug("同步随机IP占用时长失败", exc_info=True)
 
-        logging.info("配置题目概率分布（共%s题）", len(config.question_entries))
+        logging.debug("配置题目概率分布（共%s题）", len(config.question_entries))
         pending_config = ExecutionConfig()
         pending_config.survey_provider = str(getattr(config, "survey_provider", "wjx") or "wjx")
         try:
@@ -221,7 +221,7 @@ class RunControllerExecutionMixin:
 
         _event_bus.emit(EVENT_TASK_STARTED, state=execution_state, config=execution_config)
 
-        logging.info("创建%s个工作线程", config.threads)
+        logging.debug("创建%s个工作线程", config.threads)
         threads: List[threading.Thread] = []
         for idx in range(config.threads):
             x = 50 + idx * 60
@@ -236,10 +236,10 @@ class RunControllerExecutionMixin:
             threads.append(t)
         self.worker_threads = threads
 
-        logging.info("启动所有工作线程")
+        logging.debug("启动所有工作线程")
         for idx, t in enumerate(threads):
             t.start()
-            logging.info("线程 %s/%s 已启动", idx + 1, len(threads))
+            logging.debug("线程 %s/%s 已启动", idx + 1, len(threads))
 
         monitor = threading.Thread(
             target=self._wait_for_threads,
@@ -248,7 +248,7 @@ class RunControllerExecutionMixin:
             name="Monitor",
         )
         monitor.start()
-        logging.info("任务启动完成，监控线程已启动")
+        logging.debug("任务启动完成，监控线程已启动")
     def _wait_for_threads(self, adapter_snapshot: Optional[Any] = None):
         for t in self.worker_threads:
             t.join()
@@ -311,12 +311,12 @@ class RunControllerExecutionMixin:
         try:
             self._status_timer.stop()
         except Exception:
-            logging.info("停止状态定时器失败", exc_info=True)
+            logging.debug("停止状态定时器失败", exc_info=True)
         try:
             if self.adapter:
                 self.adapter.resume_run()
         except Exception:
-            logging.info("停止时恢复暂停状态失败", exc_info=True)
+            logging.debug("停止时恢复暂停状态失败", exc_info=True)
         self._schedule_cleanup()
         if self._paused_state:
             self._paused_state = False
@@ -332,7 +332,7 @@ class RunControllerExecutionMixin:
         try:
             self.adapter.resume_run()
         except Exception:
-            logging.info("恢复运行时清除暂停状态失败", exc_info=True)
+            logging.debug("恢复运行时清除暂停状态失败", exc_info=True)
         if self._paused_state:
             self._paused_state = False
             self.pauseStateChanged.emit(False, "")
@@ -383,7 +383,7 @@ class RunControllerExecutionMixin:
             try:
                 thread_rows = ctx.snapshot_thread_progress()
             except Exception:
-                logging.info("获取线程进度快照失败", exc_info=True)
+                logging.debug("获取线程进度快照失败", exc_info=True)
                 thread_rows = []
             try:
                 num_threads = max(1, int(getattr(ctx, "num_threads", 1) or 1))

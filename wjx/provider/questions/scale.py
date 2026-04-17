@@ -52,7 +52,7 @@ def scale(
 
     scale_options = _collect_scale_options(question_div)
     if not scale_options:
-        # 兼容旧问卷结构：当 CSS 方案都未命中时，再走历史 XPath。
+        # CSS 结构未命中时，补一次旧 DOM 结构的 XPath 查找。
         scale_items_xpath = f'//*[@id="div{current}"]/div[2]/div/ul/li'
         scale_options = driver.find_elements(By.XPATH, scale_items_xpath)
 
@@ -92,7 +92,7 @@ def scale(
         selected_index,
         len(scale_options),
     )
-    # 记录作答上下文
+    # 保存本题选择，供后续题目和 AI 填空复用上下文。
     record_answer(current, "scale", selected_indices=[selected_index])
 
 

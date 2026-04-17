@@ -7,9 +7,9 @@ PSYCHO_SUPPORTED_TYPES = {"scale", "score", "dropdown", "matrix"}
 
 # 倾向预设选项（用于 SegmentedWidget）
 BIAS_PRESET_CHOICES = [
-    ("left", "低分倾向"),
+    ("left", "偏左"),
     ("center", "居中"),
-    ("right", "高分倾向"),
+    ("right", "偏右"),
     ("custom", "自定义"),
 ]
 

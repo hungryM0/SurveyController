@@ -1,5 +1,4 @@
 """UI 辅助函数"""
-import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtGui import QColor, QIntValidator
@@ -9,8 +8,6 @@ from qfluentwidgets import LineEdit
 from software.core.questions.config import QuestionEntry
 from software.providers.common import SURVEY_PROVIDER_WJX, normalize_survey_provider
 from software.ui.widgets.no_wheel import NoWheelSlider
-
-logger = logging.getLogger(__name__)
 
 
 def _shorten_text(text: str, limit: int = 80) -> str:
@@ -26,9 +23,7 @@ def _apply_label_color(label: QLabel, light: str, dark: str) -> None:
     """为标签设置浅色/深色主题颜色。"""
     try:
         getattr(label, 'setTextColor')(QColor(light), QColor(dark))
-    except AttributeError as e:
-        # setTextColor 方法不存在，使用样式表作为备选方案
-        logger.info(f"setTextColor 方法不可用，使用样式表: {e}")
+    except AttributeError:
         style = label.styleSheet() or ""
         style = style.strip()
         if style and not style.endswith(";"):
@@ -53,7 +48,6 @@ def _bind_slider_input(slider: NoWheelSlider, edit: LineEdit) -> None:
         try:
             value = int(text)
         except ValueError:
-            logger.info(f"滑块输入框数值转换失败: '{text}' 不是有效整数")
             return
         if value < min_value or value > max_value:
             return
@@ -66,7 +60,6 @@ def _bind_slider_input(slider: NoWheelSlider, edit: LineEdit) -> None:
         try:
             value = int(text)
         except ValueError:
-            logger.info(f"滑块输入框最终值转换失败: '{text}' 不是有效整数")
             return
         value = max(min_value, min(max_value, value))
         slider.setValue(value)

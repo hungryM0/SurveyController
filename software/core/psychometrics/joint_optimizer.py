@@ -7,6 +7,11 @@ import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from software.core.psychometrics.orientation import (
+    build_bias_target_probabilities,
+    infer_dimension_orientation,
+    normalize_probability_list,
+)
 from software.core.psychometrics.psychometric import PsychometricItem, compute_sigma_e_from_alpha
 from software.core.psychometrics.utils import cronbach_alpha, randn
 from software.core.questions.utils import normalize_droplist_probs
@@ -68,46 +73,6 @@ def _resolve_bias(raw_bias: Any, probability_config: Any, option_count: int) -> 
     return _infer_bias_from_probabilities(probability_config, option_count)
 
 
-def _normalize_probability_list(values: List[float]) -> List[float]:
-    cleaned: List[float] = []
-    for raw in values:
-        try:
-            value = max(0.0, float(raw))
-        except Exception:
-            value = 0.0
-        if math.isnan(value) or math.isinf(value):
-            value = 0.0
-        cleaned.append(value)
-    total = sum(cleaned)
-    if total <= 0.0:
-        if not cleaned:
-            return []
-        return [1.0 / len(cleaned)] * len(cleaned)
-    return [item / total for item in cleaned]
-
-
-def _build_bias_probabilities(option_count: int, bias: str) -> List[float]:
-    count = max(2, int(option_count or 2))
-    if count == 2:
-        if bias == "left":
-            return [0.75, 0.25]
-        if bias == "right":
-            return [0.25, 0.75]
-        return [0.5, 0.5]
-
-    if bias == "left":
-        linear = [1.0 - i / (count - 1) for i in range(count)]
-    elif bias == "right":
-        linear = [i / (count - 1) for i in range(count)]
-    else:
-        center = (count - 1) / 2.0
-        linear = [1.0 - abs(i - center) / max(center, 1.0) for i in range(count)]
-
-    power = 3 if bias == "center" else 8
-    raw = [math.pow(max(value, 0.0), power) for value in linear]
-    return _normalize_probability_list(raw)
-
-
 def _resolve_target_probabilities(
     probability_config: Any,
     option_count: int,
@@ -115,7 +80,7 @@ def _resolve_target_probabilities(
 ) -> List[float]:
     if probability_config == -1 or probability_config is None:
         if bias in _PSYCHO_BIAS_CHOICES:
-            return _build_bias_probabilities(option_count, bias)
+            return build_bias_target_probabilities(option_count, bias)
         return [1.0 / max(1, option_count)] * max(1, option_count)
     return normalize_droplist_probs(probability_config, option_count)
 
@@ -141,12 +106,14 @@ class PsychometricBlueprintItem:
                 row_index=self.row_index,
                 option_count=self.option_count,
                 bias=self.bias,
+                target_probabilities=list(self.target_probabilities),
             )
         return PsychometricItem(
             kind=self.question_type,
             question_index=self.question_index,
             option_count=self.option_count,
             bias=self.bias,
+            target_probabilities=list(self.target_probabilities),
         )
 
 
@@ -158,6 +125,10 @@ class JointPsychometricDimensionDiagnostic:
     target_alpha: float
     actual_alpha: float
     degraded_for_ratio: bool
+    anchor_direction: str = "center"
+    anchor_strength: float = 0.0
+    reverse_item_count: int = 0
+    ambiguous_anchor: bool = False
     skipped: bool = False
     reason: str = ""
 
@@ -324,7 +295,7 @@ def _build_integer_quotas(target_probabilities: List[float], sample_count: int) 
     if sample_count <= 0:
         return [0] * len(target_probabilities)
 
-    normalized = _normalize_probability_list(target_probabilities)
+    normalized = normalize_probability_list(target_probabilities)
     raw_targets = [value * sample_count for value in normalized]
     quotas = [int(math.floor(value)) for value in raw_targets]
     remainders = [raw_targets[idx] - quotas[idx] for idx in range(len(raw_targets))]
@@ -367,6 +338,8 @@ def _assign_choices_from_scores(scores: List[float], quotas: List[int]) -> List[
 def _build_sigma_candidates(target_alpha: float, item_count: int) -> List[float]:
     base_sigma = max(0.0, float(compute_sigma_e_from_alpha(target_alpha, item_count)))
     candidates = [
+        base_sigma * 1.5,
+        base_sigma * 1.2,
         base_sigma,
         base_sigma * 0.8,
         base_sigma * 0.6,
@@ -390,21 +363,27 @@ def _evaluate_dimension_plan(
     items: List[PsychometricBlueprintItem],
     sample_count: int,
     sigma_e: float,
+    theta: List[float],
+    reversed_keys: set[str],
 ) -> tuple[float, Dict[str, List[int]]]:
-    theta = [randn() for _ in range(sample_count)]
     choices_by_item: Dict[str, List[int]] = {}
     response_rows = [[0.0] * len(items) for _ in range(sample_count)]
 
     for item_index, item in enumerate(items):
+        is_reversed = item.choice_key in reversed_keys
         quotas = _build_integer_quotas(item.target_probabilities, sample_count)
+        sign = -1.0 if is_reversed else 1.0
         scores = [
-            theta[sample_index] + (sigma_e * randn()) + (_MICRO_JITTER_SIGMA * randn())
+            sign * theta[sample_index] + (sigma_e * randn()) + (_MICRO_JITTER_SIGMA * randn())
             for sample_index in range(sample_count)
         ]
         assigned = _assign_choices_from_scores(scores, quotas)
         choices_by_item[item.choice_key] = assigned
         for sample_index, choice in enumerate(assigned):
-            response_rows[sample_index][item_index] = float(choice + 1)
+            if is_reversed:
+                response_rows[sample_index][item_index] = float(item.option_count - choice)
+            else:
+                response_rows[sample_index][item_index] = float(choice + 1)
 
     return cronbach_alpha(response_rows), choices_by_item
 
@@ -451,14 +430,20 @@ def build_joint_psychometric_answer_plan(config: "ExecutionConfig") -> Optional[
 
         best_alpha = -1.0
         best_choices_by_item: Dict[str, List[int]] = {}
+        theta = [randn() for _ in range(sample_count)]
+        dimension_orientation = infer_dimension_orientation(items)
+        reversed_keys = set(dimension_orientation.reversed_keys)
         for sigma_e in _build_sigma_candidates(target_alpha, item_count):
-            current_alpha, current_choices = _evaluate_dimension_plan(items, sample_count, sigma_e)
+            current_alpha, current_choices = _evaluate_dimension_plan(items, sample_count, sigma_e, theta, reversed_keys)
             if current_alpha > best_alpha:
                 best_alpha = current_alpha
                 best_choices_by_item = current_choices
 
         actual_alpha = max(0.0, float(best_alpha))
         degraded_for_ratio = actual_alpha + 1e-6 < target_alpha
+        reason = ""
+        if dimension_orientation.ambiguous_anchor:
+            reason = "维度主方向不明确，未自动判反向题"
         diagnostics_by_dimension[normalized_dimension] = JointPsychometricDimensionDiagnostic(
             dimension=normalized_dimension,
             item_count=item_count,
@@ -466,20 +451,30 @@ def build_joint_psychometric_answer_plan(config: "ExecutionConfig") -> Optional[
             target_alpha=target_alpha,
             actual_alpha=actual_alpha,
             degraded_for_ratio=degraded_for_ratio,
+            anchor_direction=dimension_orientation.anchor_direction,
+            anchor_strength=dimension_orientation.anchor_strength,
+            reverse_item_count=len(reversed_keys),
+            ambiguous_anchor=dimension_orientation.ambiguous_anchor,
+            reason=reason,
         )
         if degraded_for_ratio:
             logger.warning(
-                "维度[%s]已保比例优先，实际α=%.3f 低于目标α=%.3f",
+                "维度[%s]已保比例优先，实际α=%.3f 低于目标α=%.3f，主方向=%s，反向题=%d，锚点明确=%s",
                 normalized_dimension,
                 actual_alpha,
                 target_alpha,
+                dimension_orientation.anchor_direction,
+                len(reversed_keys),
+                "否" if dimension_orientation.ambiguous_anchor else "是",
             )
         else:
             logger.info(
-                "维度[%s]联合优化完成，实际α=%.3f，目标α=%.3f",
+                "维度[%s]联合优化完成，实际α=%.3f，目标α=%.3f，主方向=%s，反向题=%d",
                 normalized_dimension,
                 actual_alpha,
                 target_alpha,
+                dimension_orientation.anchor_direction,
+                len(reversed_keys),
             )
 
         for item in items:

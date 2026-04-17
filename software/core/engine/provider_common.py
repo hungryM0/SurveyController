@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urlparse
 
 from software.core.persona.context import reset_context as _reset_answer_context
@@ -23,23 +23,15 @@ from software.core.questions.tendency import reset_tendency
 
 def _build_grouped_runtime_items(
     config: ExecutionConfig,
-) -> Dict[str, List[Tuple[int, str, int, str, Optional[int]]]]:
-    grouped_items: Dict[str, List[Tuple[int, str, int, str, Optional[int]]]] = {}
+) -> Dict[str, List[Any]]:
+    grouped_items: Dict[str, List[Any]] = {}
     for dimension, items in build_psychometric_blueprint(config).items():
         normalized_dimension = str(dimension or "").strip()
         if not normalized_dimension:
             continue
         bucket = grouped_items.setdefault(normalized_dimension, [])
         for item in items:
-            bucket.append(
-                (
-                    item.question_index,
-                    item.question_type,
-                    item.option_count,
-                    item.bias,
-                    item.row_index,
-                )
-            )
+            bucket.append(item.to_runtime_item())
     return grouped_items
 
 
@@ -127,10 +119,13 @@ def provider_run_context(
             if not bool(getattr(diagnostic, "degraded_for_ratio", False)):
                 continue
             logging.warning(
-                "维度[%s]已保比例优先，实际α=%.3f 低于目标α=%.3f",
+                "维度[%s]已保比例优先，实际α=%.3f 低于目标α=%.3f，主方向=%s，反向题=%d，锚点明确=%s",
                 getattr(diagnostic, "dimension", ""),
                 float(getattr(diagnostic, "actual_alpha", 0.0) or 0.0),
                 float(getattr(diagnostic, "target_alpha", 0.0) or 0.0),
+                str(getattr(diagnostic, "anchor_direction", "center") or "center"),
+                int(getattr(diagnostic, "reverse_item_count", 0) or 0),
+                "否" if bool(getattr(diagnostic, "ambiguous_anchor", False)) else "是",
             )
     elif resolved_plan is not None:
         dimension_count = len(getattr(resolved_plan, "plans", {}) or {})

@@ -18,6 +18,12 @@ from software.core.psychometrics.joint_optimizer import (
     build_psychometric_blueprint,
     build_psychometric_choice_key,
 )
+from software.core.psychometrics.orientation import (
+    PsychometricDimensionOrientation,
+    PsychometricItemOrientation,
+    infer_dimension_orientation,
+    infer_item_orientation,
+)
 from software.core.psychometrics.utils import (
     randn,
     normal_inv,
@@ -25,6 +31,7 @@ from software.core.psychometrics.utils import (
     variance,
     correlation,
     cronbach_alpha,
+    infer_reversed_keys,
 )
 
 __all__ = [
@@ -42,11 +49,16 @@ __all__ = [
     "build_joint_psychometric_answer_plan",
     "build_psychometric_blueprint",
     "build_psychometric_choice_key",
+    "PsychometricDimensionOrientation",
+    "PsychometricItemOrientation",
+    "infer_dimension_orientation",
+    "infer_item_orientation",
     "randn",
     "normal_inv",
     "z_to_category",
     "variance",
     "correlation",
     "cronbach_alpha",
+    "infer_reversed_keys",
 ]
 

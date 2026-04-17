@@ -3,7 +3,9 @@
 """
 import math
 import random
-from typing import List
+from typing import Any, List
+
+from software.core.psychometrics.orientation import infer_dimension_orientation
 
 # 逆正态分布函数的系数
 _NORMAL_INV_COEFFS = {
@@ -129,6 +131,11 @@ def correlation(xs: List[float], ys: List[float]) -> float:
     
     den = math.sqrt(dx * dy)
     return num / den if den != 0 else 0.0
+
+
+def infer_reversed_keys(items: List[Any]) -> set[str]:
+    """根据最终目标配比推断反向题。"""
+    return set(infer_dimension_orientation(items).reversed_keys)
 
 
 def cronbach_alpha(matrix: List[List[float]]) -> float:

@@ -37,7 +37,7 @@ def question_summary(entry: QuestionEntry) -> str:
     """生成题目配置摘要"""
     bias = getattr(entry, "psycho_bias", "custom") or "custom"
     if getattr(entry, "question_type", "") in PSYCHO_SUPPORTED_TYPES and bias in ("left", "center", "right"):
-        bias_text = {"left": "低分倾向", "center": "居中", "right": "高分倾向"}.get(bias, bias)
+        bias_text = {"left": "偏左", "center": "居中", "right": "偏右"}.get(bias, bias)
         return f"倾向预设: {bias_text}"
 
     if entry.question_type in ("text", "multi_text"):

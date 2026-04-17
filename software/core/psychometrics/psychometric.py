@@ -3,8 +3,9 @@
 """
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
+from software.core.psychometrics.orientation import build_bias_target_probabilities, infer_dimension_orientation
 from software.core.psychometrics.utils import randn, z_to_category
 
 logger = logging.getLogger(__name__)
@@ -43,17 +44,15 @@ def generate_psycho_answer(
     option_count: int,
     bias: str = "center",
     sigma_e: float = 0.5,
+    is_reversed: bool = False,
 ) -> int:
-    """从潜变量生成单个题目的答案"""
-    # 偏向处理：使用 ±0.5 标准差的偏移
-    # 这样可以产生明显的偏向效果，但不会导致极端的分布集中
-    # 对于标准正态分布，±0.5 约等于 19% 的分位点偏移
+    """从潜变量生成单个题目的答案。
+
+    is_reversed=True 时先取反 theta，再叠加 bias 对应的左右偏移。
+    """
     bias_shift = -0.5 if bias == "left" else 0.5 if bias == "right" else 0.0
-    
-    # 生成带误差的观测值
-    z = theta + bias_shift + sigma_e * randn()
-    
-    # 转换为离散选项
+    effective_theta = -theta if is_reversed else theta
+    z = effective_theta + bias_shift + sigma_e * randn()
     return z_to_category(z, option_count)
 
 
@@ -65,6 +64,67 @@ class PsychometricItem:
     row_index: Optional[int] = None  # 矩阵题的行索引
     option_count: int = 5  # 选项数量
     bias: str = "center"  # 偏向
+    target_probabilities: Optional[List[float]] = None  # 最终目标配比（无则按预设补）
+
+    @property
+    def choice_key(self) -> str:
+        return _build_choice_key(self.question_index, self.row_index)
+
+
+def _coerce_psychometric_item(raw_item: Any) -> Optional[PsychometricItem]:
+    if isinstance(raw_item, PsychometricItem):
+        probabilities = raw_item.target_probabilities
+        if not isinstance(probabilities, list) or not probabilities:
+            probabilities = build_bias_target_probabilities(raw_item.option_count, raw_item.bias)
+        return PsychometricItem(
+            kind=raw_item.kind,
+            question_index=raw_item.question_index,
+            row_index=raw_item.row_index,
+            option_count=raw_item.option_count,
+            bias=raw_item.bias,
+            target_probabilities=list(probabilities),
+        )
+
+    if isinstance(raw_item, (tuple, list)) and len(raw_item) >= 5:
+        q_idx, q_type, opt_count, bias, row_idx = raw_item[:5]
+        probabilities = raw_item[5] if len(raw_item) >= 6 else None
+        if not isinstance(probabilities, list) or not probabilities:
+            probabilities = build_bias_target_probabilities(int(opt_count or 5), str(bias or "center"))
+        kind = "matrix_row" if q_type == "matrix" and row_idx is not None else q_type
+        return PsychometricItem(
+            kind=str(kind or "scale"),
+            question_index=int(q_idx or 0),
+            row_index=row_idx if row_idx is None else int(row_idx),
+            option_count=max(2, int(opt_count or 5)),
+            bias=str(bias or "center"),
+            target_probabilities=list(probabilities),
+        )
+
+    to_runtime_item = getattr(raw_item, "to_runtime_item", None)
+    if callable(to_runtime_item):
+        runtime_item = to_runtime_item()
+        return _coerce_psychometric_item(runtime_item)
+
+    question_index = getattr(raw_item, "question_index", None)
+    if question_index is None:
+        return None
+    row_index = getattr(raw_item, "row_index", None)
+    kind = getattr(raw_item, "kind", getattr(raw_item, "question_type", "scale"))
+    if kind == "matrix" and row_index is not None:
+        kind = "matrix_row"
+    option_count = max(2, int(getattr(raw_item, "option_count", 5) or 5))
+    bias = str(getattr(raw_item, "bias", "center") or "center")
+    probabilities = getattr(raw_item, "target_probabilities", None)
+    if not isinstance(probabilities, list) or not probabilities:
+        probabilities = build_bias_target_probabilities(option_count, bias)
+    return PsychometricItem(
+        kind=str(kind or "scale"),
+        question_index=int(question_index or 0),
+        row_index=row_index if row_index is None else int(row_index),
+        option_count=option_count,
+        bias=bias,
+        target_probabilities=list(probabilities),
+    )
 
 
 @dataclass
@@ -108,7 +168,7 @@ class DimensionPsychometricPlan:
 
 
 def build_psychometric_plan(
-    psycho_items: List[Tuple[int, str, int, str, Optional[int]]],
+    psycho_items: List[Any],
     target_alpha: float = 0.9,
 ) -> Optional[PsychometricPlan]:
     """构建信效度生成计划"""
@@ -118,23 +178,11 @@ def build_psychometric_plan(
     # 构建题目项列表
     items: List[PsychometricItem] = []
     
-    for q_idx, q_type, opt_count, bias, row_idx in psycho_items:
-        if q_type == "matrix" and row_idx is not None:
-            items.append(PsychometricItem(
-                kind="matrix_row",
-                question_index=q_idx,
-                row_index=row_idx,
-                option_count=opt_count,
-                bias=bias,
-            ))
-        else:
-            items.append(PsychometricItem(
-                kind=q_type,
-                question_index=q_idx,
-                option_count=opt_count,
-                bias=bias,
-            ))
-    
+    for raw_item in psycho_items:
+        item = _coerce_psychometric_item(raw_item)
+        if item is not None:
+            items.append(item)
+
     k = len(items)
     if k < 2:
         logger.warning("心理测量计划需要至少2道题目，当前只有 %d 道", k)
@@ -148,20 +196,30 @@ def build_psychometric_plan(
     
     # 为每个题目生成答案
     choices: Dict[str, int] = {}
-    
+    dimension_orientation = infer_dimension_orientation(items)
+    reversed_keys = set(dimension_orientation.reversed_keys)
+
     for item in items:
+        item_orientation = dimension_orientation.item_orientations.get(item.choice_key)
+        effective_bias = item_orientation.direction if item_orientation is not None else item.bias
         choice = generate_psycho_answer(
             theta=theta,
             option_count=item.option_count,
-            bias=item.bias,
+            bias=effective_bias,
             sigma_e=sigma_e,
+            is_reversed=item.choice_key in reversed_keys,
         )
-        
+
         choices[_build_choice_key(item.question_index, item.row_index)] = choice
-    
+
     logger.info(
-        "心理测量计划已启用 | 目标α=%.2f 题数=%d θ=%.2f σ_e=%.2f",
-        target_alpha, k, theta, sigma_e
+        "心理测量计划已启用 | 目标α=%.2f 题数=%d θ=%.2f σ_e=%.2f 主方向=%s 反向题=%d",
+        target_alpha,
+        k,
+        theta,
+        sigma_e,
+        getattr(dimension_orientation, "anchor_direction", "center"),
+        len(reversed_keys),
     )
     
     return PsychometricPlan(
@@ -173,7 +231,7 @@ def build_psychometric_plan(
 
 
 def build_dimension_psychometric_plan(
-    grouped_items: Dict[str, List[Tuple[int, str, int, str, Optional[int]]]],
+    grouped_items: Dict[str, List[Any]],
     target_alpha: float = 0.9,
 ) -> Optional[DimensionPsychometricPlan]:
     """按维度分别构建心理测量计划。"""

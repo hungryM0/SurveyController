@@ -154,7 +154,7 @@ def _click_single_option(driver: BrowserDriver, current: int, selected_option: i
             return True
 
     try:
-        # 兜底：基于标准问卷星结构按序号点击
+        # 按标准问卷星 DOM 顺序定位选项并点击。
         fallback = driver.find_element(
             By.CSS_SELECTOR, f"#div{current} > div.ui-controlgroup > div:nth-child({selected_option})"
         )
@@ -169,7 +169,7 @@ def _click_single_option(driver: BrowserDriver, current: int, selected_option: i
         log_suppressed_exception("single: css nth-child fallback", exc, level=logging.ERROR)
 
     try:
-        # 最后兜底：直接把目标 radio 设为 checked 并触发事件
+        # 当前端点击链路失效时，直接设置 radio 状态并补发事件。
         forced = driver.execute_script(
             """
             const rootId = arguments[0];

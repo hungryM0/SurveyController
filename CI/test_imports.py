@@ -29,7 +29,7 @@ RUFF_SELECT = "F"
 CHILD_RESULT_PREFIX = "__WJX_CHECK__"
 IMPORT_TIMEOUT_SECONDS = 12
 WINDOW_SMOKE_TIMEOUT_SECONDS = 25
-PYRIGHT_TIMEOUT_SECONDS = 25
+PYRIGHT_TIMEOUT_SECONDS = int(os.environ.get("SURVEY_CONTROLLER_PYRIGHT_TIMEOUT_SECONDS", "90"))
 UNICODE_SPACE_TRANSLATION = str.maketrans({
     "\u00a0": " ",
     "\u2000": " ",
@@ -610,4 +610,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

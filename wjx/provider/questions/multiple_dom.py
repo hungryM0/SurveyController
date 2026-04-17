@@ -74,7 +74,7 @@ def _collect_multiple_option_elements(driver: BrowserDriver, question_number: in
         if options:
             return options, source
 
-    # 兜底：直接用 checkbox input（某些模板没有可点击容器）
+    # 某些模板没有独立的可点击容器，直接回收 checkbox input。
     try:
         checkbox_inputs = container.find_elements(By.CSS_SELECTOR, "input[type='checkbox']")
     except Exception:

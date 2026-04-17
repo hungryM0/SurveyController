@@ -16,7 +16,7 @@ def _driver_question_looks_like_reorder(question_div) -> bool:
     except Exception as exc:
         log_suppressed_exception("dom_helpers._driver_question_looks_like_reorder quick check", exc)
     try:
-        # 仅作为兜底：需要同时满足“存在列表项”与“具备排序/拖拽特征”，避免误判普通题型
+        # 只有同时看到列表项和排序/拖拽特征时，才认定为排序题，避免误判普通列表题。
         has_list_items = bool(question_div.find_elements(By.CSS_SELECTOR, "ul li, ol li"))
         has_sort_signature = bool(
             question_div.find_elements(By.CSS_SELECTOR, ".ui-sortable, .ui-sortable-handle, [class*='sort']")

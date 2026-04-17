@@ -8,9 +8,9 @@ from software.core.questions.config import QuestionEntry
 
 DIMENSION_SUPPORTED_TYPES = {"scale", "score", "matrix"}
 _BIAS_TEXT_MAP = {
-    "left": "低分倾向",
+    "left": "偏左",
     "center": "居中",
-    "right": "高分倾向",
+    "right": "偏右",
     "custom": "自定义",
 }
 
