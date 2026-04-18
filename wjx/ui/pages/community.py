@@ -167,7 +167,7 @@ class CommunityPage(ScrollArea):
         left.addWidget(title)
 
         desc = BodyLabel(
-            "本项目基于 GPL-3.0 许可证公开全部源代码！\n"
+            "本项目基于 AGPL-3.0 许可证公开全部源代码！\n"
             "欢迎各位提出改进建议或直接贡献代码",
             card,
         )
@@ -180,7 +180,7 @@ class CommunityPage(ScrollArea):
         license_label = CaptionLabel("License：", card)
         license_label.setStyleSheet("font-size: 14px; color: #888; letter-spacing: 1px;")
         license_row.addWidget(license_label)
-        gpl = StrongBodyLabel("GPL-3.0", card)
+        gpl = StrongBodyLabel("AGPL-3.0", card)
         gpl.setStyleSheet("font-size: 15px; letter-spacing: 1px;")
         license_row.addWidget(gpl)
         license_row.addStretch(1)
