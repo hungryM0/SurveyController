@@ -665,17 +665,14 @@ class RandomUASettingCard(ExpandGroupSettingCard):
 
 
 class ReliabilitySettingCard(ExpandGroupSettingCard):
-    """信效度设置卡 - 开关 + 目标 Alpha 输入框
-
-    使用 ExpandGroupSettingCard 承载一个总开关和一行数值输入：
-    - 开关：控制是否启用信效度优化
-    - 输入框：目标 Cronbach's Alpha 系数，范围 0.70-0.95
+    """
+    信效度设置卡 - 开关 + 目标 Alpha 输入框
     """
     def __init__(self, parent=None):
         super().__init__(
             FluentIcon.CERTIFICATE,
             "提升问卷信效度",
-            "启用后会对量表/评分/下拉/矩阵等信效度题型优先锁定整批配比，再尽量提高维度一致性。",
+            "仅对量表/评分/矩阵量表题型生效，不确保信度完全符合预期，请勿用于正式环境。",
             parent,
         )
 
@@ -713,13 +710,6 @@ class ReliabilitySettingCard(ExpandGroupSettingCard):
         alpha_row.addWidget(self.alphaEdit)
 
         layout.addLayout(alpha_row)
-        hint_label = BodyLabel(
-            "系统会固定按“先保配比、再尽量拉高信度”的统一策略执行；若目标 α 做不到，会保留配比并下调实际信度。",
-            self._groupContainer,
-        )
-        hint_label.setStyleSheet("color: #606060; font-size: 12px;")
-        layout.addWidget(hint_label)
-
 
         self.addGroupWidget(self._groupContainer)
         self.setExpand(True)

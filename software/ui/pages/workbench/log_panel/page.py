@@ -8,7 +8,6 @@ from PySide6.QtGui import QFont, QTextCursor
 from qfluentwidgets import (
     SubtitleLabel,
     PushButton,
-    ComboBox,
     InfoBar,
     InfoBarPosition,
     FluentIcon as FIF,
@@ -40,15 +39,6 @@ LOG_COLORS_LIGHT = {
     "DEFAULT": "#4b5563", # 默认深灰
 }
 
-# 日志级别筛选选项
-LOG_LEVELS = [
-    ("全部", None),
-    ("仅错误", "ERROR"),
-    ("警告及以上", "WARN"),
-    ("信息及以上", "INFO"),
-]
-
-
 class LogPage(QWidget):
     """独立的日志页，放在侧边栏。"""
 
@@ -56,7 +46,6 @@ class LogPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._current_filter = None
         self._force_full_refresh = True
         self._last_seen_record = None
         self._stick_to_bottom = True  # 用户是否希望自动跟随最新日志
@@ -82,16 +71,12 @@ class LogPage(QWidget):
         toolbar.setSpacing(8)
 
         self.save_btn = PushButton("导出到文件", self, FIF.SAVE)
-
-        # 日志级别筛选
-        self.level_combo = ComboBox(self)
-        self.level_combo.setMinimumWidth(120)
-        for text, _ in LOG_LEVELS:
-            self.level_combo.addItem(text)
+        self.feedback_btn = PushButton("报错反馈", self, FIF.HELP)
+        self.feedback_btn.setToolTip("打开联系开发者，并直接选择“报错反馈”")
 
         toolbar.addWidget(self.save_btn)
         toolbar.addStretch(1)
-        toolbar.addWidget(self.level_combo)
+        toolbar.addWidget(self.feedback_btn)
         layout.addLayout(toolbar)
 
         # 日志显示区域
@@ -126,7 +111,7 @@ class LogPage(QWidget):
 
     def _bind_events(self):
         self.save_btn.clicked.connect(self.save_logs)
-        self.level_combo.currentIndexChanged.connect(self._on_filter_changed)
+        self.feedback_btn.clicked.connect(self._open_bug_report_dialog)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -134,33 +119,22 @@ class LogPage(QWidget):
             self._refresh_timer.start()
         QTimer.singleShot(0, self.refresh_logs)
 
-    def _on_filter_changed(self, index):
-        """日志级别筛选变化"""
-        self._current_filter = LOG_LEVELS[index][1] if index < len(LOG_LEVELS) else None
-        self._force_full_refresh = True
-        self.refresh_logs()
-
-    def _get_log_level(self, entry):
-        """获取日志级别"""
-        level = str(getattr(entry, "level", getattr(entry, "category", "")) or "").upper()
-        if level.startswith("ERROR"):
-            return "ERROR"
-        elif level.startswith("WARN"):
-            return "WARN"
-        elif level.startswith("OK"):
-            return "OK"
-        elif level.startswith("INFO"):
-            return "INFO"
-        return "DEFAULT"
-
-    def _should_show(self, level):
-        """根据筛选条件判断是否显示"""
-        if self._current_filter is None:
-            return True
-        priority = {"ERROR": 4, "WARN": 3, "WARNING": 3, "INFO": 2, "OK": 2, "DEFAULT": 0}
-        filter_priority = priority.get(self._current_filter, 0)
-        level_priority = priority.get(level, 0)
-        return level_priority >= filter_priority
+    def _open_bug_report_dialog(self):
+        """打开“报错反馈”联系开发者对话框。"""
+        win = self.window()
+        if hasattr(win, "_open_contact_dialog"):
+            try:
+                win._open_contact_dialog(default_type="报错反馈", lock_message_type=True)  # type: ignore[union-attr]
+                return
+            except Exception as exc:
+                log_suppressed_exception("_open_bug_report_dialog", exc, level=logging.WARNING)
+        InfoBar.error(
+            "",
+            "报错反馈窗口打开失败，请稍后重试",
+            parent=self.window(),
+            position=InfoBarPosition.TOP,
+            duration=3000,
+        )
 
     def refresh_logs(self):
         """完全异步的日志刷新：版本号检测 + 无锁读取
@@ -211,9 +185,6 @@ class LogPage(QWidget):
                 # 【优化 3】批量渲染：先拼接字符串，再一次性追加
                 new_lines = []
                 for entry in new_entries:
-                    level = self._get_log_level(entry)
-                    if not self._should_show(level):
-                        continue
                     text = entry.text if hasattr(entry, "text") else str(entry)
                     new_lines.append(text)
 
@@ -233,9 +204,6 @@ class LogPage(QWidget):
         # 全量刷新：重新渲染所有日志
         lines = []
         for entry in records:
-            level = self._get_log_level(entry)
-            if not self._should_show(level):
-                continue
             text = entry.text if hasattr(entry, "text") else str(entry)
             lines.append(text)
 

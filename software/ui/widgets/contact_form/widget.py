@@ -287,9 +287,9 @@ class ContactForm(
         attachments_box.addWidget(self.attach_placeholder)
 
         self.auto_attach_section = QWidget(self)
-        auto_attach_layout = QVBoxLayout(self.auto_attach_section)
+        auto_attach_layout = QHBoxLayout(self.auto_attach_section)
         auto_attach_layout.setContentsMargins(0, 0, 0, 0)
-        auto_attach_layout.setSpacing(6)
+        auto_attach_layout.setSpacing(12)
         self.auto_attach_title = BodyLabel("附加排障文件：", self.auto_attach_section)
         self.auto_attach_config_checkbox = CheckBox("上传当前运行配置", self.auto_attach_section)
         self.auto_attach_log_checkbox = CheckBox("上传当前日志", self.auto_attach_section)
@@ -298,6 +298,7 @@ class ContactForm(
         auto_attach_layout.addWidget(self.auto_attach_title)
         auto_attach_layout.addWidget(self.auto_attach_config_checkbox)
         auto_attach_layout.addWidget(self.auto_attach_log_checkbox)
+        auto_attach_layout.addStretch(1)
         self.auto_attach_section.hide()
 
         self.request_payment_section = QWidget(self)
@@ -325,8 +326,8 @@ class ContactForm(
         # 组装表单、消息、附件
         wrapper.addLayout(form_layout)
         wrapper.addLayout(msg_layout, 1) # 给消息框最大的 stretch
-        wrapper.addWidget(self.attachments_section)
         wrapper.addWidget(self.auto_attach_section)
+        wrapper.addWidget(self.attachments_section)
         wrapper.addWidget(self.request_payment_section)
 
         self.request_payment_confirm_section = QWidget(self)

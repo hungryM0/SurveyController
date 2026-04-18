@@ -281,26 +281,23 @@ class ContactFormSubmissionMixin:
             full_message += f"支付金额：￥{request_amount_text}\n"
             full_message += f"申请额度：{request_quota_text}\n"
             full_message += f"紧急程度：{request_urgency_text or '中'}\n"
-            full_message += f"补充说明：{message or '未填写'}"
+            full_message += f"\n补充说明：{message or '未填写'}"
         else:
-            full_message += f"消息：{message}"
+            full_message += f"\n消息：{message}"
 
         api_url = CONTACT_API_URL
         if not api_url:
             InfoBar.error("", "联系API未配置", parent=self, position=InfoBarPosition.TOP, duration=3000)
             return
-        attachment_summary_lines: list[str] = []
         manual_files_payload = [] if mtype == REQUEST_MESSAGE_TYPE else self._attachments.files_payload()
         auto_files_payload: list[tuple[str, tuple[str, bytes, str]]] = []
         if self._is_bug_report_type(mtype):
             try:
-                auto_files_payload, attachment_summary_lines = self._build_bug_report_auto_files_payload()
+                auto_files_payload, _ = self._build_bug_report_auto_files_payload()
             except Exception as exc:
                 self._cleanup_pending_temp_files()
                 InfoBar.error("", f"自动导出附件失败：{exc}", parent=self, position=InfoBarPosition.TOP, duration=3500)
                 return
-            attachment_summary_lines.append(f"手动截图：{len(manual_files_payload)} 张")
-            full_message += "\n\n附件情况：\n" + "\n".join(attachment_summary_lines)
         payload = {"message": full_message, "timestamp": datetime.now().isoformat()}
         files_payload = self._renumber_files_payload(manual_files_payload + auto_files_payload)
 
