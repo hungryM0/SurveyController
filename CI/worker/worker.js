@@ -117,7 +117,7 @@ async function sendTelegramRequest(apiBase, endpoint, init) {
 }
 
 async function sendMessage(apiBase, chatId, text, options = {}) {
-  await sendTelegramRequest(apiBase, "sendMessage", {
+  return sendTelegramRequest(apiBase, "sendMessage", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -128,7 +128,7 @@ async function sendMessage(apiBase, chatId, text, options = {}) {
   });
 }
 
-async function sendSingleFile(apiBase, chatId, file, caption) {
+async function sendSingleFile(apiBase, chatId, file, caption, options = {}) {
   const isImage = file.type && file.type.startsWith("image/");
   const form = new FormData();
   form.append("chat_id", chatId);
@@ -136,8 +136,11 @@ async function sendSingleFile(apiBase, chatId, file, caption) {
   if (caption) {
     form.append("caption", caption);
   }
+  if (options.reply_markup) {
+    form.append("reply_markup", JSON.stringify(options.reply_markup));
+  }
 
-  await sendTelegramRequest(apiBase, isImage ? "sendPhoto" : "sendDocument", {
+  return sendTelegramRequest(apiBase, isImage ? "sendPhoto" : "sendDocument", {
     method: "POST",
     body: form,
   });
@@ -179,40 +182,40 @@ async function sendMediaGroup(apiBase, chatId, fileList, caption) {
   });
 
   form.append("media", JSON.stringify(media));
-  await sendTelegramRequest(apiBase, "sendMediaGroup", {
+  return sendTelegramRequest(apiBase, "sendMediaGroup", {
     method: "POST",
     body: form,
   });
 }
 
-async function sendHomogeneousFiles(apiBase, chatId, fileList, caption) {
+async function sendHomogeneousFiles(apiBase, chatId, fileList, caption, options = {}) {
   if (!fileList.length) {
     return;
   }
   if (fileList.length === 1) {
-    await sendSingleFile(apiBase, chatId, fileList[0], caption);
-    return;
+    return sendSingleFile(apiBase, chatId, fileList[0], caption, options);
   }
-  await sendMediaGroup(apiBase, chatId, fileList, caption);
+  return sendMediaGroup(apiBase, chatId, fileList, caption);
 }
 
 function buildTaskCallbackData(userId) {
   return `done:${userId}`;
 }
 
-function buildTaskCardText(userId) {
-  return [
-    "待处理工单",
-    `工单用户ID：${userId}`,
-    "点击下方按钮后，群里会追加一条已处理通知。",
-  ].join("\n");
+function buildTaskReplyMarkup(userId) {
+  return {
+    inline_keyboard: [[{ text: "已处理", callback_data: buildTaskCallbackData(userId) }]],
+  };
 }
 
-async function sendTaskCard(apiBase, chatId, userId) {
-  await sendMessage(apiBase, chatId, buildTaskCardText(userId), {
-    reply_markup: {
-      inline_keyboard: [[{ text: "已处理", callback_data: buildTaskCallbackData(userId) }]],
-    },
+async function ensureTelegramWebhook(apiBase, webhookUrl) {
+  return sendTelegramRequest(apiBase, "setWebhook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: webhookUrl,
+      allowed_updates: ["callback_query"],
+    }),
   });
 }
 
@@ -335,33 +338,49 @@ export default {
       if (!validation.ok) {
         return validation.response;
       }
+      const taskReplyMarkup = userId ? buildTaskReplyMarkup(userId) : null;
+      if (userId) {
+        await ensureTelegramWebhook(apiBase, request.url);
+      }
 
       const { images, documents } = splitFilesByType(files);
 
       if (files.length === 0) {
-        await sendMessage(apiBase, chatId, message);
-        if (userId) {
-          await sendTaskCard(apiBase, chatId, userId);
-        }
+        await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
         return jsonResponse({ status: "ok" });
       }
 
       if (images.length > 0 && documents.length > 0) {
         if (message) {
-          await sendMessage(apiBase, chatId, message);
+          await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
+        } else if (taskReplyMarkup) {
+          await sendMessage(apiBase, chatId, `待处理工单\n工单用户ID：${userId}`, {
+            reply_markup: taskReplyMarkup,
+          });
         }
         await sendHomogeneousFiles(apiBase, chatId, images);
         await sendHomogeneousFiles(apiBase, chatId, documents);
-        if (userId) {
-          await sendTaskCard(apiBase, chatId, userId);
-        }
         return jsonResponse({ status: "ok" });
       }
 
-      await sendHomogeneousFiles(apiBase, chatId, files, message || undefined);
-      if (userId) {
-        await sendTaskCard(apiBase, chatId, userId);
+      if (files.length === 1) {
+        await sendHomogeneousFiles(
+          apiBase,
+          chatId,
+          files,
+          message || undefined,
+          taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {},
+        );
+        return jsonResponse({ status: "ok" });
       }
+      if (message) {
+        await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
+      } else if (taskReplyMarkup) {
+        await sendMessage(apiBase, chatId, `待处理工单\n工单用户ID：${userId}`, {
+          reply_markup: taskReplyMarkup,
+        });
+      }
+      await sendHomogeneousFiles(apiBase, chatId, files);
       return jsonResponse({ status: "ok" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "internal_error";
