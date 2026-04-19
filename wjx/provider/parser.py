@@ -88,11 +88,33 @@ def is_paused_survey_page(html: str) -> bool:
 
 
 def build_not_open_survey_message(html: str) -> Optional[str]:
-    """构造“问卷暂未开放”提示文案。"""
+    """构造"问卷暂未开放"提示文案。"""
     text = _normalize_html_text(html)
     if not text:
         return None
+    
+    # 首先检查是否存在问卷题目容器，如果存在则说明问卷已开放
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, "html.parser")
+        # 检查是否有题目容器
+        question_container = soup.find("div", id="divQuestion")
+        if question_container:
+            # 检查是否有实际的题目（fieldset 或 topic 属性的 div）
+            has_questions = (
+                question_container.find_all("fieldset") or
+                question_container.find_all("div", attrs={"topic": True})
+            )
+            if has_questions:
+                # 有题目说明问卷已开放，不应该判定为未开放
+                return None
+    except Exception:
+        # 如果 BeautifulSoup 解析失败，继续使用文本检测
+        pass
+    
     normalized = "".join(text.split())
+    
+    # 保留所有关键词，但通过DOM检查优先避免误判
     keywords = (
         "此问卷将于",
         "请到时再进入此页面进行填写",
