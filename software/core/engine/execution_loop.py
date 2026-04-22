@@ -122,9 +122,9 @@ class ExecutionLoop:
             
             # === 检查完成条件 ===
             if self.config.backfill_enabled:
-                # 反填模式：检查是否所有样本都已完成
-                if self.state.sample_dispatcher and self.state.sample_dispatcher.is_all_success():
-                    logging.info(f"线程 {thread_name}: 所有样本已完成，线程退出")
+                # 反填模式：检查是否还有待处理样本
+                if self.state.sample_dispatcher and not self.state.sample_dispatcher.has_pending():
+                    logging.info(f"线程 {thread_name}: 没有待处理样本，线程退出")
                     break
             else:
                 # 随机模式：检查是否达到目标数量
@@ -199,9 +199,23 @@ class ExecutionLoop:
             driver_had_error = False
             try:
                 if stop_signal.is_set():
+                    # 反填模式：标记当前样本失败
+                    if self.config.backfill_enabled and current_sample and self.state.sample_dispatcher:
+                        self.state.sample_dispatcher.mark_sample_failed(
+                            current_sample.row_no,
+                            "任务已停止",
+                            retry=True
+                        )
                     break
                 if not self.config.url:
                     logging.error("无法启动：问卷链接为空")
+                    # 反填模式：标记当前样本失败
+                    if self.config.backfill_enabled and current_sample and self.state.sample_dispatcher:
+                        self.state.sample_dispatcher.mark_sample_failed(
+                            current_sample.row_no,
+                            "问卷链接为空",
+                            retry=False
+                        )
                     break
 
                 self.stop_policy.wait_if_paused(stop_signal)
@@ -222,6 +236,13 @@ class ExecutionLoop:
                         if not ready:
                             if not stop_signal.is_set():
                                 stop_signal.set()
+                            # 反填模式：标记当前样本失败
+                            if self.config.backfill_enabled and current_sample and self.state.sample_dispatcher:
+                                self.state.sample_dispatcher.mark_sample_failed(
+                                    current_sample.row_no,
+                                    "定时模式等待超时",
+                                    retry=True
+                                )
                             break
                     else:
                         session.driver.get(self.config.url)
@@ -234,6 +255,13 @@ class ExecutionLoop:
                         log_message=f"加载问卷失败，本轮按失败处理：{exc}",
                     )
                     driver_had_error = True
+                    # 反填模式：标记当前样本失败
+                    if self.config.backfill_enabled and current_sample and self.state.sample_dispatcher:
+                        self.state.sample_dispatcher.mark_sample_failed(
+                            current_sample.row_no,
+                            f"加载问卷失败: {exc}",
+                            retry=True
+                        )
                     if stopped:
                         break
                     continue
@@ -251,6 +279,13 @@ class ExecutionLoop:
                     except Exception:
                         logging.info("更新线程状态失败：设备达到填写次数上限", exc_info=True)
                     session.dispose()
+                    # 反填模式：标记当前样本失败
+                    if self.config.backfill_enabled and current_sample and self.state.sample_dispatcher:
+                        self.state.sample_dispatcher.mark_sample_failed(
+                            current_sample.row_no,
+                            "设备达到填写次数上限",
+                            retry=True
+                        )
                     if stopped or stop_signal.is_set():
                         break
                     if self.config.random_proxy_ip_enabled:
@@ -279,6 +314,13 @@ class ExecutionLoop:
                             self.state.update_thread_status(thread_name, "等待信效度配额槽位", running=True)
                         except Exception:
                             logging.info("更新线程状态失败：等待信效度配额槽位", exc_info=True)
+                        # 反填模式：将样本放回队列
+                        if self.config.backfill_enabled and current_sample and self.state.sample_dispatcher:
+                            self.state.sample_dispatcher.mark_sample_failed(
+                                current_sample.row_no,
+                                "等待信效度配额槽位",
+                                retry=True
+                            )
                         if stop_signal.wait(0.2):
                             break
                         continue
