@@ -416,15 +416,10 @@ class MainWindow(
         self._contact_dialog = dlg
         self._contact_dialog_active = True
         self._set_startup_update_check_suspended(True)
+        dlg.setProperty("_lock_message_type", bool(lock_message_type))
         dlg.form.quotaRequestSucceeded.connect(self._on_quota_request_sent)
-        dlg.finished.connect(
-            lambda result, dialog=dlg, locked=bool(lock_message_type): self._on_contact_dialog_finished(
-                dialog,
-                result,
-                locked,
-            )
-        )
-        dlg.destroyed.connect(lambda *_args, dialog=dlg: self._on_contact_dialog_destroyed(dialog))
+        dlg.finished.connect(self._on_contact_dialog_finished_event)
+        dlg.destroyed.connect(self._on_contact_dialog_destroyed_event)
         if async_mode:
             dlg.open()
             try:
@@ -447,12 +442,26 @@ class MainWindow(
         )
         self._on_contact_dialog_destroyed(dialog)
 
+    @Slot(int)
+    def _on_contact_dialog_finished_event(self, result: int) -> None:
+        dialog = self.sender()
+        if not isinstance(dialog, QDialog):
+            return
+        lock_message_type = bool(dialog.property("_lock_message_type"))
+        self._on_contact_dialog_finished(dialog, result, lock_message_type)
+
     def _on_contact_dialog_destroyed(self, dialog: QDialog) -> None:
         current_dialog = getattr(self, "_contact_dialog", None)
         if current_dialog is dialog:
             self._contact_dialog = None
             self._contact_dialog_active = False
             self._set_startup_update_check_suspended(False)
+
+    @Slot()
+    def _on_contact_dialog_destroyed_event(self, *_args) -> None:
+        dialog = getattr(self, "_contact_dialog", None)
+        if isinstance(dialog, QDialog):
+            self._on_contact_dialog_destroyed(dialog)
 
     def _show_dialog_message(self, title: str, message: str, level: str = "info") -> None:
         self.show_message_dialog(title, message, level=level)

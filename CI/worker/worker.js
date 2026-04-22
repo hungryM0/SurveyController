@@ -9,6 +9,10 @@ const JSON_HEADERS = {
   "Access-Control-Allow-Origin": "*",
 };
 
+const DEFAULT_GITHUB_OWNER = "hungryM0";
+const DEFAULT_GITHUB_REPO = "SurveyController";
+const GITHUB_API_VERSION = "2022-11-28";
+
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -24,10 +28,136 @@ function extractUserIdFromMessage(message) {
   return match ? match[1] : "";
 }
 
+function extractMessageLineValue(message, prefix) {
+  if (typeof message !== "string" || !prefix) {
+    return "";
+  }
+  const lines = message.split(/\r?\n/);
+  for (const line of lines) {
+    if (line.startsWith(prefix)) {
+      return line.slice(prefix.length).trim();
+    }
+  }
+  return "";
+}
+
+function normalizeMessageType(rawType, message) {
+  const directType = typeof rawType === "string" ? rawType.trim() : "";
+  if (directType) {
+    return directType;
+  }
+  return extractMessageLineValue(message, "类型：");
+}
+
+function extractVersionFromMessage(message) {
+  return extractMessageLineValue(message, "来源：SurveyController v");
+}
+
+function stripEmailLine(message) {
+  if (typeof message !== "string" || !message) {
+    return "";
+  }
+  return message
+    .split(/\r?\n/)
+    .filter((line) => !line.startsWith("联系邮箱："))
+    .join("\n")
+    .trim();
+}
+
+function sanitizeIssueTitle(title) {
+  if (typeof title !== "string") {
+    return "";
+  }
+  return title.replace(/\s+/g, " ").trim().slice(0, 60);
+}
+
+function formatIssueTimestamp(rawTimestamp) {
+  const parsed = typeof rawTimestamp === "string" ? new Date(rawTimestamp) : new Date();
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hour}:${minute}`;
+}
+
+function buildGitHubIssueTitle({ issueTitle, message, userId, timestamp }) {
+  const explicitTitle = sanitizeIssueTitle(issueTitle);
+  if (explicitTitle) {
+    return explicitTitle;
+  }
+
+  const parts = ["[报错反馈]"];
+  const version = extractVersionFromMessage(message);
+  if (version) {
+    parts.push(`v${version}`);
+  }
+  if (userId) {
+    parts.push(`UID ${userId}`);
+  }
+  parts.push(formatIssueTimestamp(timestamp));
+  return parts.join(" ");
+}
+
+function buildGitHubIssueBody({ message, files }) {
+  const sanitizedMessage = stripEmailLine(message);
+  const lines = [sanitizedMessage || "未提供正文"];
+  lines.push("", "> 此 Issue 由 SurveyController 客户端自动创建。");
+  if (Array.isArray(files) && files.length > 0) {
+    lines.push(`> 本次反馈包含 ${files.length} 个附件，附件仅同步到 Telegram。`);
+  }
+  return lines.join("\n");
+}
+
+async function createGitHubIssue(env, payload) {
+  const token = env.GITHUB_TOKEN;
+  if (!token) {
+    return null;
+  }
+
+  const owner = env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER;
+  const repo = env.GITHUB_REPO || DEFAULT_GITHUB_REPO;
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+      "User-Agent": "SurveyController-Worker",
+      "X-GitHub-Api-Version": GITHUB_API_VERSION,
+    },
+    body: JSON.stringify({
+      title: buildGitHubIssueTitle(payload),
+      body: buildGitHubIssueBody(payload),
+    }),
+  });
+
+  let result = null;
+  try {
+    result = await response.json();
+  } catch {
+    result = null;
+  }
+
+  if (!response.ok) {
+    const message = result?.message || `github_issue_create_failed_${response.status}`;
+    throw new Error(message);
+  }
+
+  return {
+    number: result?.number || 0,
+    url: result?.html_url || "",
+  };
+}
+
 async function parseIncomingRequest(request) {
   const contentType = request.headers.get("Content-Type") || "";
   let message = "";
   let userId = "";
+  let messageType = "";
+  let issueTitle = "";
+  let timestamp = "";
   const files = [];
 
   if (contentType.includes("multipart/form-data") || contentType.includes("form-data")) {
@@ -40,9 +170,22 @@ async function parseIncomingRequest(request) {
     if (typeof maybeUserId === "string") {
       userId = maybeUserId.trim();
     }
+    const maybeMessageType = form.get("messageType") ?? form.get("message_type");
+    if (typeof maybeMessageType === "string") {
+      messageType = maybeMessageType.trim();
+    }
+    const maybeIssueTitle = form.get("issueTitle") ?? form.get("issue_title");
+    if (typeof maybeIssueTitle === "string") {
+      issueTitle = maybeIssueTitle.trim();
+    }
+    const maybeTimestamp = form.get("timestamp");
+    if (typeof maybeTimestamp === "string") {
+      timestamp = maybeTimestamp.trim();
+    }
     if (!userId) {
       userId = extractUserIdFromMessage(message);
     }
+    messageType = normalizeMessageType(messageType, message);
 
     for (const [, value] of form.entries()) {
       if (value instanceof File) {
@@ -50,7 +193,7 @@ async function parseIncomingRequest(request) {
       }
     }
 
-    return { message, files, userId };
+    return { message, files, userId, messageType, issueTitle, timestamp };
   }
 
   if (contentType.includes("application/json")) {
@@ -63,10 +206,24 @@ async function parseIncomingRequest(request) {
     } else if (typeof body?.user_id === "string") {
       userId = body.user_id.trim();
     }
+    if (typeof body?.messageType === "string") {
+      messageType = body.messageType.trim();
+    } else if (typeof body?.message_type === "string") {
+      messageType = body.message_type.trim();
+    }
+    if (typeof body?.issueTitle === "string") {
+      issueTitle = body.issueTitle.trim();
+    } else if (typeof body?.issue_title === "string") {
+      issueTitle = body.issue_title.trim();
+    }
+    if (typeof body?.timestamp === "string") {
+      timestamp = body.timestamp.trim();
+    }
     if (!userId) {
       userId = extractUserIdFromMessage(message);
     }
-    return { message, files, userId };
+    messageType = normalizeMessageType(messageType, message);
+    return { message, files, userId, messageType, issueTitle, timestamp };
   }
 
   const text = await request.text();
@@ -74,7 +231,8 @@ async function parseIncomingRequest(request) {
     message = text;
   }
   userId = extractUserIdFromMessage(message);
-  return { message, files, userId };
+  messageType = normalizeMessageType(messageType, message);
+  return { message, files, userId, messageType, issueTitle, timestamp };
 }
 
 function validatePayload(message, files) {
@@ -333,24 +491,24 @@ export default {
         return handleCallbackQuery(apiBase, telegramUpdate.callback_query);
       }
 
-      const { message, files, userId } = await parseIncomingRequest(request);
+      const { message, files, userId, messageType, issueTitle, timestamp } = await parseIncomingRequest(request);
       const validation = validatePayload(message, files);
       if (!validation.ok) {
         return validation.response;
       }
       const taskReplyMarkup = userId ? buildTaskReplyMarkup(userId) : null;
+      const shouldCreateGitHubIssue = messageType === "报错反馈";
       if (userId) {
         await ensureTelegramWebhook(apiBase, request.url);
       }
 
       const { images, documents } = splitFilesByType(files);
+      let githubIssue = null;
+      let githubIssueError = "";
 
       if (files.length === 0) {
         await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
-        return jsonResponse({ status: "ok" });
-      }
-
-      if (images.length > 0 && documents.length > 0) {
+      } else if (images.length > 0 && documents.length > 0) {
         if (message) {
           await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
         } else if (taskReplyMarkup) {
@@ -360,10 +518,7 @@ export default {
         }
         await sendHomogeneousFiles(apiBase, chatId, images);
         await sendHomogeneousFiles(apiBase, chatId, documents);
-        return jsonResponse({ status: "ok" });
-      }
-
-      if (files.length === 1) {
+      } else if (files.length === 1) {
         await sendHomogeneousFiles(
           apiBase,
           chatId,
@@ -371,17 +526,36 @@ export default {
           message || undefined,
           taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {},
         );
-        return jsonResponse({ status: "ok" });
+      } else {
+        if (message) {
+          await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
+        } else if (taskReplyMarkup) {
+          await sendMessage(apiBase, chatId, `待处理工单\n工单用户ID：${userId}`, {
+            reply_markup: taskReplyMarkup,
+          });
+        }
+        await sendHomogeneousFiles(apiBase, chatId, files);
       }
-      if (message) {
-        await sendMessage(apiBase, chatId, message, taskReplyMarkup ? { reply_markup: taskReplyMarkup } : {});
-      } else if (taskReplyMarkup) {
-        await sendMessage(apiBase, chatId, `待处理工单\n工单用户ID：${userId}`, {
-          reply_markup: taskReplyMarkup,
-        });
+
+      if (shouldCreateGitHubIssue) {
+        try {
+          githubIssue = await createGitHubIssue(env, {
+            issueTitle,
+            message,
+            userId,
+            timestamp,
+            files,
+          });
+        } catch (error) {
+          githubIssueError = error instanceof Error ? error.message : "github_issue_create_failed";
+        }
       }
-      await sendHomogeneousFiles(apiBase, chatId, files);
-      return jsonResponse({ status: "ok" });
+
+      return jsonResponse({
+        status: "ok",
+        githubIssue,
+        githubIssueError,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "internal_error";
       return jsonResponse({ error: message }, 500);

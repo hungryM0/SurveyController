@@ -157,6 +157,22 @@ class ContactForm(
         self.send_verify_btn.hide()
         self.verify_send_spinner.hide()
 
+        title_row = QHBoxLayout()
+        self.issue_title_label = BodyLabel("反馈标题：", self)
+        self.issue_title_label.setFixedWidth(LABEL_WIDTH)
+        self.issue_title_edit = LineEdit(self)
+        self.issue_title_edit.setPlaceholderText("可选，留空则自动生成")
+        self.issue_title_edit.setClearButtonEnabled(True)
+        self.issue_title_edit.setMaxLength(60)
+        self.issue_title_edit.setMaximumWidth(360)
+        title_row.addWidget(self.issue_title_label)
+        title_row.addWidget(self.issue_title_edit)
+        title_row.addStretch(1)
+        form_layout.addLayout(title_row)
+
+        self.issue_title_label.hide()
+        self.issue_title_edit.hide()
+
         # 4. 额度申请参数
         self.amount_row = QHBoxLayout()
         self.amount_label = BodyLabel("支付金额：￥", self)
@@ -562,6 +578,9 @@ class ContactForm(
         if current_type == REQUEST_MESSAGE_TYPE:
             self.attachments_section.hide()
             self.auto_attach_section.hide()
+            self.issue_title_label.hide()
+            self.issue_title_edit.hide()
+            self.issue_title_edit.clear()
             self.request_payment_section.show()
             self.request_payment_confirm_section.show()
             self.amount_label.show()
@@ -578,6 +597,10 @@ class ContactForm(
         else:
             self.attachments_section.show()
             self.auto_attach_section.setVisible(is_bug_report)
+            self.issue_title_label.setVisible(is_bug_report)
+            self.issue_title_edit.setVisible(is_bug_report)
+            if not is_bug_report:
+                self.issue_title_edit.clear()
             self.request_payment_section.hide()
             self.request_payment_confirm_section.hide()
             self.amount_label.hide()

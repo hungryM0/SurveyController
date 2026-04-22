@@ -81,10 +81,21 @@ class StatusPollingMixin:
         self._status_fetch_in_progress = True
         session_id = self._status_session_id
         reply = self._ensure_status_manager().get(request)
+        reply.setProperty("_status_session_id", int(session_id))
         self._status_reply = reply
-        reply.finished.connect(
-            lambda sid=session_id, current_reply=reply: self._handle_status_reply_finished(sid, current_reply)
-        )
+        reply.finished.connect(self._on_status_reply_finished)
+
+    def _on_status_reply_finished(self):
+        sender_callable = getattr(self, "sender", None)
+        reply = sender_callable() if callable(sender_callable) else None
+        if not isinstance(reply, QNetworkReply):
+            return
+        session_id = reply.property("_status_session_id")
+        try:
+            current_session_id = int(session_id)
+        except (TypeError, ValueError):
+            current_session_id = self._status_session_id
+        self._handle_status_reply_finished(current_session_id, reply)
 
     def _handle_status_reply_finished(self, session_id: int, reply: QNetworkReply):
         is_current_reply = self._status_reply is reply

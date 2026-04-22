@@ -28,6 +28,7 @@ def build_contact_message(
     *,
     version_str: str,
     message_type: str,
+    issue_title: str,
     email: str,
     donated: bool,
     random_ip_user_id: int,
@@ -40,6 +41,8 @@ def build_contact_message(
     lines = [f"来源：SurveyController v{version_str}", f"类型：{message_type}"]
     if email:
         lines.append(f"联系邮箱： {email}")
+    if issue_title and message_type == "报错反馈":
+        lines.append(f"反馈标题： {issue_title}")
     if message_type == REQUEST_MESSAGE_TYPE:
         lines.append(f"已支付：{'是' if donated else '否'}")
     if random_ip_user_id > 0:
@@ -63,14 +66,19 @@ def build_contact_message(
 def build_contact_request_fields(
     *,
     message: str,
+    message_type: str,
+    issue_title: str,
     timestamp: str,
     random_ip_user_id: int,
     files_payload: list[tuple[str, tuple[str, bytes, str]]],
 ) -> list[tuple[str, tuple[None, str] | tuple[str, bytes, str]]]:
     fields: list[tuple[str, tuple[None, str] | tuple[str, bytes, str]]] = [
         ("message", (None, message)),
+        ("messageType", (None, message_type)),
         ("timestamp", (None, timestamp)),
     ]
+    if issue_title:
+        fields.append(("issueTitle", (None, issue_title)))
     if random_ip_user_id > 0:
         fields.append(("userId", (None, str(random_ip_user_id))))
     fields.extend(files_payload)
@@ -89,6 +97,7 @@ class ContactFormSubmissionMixin:
         auto_attach_config_checkbox: Any
         auto_attach_log_checkbox: Any
         message_edit: Any
+        issue_title_edit: Any
         send_btn: Any
         send_spinner: Any
         _attachments: Any
@@ -233,10 +242,12 @@ class ContactFormSubmissionMixin:
         email = (self.email_edit.text() or "").strip()
         self._current_has_email = bool(email)
 
-        QTimer.singleShot(10, lambda: self._clear_email_selection())
-        QTimer.singleShot(10, lambda: self._focus_send_button())
+        timer_context = cast(QWidget, self)
+        QTimer.singleShot(10, timer_context, self._clear_email_selection)
+        QTimer.singleShot(10, timer_context, self._focus_send_button)
 
         mtype = self.type_combo.currentText() or "报错反馈"
+        issue_title = (self.issue_title_edit.text() or "").strip()
 
         request_amount_text = ""
         request_quota_text = ""
@@ -344,6 +355,7 @@ class ContactFormSubmissionMixin:
         full_message = build_contact_message(
             version_str=version_str,
             message_type=mtype,
+            issue_title=issue_title,
             email=email,
             donated=self.donated_cb.isChecked(),
             random_ip_user_id=self._random_ip_user_id,
@@ -384,6 +396,8 @@ class ContactFormSubmissionMixin:
             try:
                 multipart_fields = build_contact_request_fields(
                     message=payload["message"],
+                    message_type=mtype,
+                    issue_title=issue_title,
                     timestamp=payload["timestamp"],
                     random_ip_user_id=self._random_ip_user_id,
                     files_payload=files_payload,
@@ -442,6 +456,7 @@ class ContactFormSubmissionMixin:
                 if urgency_default_index >= 0:
                     self.urgency_combo.setCurrentIndex(urgency_default_index)
                 self.message_edit.clear()
+                self.issue_title_edit.clear()
                 self._attachments.clear()
                 self._render_attachments_ui()
                 self._reset_bug_report_auto_attach_defaults()
