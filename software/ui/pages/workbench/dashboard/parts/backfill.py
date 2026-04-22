@@ -158,11 +158,13 @@ class DashboardBackfillMixin:
                 samples = reader.read(file_path)
                 sample_count = len(samples)
                 
-                # 更新目标份数
+                # 更新目标份数（同时同步到 controller 状态）
                 if hasattr(self, 'target_spin'):
                     self.target_spin.blockSignals(True)
                     self.target_spin.setValue(sample_count)
                     self.target_spin.blockSignals(False)
+                    # 同步到 controller 的运行时状态
+                    self.controller.set_runtime_ui_state(target=sample_count, emit=False)
                 
                 InfoBar.success(
                     title="文件已选择",

@@ -550,6 +550,9 @@ class RunControllerInitializationMixin:
         probe_config.target = 1
         # 门禁探测只用于验证流程可用性，不应消耗作答时长等待。
         probe_config.answer_duration = (0, 0)
+        # 门禁探测阶段禁用反填模式，避免初始化所有样本并覆盖 target=1
+        probe_config.backfill_enabled = False
+        probe_config.backfill_excel_path = ""
 
         probe_execution_config, probe_state = self._prepare_engine_state(probe_config, list(proxy_pool))
         probe_state.stop_event = gate_stop_event
