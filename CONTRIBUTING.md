@@ -40,7 +40,7 @@
 ├── rthook_pyside6.py     # PySide6 打包钩子
 ├── CI/                   # CI 与自动化辅助目录
 │   ├── test_imports.py   # 导入检测脚本
-│   └── worker/           # Cloudflare Worker 相关配置；worker.js 负责联系开发者消息与 Telegram 回调
+│   └── worker/           # Cloudflare Worker 相关配置；wrangler.toml 指向 src/index.js 单入口，消息解析/Telegram/GitHub 拆到 src/request.js、src/telegram.js、src/github.js；不保留旧 worker.js 转发层
 ├── software/             # 软件主包（应用壳 + 共享核心 + 平台总调度）
 ├── tencent/              # 腾讯问卷主包
 └── wjx/                  # 问卷星主包
