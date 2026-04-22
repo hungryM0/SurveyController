@@ -72,17 +72,22 @@ def provider_run_context(
     psycho_plan: Optional[Any] = None,
 ) -> Iterator[Optional[Any]]:
     """在 provider 运行前统一初始化画像、上下文与心理测量计划。"""
+    # 检查是否跳过心理测量计划（反填模式）
+    skip_psycho = psycho_plan is not None and type(psycho_plan).__name__ == "_SkipPsychoPlan"
+    
     persona = generate_persona()
     set_current_persona(persona)
     _reset_answer_context()
     reset_tendency()
     reset_consistency_context(config.answer_rules, list((config.questions_metadata or {}).values()))
 
-    resolved_plan = psycho_plan
+    resolved_plan = psycho_plan if not skip_psycho else None
     fallback_plan: Optional[Any] = None
     joint_sample_plan: Optional[Any] = None
     reserved_sample_index: Optional[int] = None
-    if resolved_plan is None:
+    
+    # 如果是反填模式（skip_psycho=True），跳过心理测量计划构建
+    if not skip_psycho and resolved_plan is None:
         fallback_plan = build_psychometric_plan_for_run(config)
         joint_answer_plan = ensure_joint_psychometric_answer_plan(config)
         if joint_answer_plan is not None and state is not None:
@@ -98,7 +103,7 @@ def provider_run_context(
         else:
             resolved_plan = fallback_plan
 
-    if joint_sample_plan is not None:
+    if not skip_psycho and joint_sample_plan is not None:
         diagnostics = dict(getattr(joint_sample_plan, "diagnostics_by_dimension", {}) or {})
         active_dimensions = [
             name
@@ -127,7 +132,7 @@ def provider_run_context(
                 int(getattr(diagnostic, "reverse_item_count", 0) or 0),
                 "否" if bool(getattr(diagnostic, "ambiguous_anchor", False)) else "是",
             )
-    elif resolved_plan is not None:
+    elif not skip_psycho and resolved_plan is not None:
         dimension_count = len(getattr(resolved_plan, "plans", {}) or {})
         plan_names = list((getattr(resolved_plan, "plans", {}) or {}).keys())
         if plan_names == [GLOBAL_RELIABILITY_DIMENSION]:

@@ -27,6 +27,11 @@ from software.providers.registry import fill_survey as _provider_fill_survey
 from software.providers.registry import is_device_quota_limit_page as _provider_is_device_quota_limit_page
 
 
+class _SkipPsychoPlan:
+    """标记对象，表示跳过心理测量计划（用于反填模式）。"""
+    pass
+
+
 class ExecutionLoop:
     """单个工作线程的执行主循环。"""
 
@@ -65,12 +70,14 @@ class ExecutionLoop:
         with backfill_answer_context(provider):
             # 调用 provider 填写问卷
             # 在上下文中，所有 smart_select_* 函数会自动使用反填数据
+            # 传递 _SkipPsychoPlan() 跳过心理测量计划的构建
             finished = _provider_fill_survey(
                 driver,
                 self.config,
                 self.state,
                 stop_signal=stop_signal,
                 thread_name=thread_name,
+                psycho_plan=_SkipPsychoPlan(),
                 provider=self.config.survey_provider,
             )
         
