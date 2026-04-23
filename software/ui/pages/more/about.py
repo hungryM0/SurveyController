@@ -155,7 +155,7 @@ class AboutPage(ScrollArea):
         
         self.github_btn = PushButton("GitHub 仓库", self, FluentIcon.GITHUB)
         icon_path = get_resource_path("icon.ico")
-        self.website_btn = PushButton("项目官网", self, QIcon(icon_path))
+        self.website_btn = PushButton("官方文档", self, QIcon(icon_path))
         
         links_row = QHBoxLayout()
         links_row.setSpacing(12)
@@ -181,13 +181,6 @@ class AboutPage(ScrollArea):
         license_layout.addWidget(BodyLabel("AGPL-3.0 License", self))
         license_layout.addStretch(1)
         credit_layout.addLayout(license_layout)
-
-        inspire_layout = QHBoxLayout()
-        inspire_layout.addWidget(BodyLabel("Inspired by：", self))
-        inspire_link = HyperlinkButton("https://github.com/Zemelee/wjx", "Zemelee/wjx", self)
-        inspire_layout.addWidget(inspire_link)
-        inspire_layout.addStretch(1)
-        credit_layout.addLayout(inspire_layout)
 
         # 贡献者
         contributors_layout = QHBoxLayout()
@@ -230,7 +223,7 @@ class AboutPage(ScrollArea):
 
         self.update_btn.clicked.connect(self._check_updates)
         self.github_btn.clicked.connect(lambda: webbrowser.open(f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}"))
-        self.website_btn.clicked.connect(lambda: webbrowser.open("https://www.hungrym0.top/SurveyController.html"))
+        self.website_btn.clicked.connect(lambda: webbrowser.open("https://surveydoc.hungrym0.top/"))
         
         # 异步获取发布时间
         self._load_publish_time()
