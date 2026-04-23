@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, Literal, Optional, Tuple, Union, overload
 from urllib.parse import urlsplit
 
 import httpx
@@ -390,22 +390,72 @@ def close() -> None:
 atexit.register(close)
 
 
-def request(method: str, url: str, **kwargs: Any):
+@overload
+def request(method: str, url: str, *, stream: Literal[True], **kwargs: Any) -> _StreamResponse:
+    ...
+
+
+@overload
+def request(method: str, url: str, *, stream: Literal[False] = False, **kwargs: Any) -> httpx.Response:
+    ...
+
+
+def request(method: str, url: str, **kwargs: Any) -> httpx.Response | _StreamResponse:
     return _client_manager.request(method, url, **kwargs)
 
 
-def get(url: str, **kwargs: Any):
+@overload
+def get(url: str, *, stream: Literal[True], **kwargs: Any) -> _StreamResponse:
+    ...
+
+
+@overload
+def get(url: str, *, stream: Literal[False] = False, **kwargs: Any) -> httpx.Response:
+    ...
+
+
+def get(url: str, **kwargs: Any) -> httpx.Response | _StreamResponse:
     return request("GET", url, **kwargs)
 
 
-def post(url: str, **kwargs: Any):
+@overload
+def post(url: str, *, stream: Literal[True], **kwargs: Any) -> _StreamResponse:
+    ...
+
+
+@overload
+def post(url: str, *, stream: Literal[False] = False, **kwargs: Any) -> httpx.Response:
+    ...
+
+
+def post(url: str, **kwargs: Any) -> httpx.Response | _StreamResponse:
     return request("POST", url, **kwargs)
 
 
-def put(url: str, **kwargs: Any):
+@overload
+def put(url: str, *, stream: Literal[True], **kwargs: Any) -> _StreamResponse:
+    ...
+
+
+@overload
+def put(url: str, *, stream: Literal[False] = False, **kwargs: Any) -> httpx.Response:
+    ...
+
+
+def put(url: str, **kwargs: Any) -> httpx.Response | _StreamResponse:
     return request("PUT", url, **kwargs)
 
 
-def delete(url: str, **kwargs: Any):
+@overload
+def delete(url: str, *, stream: Literal[True], **kwargs: Any) -> _StreamResponse:
+    ...
+
+
+@overload
+def delete(url: str, *, stream: Literal[False] = False, **kwargs: Any) -> httpx.Response:
+    ...
+
+
+def delete(url: str, **kwargs: Any) -> httpx.Response | _StreamResponse:
     return request("DELETE", url, **kwargs)
 
