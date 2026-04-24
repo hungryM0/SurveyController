@@ -2,7 +2,7 @@
 *.code-workspace
 .claude/
 .codex/
-.gemini/
+.playwright-mcp/
 .ruff_cache/
 desktop.ini
 push.bat
