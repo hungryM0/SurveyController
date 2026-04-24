@@ -7,7 +7,13 @@ from typing import TYPE_CHECKING, Any
 from software.logging.action_logger import log_action
 from software.logging.log_utils import log_suppressed_exception
 
-from software.providers.common import detect_survey_provider, is_supported_survey_url, is_wjx_survey_url
+from software.providers.common import (
+    SURVEY_PROVIDER_CREDAMO,
+    SURVEY_PROVIDER_QQ,
+    detect_survey_provider,
+    is_supported_survey_url,
+    is_wjx_survey_url,
+)
 
 _QQ_LOGIN_REQUIRED_MESSAGE = "作答该问卷需要登录，请自行在后台开放访问权限"
 
@@ -46,11 +52,11 @@ class DashboardSurveyParseMixin:
                 level=logging.WARNING,
                 payload={"reason": "unsupported_platform"},
             )
-            self._toast("仅支持问卷星与腾讯问卷链接", "error")
+            self._toast("仅支持问卷星、腾讯问卷与 Credamo 见数链接", "error")
             return
         # 第二层检测：是否为具体的问卷链接（排除问卷星投票/考试等）
         provider = detect_survey_provider(url)
-        if not (provider == "qq" or is_wjx_survey_url(url)):
+        if not (provider in {SURVEY_PROVIDER_QQ, SURVEY_PROVIDER_CREDAMO} or is_wjx_survey_url(url)):
             log_action(
                 "UI",
                 "parse_survey",

@@ -8,12 +8,15 @@ from urllib.parse import urlparse
 
 SURVEY_PROVIDER_WJX = "wjx"
 SURVEY_PROVIDER_QQ = "qq"
-SUPPORTED_SURVEY_PROVIDERS = {SURVEY_PROVIDER_WJX, SURVEY_PROVIDER_QQ}
+SURVEY_PROVIDER_CREDAMO = "credamo"
+SUPPORTED_SURVEY_PROVIDERS = {SURVEY_PROVIDER_WJX, SURVEY_PROVIDER_QQ, SURVEY_PROVIDER_CREDAMO}
 
 _WJX_ALLOWED_HOSTS = ("wjx.top", "wjx.cn", "wjx.com")
 _WJX_SURVEY_HOSTS = ("v.wjx.cn", "www.wjx.cn")
 _QQ_ALLOWED_HOST = "wj.qq.com"
 _QQ_SURVEY_PATH_RE = re.compile(r"^/s\d+/\d+/[A-Za-z0-9_-]+/?$", re.IGNORECASE)
+_CREDAMO_ALLOWED_HOSTS = ("credamo.com", "credamo.cn")
+_CREDAMO_SURVEY_PATH_RE = re.compile(r"^/answer\.html", re.IGNORECASE)
 
 
 def normalize_survey_provider(value: Any, default: str = SURVEY_PROVIDER_WJX) -> str:
@@ -59,7 +62,18 @@ def is_qq_survey_url(url_value: str) -> bool:
     return bool(_QQ_SURVEY_PATH_RE.match(path))
 
 
+def is_credamo_survey_url(url_value: str) -> bool:
+    host, path = _parse_url_host(url_value)
+    if not host:
+        return False
+    if not any(host == domain or host.endswith(f".{domain}") for domain in _CREDAMO_ALLOWED_HOSTS):
+        return False
+    return bool(_CREDAMO_SURVEY_PATH_RE.match(path))
+
+
 def detect_survey_provider(url_value: str, default: str = SURVEY_PROVIDER_WJX) -> str:
+    if is_credamo_survey_url(url_value):
+        return SURVEY_PROVIDER_CREDAMO
     if is_qq_survey_url(url_value):
         return SURVEY_PROVIDER_QQ
     if is_wjx_domain(url_value):
@@ -68,7 +82,7 @@ def detect_survey_provider(url_value: str, default: str = SURVEY_PROVIDER_WJX) -
 
 
 def is_supported_survey_url(url_value: str) -> bool:
-    return is_qq_survey_url(url_value) or is_wjx_domain(url_value)
+    return is_credamo_survey_url(url_value) or is_qq_survey_url(url_value) or is_wjx_domain(url_value)
 
 
 def ensure_question_provider_fields(
@@ -106,11 +120,13 @@ def ensure_questions_provider_fields(
 __all__ = [
     "SURVEY_PROVIDER_WJX",
     "SURVEY_PROVIDER_QQ",
+    "SURVEY_PROVIDER_CREDAMO",
     "SUPPORTED_SURVEY_PROVIDERS",
     "normalize_survey_provider",
     "is_wjx_domain",
     "is_wjx_survey_url",
     "is_qq_survey_url",
+    "is_credamo_survey_url",
     "detect_survey_provider",
     "is_supported_survey_url",
     "ensure_question_provider_fields",

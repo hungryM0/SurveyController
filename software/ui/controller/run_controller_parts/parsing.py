@@ -34,7 +34,7 @@ class RunControllerParsingMixin:
         normalized_url = str(url or "").strip()
         if not is_supported_survey_url(normalized_url):
             logging.warning("收到不支持的问卷链接：%r", normalized_url)
-            self.surveyParseFailed.emit("仅支持问卷星与腾讯问卷链接")
+            self.surveyParseFailed.emit("仅支持问卷星、腾讯问卷与 Credamo 见数链接")
             return
 
         def _apply_parse_success(definition: SurveyDefinition) -> None:

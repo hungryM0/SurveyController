@@ -380,8 +380,6 @@ def setup_logging():
     # 第三方日志统一到 INFO，避免与项目日志分裂成两套级别策略
     logging.getLogger("urllib3").setLevel(logging.INFO)
     logging.getLogger("httpx").setLevel(logging.INFO)
-    logging.getLogger("selenium").setLevel(logging.INFO)
-    logging.getLogger("undetected_chromedriver").setLevel(logging.INFO)
 
     if not getattr(setup_logging, "_streams_hooked", False):
         stdout_logger = StreamToLogger(root_logger, logging.INFO, stream=ORIGINAL_STDOUT)

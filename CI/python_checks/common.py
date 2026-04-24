@@ -17,6 +17,7 @@ TARGET_DIRS = [
     ROOT_DIR / "wjx",
     ROOT_DIR / "software",
     ROOT_DIR / "tencent",
+    ROOT_DIR / "credamo",
 ]
 ENTRY_FILES = [ROOT_DIR / "SurveyController.py"]
 

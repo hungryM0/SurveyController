@@ -6,13 +6,17 @@ from typing import Any, Optional
 
 from software.core.engine.provider_common import provider_run_context
 from software.providers.common import (
+    SURVEY_PROVIDER_CREDAMO,
     SURVEY_PROVIDER_QQ,
     SURVEY_PROVIDER_WJX,
     detect_survey_provider,
     normalize_survey_provider,
 )
 from software.providers.contracts import SurveyDefinition, build_survey_definition
+from software.providers.survey_cache import parse_survey_with_cache
 from software.core.task import ExecutionConfig, ExecutionState
+from credamo.provider.parser import parse_credamo_survey
+from credamo.provider.runtime import brush_credamo
 from tencent.provider.parser import parse_qq_survey
 from wjx.provider.parser import parse_wjx_survey
 from wjx.provider.runtime import brush_wjx
@@ -160,9 +164,80 @@ class _QqProviderAdapter:
         return bool(is_qq_device_quota_limit_page(driver))
 
 
+class _CredamoProviderAdapter:
+    provider = SURVEY_PROVIDER_CREDAMO
+
+    def parse_survey(self, url: str) -> SurveyDefinition:
+        info, title = parse_credamo_survey(url)
+        return build_survey_definition(self.provider, title, info)
+
+    def fill_survey(
+        self,
+        driver: Any,
+        config: ExecutionConfig,
+        state: ExecutionState,
+        *,
+        stop_signal: Any = None,
+        thread_name: str = "",
+        psycho_plan: Any = None,
+    ) -> bool:
+        return bool(
+            brush_credamo(
+                driver,
+                config,
+                state,
+                stop_signal=stop_signal,
+                thread_name=thread_name,
+                psycho_plan=psycho_plan,
+            )
+        )
+
+    def is_completion_page(self, driver: Any) -> bool:
+        from credamo.provider.submission import is_completion_page as is_credamo_completion_page
+
+        return bool(is_credamo_completion_page(driver))
+
+    def submission_requires_verification(self, driver: Any) -> bool:
+        from credamo.provider.submission import submission_requires_verification as credamo_submission_requires_verification
+
+        return bool(credamo_submission_requires_verification(driver))
+
+    def submission_validation_message(self, driver: Any) -> str:
+        from credamo.provider.submission import submission_validation_message as credamo_submission_validation_message
+
+        return str(credamo_submission_validation_message(driver) or "").strip()
+
+    def wait_for_submission_verification(self, driver: Any, *, timeout: int = 3, stop_signal: Any = None) -> bool:
+        from credamo.provider.submission import wait_for_submission_verification as wait_credamo_submission_verification
+
+        return bool(
+            wait_credamo_submission_verification(
+                driver,
+                timeout=timeout,
+                stop_signal=stop_signal,
+            )
+        )
+
+    def handle_submission_verification_detected(self, ctx: Any, gui_instance: Any, stop_signal: Any) -> None:
+        from credamo.provider.submission import handle_submission_verification_detected as handle_credamo_submission_verification_detected
+
+        handle_credamo_submission_verification_detected(ctx, gui_instance, stop_signal)
+
+    def consume_submission_success_signal(self, driver: Any) -> bool:
+        from credamo.provider.submission import consume_submission_success_signal as consume_credamo_submission_success_signal
+
+        return bool(consume_credamo_submission_success_signal(driver))
+
+    def is_device_quota_limit_page(self, driver: Any) -> bool:
+        from credamo.provider.submission import is_device_quota_limit_page as is_credamo_device_quota_limit_page
+
+        return bool(is_credamo_device_quota_limit_page(driver))
+
+
 _PROVIDER_REGISTRY = {
     SURVEY_PROVIDER_WJX: _WjxProviderAdapter(),
     SURVEY_PROVIDER_QQ: _QqProviderAdapter(),
+    SURVEY_PROVIDER_CREDAMO: _CredamoProviderAdapter(),
 }
 
 
@@ -178,7 +253,7 @@ def _get_provider_adapter(*, provider: Optional[str] = None, ctx: Any = None, ur
 
 def parse_survey(url: str) -> SurveyDefinition:
     """解析问卷结构，返回标准化后的 SurveyDefinition。"""
-    return _get_provider_adapter(url=url).parse_survey(url)
+    return parse_survey_with_cache(url, lambda normalized_url: _get_provider_adapter(url=normalized_url).parse_survey(normalized_url))
 
 
 def fill_survey(
@@ -275,6 +350,7 @@ def is_device_quota_limit_page(driver: Any, provider: Optional[str] = None) -> b
 __all__ = [
     "SURVEY_PROVIDER_WJX",
     "SURVEY_PROVIDER_QQ",
+    "SURVEY_PROVIDER_CREDAMO",
     "SurveyDefinition",
     "consume_submission_success_signal",
     "detect_survey_provider",

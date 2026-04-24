@@ -46,6 +46,8 @@
 │   │   ├── __init__.py
 │   │   ├── engine/
 │   │   │   └── test_runtime_init_gate.py
+│   │   ├── providers/
+│   │   │   └── test_survey_cache.py
 │   │   └── psychometrics/
 │   └── worker/
 │       ├── wrangler.toml
@@ -107,6 +109,7 @@
 │   │   ├── __init__.py
 │   │   ├── common.py
 │   │   ├── contracts.py
+│   │   ├── survey_cache.py
 │   │   └── registry.py
 │   ├── system/
 │   │   ├── __init__.py
@@ -135,6 +138,13 @@
 │       ├── runtime_answerers.py
 │       ├── runtime_flow.py
 │       ├── runtime_interactions.py
+│       └── submission.py
+├── credamo/
+│   ├── __init__.py
+│   └── provider/
+│       ├── __init__.py
+│       ├── parser.py
+│       ├── runtime.py
 │       └── submission.py
 └── wjx/
    ├── __init__.py
@@ -168,7 +178,7 @@
 2. **开发**：
    - 共享代码进入 `software/`。
    - 平台专属逻辑进入对应的 `provider/` 子目录。
-   - 保持顶层包（`wjx/`、`tencent/`）简洁，仅保留包标记。
+   - 保持顶层包（`wjx/`、`tencent/`、`credamo/`）简洁，仅保留包标记；Credamo 见数没有旧共享兼容转发层，权威实现直接在 `credamo/provider/`。
 3. **自测**：
    - 先运行 `python CI/python_ci.py` 做快检，覆盖编译、Ruff、Pyright 和离线单测。
    - 涉及导入链、主窗口启动链或打包前回归时，再运行 `python CI/python_ci.py --full` 做模块导入和主窗口冒烟全检。
