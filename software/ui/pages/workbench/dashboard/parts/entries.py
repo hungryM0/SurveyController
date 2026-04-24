@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QTableWidgetItem
+from PySide6.QtWidgets import QDialog, QTableWidgetItem, QTableWidget
 from qfluentwidgets import MessageBox
 
 from software.core.questions.config import QuestionEntry
@@ -16,6 +16,20 @@ from software.ui.pages.workbench.strategy.utils import entry_dimension_label
 
 _TEXT_RANDOM_NAME_TOKEN = "__RANDOM_NAME__"
 _TEXT_RANDOM_MOBILE_TOKEN = "__RANDOM_MOBILE__"
+
+
+def _set_table_text(table: QTableWidget, row: int, column: int, text: str, *, align_center: bool = False) -> None:
+    item = table.item(row, column)
+    if item is None:
+        item = QTableWidgetItem(text)
+        if align_center:
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        table.setItem(row, column, item)
+        return
+    if item.text() != text:
+        item.setText(text)
+    if align_center:
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 _TEXT_RANDOM_ID_CARD_TOKEN = "__RANDOM_ID_CARD__"
 
 
@@ -316,26 +330,24 @@ class DashboardEntriesMixin:
 
     def _refresh_entry_table(self):
         entries = self.question_page.get_entries()
-        self.entry_table.setRowCount(len(entries))
-        self.count_label.setText(f"{len(entries)} 题")
-        for idx, entry in enumerate(entries):
-            # 序号列（从1开始）
-            seq_item = QTableWidgetItem(str(idx + 1))
-            seq_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.entry_table.setItem(idx, 0, seq_item)
-            
-            # 类型列
-            type_label = _get_entry_type_label(entry)
-            type_item = QTableWidgetItem(type_label)
-            type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.entry_table.setItem(idx, 1, type_item)
-
-            dimension_item = QTableWidgetItem(question_dimension(entry))
-            dimension_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.entry_table.setItem(idx, 2, dimension_item)
-
-            summary = question_summary(entry)
-            self.entry_table.setItem(idx, 3, QTableWidgetItem(summary))
+        table = self.entry_table
+        previous_updates_enabled = table.updatesEnabled()
+        previous_sorting_enabled = table.isSortingEnabled()
+        table.setUpdatesEnabled(False)
+        table.setSortingEnabled(False)
+        table.blockSignals(True)
+        try:
+            table.setRowCount(len(entries))
+            self.count_label.setText(f"{len(entries)} 题")
+            for idx, entry in enumerate(entries):
+                _set_table_text(table, idx, 0, str(idx + 1), align_center=True)
+                _set_table_text(table, idx, 1, _get_entry_type_label(entry), align_center=True)
+                _set_table_text(table, idx, 2, question_dimension(entry), align_center=True)
+                _set_table_text(table, idx, 3, question_summary(entry))
+        finally:
+            table.blockSignals(False)
+            table.setSortingEnabled(previous_sorting_enabled)
+            table.setUpdatesEnabled(previous_updates_enabled)
         self._sync_start_button_state()
 
     def _checked_rows(self) -> List[int]:

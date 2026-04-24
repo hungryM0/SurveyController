@@ -19,6 +19,16 @@ from qfluentwidgets import (
 from software.logging.action_logger import bind_logged_action, log_action
 from software.ui.helpers.fluent_tooltip import install_tooltip_filter
 
+
+def _set_text_if_changed(widget: Any, text: str) -> None:
+    if widget is not None and widget.text() != text:
+        widget.setText(text)
+
+
+def _set_value_if_changed(widget: Any, value: int) -> None:
+    if widget is not None and widget.value() != value:
+        widget.setValue(value)
+
 if TYPE_CHECKING:
     from software.ui.controller import RunController
 
@@ -460,7 +470,7 @@ class DashboardProgressMixin:
                 row = self._create_thread_progress_row(thread_display_name)
                 self._thread_progress_rows[thread_name] = row
             else:
-                row["name"].setText(thread_display_name)
+                _set_text_if_changed(row["name"], thread_display_name)
 
             status_text = str(item.get("status_text") or "运行中")
             if not bool(item.get("running", True)) and not status_text:
@@ -478,13 +488,13 @@ class DashboardProgressMixin:
             cumulative_percent = int(min(100, (success_count / float(max(1, per_thread_target))) * 100))
             step_busy = status_text in self._THREAD_BUSY_STATUSES
 
-            row["status"].setText(status_text)
-            row["counter"].setText(f"成功 {success_count} | 提交失败 {fail_count}")
+            _set_text_if_changed(row["status"], status_text)
+            _set_text_if_changed(row["counter"], f"成功 {success_count} | 提交失败 {fail_count}")
             self._set_thread_step_busy(row, step_busy)
-            row["step_bar"].setValue(step_percent)
-            row["step_value"].setText(f"{step_current}/{step_total}" if step_total > 0 else "0/0")
-            row["cum_bar"].setValue(cumulative_percent)
-            row["cum_value"].setText(f"{cumulative_percent}%")
+            _set_value_if_changed(row["step_bar"], step_percent)
+            _set_text_if_changed(row["step_value"], f"{step_current}/{step_total}" if step_total > 0 else "0/0")
+            _set_value_if_changed(row["cum_bar"], cumulative_percent)
+            _set_text_if_changed(row["cum_value"], f"{cumulative_percent}%")
 
         stale = [name for name in self._thread_progress_rows.keys() if name not in seen_names]
         for name in stale:

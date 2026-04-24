@@ -11,6 +11,7 @@ from qfluentwidgets import (
     NavigationItemPosition,
     RoundMenu,
 )
+from PySide6.QtWidgets import QWidget
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QStackedWidget
@@ -37,11 +38,29 @@ class MainWindowLazyPagesMixin:
         self.addSubInterface(self.dashboard, FluentIcon.HOME, "概览", position=NavigationItemPosition.TOP)
         self.addSubInterface(self.runtime_page, FluentIcon.DEVELOPER_TOOLS, "运行参数", position=NavigationItemPosition.TOP)
         self.addSubInterface(self.strategy_page, FluentIcon.DICTIONARY_ADD, "题目策略", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self._get_log_page(), FluentIcon.INFO, "日志", position=NavigationItemPosition.TOP)
+        self.navigationInterface.addItem(
+            routeKey="logs",
+            icon=FluentIcon.INFO,
+            text="日志",
+            onClick=lambda: self._switch_to_lazy_page("logs", self._get_log_page()),
+            position=NavigationItemPosition.TOP,
+        )
         # 社区页面
-        self.addSubInterface(self._get_community_page(), FluentIcon.CHAT, "社区", position=NavigationItemPosition.BOTTOM)
+        self.navigationInterface.addItem(
+            routeKey="community",
+            icon=FluentIcon.CHAT,
+            text="社区",
+            onClick=lambda: self._switch_to_lazy_page("community", self._get_community_page()),
+            position=NavigationItemPosition.BOTTOM,
+        )
         # 设置页面
-        self.addSubInterface(self._get_settings_page(), FluentIcon.SETTING, "设置", position=NavigationItemPosition.BOTTOM)
+        self.navigationInterface.addItem(
+            routeKey="settings",
+            icon=FluentIcon.SETTING,
+            text="设置",
+            onClick=lambda: self._switch_to_lazy_page("settings", self._get_settings_page()),
+            position=NavigationItemPosition.BOTTOM,
+        )
         # "更多"弹出式子菜单
         self.navigationInterface.addItem(
             routeKey="about_menu",
@@ -52,6 +71,19 @@ class MainWindowLazyPagesMixin:
             position=NavigationItemPosition.BOTTOM,
         )
         self.navigationInterface.setCurrentItem(self.dashboard.objectName())
+
+    def _ensure_lazy_page_added(self, page: QWidget) -> QWidget:
+        if self.stackedWidget.indexOf(page) == -1:
+            self.stackedWidget.addWidget(page)
+        return page
+
+    def _switch_to_lazy_page(self, route_key: str, page: QWidget) -> None:
+        self._ensure_lazy_page_added(page)
+        self.switchTo(page)
+        try:
+            self.navigationInterface.setCurrentItem(route_key)
+        except Exception:
+            logging.info("同步懒加载页面侧边栏高亮失败", exc_info=True)
 
     def _get_log_page(self):
         """懒加载日志页面"""

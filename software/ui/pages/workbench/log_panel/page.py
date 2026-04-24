@@ -57,7 +57,6 @@ class LogPage(QWidget):
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setInterval(LOG_REFRESH_INTERVAL_MS)
         self._refresh_timer.timeout.connect(self.refresh_logs)
-        self._refresh_timer.start()
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -119,6 +118,11 @@ class LogPage(QWidget):
         if not self._refresh_timer.isActive():
             self._refresh_timer.start()
         QTimer.singleShot(0, self.refresh_logs)
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        if self._refresh_timer.isActive():
+            self._refresh_timer.stop()
 
     def _open_bug_report_dialog(self):
         """打开“报错反馈”联系开发者对话框。"""

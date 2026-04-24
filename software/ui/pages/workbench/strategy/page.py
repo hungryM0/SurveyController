@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
@@ -38,6 +39,15 @@ from .rule_dialog import (
     to_int,
     to_int_list,
 )
+
+
+def _set_table_text(table: QTableWidget, row: int, column: int, text: str) -> None:
+    item = table.item(row, column)
+    if item is None:
+        table.setItem(row, column, QTableWidgetItem(text))
+        return
+    if item.text() != text:
+        item.setText(text)
 
 
 class ConditionRulePanel(QWidget):
@@ -236,30 +246,39 @@ class ConditionRulePanel(QWidget):
         return "；".join(labels)
 
     def _refresh_table(self) -> None:
-        self.table.setRowCount(0)
-        for row, rule in enumerate(self._rules):
-            self.table.insertRow(row)
-            condition_num = to_int(rule.get("condition_question_num"), 0)
-            target_num = to_int(rule.get("target_question_num"), 0)
-            condition_mode = str(rule.get("condition_mode") or "selected").strip()
-            action_mode = str(rule.get("action_mode") or "must_select").strip()
-            condition_options = to_int_list(rule.get("condition_option_indices"))
-            target_options = to_int_list(rule.get("target_option_indices"))
-            raw_cri = rule.get("condition_row_index")
-            condition_row_index: Optional[int] = to_int(raw_cri, -1) if raw_cri is not None else None
-            if condition_row_index is not None and condition_row_index < 0:
-                condition_row_index = None
-            raw_tri = rule.get("target_row_index")
-            target_row_index: Optional[int] = to_int(raw_tri, -1) if raw_tri is not None else None
-            if target_row_index is not None and target_row_index < 0:
-                target_row_index = None
+        previous_updates_enabled = self.table.updatesEnabled()
+        previous_sorting_enabled = self.table.isSortingEnabled()
+        self.table.setUpdatesEnabled(False)
+        self.table.setSortingEnabled(False)
+        self.table.blockSignals(True)
+        try:
+            self.table.setRowCount(len(self._rules))
+            for row, rule in enumerate(self._rules):
+                condition_num = to_int(rule.get("condition_question_num"), 0)
+                target_num = to_int(rule.get("target_question_num"), 0)
+                condition_mode = str(rule.get("condition_mode") or "selected").strip()
+                action_mode = str(rule.get("action_mode") or "must_select").strip()
+                condition_options = to_int_list(rule.get("condition_option_indices"))
+                target_options = to_int_list(rule.get("target_option_indices"))
+                raw_cri = rule.get("condition_row_index")
+                condition_row_index: Optional[int] = to_int(raw_cri, -1) if raw_cri is not None else None
+                if condition_row_index is not None and condition_row_index < 0:
+                    condition_row_index = None
+                raw_tri = rule.get("target_row_index")
+                target_row_index: Optional[int] = to_int(raw_tri, -1) if raw_tri is not None else None
+                if target_row_index is not None and target_row_index < 0:
+                    target_row_index = None
 
-            self.table.setItem(row, 0, QTableWidgetItem(self._question_label_by_num(condition_num, condition_row_index)))
-            self.table.setItem(row, 1, QTableWidgetItem(CONDITION_MODE_LABELS.get(condition_mode, condition_mode)))
-            self.table.setItem(row, 2, QTableWidgetItem(self._option_label_text(condition_num, condition_options)))
-            self.table.setItem(row, 3, QTableWidgetItem(self._question_label_by_num(target_num, target_row_index)))
-            self.table.setItem(row, 4, QTableWidgetItem(ACTION_MODE_LABELS.get(action_mode, action_mode)))
-            self.table.setItem(row, 5, QTableWidgetItem(self._option_label_text(target_num, target_options)))
+                _set_table_text(self.table, row, 0, self._question_label_by_num(condition_num, condition_row_index))
+                _set_table_text(self.table, row, 1, CONDITION_MODE_LABELS.get(condition_mode, condition_mode))
+                _set_table_text(self.table, row, 2, self._option_label_text(condition_num, condition_options))
+                _set_table_text(self.table, row, 3, self._question_label_by_num(target_num, target_row_index))
+                _set_table_text(self.table, row, 4, ACTION_MODE_LABELS.get(action_mode, action_mode))
+                _set_table_text(self.table, row, 5, self._option_label_text(target_num, target_options))
+        finally:
+            self.table.blockSignals(False)
+            self.table.setSortingEnabled(previous_sorting_enabled)
+            self.table.setUpdatesEnabled(previous_updates_enabled)
 
 
 class QuestionStrategyPage(ScrollArea):
