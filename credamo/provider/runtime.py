@@ -24,6 +24,7 @@ _CREDAMO_DYNAMIC_WAIT_TIMEOUT_MS = 20000
 _CREDAMO_DYNAMIC_WAIT_POLL_SECONDS = 0.5
 _CREDAMO_PAGE_TRANSITION_TIMEOUT_MS = 12000
 _CREDAMO_DYNAMIC_REVEAL_TIMEOUT_MS = 2000
+_CREDAMO_LOADING_SHELL_EXTRA_WAIT_TIMEOUT_MS = 25000
 _QUESTION_NUMBER_RE = re.compile(r"\d+")
 _NEXT_BUTTON_MARKERS = ("下一页", "next", "继续")
 _SUBMIT_BUTTON_MARKERS = ("提交", "完成", "交卷", "submit", "finish", "done")
@@ -66,14 +67,41 @@ def _question_roots(page: Any) -> List[Any]:
             pass
 
 
+def _page_loading_snapshot(page: Any) -> Tuple[str, str]:
+    try:
+        title = str(page.title() or "").strip()
+    except Exception:
+        title = ""
+    try:
+        body_text = str(page.locator("body").inner_text(timeout=1000) or "").strip()
+    except Exception:
+        body_text = ""
+    return title, re.sub(r"\s+", " ", body_text).strip()
+
+
+def _looks_like_loading_shell(title: str, body_text: str) -> bool:
+    normalized_title = str(title or "").strip()
+    normalized_body = str(body_text or "").strip()
+    if not normalized_body:
+        return normalized_title in {"", "答卷"}
+    compact_body = normalized_body.replace(" ", "")
+    if compact_body in {"载入中", "载入中...", "载入中..", "loading", "loading..."}:
+        return True
+    if normalized_title == "答卷" and len(compact_body) <= 16:
+        return True
+    return False
+
+
 def _wait_for_question_roots(
     page: Any,
     stop_signal: Optional[threading.Event],
     *,
     timeout_ms: int = _CREDAMO_DYNAMIC_WAIT_TIMEOUT_MS,
+    loading_shell_extra_timeout_ms: int = _CREDAMO_LOADING_SHELL_EXTRA_WAIT_TIMEOUT_MS,
 ) -> List[Any]:
     deadline = time.monotonic() + max(0.0, timeout_ms / 1000)
     last_roots: List[Any] = []
+    loading_shell_retry_used = False
     while not _abort_requested(stop_signal):
         try:
             last_roots = _question_roots(page)
@@ -83,6 +111,25 @@ def _wait_for_question_roots(
         if last_roots:
             return last_roots
         if time.monotonic() >= deadline:
+            title, body_text = _page_loading_snapshot(page)
+            if (
+                not loading_shell_retry_used
+                and loading_shell_extra_timeout_ms > 0
+                and _looks_like_loading_shell(title, body_text)
+            ):
+                loading_shell_retry_used = True
+                deadline = time.monotonic() + max(0.0, loading_shell_extra_timeout_ms / 1000)
+                logging.warning(
+                    "Credamo 页面仍在载入壳页，延长等待题目：title=%s body=%s",
+                    title or "<empty>",
+                    (body_text[:80] or "<empty>"),
+                )
+                continue
+            logging.warning(
+                "Credamo 等待题目超时：title=%s body=%s",
+                title or "<empty>",
+                (body_text[:120] or "<empty>"),
+            )
             return last_roots
         if stop_signal is not None:
             stop_signal.wait(_CREDAMO_DYNAMIC_WAIT_POLL_SECONDS)

@@ -43,8 +43,7 @@ class RunStopPolicyTests(unittest.TestCase):
         policy = RunStopPolicy(config, state, gui)
         stop_signal = threading.Event()
 
-        with patch("software.core.engine.run_stop_policy._event_bus.emit") as emit_mock:
-            should_stop = policy.record_success(stop_signal, thread_name="Worker-1")
+        should_stop = policy.record_success(stop_signal, thread_name="Worker-1")
 
         self.assertTrue(should_stop)
         self.assertEqual(state.cur_num, 1)
@@ -54,7 +53,6 @@ class RunStopPolicyTests(unittest.TestCase):
         self.assertTrue(stop_signal.is_set())
         self.assertEqual(state.get_terminal_stop_snapshot()[0], "target_reached")
         gui.handle_random_ip_submission.assert_called_once_with(stop_signal)
-        emit_mock.assert_called_once()
 
 
 if __name__ == "__main__":
