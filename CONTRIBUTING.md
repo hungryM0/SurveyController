@@ -4,11 +4,11 @@
 
 ## 快速开始
 - **交流**：首选 GitHub Issues，或加入 QQ 群（见 README）。
-- **参考**：网页解析和接口信息统一改为在线查阅，优先看 API 文档：https://api-wjx.hungrym0.top/api/document
+- **参考**：服务接口信息统一改为在线查阅，优先看 API 文档：https://api-wjx.hungrym0.top/api/document
 - **环境**：Python 3.11+，Windows 10/11。执行 `pip install -r requirements.txt` 安装依赖。
 
 <details>
-<summary><b>📂 项目目录结构</b></summary>
+<summary><b>📂 点击查看项目目录结构</b></summary>
 
 ```markdown
 仓库根目录
@@ -184,17 +184,16 @@
 </details>
 
 ## PR 流程
-1. **Fork** 仓库并创建特性分支。
+1. **Fork** 本仓库并创建特性分支。
 2. **开发**：
    - 共享代码进入 `software/`。
    - 平台专属逻辑进入对应的 `provider/` 子目录。
    - 保持顶层包（`wjx/`、`tencent/`、`credamo/`）简洁，仅保留包标记；Credamo 见数没有旧共享兼容转发层，权威实现直接在 `credamo/provider/`。
 3. **自测**：
-   - 先运行 `python CI/python_ci.py` 做快检，覆盖编译、Ruff、Pyright 和离线单测。
-   - 涉及导入链、主窗口启动链或打包前回归时，再运行 `python CI/python_ci.py --full` 做模块导入和主窗口冒烟全检。
-   - 涉及真实问卷解析逻辑时，再运行 `python -m unittest CI.live_tests.test_survey_parsers -v`。
+   - 打开拉取请求先确保 CI 能够通过检查（`python CI/python_ci.py`）
    - 最少手动跑一次受影响的核心流程，并在 PR 里写清楚结果。
-4. **提交**：PR 描述请写明改动目的、测试结果，如果有的话关联相关 Issue；如果碰到初始化门禁相关改动，请说明是否影响浏览器快检子进程与启动提示。
+4. **提交**：
+   - PR 描述请写明改动目的、测试结果，如果有的话关联相关 Issue。
 
 ## 开发规范
 - **模块化**：按职责拆分文件，避免“巨型文件”；新功能应放入对应的子目录。

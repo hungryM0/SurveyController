@@ -141,7 +141,8 @@ class AboutPage(ScrollArea):
         self.update_spinner.setFixedSize(16, 16)
         self.update_spinner.setStrokeWidth(2)
         self.update_spinner.hide()
-        self.update_btn = PrimaryPushButton("检查更新", self, FluentIcon.UPDATE)
+        self.update_btn = PrimaryPushButton("检查更新", self)
+        self.update_btn.setIcon(FluentIcon.UPDATE)
         version_row.addWidget(self.update_spinner)
         version_row.addWidget(self.update_btn)
         version_layout.addLayout(version_row)
@@ -153,9 +154,11 @@ class AboutPage(ScrollArea):
         links_layout.setSpacing(8)
         links_layout.addWidget(StrongBodyLabel("相关链接", self))
         
-        self.github_btn = PushButton("GitHub 仓库", self, FluentIcon.GITHUB)
+        self.github_btn = PushButton("GitHub 仓库", self)
+        self.github_btn.setIcon(FluentIcon.GITHUB)
         icon_path = get_resource_path("icon.ico")
-        self.website_btn = PushButton("官方文档", self, QIcon(icon_path))
+        self.website_btn = PushButton("官方文档", self)
+        self.website_btn.setIcon(QIcon(icon_path))
         
         links_row = QHBoxLayout()
         links_row.setSpacing(12)

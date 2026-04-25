@@ -1,14 +1,13 @@
-"""社区页面 - QQ群、开源声明、开发者招募"""
+"""社区页面 - 网格卡片布局"""
 import os
 import webbrowser
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QPixmap, QPainter, QPainterPath
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QBoxLayout,
     QLabel,
     QSizePolicy,
 )
@@ -19,25 +18,26 @@ from qfluentwidgets import (
     CaptionLabel,
     ElevatedCardWidget,
     PushButton,
-    PrimaryPushButton,
     FluentIcon,
     StrongBodyLabel,
 )
 
+from software.app.config import STATUS_ENDPOINT
 from software.app.version import GITHUB_OWNER, GITHUB_REPO
 from software.app.runtime_paths import get_assets_directory
+from software.ui.helpers.proxy_access import format_status_payload
+from software.ui.widgets.adaptive_flow_layout import AdaptiveFlowLayout
 
 _GITHUB_URL = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}"
 
 
 class CommunityPage(ScrollArea):
-    """社区页面，展示QQ群、开源声明和开发者招募"""
+    """社区页面 - 网格卡片布局，展示QQ群、联系开发者、参与贡献、开源声明等"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.view = QWidget(self)
         self.content_widget = QWidget(self.view)
-        self._compact = False
         self._qq_pixmap = None
 
         self.setWidget(self.view)
@@ -61,7 +61,7 @@ class CommunityPage(ScrollArea):
 
         cl = QVBoxLayout(self.content_widget)
         cl.setContentsMargins(36, 20, 36, 28)
-        cl.setSpacing(16)
+        cl.setSpacing(20)
         cl.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # ── 页面标题 ──
@@ -71,17 +71,30 @@ class CommunityPage(ScrollArea):
 
         cl.addSpacing(8)
 
-        # ── QQ 群卡片 ──
+        # ── 网格卡片布局 ──
+        grid_widget = QWidget(self.content_widget)
+        card_layout = AdaptiveFlowLayout(
+            grid_widget,
+            minItemWidth=420,
+            hSpacing=16,
+            vSpacing=16,
+        )
+        card_layout.setContentsMargins(0, 0, 0, 0)
+
+        # 自适应卡片流式布局（窗口变窄自动换行）
         self.qq_card = self._build_qq_card()
-        cl.addWidget(self.qq_card)
+        card_layout.addWidget(self.qq_card)
 
-        # ── 开发者招募卡片 ──
-        self.dev_card = self._build_recruit_card()
-        cl.addWidget(self.dev_card)
+        self.contact_card = self._build_contact_card()
+        card_layout.addWidget(self.contact_card)
 
-        # ── 开源声明卡片 ──
-        self.os_card = self._build_opensource_card()
-        cl.addWidget(self.os_card)
+        self.contribute_card = self._build_contribute_card()
+        card_layout.addWidget(self.contribute_card)
+
+        self.license_card = self._build_license_card()
+        card_layout.addWidget(self.license_card)
+
+        cl.addWidget(grid_widget)
 
         # ── Footer ──
         footer = CaptionLabel(
@@ -94,189 +107,116 @@ class CommunityPage(ScrollArea):
         cl.addWidget(footer)
 
         cl.addStretch(1)
-        self._update_layout()
+
+    # ── 卡片工厂方法 ──
+
+    def _create_grid_card(self, title: str, icon=None) -> tuple[ElevatedCardWidget, QVBoxLayout]:
+        """创建网格卡片"""
+        card = ElevatedCardWidget(self.content_widget)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(14)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # 标题行（带图标）
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(8)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        
+        if icon:
+            icon_label = QLabel(card)
+            icon_label.setPixmap(icon.icon(QPixmap()).pixmap(24, 24))
+            title_layout.addWidget(icon_label)
+        
+        title_label = StrongBodyLabel(title, card)
+        title_label.setStyleSheet("font-size: 16px; letter-spacing: 1px;")
+        title_layout.addWidget(title_label)
+        title_layout.addStretch(1)
+        layout.addLayout(title_layout)
+
+        return card, layout
+
+    def _setup_card_button(self, button: PushButton):
+        """统一按钮尺寸，样式交给 QFluentWidgets 原生控件。"""
+        button.setFixedHeight(36)
+        button.setIconSize(QSize(16, 16))
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        button.setMinimumWidth(max(120, button.sizeHint().width() + 8))
+
+    def _create_action_bar(
+        self,
+        parent: QWidget,
+        primary_button: PushButton,
+        secondary_button: PushButton | None = None,
+    ) -> QWidget:
+        """统一卡片按钮区，保持 QFluentWidgets 原生按钮风格。"""
+        action_bar = QWidget(parent)
+
+        layout = QVBoxLayout(action_bar)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        button_row = QHBoxLayout()
+        button_row.setContentsMargins(0, 0, 0, 0)
+        button_row.setSpacing(10)
+        button_row.addWidget(primary_button)
+
+        if secondary_button is not None:
+            button_row.addWidget(secondary_button)
+
+        button_row.addStretch(1)
+        layout.addLayout(button_row)
+        return action_bar
 
     # ── QQ 群卡片 ──
 
-    def _create_card_layout(self) -> tuple[ElevatedCardWidget, QHBoxLayout]:
-        """统一社区页卡片容器，避免每张卡片重复手搓同一套布局。"""
-        card = ElevatedCardWidget(self.content_widget)
-        layout = QHBoxLayout(card)
-        layout.setContentsMargins(40, 36, 40, 36)
-        layout.setSpacing(32)
-        return card, layout
-
     def _build_qq_card(self) -> ElevatedCardWidget:
-        card, self.qq_inner = self._create_card_layout()
+        card, layout = self._create_grid_card("QQ 群交流", FluentIcon.CHAT)
 
-        # 左侧文字
-        left = QVBoxLayout()
-        left.setSpacing(16)
-        left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        content_row = QHBoxLayout()
+        content_row.setContentsMargins(0, 0, 0, 0)
+        content_row.setSpacing(16)
 
-        title = StrongBodyLabel("加入 QQ 交流群", card)
-        title.setStyleSheet("font-size: 24px; letter-spacing: 2px;")
-        left.addWidget(title)
+        text_layout = QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(8)
 
         desc = BodyLabel(
-            "扫描二维码加入QQ交流群。\n"
-            "群内可获取版本更新推送、反馈使用中遇到的问题、\n"
-            "以及与其他用户交流使用技巧和经验。",
+            "扫码加入 QQ 交流群，实时获取最新版本、反馈问题、交流使用经验、订阅最新的服务情况",
             card,
         )
-        desc.setStyleSheet("font-size: 16px; line-height: 1.8; letter-spacing: 2px;")
         desc.setWordWrap(True)
-        left.addWidget(desc)
+        desc.setStyleSheet("font-size: 13px; line-height: 1.6; color: #999;")
+        text_layout.addWidget(desc)
+        text_layout.addStretch(1)
+        content_row.addLayout(text_layout, 1)
 
-        self.qq_inner.addLayout(left, 1)
-
-        # 右侧二维码
+        # 二维码展示
         self.qq_qr_label = QLabel(card)
         self.qq_qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.qq_qr_label.setStyleSheet(
-            "background: rgba(255,255,255,0.05); "
-            "border: 1px solid rgba(128,128,128,0.1); "
-            "border-radius: 12px; "
-            "padding: 12px;"
-        )
+        self.qq_qr_label.setFixedSize(144, 144)
         self._load_qr_image()
+        content_row.addWidget(
+            self.qq_qr_label,
+            0,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
 
-        self.qq_inner.addWidget(self.qq_qr_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(content_row)
+        layout.addStretch(1)
+
+        preview_btn = PushButton("打开二维码", card)
+        preview_btn.setIcon(FluentIcon.PHOTO)
+        self._setup_card_button(preview_btn)
+        preview_btn.clicked.connect(self._open_qq_qr_image)
+
+        action_bar = self._create_action_bar(
+            card,
+            preview_btn,
+        )
+        layout.addWidget(action_bar)
 
         return card
-
-    # ── 开源声明卡片 ──
-
-    def _build_opensource_card(self) -> ElevatedCardWidget:
-        card, self.os_inner = self._create_card_layout()
-
-        # 左侧：描述
-        left = QVBoxLayout()
-        left.setSpacing(16)
-        left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-        title = StrongBodyLabel("开源声明", card)
-        title.setStyleSheet("font-size: 24px; letter-spacing: 2px;")
-        left.addWidget(title)
-
-        desc = BodyLabel(
-            "本项目基于 AGPL-3.0 许可证公开全部源代码！\n"
-            "欢迎各位提出改进建议或直接贡献代码",
-            card,
-        )
-        desc.setWordWrap(True)
-        desc.setStyleSheet("font-size: 16px; line-height: 1.8; letter-spacing: 2px;")
-        left.addWidget(desc)
-
-        license_row = QHBoxLayout()
-        license_row.setSpacing(8)
-        license_label = CaptionLabel("License：", card)
-        license_label.setStyleSheet("font-size: 14px; color: #888; letter-spacing: 1px;")
-        license_row.addWidget(license_label)
-        gpl = StrongBodyLabel("AGPL-3.0", card)
-        gpl.setStyleSheet("font-size: 15px; letter-spacing: 1px;")
-        license_row.addWidget(gpl)
-        license_row.addStretch(1)
-        left.addLayout(license_row)
-
-        github_btn = PrimaryPushButton("GitHub 仓库", card, FluentIcon.GITHUB)
-        github_btn.clicked.connect(lambda: webbrowser.open(_GITHUB_URL))
-        left.addWidget(github_btn, alignment=Qt.AlignmentFlag.AlignLeft)
-
-        self.os_inner.addLayout(left, 1)
-
-        # 右侧：应用图标
-        icon_label = QLabel(card)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_path = os.path.join(get_assets_directory(), "icon.png")
-        if os.path.exists(icon_path):
-            icon_pixmap = QPixmap(icon_path)
-            if not icon_pixmap.isNull():
-                icon_pixmap = icon_pixmap.scaled(
-                    120, 120,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-                icon_label.setPixmap(icon_pixmap)
-        icon_label.setFixedSize(160, 160)
-        self.os_inner.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        return card
-
-    # ── 开发者招募卡片（全宽）──
-
-    def _build_recruit_card(self) -> ElevatedCardWidget:
-        card, self.recruit_inner = self._create_card_layout()
-
-        # 左侧：招募说明
-        left = QVBoxLayout()
-        left.setSpacing(16)
-        left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-        title = StrongBodyLabel("✅ 参与开发贡献", card)
-        title.setStyleSheet("font-size: 24px; letter-spacing: 2px;")
-        left.addWidget(title)
-
-        desc = BodyLabel(
-            "我们正在寻找志同道合的开发者一起共创项目！\n"
-            "无论你擅长开发、设计还是测试，都有你的位置。",
-            card,
-        )
-        desc.setStyleSheet("font-size: 16px; line-height: 1.8; letter-spacing: 2px;")
-        desc.setWordWrap(True)
-        left.addWidget(desc)
-
-        skills = CaptionLabel(
-            "Python ·  UI 设计 · 预览版测试 · 文档编写",
-            card,
-        )
-        skills.setWordWrap(True)
-        skills.setStyleSheet("font-size: 14px; color: #888; letter-spacing: 1px;")
-        left.addWidget(skills)
-
-        self.recruit_inner.addLayout(left, 1)
-
-        # 右侧：参与方式 + 按钮
-        right = QVBoxLayout()
-        right.setSpacing(16)
-        right.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-        right_title = StrongBodyLabel("如何参与", card)
-        right_title.setStyleSheet("font-size: 24px; letter-spacing: 2px;")
-        right.addWidget(right_title)
-
-        steps = BodyLabel(
-            "1. Fork 并克隆仓库到本地\n"
-            "2. 编码开发\n"
-            "3. 在 GitHub 提交 Pull Request",
-            card,
-        )
-        steps.setStyleSheet("font-size: 16px; line-height: 1.8; letter-spacing: 2px;")
-        steps.setWordWrap(True)
-        right.addWidget(steps)
-
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(8)
-
-        guide_btn = PrimaryPushButton("查看贡献指南", card, FluentIcon.DOCUMENT)
-        guide_btn.clicked.connect(
-            lambda: webbrowser.open(f"{_GITHUB_URL}/blob/main/CONTRIBUTING.md")
-        )
-        btn_row.addWidget(guide_btn)
-
-        issues_btn = PushButton("提交 Issue", card, FluentIcon.CHAT)
-        issues_btn.clicked.connect(
-            lambda: webbrowser.open(f"{_GITHUB_URL}/issues/new")
-        )
-        btn_row.addWidget(issues_btn)
-        btn_row.addStretch(1)
-
-        right.addLayout(btn_row)
-        self.recruit_inner.addLayout(right, 1)
-
-        return card
-
-    # ── 二维码相关 ──
 
     def _load_qr_image(self):
         """加载QQ群二维码图片"""
@@ -286,64 +226,143 @@ class CommunityPage(ScrollArea):
                 pixmap = QPixmap(path)
                 if not pixmap.isNull():
                     self._qq_pixmap = pixmap
-                    self._apply_qq_qr_pixmap()
+                    scaled = pixmap.scaled(
+                        144, 144,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                    self.qq_qr_label.setPixmap(self._round_pixmap(scaled, radius=12))
                 else:
-                    self.qq_qr_label.setText("二维码加载失败\nassets/community_qr.jpg")
+                    self.qq_qr_label.setText("二维码")
+                    self.qq_qr_label.setStyleSheet("font-size: 12px; color: #999;")
             else:
-                self.qq_qr_label.setText("二维码未找到\nassets/community_qr.jpg")
-        except Exception as exc:
-            self.qq_qr_label.setText(f"加载失败：{exc}")
+                self.qq_qr_label.setText("二维码")
+                self.qq_qr_label.setStyleSheet("font-size: 12px; color: #999;")
+        except Exception:
+            self.qq_qr_label.setText("二维码")
+            self.qq_qr_label.setStyleSheet("font-size: 12px; color: #999;")
 
-    def _apply_qq_qr_pixmap(self):
-        if not self._qq_pixmap or self._qq_pixmap.isNull():
-            return
-        base_width = 200 if self._compact else 240
-        ratio = self._qq_pixmap.height() / self._qq_pixmap.width() if self._qq_pixmap.width() else 1
-        height = max(160, int(base_width * ratio))
-        self.qq_qr_label.setFixedSize(base_width + 24, height + 24)
-        scaled = self._qq_pixmap.scaled(
-            base_width, height,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        self.qq_qr_label.setPixmap(self._round_pixmap(scaled, radius=12))
-
-    def _round_pixmap(self, pixmap: QPixmap, radius: int = 12) -> QPixmap:
-        """圆角处理，避免直角二维码显得突兀"""
+    def _round_pixmap(self, pixmap: QPixmap, radius: int = 8) -> QPixmap:
+        """圆角处理"""
         if pixmap.isNull():
             return pixmap
         output = QPixmap(pixmap.size())
         output.fill(Qt.GlobalColor.transparent)
         painter = QPainter(output)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         path = QPainterPath()
-        rect = output.rect()
-        path.addRoundedRect(rect, radius, radius)
+        path.addRoundedRect(output.rect(), radius, radius)
         painter.setClipPath(path)
         painter.drawPixmap(0, 0, pixmap)
         painter.end()
         return output
 
-    # ── 响应式布局 ──
+    def _open_qq_qr_image(self):
+        """打开QQ群二维码原图"""
+        path = os.path.join(get_assets_directory(), "community_qr.jpg")
+        if os.path.exists(path):
+            os.startfile(path)
 
-    def resizeEvent(self, arg__1):
-        super().resizeEvent(arg__1)
-        self._update_layout()
+    # ── 联系开发者卡片 ──
 
-    def _update_layout(self):
-        compact = self.viewport().width() < 750
-        if compact == self._compact:
+    def _build_contact_card(self) -> ElevatedCardWidget:
+        card, layout = self._create_grid_card("联系开发者", FluentIcon.SEND)
+
+        desc = BodyLabel(
+            "遇到问题？有建议？不想加 QQ 群？\n可以直接在此处与我们沟通，我们会尽快回复。",
+            card,
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet("font-size: 13px; line-height: 1.6; color: #999;")
+        layout.addWidget(desc)
+        layout.addStretch(1)
+
+        btn = PushButton("发送消息", card)
+        btn.setIcon(FluentIcon.SEND)
+        self._setup_card_button(btn)
+        btn.clicked.connect(self._open_contact_dialog)
+
+        action_bar = self._create_action_bar(
+            card,
+            btn,
+        )
+        layout.addWidget(action_bar)
+
+        return card
+
+    def _open_contact_dialog(self):
+        """打开联系开发者对话框"""
+        window = self.window()
+        if hasattr(window, "_open_contact_dialog"):
+            window._open_contact_dialog()  # type: ignore[attr-defined]
             return
-        self._compact = compact
 
-        if compact:
-            self.recruit_inner.setDirection(QBoxLayout.Direction.TopToBottom)
-            self.qq_inner.setDirection(QBoxLayout.Direction.TopToBottom)
-            self.os_inner.setDirection(QBoxLayout.Direction.TopToBottom)
-        else:
-            self.recruit_inner.setDirection(QBoxLayout.Direction.LeftToRight)
-            self.qq_inner.setDirection(QBoxLayout.Direction.LeftToRight)
-            self.os_inner.setDirection(QBoxLayout.Direction.LeftToRight)
-        self._apply_qq_qr_pixmap()
+        from software.ui.dialogs.contact import ContactDialog
+        dialog = ContactDialog(
+            self,
+            status_endpoint=STATUS_ENDPOINT,
+            status_formatter=format_status_payload,
+        )
+        dialog.exec()
+
+    # ── 参与贡献卡片 ──
+
+    def _build_contribute_card(self) -> ElevatedCardWidget:
+        card, layout = self._create_grid_card("参与贡献", FluentIcon.DEVELOPER_TOOLS)
+
+        desc = BodyLabel(
+            "我们接受开发、设计、测试、提供想法等任何贡献形式\n相信我们能够一起把项目做得更好。",
+            card,
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet("font-size: 13px; line-height: 1.6; color: #999;")
+        layout.addWidget(desc)
+        layout.addStretch(1)
+
+        repo_btn = PushButton("仓库主页", card)
+        repo_btn.setIcon(FluentIcon.GITHUB)
+        self._setup_card_button(repo_btn)
+        repo_btn.clicked.connect(lambda: webbrowser.open(_GITHUB_URL))
+
+        action_bar = self._create_action_bar(
+            card,
+            repo_btn,
+        )
+        layout.addWidget(action_bar)
+
+        return card
+
+    # ── 开源许可卡片 ──
+
+    def _build_license_card(self) -> ElevatedCardWidget:
+        card, layout = self._create_grid_card("开源许可", FluentIcon.CERTIFICATE)
+
+        license_label = StrongBodyLabel("AGPL-3.0", card)
+        license_label.setStyleSheet("font-size: 18px; letter-spacing: 1px;")
+        layout.addWidget(license_label)
+
+        desc = BodyLabel(
+            "在分发程序或对其进行修改并通过网络向用户提供交互服务时，必须向这些用户提供相应的完整源代码，以确保用户获得与传统分发情形同等的自由与权利",
+            card,
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet("font-size: 13px; line-height: 1.6; color: #999;")
+        layout.addWidget(desc)
+        layout.addStretch(1)
+
+        license_btn = PushButton("查看协议", card)
+        license_btn.setIcon(FluentIcon.INFO)
+        self._setup_card_button(license_btn)
+        license_btn.clicked.connect(
+            lambda: webbrowser.open(f"{_GITHUB_URL}/blob/main/LICENSE")
+        )
+
+        action_bar = self._create_action_bar(
+            card,
+            license_btn,
+        )
+        layout.addWidget(action_bar)
+
+        return card
+
 

@@ -189,11 +189,6 @@ class MainWindowLazyPagesMixin:
         changelog_action.triggered.connect(lambda: self._switch_to_more_page(self._get_changelog_page()))
         menu.addAction(changelog_action)
 
-        # 联系开发者
-        support_action = Action(FluentIcon.HELP, "联系开发者")
-        support_action.triggered.connect(lambda: self._switch_to_more_page(self._get_support_page()))
-        menu.addAction(support_action)
-
         # IP 使用记录
         ip_usage_action = Action(FluentIcon.CALENDAR, "IP 使用记录")
         ip_usage_action.triggered.connect(lambda: self._switch_to_more_page(self._get_ip_usage_page()))

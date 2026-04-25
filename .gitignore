@@ -5,7 +5,6 @@
 .playwright-mcp/
 .ruff_cache/
 desktop.ini
-push.bat
 .venv/
 AGENTS.md
 CLAUDE.md
