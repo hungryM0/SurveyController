@@ -17,6 +17,7 @@ _QQ_ALLOWED_HOST = "wj.qq.com"
 _QQ_SURVEY_PATH_RE = re.compile(r"^/s\d+/\d+/[A-Za-z0-9_-]+/?$", re.IGNORECASE)
 _CREDAMO_ALLOWED_HOSTS = ("credamo.com", "credamo.cn")
 _CREDAMO_SURVEY_PATH_RE = re.compile(r"^/answer\.html", re.IGNORECASE)
+_CREDAMO_SHORT_SURVEY_PATH_RE = re.compile(r"^/s/[A-Za-z0-9_-]+/?$", re.IGNORECASE)
 
 
 def normalize_survey_provider(value: Any, default: str = SURVEY_PROVIDER_WJX) -> str:
@@ -68,7 +69,7 @@ def is_credamo_survey_url(url_value: str) -> bool:
         return False
     if not any(host == domain or host.endswith(f".{domain}") for domain in _CREDAMO_ALLOWED_HOSTS):
         return False
-    return bool(_CREDAMO_SURVEY_PATH_RE.match(path))
+    return bool(_CREDAMO_SURVEY_PATH_RE.match(path) or _CREDAMO_SHORT_SURVEY_PATH_RE.match(path))
 
 
 def detect_survey_provider(url_value: str, default: str = SURVEY_PROVIDER_WJX) -> str:

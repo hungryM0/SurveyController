@@ -37,6 +37,24 @@ def _now() -> float:
     return time.time()
 
 
+def _normalize_credamo_url_parts(
+    scheme: str,
+    netloc: str,
+    path: str,
+    query: str,
+    fragment: str,
+) -> tuple[str, str, str, str, str]:
+    normalized_path = str(path or "")
+    normalized_fragment = str(fragment or "")
+    if detect_survey_provider(urlunsplit((scheme, netloc, normalized_path, query, normalized_fragment)), default="") != SURVEY_PROVIDER_CREDAMO:
+        return scheme, netloc, normalized_path, query, normalized_fragment
+
+    if normalized_path.lower().startswith("/s/") and not normalized_fragment:
+        normalized_fragment = normalized_path
+        normalized_path = "/answer.html"
+    return scheme, netloc, normalized_path, query, normalized_fragment
+
+
 def _normalize_cache_url(url: str) -> str:
     text = str(url or "").strip()
     if not text:
@@ -55,7 +73,14 @@ def _normalize_cache_url(url: str) -> str:
         if not key.startswith("_")
     ]
     query = urlencode(sorted(query_items), doseq=True)
-    return urlunsplit((scheme, netloc, path, query, parsed.fragment or ""))
+    scheme, netloc, path, query, fragment = _normalize_credamo_url_parts(
+        scheme,
+        netloc,
+        path,
+        query,
+        parsed.fragment or "",
+    )
+    return urlunsplit((scheme, netloc, path, query, fragment))
 
 
 def _cache_key(url: str) -> str:

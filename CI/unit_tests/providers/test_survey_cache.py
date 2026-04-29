@@ -55,6 +55,22 @@ class SurveyCacheTests(unittest.TestCase):
 
             self.assertEqual(seen_urls, ["https://www.credamo.com/answer.html#/s/Bvyyaaano/"])
 
+    def test_credamo_short_url_is_canonicalized_for_parser(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            seen_urls: list[str] = []
+            original_runtime_directory = self._patch_runtime_directory(temp_dir)
+
+            def parser(url: str):
+                seen_urls.append(url)
+                return build_survey_definition("credamo", "见数标题", [{"num": 1, "title": "见数题目", "type_code": "3"}])
+
+            try:
+                parse_survey_with_cache("https://www.credamo.com/s/Bvyyaaano/", parser)
+            finally:
+                survey_cache.get_runtime_directory = original_runtime_directory
+
+            self.assertEqual(seen_urls, ["https://www.credamo.com/answer.html#/s/Bvyyaaano/"])
+
     def test_changed_fingerprint_refreshes_cache(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             fingerprints = ["old", "new", "new"]
@@ -92,6 +108,25 @@ class SurveyCacheTests(unittest.TestCase):
 
             try:
                 first = parse_survey_with_cache("https://www.credamo.com/answer.html#/s/demo", parser)
+                second = parse_survey_with_cache("https://www.credamo.com/answer.html#/s/demo", parser)
+            finally:
+                survey_cache.get_runtime_directory = original_runtime_directory
+
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(first.title, "见数标题")
+            self.assertEqual(second.title, "见数标题")
+
+    def test_credamo_short_url_and_redirect_url_share_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            calls: list[str] = []
+            original_runtime_directory = self._patch_runtime_directory(temp_dir)
+
+            def parser(url: str):
+                calls.append(url)
+                return build_survey_definition("credamo", "见数标题", [{"num": 1, "title": "见数题目", "type_code": "3"}])
+
+            try:
+                first = parse_survey_with_cache("https://www.credamo.com/s/demo", parser)
                 second = parse_survey_with_cache("https://www.credamo.com/answer.html#/s/demo", parser)
             finally:
                 survey_cache.get_runtime_directory = original_runtime_directory

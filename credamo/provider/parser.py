@@ -782,7 +782,7 @@ def parse_credamo_survey(url: str) -> Tuple[List[Dict[str, Any]], str]:
             persistent_browser=False,
             transient_launch=True,
         )
-        driver.get(url, timeout=30000, wait_until="domcontentloaded")
+        driver.get(url, timeout=45000, wait_until="domcontentloaded")
         page = driver.page
         try:
             page.wait_for_load_state("networkidle", timeout=8000)

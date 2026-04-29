@@ -24,6 +24,7 @@ class ProviderCommonTests(unittest.TestCase):
 
     def test_detect_survey_provider_distinguishes_three_platforms(self) -> None:
         self.assertEqual(detect_survey_provider("https://www.credamo.com/answer.html#/s/demo"), SURVEY_PROVIDER_CREDAMO)
+        self.assertEqual(detect_survey_provider("https://www.credamo.com/s/demo"), SURVEY_PROVIDER_CREDAMO)
         self.assertEqual(detect_survey_provider("https://wj.qq.com/s2/123/abc"), SURVEY_PROVIDER_QQ)
         self.assertEqual(detect_survey_provider("https://www.wjx.cn/vm/demo.aspx"), SURVEY_PROVIDER_WJX)
 
@@ -34,6 +35,7 @@ class ProviderCommonTests(unittest.TestCase):
     def test_qq_and_credamo_helpers_reject_non_matching_paths(self) -> None:
         self.assertFalse(is_qq_survey_url("https://wj.qq.com/not-a-survey"))
         self.assertFalse(is_credamo_survey_url("https://www.credamo.com/profile"))
+        self.assertTrue(is_credamo_survey_url("https://www.credamo.com/s/demo"))
 
     def test_is_supported_survey_url_returns_false_for_unknown_domain(self) -> None:
         self.assertFalse(is_supported_survey_url("https://example.com/form"))
