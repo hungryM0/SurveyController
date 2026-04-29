@@ -13,9 +13,7 @@
 
   <p><strong>一站式问卷自动化处理程序，适配问卷星、腾讯问卷、Credamo见数平台</strong></p>
   <p><strong>支持指定ip填写地区、信度系数、作答时长与分布比例。</strong></p>
-
-> 参考了 [Zemelee/wjx](https://github.com/Zemelee/wjx)，别忘了给这位大佬点个star
-
+  
 </div>
 
 > [!WARNING]
