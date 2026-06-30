@@ -1,6 +1,9 @@
 package answerplan
 
-import "surveycontroller/surveycore/internal/model"
+import (
+	"surveycontroller/surveycore/internal/defaults"
+	"surveycontroller/surveycore/internal/model"
+)
 
 type BuildOptions struct {
 	AnswerRules    []map[string]any
@@ -51,7 +54,7 @@ func DefaultEntry(question model.QuestionMeta) model.QuestionEntry {
 	providerID := question.ProviderID
 	return model.QuestionEntry{
 		QuestionType:       defaultQuestionType(question),
-		Probabilities:      defaultProbabilities(question),
+		Probabilities:      defaults.QuestionProbabilities(question),
 		Rows:               question.Rows,
 		OptionCount:        maxInt(1, question.Options),
 		QuestionNum:        &num,
@@ -61,53 +64,5 @@ func DefaultEntry(question model.QuestionMeta) model.QuestionEntry {
 }
 
 func defaultQuestionType(question model.QuestionMeta) string {
-	switch question.ProviderType {
-	case "single", "multiple", "dropdown", "scale", "matrix", "order", "slider", "text", "multi_text":
-		if question.ProviderType == "multi_text" {
-			return "text"
-		}
-		return question.ProviderType
-	case "radio":
-		return "single"
-	case "checkbox":
-		return "multiple"
-	case "select":
-		return "dropdown"
-	case "matrix_radio":
-		return "matrix"
-	case "textarea":
-		return "text"
-	}
-	switch question.TypeCode {
-	case "3":
-		return "single"
-	case "4":
-		return "multiple"
-	case "5":
-		return "scale"
-	case "6":
-		return "matrix"
-	case "7":
-		return "dropdown"
-	case "8":
-		return "slider"
-	case "11":
-		return "order"
-	default:
-		return "text"
-	}
-}
-
-func defaultProbabilities(question model.QuestionMeta) []float64 {
-	count := maxInt(1, question.Options)
-	values := make([]float64, count)
-	kind := defaultQuestionType(question)
-	for i := range values {
-		if kind == "multiple" {
-			values[i] = 50
-		} else {
-			values[i] = 1
-		}
-	}
-	return values
+	return defaults.QuestionType(question)
 }

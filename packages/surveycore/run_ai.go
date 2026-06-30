@@ -19,12 +19,7 @@ func (c *Client) prepareAIExecution(ctx context.Context, cfg *RuntimeConfig, opt
 		if err != nil {
 			return nil, options, fmt.Errorf("%w: AI 作答需要先解析问卷: %v", ErrParseFailed, err)
 		}
-		runCfg.SurveyTitle = definition.Title
-		runCfg.SurveyProvider = definition.Provider
-		runCfg.QuestionsInfo = cloneQuestions(definition.Questions)
-		if len(runCfg.QuestionEntries) == 0 {
-			runCfg.QuestionEntries = buildDefaultQuestionEntries(definition.Questions)
-		}
+		populateConfigSurveyDefinition(&runCfg, definition)
 	}
 	configure := options.ConfigureRun
 	options.ConfigureRun = func(ctx context.Context, jobIndex int, attempt int, local *RuntimeConfig) error {

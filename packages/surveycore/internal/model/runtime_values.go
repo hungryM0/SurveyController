@@ -45,6 +45,10 @@ var userAgentPresets = map[string]UserAgentProfile{
 	},
 }
 
+func DefaultRandomUARatios() map[string]int {
+	return cloneDefaultRandomUARatios()
+}
+
 func SelectUserAgentFromRatios(ratios map[string]int) (UserAgentProfile, bool) {
 	normalized := normalizeRandomUARatios(ratios)
 	total := 0

@@ -22,31 +22,6 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
-function Assert-CommandAvailable {
-    param(
-        [string]$Name,
-        [string]$InstallHint,
-        [string[]]$CommonPaths = @()
-    )
-
-    $command = Get-Command $Name -ErrorAction SilentlyContinue
-    if ($command) {
-        return
-    }
-
-    foreach ($path in $CommonPaths) {
-        if (Test-Path -LiteralPath $path) {
-            $commandDir = Split-Path -Parent $path
-            $env:Path = "$commandDir$([IO.Path]::PathSeparator)$env:Path"
-            return
-        }
-    }
-
-    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        throw ("Missing command: {0}. {1}" -f $Name, $InstallHint)
-    }
-}
-
 function Resolve-RepoRoot {
     $scriptRoot = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($scriptRoot)) {
@@ -114,6 +89,24 @@ function Set-DesktopVersion {
     Set-Content -LiteralPath $configPath -Value $nextText -NoNewline
 }
 
+function Invoke-WailsTask {
+    param(
+        [string]$DesktopRoot,
+        [string]$Arch
+    )
+
+    Push-Location $DesktopRoot
+    try {
+        wails3 task windows:package ARCH=$Arch INSTALL_SCOPE=user
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Windows package task failed with exit code {0}." -f $LASTEXITCODE)
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 $repoRoot = Resolve-RepoRoot
 Set-DesktopVersion -RepoRoot $repoRoot -Version $Version
 $desktopRoot = Join-Path $repoRoot "apps\desktop"
@@ -125,14 +118,6 @@ $installerName = "SurveyController-$Arch-installer.exe"
 $versionedInstallerName = "SurveyController $packVersion.exe"
 
 Write-Step "Check environment"
-Assert-CommandAvailable -Name "go" -InstallHint "Install Go 1.26+ and ensure go is available in PATH."
-Assert-CommandAvailable -Name "node" -InstallHint "Install Node.js and ensure node is available in PATH."
-Assert-CommandAvailable -Name "npm" -InstallHint "Install npm and ensure npm is available in PATH."
-Assert-CommandAvailable -Name "wails3" -InstallHint "Install Wails v3: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.104"
-Assert-CommandAvailable -Name "makensis" -InstallHint "Install NSIS and ensure makensis is available in PATH." -CommonPaths @(
-    "C:\Program Files\NSIS\makensis.exe",
-    "C:\Program Files (x86)\NSIS\makensis.exe"
-)
 
 Write-Host ("Repo root: {0}" -f $repoRoot)
 Write-Host ("Desktop root: {0}" -f $desktopRoot)
@@ -151,16 +136,7 @@ if (-not $SkipClean) {
 }
 
 Write-Step "Build Windows installer"
-Push-Location $desktopRoot
-try {
-    wails3 task windows:package ARCH=$Arch INSTALL_SCOPE=user
-    if ($LASTEXITCODE -ne 0) {
-        throw ("Windows package task failed with exit code {0}." -f $LASTEXITCODE)
-    }
-}
-finally {
-    Pop-Location
-}
+Invoke-WailsTask -DesktopRoot $desktopRoot -Arch $Arch
 
 Write-Step "Copy release artifacts"
 New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
@@ -175,6 +151,7 @@ $archInstallerPath = Join-Path $releaseRoot $installerName
 if (Test-Path $archInstallerPath) {
     Remove-Item -LiteralPath $archInstallerPath -Force
 }
+Copy-Item -Force $installerPath $archInstallerPath
 Copy-Item -Force $installerPath (Join-Path $releaseRoot $versionedInstallerName)
 
 Write-Step "Build finished"

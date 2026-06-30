@@ -20,16 +20,9 @@ func (c *Client) preparePsychometricExecution(ctx context.Context, cfg *RuntimeC
 		if err != nil {
 			return nil, options, fmt.Errorf("%w: 信效度计划需要先解析问卷: %v", ErrParseFailed, err)
 		}
-		runCfg.SurveyTitle = definition.Title
-		runCfg.SurveyProvider = definition.Provider
-		runCfg.QuestionsInfo = cloneQuestions(definition.Questions)
-		if len(runCfg.QuestionEntries) == 0 {
-			runCfg.QuestionEntries = buildDefaultQuestionEntries(definition.Questions)
-		}
+		populateConfigSurveyDefinition(&runCfg, definition)
 	}
-	if len(runCfg.QuestionEntries) == 0 {
-		runCfg.QuestionEntries = buildDefaultQuestionEntries(runCfg.QuestionsInfo)
-	}
+	ensureQuestionEntries(&runCfg)
 	target := options.Target
 	if target <= 0 {
 		target = runCfg.Target

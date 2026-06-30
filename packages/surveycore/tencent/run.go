@@ -333,46 +333,6 @@ func (r Runner) httpDoer(proxyAddress string) (interface {
 	return httpjson.Client{Client: client}, nil
 }
 
-func defaultEntry(question model.QuestionMeta) model.QuestionEntry {
-	num := question.Num
-	providerID := question.ProviderID
-	return model.QuestionEntry{
-		QuestionType:       questionTypeName(question),
-		Probabilities:      defaultProbabilities(question),
-		Rows:               question.Rows,
-		OptionCount:        maxInt(1, question.Options),
-		QuestionNum:        &num,
-		ProviderQuestionID: &providerID,
-		SurveyProvider:     model.ProviderQQ,
-	}
-}
-
-func questionTypeName(question model.QuestionMeta) string {
-	switch question.ProviderType {
-	case "radio":
-		return "single"
-	case "checkbox":
-		return "multiple"
-	case "select":
-		return "dropdown"
-	case "matrix_radio":
-		return "matrix"
-	case "text", "textarea":
-		return "text"
-	default:
-		return "text"
-	}
-}
-
-func defaultProbabilities(question model.QuestionMeta) []float64 {
-	count := maxInt(1, question.Options)
-	values := make([]float64, count)
-	for i := range values {
-		values[i] = 1
-	}
-	return values
-}
-
 func defaultDurationSeconds(cfg *model.RuntimeConfig) int {
 	if cfg != nil {
 		if seconds := model.SampleAnswerDurationSeconds(cfg.AnswerDuration, 60); seconds > 0 {
