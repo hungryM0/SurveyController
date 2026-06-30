@@ -1,4 +1,4 @@
-import { Eye, FolderOpen, Save } from 'lucide-react'
+import { Eye, FolderOpen, RotateCcw, Save } from 'lucide-react'
 import { Button } from 'react-windows-ui'
 import SettingField from '../components/SettingField'
 import type { PageMetric, ReverseFillRow, SettingsGroup } from '../types'
@@ -15,6 +15,8 @@ interface InfoViewProps {
   onChooseReverseFill?: () => void
   onPreviewReverseFill?: () => void
   onSaveSettings?: () => void
+  onChooseConfigDirectory?: () => void
+  onResetSettings?: () => void
 }
 
 function InfoView({
@@ -29,6 +31,8 @@ function InfoView({
   onChooseReverseFill,
   onPreviewReverseFill,
   onSaveSettings,
+  onChooseConfigDirectory,
+  onResetSettings,
 }: InfoViewProps) {
   return (
     <section className="page scroll-page">
@@ -81,6 +85,16 @@ function InfoView({
             <div className="section-heading">
               <h2>{group.title}</h2>
             </div>
+            {group.title === '行为设置' ? (
+              <div className="toolbar-row settings-toolbar">
+                {onChooseConfigDirectory ? (
+                  <Button value="选择目录" icon={<FolderOpen size={15} />} disabled={busy} onClick={onChooseConfigDirectory} />
+                ) : null}
+                {onResetSettings ? (
+                  <Button value="恢复默认" icon={<RotateCcw size={15} />} disabled={busy} onClick={onResetSettings} />
+                ) : null}
+              </div>
+            ) : null}
             {group.fields.map((field) => (
               <SettingField
                 key={field.id}

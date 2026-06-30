@@ -1,33 +1,63 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { AppTheme, LoaderBusy } from 'react-windows-ui'
-import { Dialogs } from '@wailsio/runtime'
+import { Browser, Dialogs, Events, Window } from '@wailsio/runtime'
 import NavRail from './components/NavRail'
+import StartupTutorialHint, {
+  STARTUP_TUTORIAL_HINT_DELAY_MS,
+  shouldScheduleStartupTutorialHint,
+} from './components/StartupTutorialHint'
 import WindowControls from './components/WindowControls'
 import DashboardView from './pages/DashboardView'
+import CommunityView from './pages/CommunityView'
 import InfoView from './pages/InfoView'
 import LogsView from './pages/LogsView'
+import MoreView from './pages/MoreView'
+import ReverseFillView from './pages/ReverseFillView'
 import RuntimeView from './pages/RuntimeView'
 import StrategyView from './pages/StrategyView'
 import {
   buildDefaultConfig,
   cancelRuntimeConfig,
+  confirmClose,
+  decodeQRCode,
+  decodeQRCodeDataURL,
+  dismissStartupTutorialHint,
+  exportLogLines,
+  loadIPUsageSummary,
   loadAppModel,
   loadProxyStatus,
   loadRunTaskState,
   loadRuntimeConfig,
+  loadStartupTutorialHint,
+  pauseRuntimeConfig,
   previewReverseFill,
+  redeemProxyCard,
+  resumeRuntimeConfig,
+  resetSettings,
   saveRuntimeConfig,
   saveSettings,
   startRuntimeConfig,
+  syncProxyStatus,
 } from './services/shell'
 import {
   applyConfigToShell,
+  syncRuntimeDefaultsFromConfig,
   updateAppSettingsField,
   updateRuntimeConfigField,
   type AppModel,
 } from './services/stateMapper'
-import type { ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
+import {
+  applyTopmostSetting,
+  buildTaskResultNotification,
+  shouldAskSaveOnClose,
+  shouldCloseAfterSavePrompt,
+  shouldNotifyTaskResult,
+  shouldSaveBeforeClose,
+  showTaskResultNotification,
+} from './services/desktopSettings'
+import type { IPUsageSummary, ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
+import type { StartupTutorialHintState } from './types'
 
 function App() {
   const [platform, setPlatform] = useState<'windows' | 'macos' | 'linux' | 'unknown'>('unknown')
@@ -63,12 +93,28 @@ function App() {
   const [notice, setNotice] = useState('')
   const [runState, setRunState] = useState<RunTaskState | null>(null)
   const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null)
+  const [ipUsageSummary, setIPUsageSummary] = useState<IPUsageSummary | null>(null)
   const [runtimeLogLines, setRuntimeLogLines] = useState<string[]>([])
+  const [startupTutorialHint, setStartupTutorialHint] = useState<StartupTutorialHintState | null>(null)
+  const [startupTutorialVisible, setStartupTutorialVisible] = useState(false)
+  const [randomIpBonusPlayed, setRandomIpBonusPlayed] = useState(false)
   const previousPage = useRef(currentPage)
   const runPollTimer = useRef<number | null>(null)
+  const settingsRef = useRef(model?.settings ?? null)
+  const configRef = useRef<RuntimeConfig | null>(null)
+  const configPathRef = useRef('')
+  const notifiedRunEndRef = useRef('')
 
   const config = model?.config ?? null
+  const currentConfig = config ?? model?.config ?? null
   const runBusy = busy || Boolean(runState?.running || runState?.canceling)
+
+  useEffect(() => {
+    settingsRef.current = model?.settings ?? null
+    configRef.current = model?.config ?? null
+    configPathRef.current = model?.configPath ?? ''
+    setRandomIpBonusPlayed(model?.settings?.randomIpBonusPlayed ?? false)
+  }, [model])
 
   const shell = useMemo<ShellState | null>(() => {
     if (!model) {
@@ -103,6 +149,7 @@ function App() {
       setProxyStatus(nextProxy)
       if (!nextRun.running && !nextRun.canceling) {
         stopRunPolling()
+        notifyTaskResult(nextRun)
         if (nextRun.events?.length) {
           setRuntimeLogLines((lines) => [
             ...nextRun.events!.map((event) => `[${event.worker || 'core'}] ${event.message}`),
@@ -115,6 +162,26 @@ function App() {
       setError(err instanceof Error ? err.message : String(err))
     }
   }, [stopRunPolling])
+
+  async function notifyTaskResult(nextRun: RunTaskState) {
+    if (!shouldNotifyTaskResult(settingsRef.current)) {
+      return
+    }
+    const message = buildTaskResultNotification(nextRun)
+    if (!message) {
+      return
+    }
+    const key = `${nextRun.endedAt || ''}:${message.title}:${message.body}`
+    if (key === notifiedRunEndRef.current) {
+      return
+    }
+    notifiedRunEndRef.current = key
+    const notificationApi = typeof Notification === 'undefined' ? undefined : Notification
+    const shown = await showTaskResultNotification(notificationApi, message).catch(() => false)
+    if (!shown) {
+      setNotice(message.body)
+    }
+  }
 
   const startRunPolling = useCallback(() => {
     if (runPollTimer.current) {
@@ -136,7 +203,7 @@ function App() {
         }
         setModel(loaded)
         setCurrentPage(loaded.shell.currentPage || 'dashboard')
-        const [proxy, run] = await Promise.allSettled([loadProxyStatus(), loadRunTaskState()])
+        const [proxy, run, usage] = await Promise.allSettled([loadProxyStatus(), loadRunTaskState(), loadIPUsageSummary()])
         if (ignore) {
           return
         }
@@ -148,6 +215,9 @@ function App() {
           if (run.value.running) {
             startRunPolling()
           }
+        }
+        if (usage.status === 'fulfilled') {
+          setIPUsageSummary(usage.value)
         }
       } catch (err) {
         if (!ignore) {
@@ -165,6 +235,51 @@ function App() {
       stopRunPolling()
     }
   }, [startRunPolling, stopRunPolling])
+
+  useEffect(() => {
+    void applyTopmostSetting(Window, model?.settings).catch(() => undefined)
+  }, [model?.settings])
+
+  useEffect(() => {
+    if (!model || loading) {
+      return
+    }
+    let active = true
+    let timer: number | null = null
+
+    void loadStartupTutorialHint()
+      .then((hint) => {
+        if (!active || !shouldScheduleStartupTutorialHint(loading, hint.shouldShow)) {
+          return
+        }
+        setStartupTutorialHint(hint)
+        timer = window.setTimeout(() => {
+          if (active) {
+            setStartupTutorialVisible(true)
+          }
+        }, STARTUP_TUTORIAL_HINT_DELAY_MS)
+      })
+      .catch(() => undefined)
+
+    return () => {
+      active = false
+      if (timer !== null) {
+        window.clearTimeout(timer)
+      }
+    }
+  }, [loading, model?.settings.startupTutorialHintSeen])
+
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!shouldAskSaveOnClose(settingsRef.current)) {
+        return
+      }
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    return () => window.removeEventListener('beforeunload', beforeUnload)
+  }, [])
 
   async function withBusy(action: () => Promise<void>) {
     setBusy(true)
@@ -186,7 +301,14 @@ function App() {
     if (!config) {
       return
     }
-    setConfig(updateRuntimeConfigField(config, id, value))
+    const next = updateRuntimeConfigField(config, id, value)
+    setModel((current) => current
+      ? {
+          ...current,
+          config: next,
+          settings: syncRuntimeDefaultsFromConfig(current.settings, next, id),
+        }
+      : current)
   }
 
   function updateSettingsField(id: string, value: string | boolean) {
@@ -238,6 +360,36 @@ function App() {
     })
   }
 
+  async function loadQRCodeFromDialog() {
+    await withBusy(async () => {
+      const path = await Dialogs.OpenFile({
+        Title: '识别二维码',
+        CanChooseFiles: true,
+        Filters: [{ DisplayName: '图片文件', Pattern: '*.png;*.jpg;*.jpeg;*.gif' }],
+      })
+      if (!path || Array.isArray(path)) {
+        return
+      }
+      const decoded = await decodeQRCode(path)
+      if (!config) {
+        return
+      }
+      setConfig({ ...config, url: decoded.text })
+      setNotice('二维码已识别')
+    })
+  }
+
+  async function decodeQRCodeFromImageFile(file: File) {
+    await withBusy(async () => {
+      const decoded = await decodeQRCodeDataURL(await readFileAsDataURL(file), file.name)
+      if (!config) {
+        return
+      }
+      setConfig({ ...config, url: decoded.text })
+      setNotice('二维码已识别')
+    })
+  }
+
   async function saveConfigToDialog() {
     await withBusy(async () => {
       if (!config) {
@@ -256,6 +408,50 @@ function App() {
         ? { ...current, configPath: saved.path, config: saved.config }
         : current)
       setNotice('配置已保存')
+    })
+  }
+
+  async function saveCurrentConfig() {
+    const current = configRef.current
+    if (!current) {
+      return
+    }
+    const saved = await saveRuntimeConfig(current, configPathRef.current)
+    setModel((existing) => existing
+      ? { ...existing, configPath: saved.path, config: saved.config }
+      : existing)
+  }
+
+  async function closeWindow() {
+    if (shouldAskSaveOnClose(settingsRef.current)) {
+      const choice = await Dialogs.Question({
+        Title: '保存配置',
+        Message: '是否保存当前配置？',
+        Buttons: [
+          { Label: '保存', IsDefault: true },
+          { Label: '不保存' },
+          { Label: '取消', IsCancel: true },
+        ],
+      })
+      if (!shouldCloseAfterSavePrompt(choice)) {
+        return
+      }
+      if (shouldSaveBeforeClose(choice)) {
+        await saveCurrentConfig()
+      }
+    }
+    await confirmClose()
+    await Window.Close()
+  }
+
+  async function confirmAndCloseWindow() {
+    await closeWindow()
+  }
+
+  async function exportLogs(path: string, lines: string[]) {
+    await withBusy(async () => {
+      await exportLogLines(path, lines)
+      setNotice('日志已导出')
     })
   }
 
@@ -295,6 +491,54 @@ function App() {
     })
   }
 
+  async function resetAppSettings() {
+    await withBusy(async () => {
+      const saved = await resetSettings()
+      setModel((current) => current ? { ...current, settings: saved } : current)
+      setNotice('设置已恢复默认')
+    })
+  }
+
+  async function chooseConfigDirectory() {
+    await withBusy(async () => {
+      if (!model) {
+        return
+      }
+      const path = await Dialogs.OpenFile({
+        Title: '选择配置目录',
+        CanChooseDirectories: true,
+        CanChooseFiles: false,
+      })
+      if (!path || Array.isArray(path)) {
+        return
+      }
+      setModel((current) => current
+        ? { ...current, settings: updateAppSettingsField(current.settings, 'config-directory', path) }
+        : current)
+      setNotice('配置目录已选中，记得保存')
+    })
+  }
+
+  async function dismissStartupTutorial() {
+    setStartupTutorialVisible(false)
+    try {
+      const saved = await dismissStartupTutorialHint()
+      setModel((current) => current ? { ...current, settings: saved } : current)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  async function openStartupTutorial() {
+    const url = startupTutorialHint?.docUrl || 'https://surveydoc.hungrym0.com/'
+    await dismissStartupTutorial()
+    try {
+      await Browser.OpenURL(url)
+    } catch {
+      setNotice(url)
+    }
+  }
+
   async function runSurvey() {
     await withBusy(async () => {
       if (!config) {
@@ -321,12 +565,79 @@ function App() {
     })
   }
 
+  async function pauseRun() {
+    await withBusy(async () => {
+      const nextRun = await pauseRuntimeConfig('手动暂停')
+      setRunState(nextRun)
+      startRunPolling()
+      setNotice('任务已暂停')
+    })
+  }
+
+  async function resumeRun() {
+    await withBusy(async () => {
+      const nextRun = await resumeRuntimeConfig()
+      setRunState(nextRun)
+      startRunPolling()
+      setNotice('任务已恢复')
+    })
+  }
+
+  async function redeemRandomIpQuota(cardCode: string) {
+    if (!cardCode.trim()) {
+      return
+    }
+    await withBusy(async () => {
+      const result = await redeemProxyCard(cardCode, config?.proxy_source ?? 'default')
+      setProxyStatus(result.status)
+      setNotice(result.cardQuotaLabel ? `兑换成功，到账 ${result.cardQuotaLabel}` : '兑换成功')
+    })
+  }
+
+  async function syncRandomIpQuota() {
+    await withBusy(async () => {
+      const status = await syncProxyStatus(config?.proxy_source ?? 'default')
+      setProxyStatus(status)
+      setIPUsageSummary(await loadIPUsageSummary())
+      setNotice('随机 IP 额度已同步')
+    })
+  }
+
+  async function refreshRandomIpSummary() {
+    await syncRandomIpQuota()
+  }
+
+  async function markRandomIpBonusPlayed(played: boolean) {
+    if (!played) {
+      return
+    }
+    setRandomIpBonusPlayed(true)
+    setModel((current) => current ? { ...current, settings: { ...current.settings, randomIpBonusPlayed: true } } : current)
+    const current = model?.settings
+    if (!current) {
+      return
+    }
+    try {
+      const saved = await saveSettings({ ...current, randomIpBonusPlayed: true })
+      setModel((latest) => latest ? { ...latest, settings: saved } : latest)
+    } catch {
+      return
+    }
+  }
+
   const scheme = shell?.themeMode === 'dark' || shell?.themeMode === 'light' ? shell.themeMode : 'system'
   const pageMotion = previousPage.current === currentPage ? 'page-motion-initial' : 'page-motion-forward'
 
   useEffect(() => {
     previousPage.current = currentPage
   }, [currentPage])
+
+  useEffect(() => {
+    const off = Events.On('surveycontroller:confirm-close', () => {
+      void confirmAndCloseWindow()
+    })
+    return off
+  }, [])
 
   if (loading) {
     return (
@@ -365,7 +676,7 @@ function App() {
             <small>{shell.appVersion}</small>
           </div>
         </div>
-        {platform !== 'macos' && <WindowControls />}
+        {platform !== 'macos' && <WindowControls onClose={closeWindow} />}
       </header>
 
       <div className="app-frame">
@@ -390,6 +701,8 @@ function App() {
                 busy={runBusy}
                 onUpdateUrl={updateURL}
                 onAutoConfig={autoConfig}
+                onLoadQRCode={loadQRCodeFromDialog}
+                onDecodeQRCodeImage={(file) => void decodeQRCodeFromImageFile(file)}
                 onLoadConfig={loadConfigFromDialog}
                 onSaveConfig={saveConfigToDialog}
                 onOpenRuntime={() => setCurrentPage('runtime')}
@@ -397,19 +710,22 @@ function App() {
                 onThreadsChange={(value) => updateConfigField('threads', String(value))}
                 onRandomIpChange={(value) => updateConfigField('random-ip', value)}
                 onProxySourceChange={(value) => updateConfigField('proxy-source', value)}
+                onSyncProxyStatus={syncRandomIpQuota}
+                onRedeemProxyCard={(cardCode) => void redeemRandomIpQuota(cardCode)}
                 onRun={runSurvey}
                 onCancelRun={cancelRun}
+                onPauseRun={pauseRun}
+                onResumeRun={resumeRun}
               />
             ) : null}
             {currentPage === 'runtime' ? (
-              <RuntimeView groups={shell.runtimeGroups} onFieldChange={updateConfigField} />
+              <RuntimeView groups={shell.runtimeGroups} config={currentConfig} onFieldChange={updateConfigField} />
             ) : null}
             {currentPage === 'strategy' ? (
-              <StrategyView rules={shell.strategyRules} dimensions={shell.dimensionGroups} />
+              currentConfig ? <StrategyView config={currentConfig} onConfigChange={setConfig} /> : null
             ) : null}
             {currentPage === 'reverse-fill' ? (
-              <InfoView
-                title="反填"
+              <ReverseFillView
                 reverseFill={shell.reverseFillPlan}
                 reverseFillPath={config?.reverse_fill_source_path}
                 busy={busy}
@@ -417,8 +733,8 @@ function App() {
                 onPreviewReverseFill={previewReverseFillFile}
               />
             ) : null}
-            {currentPage === 'logs' ? <LogsView logs={shell.logLines} /> : null}
-            {currentPage === 'community' ? <InfoView title="社区" items={shell.communityItems} /> : null}
+            {currentPage === 'logs' ? <LogsView logs={shell.logLines} busy={busy} onExport={exportLogs} /> : null}
+            {currentPage === 'community' ? <CommunityView config={currentConfig} logLines={shell.logLines} /> : null}
             {currentPage === 'settings' ? (
               <InfoView
                 title="设置"
@@ -426,16 +742,44 @@ function App() {
                 busy={busy}
                 onSettingChange={updateSettingsField}
                 onSaveSettings={saveAppSettings}
+                onChooseConfigDirectory={chooseConfigDirectory}
+                onResetSettings={resetAppSettings}
               />
             ) : null}
             {currentPage === 'more' ? (
-              <InfoView title="更多" metrics={[...shell.aboutItems, ...shell.donateItems, ...shell.ipUsageItems]} />
+              <MoreView
+                version={shell.appVersion}
+                summary={ipUsageSummary}
+                aboutItems={shell.aboutItems}
+                donateItems={shell.donateItems}
+                ipUsageItems={shell.ipUsageItems}
+                randomIpBonusPlayed={randomIpBonusPlayed}
+                busy={busy}
+                autoCheckUpdate={settingsRef.current?.autoCheckUpdate ?? true}
+                onRefreshSummary={() => void refreshRandomIpSummary()}
+                onRandomIpBonusPlayed={(played) => void markRandomIpBonusPlayed(played)}
+              />
             ) : null}
           </div>
         </main>
       </div>
+      {startupTutorialVisible ? (
+        <StartupTutorialHint
+          onDismiss={() => void dismissStartupTutorial()}
+          onOpen={() => void openStartupTutorial()}
+        />
+      ) : null}
     </div>
   )
 }
 
 export default App
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error ?? new Error('读取图片失败'))
+    reader.readAsDataURL(file)
+  })
+}

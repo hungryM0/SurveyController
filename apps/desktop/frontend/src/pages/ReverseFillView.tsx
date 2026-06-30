@@ -1,0 +1,67 @@
+import { Eye, FolderOpen } from 'lucide-react'
+import { Button } from 'react-windows-ui'
+import type { ReverseFillRow } from '../types'
+
+interface ReverseFillViewProps {
+  reverseFill: ReverseFillRow[]
+  reverseFillPath?: string
+  busy?: boolean
+  onChooseReverseFill: () => void
+  onPreviewReverseFill: () => void
+}
+
+function ReverseFillView({
+  reverseFill,
+  reverseFillPath,
+  busy = false,
+  onChooseReverseFill,
+  onPreviewReverseFill,
+}: ReverseFillViewProps) {
+  const matchedCount = reverseFill.filter((row) => row.state.startsWith('已匹配')).length
+
+  return (
+    <section className="page scroll-page">
+      <div className="content-stack">
+        <section className="surface info-panel reverse-fill-panel">
+          <div className="section-heading">
+            <h2>反填</h2>
+            <span>{reverseFill.length}</span>
+          </div>
+
+          <p className="page-note">按 Excel 回放答案，先选文件，再预览映射结果。</p>
+
+          <div className="toolbar-row">
+            <Button value="选择 Excel" icon={<FolderOpen size={15} />} disabled={busy} onClick={onChooseReverseFill} />
+            <Button value="预览反填" icon={<Eye size={15} />} disabled={busy || !reverseFillPath} onClick={onPreviewReverseFill} />
+            <span>{reverseFillPath || '未选择文件'}</span>
+          </div>
+
+          <div className="metric-grid reverse-metrics">
+            <div className="metric-tile">
+              <span>已匹配</span>
+              <strong>{matchedCount}</strong>
+            </div>
+            <div className="metric-tile">
+              <span>未匹配</span>
+              <strong>{Math.max(0, reverseFill.length - matchedCount)}</strong>
+            </div>
+          </div>
+
+          <div className="reverse-list">
+            {reverseFill.length ? reverseFill.map((row) => (
+              <div key={`${row.question}-${row.column}`}>
+                <span>{row.question}</span>
+                <small>{row.column}</small>
+                <strong>{row.state}</strong>
+              </div>
+            )) : (
+              <div className="reverse-empty">还没有预览结果。</div>
+            )}
+          </div>
+        </section>
+      </div>
+    </section>
+  )
+}
+
+export default ReverseFillView

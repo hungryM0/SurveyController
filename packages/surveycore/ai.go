@@ -24,9 +24,30 @@ const (
 	defaultFreeAIURL      = "https://api-wjx.hungrym0.com/api/ai/free"
 	defaultDeepSeekURL    = "https://api.deepseek.com/v1"
 	defaultDeepSeekModel  = "deepseek-v4-flash"
-	defaultAISystemPrompt = "你现在是一名普通问卷填写者。只输出答案本身，不要解释。回答尽量简短、自然。"
 	optionFillAIToken     = "__AI_FILL__"
 )
+
+const defaultAISystemPromptBase = `你现在不是AI助手，而是一名有实际使用经验但不专业的普通用户。
+请按照“填写问卷/填空题”的方式作答，而不是进行解释或对话。
+
+回答规则：
+1. 只给出答案本身，不要解释原因，不要分析，不要教学
+2. 以个人体验和模糊印象为主，可以不确定、可以用模糊一些的表达
+3. 回答尽量简短，避免长句
+4. 不要使用专业术语或严谨表述
+
+请注意：
+- 不要像AI助手一样分点说明
+- 不要补充背景知识
+- 不要解释题目
+- 不要自称“作为AI”
+
+如果你的回答开始变得专业、详细或像在解释，请立即改回普通用户的随意回答风格。`
+
+const defaultAISystemPromptProvider = defaultAISystemPromptBase + `
+
+多项填空补充规则：
+6. 当题目有多个空位时，按空位顺序输出一个字符串，并使用 || 分隔每个答案（示例：答案1||答案2||答案3）`
 
 type AITextRequest struct {
 	QuestionNum int
@@ -73,6 +94,24 @@ func (c *Client) defaultAITextResolver(ctx context.Context, cfg RuntimeConfig, r
 	return c.callProviderAI(ctx, cfg, request)
 }
 
+func (c *Client) TestAIConnection(ctx context.Context, cfg RuntimeConfig) (string, error) {
+	answers, err := c.resolveAIText(ctx, cfg, AITextRequest{
+		Title:      "这是一个测试问题，请回复'连接成功'",
+		BlankCount: 1,
+	})
+	if err != nil {
+		return "", err
+	}
+	preview := ""
+	if len(answers) > 0 {
+		preview = strings.TrimSpace(answers[0])
+	}
+	if preview == "" {
+		return "", fmt.Errorf("AI 未返回答案")
+	}
+	return fmt.Sprintf("连接成功！AI 回复: %s...", truncateRunes(preview, 50)), nil
+}
+
 func (c *Client) callFreeAI(ctx context.Context, cfg RuntimeConfig, request AITextRequest) ([]string, error) {
 	if c == nil || c.freeAIIdentityProvider == nil {
 		return nil, fmt.Errorf("免费 AI 需要桌面端官方会话")
@@ -96,9 +135,7 @@ func (c *Client) callFreeAI(ctx context.Context, cfg RuntimeConfig, request AITe
 	if request.BlankCount > 1 {
 		payload["blank_count"] = request.BlankCount
 	}
-	if prompt := strings.TrimSpace(cfg.AISystemPrompt); prompt != "" {
-		payload["system_prompt"] = prompt
-	}
+	payload["system_prompt"] = firstNonEmpty(cfg.AISystemPrompt, defaultAISystemPromptForMode(aiModeFree))
 	var response struct {
 		Answers []string `json:"answers"`
 		Detail  any      `json:"detail"`
@@ -159,7 +196,7 @@ func (c *Client) callChatCompletionsAI(ctx context.Context, cfg RuntimeConfig, r
 	payload := map[string]any{
 		"model": model,
 		"messages": []map[string]string{
-			{"role": "system", "content": firstNonEmpty(cfg.AISystemPrompt, defaultAISystemPrompt)},
+			{"role": "system", "content": firstNonEmpty(cfg.AISystemPrompt, defaultAISystemPromptForMode(aiModeProvider))},
 			{"role": "user", "content": aiQuestionPrompt(cfg, request)},
 		},
 		"max_tokens":  200,
@@ -194,7 +231,7 @@ func (c *Client) callChatCompletionsAI(ctx context.Context, cfg RuntimeConfig, r
 func (c *Client) callResponsesAI(ctx context.Context, cfg RuntimeConfig, request AITextRequest, endpoint string, apiKey string, model string) ([]string, error) {
 	payload := map[string]any{
 		"model":             model,
-		"instructions":      firstNonEmpty(cfg.AISystemPrompt, defaultAISystemPrompt),
+		"instructions":      firstNonEmpty(cfg.AISystemPrompt, defaultAISystemPromptForMode(aiModeProvider)),
 		"input":             aiQuestionPrompt(cfg, request),
 		"max_output_tokens": 200,
 		"temperature":       0.7,
@@ -427,6 +464,24 @@ func normalizeAIAnswers(raw []string, blankCount int) ([]string, error) {
 		return answers[:1], nil
 	}
 	return answers, nil
+}
+
+func defaultAISystemPromptForMode(mode string) string {
+	if strings.ToLower(strings.TrimSpace(mode)) == aiModeProvider {
+		return defaultAISystemPromptProvider
+	}
+	return defaultAISystemPromptBase
+}
+
+func truncateRunes(value string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= limit {
+		return value
+	}
+	return string(runes[:limit])
 }
 
 func firstNonEmpty(values ...string) string {

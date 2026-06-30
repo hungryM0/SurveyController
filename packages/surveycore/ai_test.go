@@ -127,3 +127,31 @@ func TestProviderAICustomRequiresBaseURLAndModel(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestDefaultAISystemPromptMatchesModes(t *testing.T) {
+	freePrompt := defaultAISystemPromptForMode("free")
+	providerPrompt := defaultAISystemPromptForMode("provider")
+	if !strings.Contains(freePrompt, "不是AI助手") || strings.Contains(freePrompt, "|| 分隔") {
+		t.Fatalf("free prompt = %q", freePrompt)
+	}
+	if !strings.Contains(providerPrompt, "|| 分隔") {
+		t.Fatalf("provider prompt = %q", providerPrompt)
+	}
+}
+
+func TestTestAIConnectionReturnsPreview(t *testing.T) {
+	client := New(WithAITextResolver(AITextResolverFunc(func(_ context.Context, _ RuntimeConfig, request AITextRequest) ([]string, error) {
+		if request.BlankCount != 1 || !strings.Contains(request.Title, "连接成功") {
+			t.Fatalf("request = %#v", request)
+		}
+		return []string{"连接成功"}, nil
+	})))
+
+	message, err := client.TestAIConnection(context.Background(), RuntimeConfig{AIMode: "provider"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(message, "连接成功！AI 回复: 连接成功") {
+		t.Fatalf("message = %q", message)
+	}
+}

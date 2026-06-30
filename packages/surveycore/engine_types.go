@@ -29,6 +29,11 @@ type LeaseManager interface {
 	MarkCooldown(proxyAddress string, cooldownFor time.Duration)
 }
 
+type PauseController interface {
+	IsPaused() bool
+	WaitIfPaused(ctx context.Context) error
+}
+
 type ExecutionOptions struct {
 	Target          int
 	Threads         int
@@ -37,6 +42,7 @@ type ExecutionOptions struct {
 	RetryDelay      time.Duration
 	CooldownOnError time.Duration
 	LeaseManager    LeaseManager
+	PauseController PauseController
 	Now             func() time.Time
 	ConfigureRun    func(ctx context.Context, jobIndex int, attempt int, cfg *RuntimeConfig) error
 }

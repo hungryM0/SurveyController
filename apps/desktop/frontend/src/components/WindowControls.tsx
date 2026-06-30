@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { Minus, Square, X } from 'lucide-react'
 import { Window } from '@wailsio/runtime'
 
-function WindowControls() {
+interface WindowControlsProps {
+  onClose?: () => void | Promise<void>
+}
+
+function WindowControls({ onClose }: WindowControlsProps) {
   const [maximised, setMaximised] = useState(false)
 
   async function syncMaximised() {
@@ -36,6 +40,10 @@ function WindowControls() {
 
   async function close() {
     try {
+      if (onClose) {
+        await onClose()
+        return
+      }
       await Window.Close()
     } catch {
       return

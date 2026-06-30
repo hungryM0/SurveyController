@@ -38,6 +38,8 @@ export const emptyShellState: ShellState = {
     platformLabel: '问卷星',
     metrics: [],
     quickActions: [],
+    runtimeHint: '随机 UA 未开启',
+    proxyHint: '失败停止已开启',
     questionRows: [],
     sessionRows: [],
   },
@@ -47,8 +49,19 @@ export const emptyShellState: ShellState = {
   reverseFillPlan: [],
   logLines: [],
   communityItems: [],
-  aboutItems: [],
-  donateItems: [],
-  ipUsageItems: [],
+  aboutItems: [
+    { label: '版本', value: 'test' },
+    { label: '前端栈', value: 'React + react-windows-ui + Wails v3' },
+    { label: '桌面壳', value: 'Wails v3' },
+  ],
+  donateItems: [
+    { label: '微信', value: '赞赏码' },
+    { label: '支付宝', value: '收款码' },
+  ],
+  ipUsageItems: [
+    { label: '说明', value: '按日统计' },
+    { label: '来源', value: '代理服务' },
+    { label: '状态', value: '实时同步' },
+  ],
   settingsGroups: [],
 }

@@ -20,6 +20,7 @@ function SettingField({ field, onChange }: SettingFieldProps) {
     [field.options, field.value],
   )
   const [rangeStart, rangeEnd] = useMemo(() => splitRangeValue(field.value), [field.value])
+  const [datetimeStart, datetimeEnd] = useMemo(() => splitDateTimeValue(field.value), [field.value])
 
   return (
     <div className="setting-row">
@@ -79,7 +80,41 @@ function SettingField({ field, onChange }: SettingFieldProps) {
         />
       ) : null}
 
-      {!['toggle', 'select', 'number', 'range', 'text'].includes(field.kind) ? (
+      {field.kind === 'password' ? (
+        <InputText
+          value={field.value}
+          width="18rem"
+          type="password"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(field.id, event.target.value)}
+        />
+      ) : null}
+
+      {field.kind === 'textarea' ? (
+        <textarea
+          className="textarea-field"
+          value={field.value}
+          rows={7}
+          onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onChange(field.id, event.target.value)}
+        />
+      ) : null}
+
+      {field.kind === 'datetime-window' ? (
+        <div className="range-field datetime-range-field">
+          <InputText
+            value={datetimeStart}
+            width="14rem"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(field.id, `${event.target.value} | ${datetimeEnd}`)}
+          />
+          <span>至</span>
+          <InputText
+            value={datetimeEnd}
+            width="14rem"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(field.id, `${datetimeStart} | ${event.target.value}`)}
+          />
+        </div>
+      ) : null}
+
+      {!['toggle', 'select', 'number', 'range', 'text', 'password', 'textarea', 'datetime-window'].includes(field.kind) ? (
         <span className="readonly-value">{field.value}</span>
       ) : null}
     </div>
@@ -89,6 +124,14 @@ function SettingField({ field, onChange }: SettingFieldProps) {
 function splitRangeValue(value: string): [string, string] {
   const parts = String(value || '').match(/\d+/g) ?? []
   return [parts[0] ?? '0', parts[1] ?? parts[0] ?? '0']
+}
+
+function splitDateTimeValue(value: string): [string, string] {
+  const parts = String(value || '')
+    .split(/\s*(?:\||~)\s*/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+  return [parts[0] ?? '', parts[1] ?? '']
 }
 
 export default SettingField

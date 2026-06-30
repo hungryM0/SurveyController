@@ -156,6 +156,47 @@ func TestRunExecutionClassifiesUnsupportedWithoutRetry(t *testing.T) {
 	}
 }
 
+func TestRunExecutionWaitsWhilePaused(t *testing.T) {
+	controller := newFakePauseController(true)
+	done := make(chan struct {
+		result *RunResult
+		err    error
+	}, 1)
+	var attempts int
+	go func() {
+		result, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+			attempts++
+			return &RunResult{Success: 1}, nil
+		}, nil, ExecutionOptions{PauseController: controller})
+		done <- struct {
+			result *RunResult
+			err    error
+		}{result: result, err: err}
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("run finished while paused")
+	case <-time.After(20 * time.Millisecond):
+	}
+	if attempts != 0 {
+		t.Fatalf("attempts while paused = %d", attempts)
+	}
+	controller.Resume()
+
+	select {
+	case got := <-done:
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		if got.result == nil || got.result.Success != 1 {
+			t.Fatalf("result = %#v", got.result)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("run did not resume")
+	}
+}
+
 type fakeLeaseManager struct {
 	acquired int
 	released int
@@ -180,4 +221,49 @@ func (m *fakeLeaseManager) MarkSuccess(_ string) bool {
 
 func (m *fakeLeaseManager) MarkCooldown(_ string, _ time.Duration) {
 	m.cooldown++
+}
+
+type fakePauseController struct {
+	mu     sync.Mutex
+	paused bool
+	resume chan struct{}
+}
+
+func newFakePauseController(paused bool) *fakePauseController {
+	return &fakePauseController{paused: paused, resume: make(chan struct{})}
+}
+
+func (c *fakePauseController) IsPaused() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.paused
+}
+
+func (c *fakePauseController) WaitIfPaused(ctx context.Context) error {
+	c.mu.Lock()
+	if !c.paused {
+		c.mu.Unlock()
+		return nil
+	}
+	resume := c.resume
+	c.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-resume:
+		return nil
+	}
+}
+
+func (c *fakePauseController) Resume() {
+	c.mu.Lock()
+	if !c.paused {
+		c.mu.Unlock()
+		return
+	}
+	resume := c.resume
+	c.paused = false
+	c.mu.Unlock()
+	close(resume)
 }

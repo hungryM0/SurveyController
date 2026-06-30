@@ -56,6 +56,8 @@ export interface DashboardState {
   platformLabel: string
   metrics: PageMetric[]
   quickActions: QuickAction[]
+  runtimeHint: string
+  proxyHint: string
   questionRows: QuestionRow[]
   sessionRows: SessionRow[]
 }
@@ -64,7 +66,7 @@ export interface SettingField {
   id: string
   label: string
   description: string
-  kind: 'number' | 'slider' | 'range' | 'toggle' | 'select' | 'text' | string
+  kind: 'number' | 'slider' | 'range' | 'toggle' | 'select' | 'text' | 'password' | 'textarea' | string
   value: string
   options?: string[]
 }
@@ -84,6 +86,22 @@ export interface ReverseFillRow {
   question: string
   column: string
   state: string
+}
+
+export interface IPUsageRecord {
+  label: string
+  total: number
+}
+
+export interface IPUsageSummary {
+  remainingQuota: string
+  totalQuota: string
+  available: number
+  inUse: number
+  source: string
+  message: string
+  updatedAt: string
+  records: IPUsageRecord[]
 }
 
 export interface ShellState {
@@ -121,6 +139,7 @@ export interface RuntimeConfig {
   proxy_area_code?: string | null
   random_ua_enabled?: boolean
   random_ua_ratios?: Record<string, number>
+  random_ua_preset?: string
   fail_stop_enabled?: boolean
   pause_on_aliyun_captcha?: boolean
   reliability_mode_enabled?: boolean
@@ -160,6 +179,7 @@ export interface QuestionEntry {
   option_fill_texts?: Array<string | null> | null
   fillable_option_indices?: number[] | null
   attached_option_selects?: Array<Record<string, unknown> | null> | null
+  has_attached_option_select?: boolean
   is_location?: boolean
   location_parts?: string[] | null
   multi_text_blank_modes?: string[] | null
@@ -220,6 +240,15 @@ export interface QuestionMeta {
   unsupported_reason?: string
 }
 
+export interface QuestionMediaItem {
+  kind?: string
+  scope?: string
+  index?: number | null
+  source_url?: string
+  label?: string
+  [key: string]: unknown
+}
+
 export interface SurveyDefinition {
   provider: string
   title: string
@@ -232,9 +261,29 @@ export interface AppSettings {
   showNavigationText: boolean
   micaEnabled: boolean
   topmost: boolean
+  askSaveOnClose?: boolean
+  preventSleepDuringRun?: boolean
+  taskResultNotification?: boolean
+  submissionReportTelemetry?: boolean
+  startupTutorialHintSeen?: boolean
+  randomIpBonusPlayed?: boolean
+  autoCheckUpdate?: boolean
+  autoSaveLogs?: boolean
   notifications: boolean
   autosaveLogCount: number
   runtimeDefaults?: Record<string, string>
+}
+
+export interface StartupTutorialHintState {
+  shouldShow: boolean
+  docUrl: string
+}
+
+export interface RandomIPBonusState {
+  claimed: boolean
+  bonusQuota: number
+  detail?: string
+  playConfetti: boolean
 }
 
 export interface ProxyStatus {
@@ -246,6 +295,69 @@ export interface ProxyStatus {
   randomIpEnabled: boolean
   source: string
   message?: string
+}
+
+export interface ProxyAreaCity {
+  code: string
+  name: string
+}
+
+export interface ProxyAreaProvince {
+  code: string
+  name: string
+  cities: ProxyAreaCity[]
+}
+
+export interface ProxyAreaOptionsState {
+  source: string
+  hasAll: boolean
+  provinces: ProxyAreaProvince[]
+}
+
+export interface CustomProxyAPITestState {
+  success: boolean
+  message: string
+  proxies: string[]
+}
+
+export interface AIConnectionTestState {
+  success: boolean
+  message: string
+}
+
+export interface ProxyRedeemState {
+  redeemed: boolean
+  cardQuota: number
+  cardQuotaLabel: string
+  detail?: string
+  status: ProxyStatus
+}
+
+export interface QRCodeDecodeState {
+  path: string
+  text: string
+}
+
+export interface ContactRequest {
+  messageType: string
+  issueTitle: string
+  email: string
+  message: string
+  attachments: string[]
+  autoAttachConfig: boolean
+  autoAttachLog: boolean
+  config?: RuntimeConfig | null
+  logLines?: string[]
+}
+
+export interface ContactState {
+  sent: boolean
+  message: string
+}
+
+export interface ContactStatus {
+  text: string
+  color: string
 }
 
 export interface RunEvent {
@@ -287,6 +399,8 @@ export interface SurveyCoreState {
 export interface RunTaskState {
   running: boolean
   canceling: boolean
+  paused: boolean
+  pauseReason?: string
   result?: RunResult | null
   events?: RunEvent[]
   error?: string

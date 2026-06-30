@@ -68,8 +68,14 @@ func RunExecution(ctx context.Context, cfg *RuntimeConfig, submit SubmitFunc, ha
 			defer state.setProgress(workerIndex, workerName, "空闲", false)
 			hasSubmitted := false
 			for job := range jobs {
+				if waitIfExecutionPaused(runCtx, options, state, workerIndex, workerName) {
+					return
+				}
 				if hasSubmitted {
 					waitSubmitInterval(runCtx, cfg, state, workerIndex, workerName)
+				}
+				if waitIfExecutionPaused(runCtx, options, state, workerIndex, workerName) {
+					return
 				}
 				if runCtx.Err() != nil {
 					return
@@ -182,6 +188,19 @@ func waitSubmitInterval(ctx context.Context, cfg *RuntimeConfig, state *executio
 	}
 	state.setProgress(workerIndex, workerName, "等待提交间隔", true)
 	sleepRetry(ctx, time.Duration(seconds)*time.Second)
+}
+
+func waitIfExecutionPaused(ctx context.Context, options ExecutionOptions, state *executionState, workerIndex int, workerName string) bool {
+	if options.PauseController == nil || !options.PauseController.IsPaused() {
+		return false
+	}
+	state.setProgress(workerIndex, workerName, "已暂停", true)
+	if err := options.PauseController.WaitIfPaused(ctx); err != nil {
+		state.setProgress(workerIndex, workerName, "已停止", false)
+		return true
+	}
+	state.setProgress(workerIndex, workerName, "等待任务", true)
+	return false
 }
 
 func acquireExecutionLease(ctx context.Context, cfg *RuntimeConfig, options ExecutionOptions, state *executionState, workerIndex int, workerName string, owner string) (ExecutionLease, bool, error) {
