@@ -11,20 +11,17 @@ vars:
 includes:
   common: ./build/Taskfile.yml
   windows: ./build/windows/Taskfile.yml
-  darwin: ./build/darwin/Taskfile.yml
-  linux: ./build/linux/Taskfile.yml
-  android: ./build/android/Taskfile.yml
 
 tasks:
   build:
-    summary: Builds the application
+    summary: Builds the Windows application
     cmds:
-      - task: "{{OS}}:build"
+      - task: windows:build
 
   package:
-    summary: Packages a production build of the application
+    summary: Packages a Windows production build of the application
     cmds:
-      - task: "{{OS}}:package"
+      - task: windows:package
 
   release:windows:
     summary: Builds the Windows stable release artifacts
@@ -33,9 +30,9 @@ tasks:
       - powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '{{.WINDOWS_STABLE_RELEASE_DIR}}' | Out-Null; Copy-Item -Force '{{.BIN_DIR}}/{{.APP_NAME}}.exe' '{{.WINDOWS_STABLE_RELEASE_DIR}}/{{.APP_NAME}}.exe'; Copy-Item -Force '{{.BIN_DIR}}/{{.APP_NAME}}-{{.ARCH | default ARCH}}-installer.exe' '{{.WINDOWS_STABLE_RELEASE_DIR}}/{{.APP_NAME}}-{{.ARCH | default ARCH}}-installer.exe'"
 
   run:
-    summary: Runs the application
+    summary: Runs the Windows application
     cmds:
-      - task: "{{OS}}:run"
+      - task: windows:run
 
   dev:
     summary: Runs the application in development mode

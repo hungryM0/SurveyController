@@ -351,7 +351,7 @@ function MoreView({
               <ShieldCheck size={18} />
               <strong>关于</strong>
             </div>
-            <p>Wails v3 + React + Go。Windows 发布，Linux 原生，macOS 只留开发验证。</p>
+            <p>Wails v3 + React + Go。当前只维护 Windows 桌面端。</p>
             <div className="more-summary-list">
               {aboutItems.map((item) => (
                 <div key={item.label}>

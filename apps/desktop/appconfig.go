@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"surveycontroller/surveycore"
@@ -246,32 +245,16 @@ func userDataBaseRoot(roaming bool) string {
 	if err != nil || strings.TrimSpace(home) == "" {
 		return "."
 	}
-	switch runtime.GOOS {
-	case "windows":
-		if roaming {
-			if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
-				return appData
-			}
-			return filepath.Join(home, "AppData", "Roaming")
+	if roaming {
+		if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
+			return appData
 		}
-		if localAppData := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); localAppData != "" {
-			return localAppData
-		}
-		return filepath.Join(home, "AppData", "Local")
-	case "darwin":
-		return filepath.Join(home, "Library", "Application Support")
-	default:
-		envName := "XDG_CONFIG_HOME"
-		fallback := ".config"
-		if !roaming {
-			envName = "XDG_DATA_HOME"
-			fallback = filepath.Join(".local", "share")
-		}
-		if xdg := strings.TrimSpace(os.Getenv(envName)); xdg != "" {
-			return xdg
-		}
-		return filepath.Join(home, fallback)
+		return filepath.Join(home, "AppData", "Roaming")
 	}
+	if localAppData := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); localAppData != "" {
+		return localAppData
+	}
+	return filepath.Join(home, "AppData", "Local")
 }
 
 func configPathFromRequest(path string, settings AppSettings) string {

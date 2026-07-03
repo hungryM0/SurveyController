@@ -34,18 +34,6 @@ func main() {
 		return pattern.ReplaceAllString(text, fmt.Sprintf(`${1}version="%s"`, version))
 	})
 	for _, path := range []string{
-		filepath.Join(buildDir, "darwin", "Info.plist"),
-		filepath.Join(buildDir, "darwin", "Info.dev.plist"),
-	} {
-		replaceFile(path, func(text string) string {
-			text = replacePlistValue(text, "CFBundleShortVersionString", version)
-			return replacePlistValue(text, "CFBundleVersion", version)
-		})
-	}
-	replaceFile(filepath.Join(buildDir, "linux", "nfpm", "nfpm.yaml"), func(text string) string {
-		return regexp.MustCompile(`(?m)^version:\s*".*"$`).ReplaceAllString(text, fmt.Sprintf(`version: "%s"`, version))
-	})
-	for _, path := range []string{
 		filepath.Join(buildDir, "windows", "msix", "app_manifest.xml"),
 		filepath.Join(buildDir, "windows", "msix", "template.xml"),
 	} {
@@ -55,10 +43,6 @@ func main() {
 	}
 	replaceFile(filepath.Join(buildDir, "windows", "nsis", "wails_tools.nsh"), func(text string) string {
 		return regexp.MustCompile(`!define INFO_PRODUCTVERSION "[^"]+"`).ReplaceAllString(text, fmt.Sprintf(`!define INFO_PRODUCTVERSION "%s"`, version))
-	})
-	replaceFile(filepath.Join(buildDir, "android", "app", "build.gradle"), func(text string) string {
-		text = regexp.MustCompile(`(?m)^\s*versionCode\s+\d+`).ReplaceAllString(text, fmt.Sprintf("        versionCode %d", versionCode(version)))
-		return regexp.MustCompile(`(?m)^\s*versionName\s+"[^"]+"`).ReplaceAllString(text, fmt.Sprintf(`        versionName "%s"`, version))
 	})
 }
 
@@ -82,27 +66,6 @@ func configVersionFromText(text string) string {
 		}
 	}
 	return ""
-}
-
-func versionCode(version string) int {
-	parts := strings.Split(version, ".")
-	code := 0
-	multiplier := 10000
-	for i := 0; i < 3 && i < len(parts); i++ {
-		var part int
-		_, _ = fmt.Sscanf(parts[i], "%d", &part)
-		code += part * multiplier
-		multiplier /= 100
-	}
-	if code <= 0 {
-		return 1
-	}
-	return code
-}
-
-func replacePlistValue(text, key, value string) string {
-	pattern := regexp.MustCompile(`(<key>` + regexp.QuoteMeta(key) + `</key>\s*<string>)[^<]*(</string>)`)
-	return pattern.ReplaceAllString(text, fmt.Sprintf("${1}%s${2}", value))
 }
 
 func replaceMSIXPackageVersion(text, value string) string {

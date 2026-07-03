@@ -14,8 +14,8 @@
 - Wails v3（只在开发 Wails 应用壳时需要）
 - Node.js 与 npm（只在开发 Wails 前端时需要）
 
-当前发布只面向 Windows 安装包。
-macOS 只保留源码启动和开发验证。
+当前只维护 Windows 桌面端和 Windows 安装包。
+Android、Linux、macOS 构建入口不保留。
 
 ## 常用命令
 

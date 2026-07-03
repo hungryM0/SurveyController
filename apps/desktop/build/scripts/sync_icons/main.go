@@ -24,11 +24,9 @@ func main() {
 
 	sourcePNG := filepath.Join(assetsDir, "icon.png")
 	sourceICO := filepath.Join(assetsDir, "icon.ico")
-	sourceSVG := filepath.Join(assetsDir, "icon.svg")
 
 	must(copyFile(sourcePNG, filepath.Join(buildDir, "appicon.png")))
 	must(copyFile(sourceICO, filepath.Join(buildDir, "windows", "icon.ico")))
-	must(copyFile(sourceSVG, filepath.Join(buildDir, "appicon.icon", "Assets", "wails_icon_vector.svg")))
 	must(copyFile(sourcePNG, filepath.Join(desktopRoot, "frontend", "public", "appicon.png")))
 
 	source, err := loadPNG(sourcePNG)
@@ -41,20 +39,6 @@ func main() {
 	must(saveResizedPNG(source, 310, 150, filepath.Join(msixAssets, "Wide310x150Logo.png")))
 	must(saveResizedPNG(source, 620, 300, filepath.Join(msixAssets, "SplashScreen.png")))
 	must(saveResizedPNG(source, 256, 256, filepath.Join(msixAssets, "AppIcon.png")))
-
-	androidRes := filepath.Join(buildDir, "android", "app", "src", "main", "res")
-	androidSizes := map[string]int{
-		"mipmap-mdpi":    48,
-		"mipmap-hdpi":    72,
-		"mipmap-xhdpi":   96,
-		"mipmap-xxhdpi":  144,
-		"mipmap-xxxhdpi": 192,
-	}
-	for dir, size := range androidSizes {
-		targetDir := filepath.Join(androidRes, dir)
-		must(saveResizedPNG(source, size, size, filepath.Join(targetDir, "ic_launcher.png")))
-		must(saveResizedPNG(source, size, size, filepath.Join(targetDir, "ic_launcher_round.png")))
-	}
 }
 
 func must(err error) {

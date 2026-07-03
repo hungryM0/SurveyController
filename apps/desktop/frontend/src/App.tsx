@@ -60,28 +60,10 @@ import type { IPUsageSummary, ProxyStatus, RunTaskState, RuntimeConfig, ShellSta
 import type { StartupTutorialHintState } from './types'
 
 function App() {
-  const [platform, setPlatform] = useState<'windows' | 'macos' | 'linux' | 'unknown'>('unknown')
-
   useEffect(() => {
-    const ua = navigator.userAgent.toLowerCase()
-    let currentPlatform: 'windows' | 'macos' | 'linux' | 'unknown' = 'unknown'
-    let platformClass = 'platform-unknown'
-
-    if (ua.includes('windows')) {
-      currentPlatform = 'windows'
-      platformClass = 'platform-windows'
-    } else if (ua.includes('macintosh') || ua.includes('mac os x')) {
-      currentPlatform = 'macos'
-      platformClass = 'platform-macos'
-    } else if (ua.includes('linux')) {
-      currentPlatform = 'linux'
-      platformClass = 'platform-linux'
-    }
-
-    setPlatform(currentPlatform)
-    document.documentElement.classList.add(platformClass)
+    document.documentElement.classList.add('platform-windows')
     return () => {
-      document.documentElement.classList.remove(platformClass)
+      document.documentElement.classList.remove('platform-windows')
     }
   }, [])
 
@@ -676,7 +658,7 @@ function App() {
             <small>{shell.appVersion}</small>
           </div>
         </div>
-        {platform !== 'macos' && <WindowControls onClose={closeWindow} />}
+        <WindowControls onClose={closeWindow} />
       </header>
 
       <div className="app-frame">

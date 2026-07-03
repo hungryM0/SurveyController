@@ -3445,7 +3445,7 @@ select {
 }
 
 /* ==========================================================================
-   Platform compatibility, Transparency & Empty States
+   Windows Transparency & Empty States
    ========================================================================== */
 
 /* Windows Mica Background and Transparency Tuning */
@@ -3485,11 +3485,6 @@ select {
 
 .platform-windows :root[data-theme="dark"] .run-footer-modern {
   background: rgba(30, 30, 30, 0.1) !important;
-}
-
-/* macOS traffic lights avoidance */
-.platform-macos .app-titlebar {
-  padding-left: 5.5rem !important; /* Shift title text to right to avoid overlapping left-side traffic lights */
 }
 
 /* Empty State Styling for Questionnaire Structure */

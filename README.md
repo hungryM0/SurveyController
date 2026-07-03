@@ -41,37 +41,13 @@
 
 **环境要求：** Go 1.26+，Git，Node.js，npm，Wails v3
 
-当前只发布 Windows 安装包。
-macOS 可从源码启动，不提供打包分发。
+当前只维护 Windows 桌面端和 Windows 安装包。
 
 <details>
 <summary>Windows 使用</summary>
 
 安装 Wails CLI：
 ```powershell
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-```
-
-克隆、安装前端依赖、运行桌面端：
-```bash
-git clone https://github.com/SurveyController/SurveyController.git
-cd SurveyController
-go test ./packages/proxycore/... ./packages/surveycore/...
-cd apps/desktop/frontend
-npm ci
-cd ..
-wails3 generate bindings
-wails3 dev
-```
-
-</details>
-
-<details>
-<summary>macOS 使用</summary>
-
-安装基础工具和 Wails CLI：
-```bash
-brew install go git node
 go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 ```
 

@@ -26,9 +26,6 @@ func main() {
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
-		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
-		},
 	})
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
@@ -41,22 +38,9 @@ func main() {
 		BackgroundType:   application.BackgroundTypeTranslucent,
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		URL:              "/",
-		Mac: application.MacWindow{
-			TitleBar: application.MacTitleBar{
-				AppearsTransparent: true,
-				HideTitle:          true,
-				FullSizeContent:    true,
-			},
-			Backdrop:                application.MacBackdropTranslucent,
-			InvisibleTitleBarHeight: 44,
-		},
 		Windows: application.WindowsWindow{
 			BackdropType:                      application.Mica,
 			DisableFramelessWindowDecorations: false,
-		},
-		Linux: application.LinuxWindow{
-			Icon:                appIcon,
-			WindowIsTranslucent: true,
 		},
 	})
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
