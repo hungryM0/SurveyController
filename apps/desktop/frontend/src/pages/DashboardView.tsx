@@ -1,26 +1,23 @@
 import { type ChangeEvent, type ClipboardEvent, type DragEvent, type ReactElement, useState } from 'react'
 import {
   Activity,
-  CheckCircle2,
-  Cpu,
-  FolderOpen,
-  Gauge,
+  Download,
   Globe,
-  HelpCircle,
+  Pause,
   Play,
   QrCode,
   Save,
-  Send,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
   Square,
   Target,
   Terminal,
+  Upload,
   Zap,
 } from 'lucide-react'
-import { Button, ButtonGroup, InputText, ProgressBar, SelectNative, SliderBar, Switch, TableView } from 'react-windows-ui'
-import type { DashboardState, QuickAction } from '../types'
+import { Button, InputText, ProgressBar, SelectNative, SliderBar, Switch, TableView } from 'react-windows-ui'
+import type { DashboardState } from '../types'
 
 interface DashboardViewProps {
   dashboard: DashboardState
@@ -66,14 +63,6 @@ const SliderControl = SliderBar as unknown as (props: {
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void
 }) => ReactElement
 
-const getMetricIcon = (label: string) => {
-  if (label.includes('成功') || label.includes('率')) return <CheckCircle2 size={16} />
-  if (label.includes('提交') || label.includes('份')) return <Send size={16} />
-  if (label.includes('速度') || label.includes('效率') || label.includes('并发')) return <Gauge size={16} />
-  if (label.includes('代理') || label.includes('IP') || label.includes('网络')) return <Globe size={16} />
-  return <Activity size={16} />
-}
-
 function DashboardView({
   dashboard,
   logs,
@@ -105,8 +94,9 @@ function DashboardView({
     row.strategy || '-',
   ])
   const sessionRows = buildThreadProgressRows(dashboard.sessionRows)
-  const recentLogs = getRecentLogLines(logs, 5)
+  const recentLogs = getRecentLogLines(logs, 3)
   const [qrDropActive, setQrDropActive] = useState(false)
+  const normalizedThreads = Math.max(1, Math.min(dashboard.threadCount, 32))
 
   function handleQRImageFile(file?: File | null) {
     if (!file || busy || !isSupportedQRImage(file)) {
@@ -149,369 +139,272 @@ function DashboardView({
 
   return (
     <section className="page dashboard-page">
-      <div className="dashboard-scroll">
-        {/* 1. TOP HERO SECTION: URL Input and Analysis */}
+      <div className="dashboard-scroll dashboard-shell">
         <section
-          className={`surface survey-hero-card ${qrDropActive ? 'qr-drop-active' : ''}`}
+          className={`surface dashboard-command ${qrDropActive ? 'qr-drop-active' : ''}`}
           onPaste={handlePaste}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <div className="hero-layout">
-            <div className="card-header-with-icon">
-              <div className="card-icon-accent">
-                <Cpu size={24} />
-              </div>
-              <div className="card-title-block">
-                <h3>智能问卷主控台</h3>
-                <p>粘贴问卷星、腾讯问卷或 Credamo 链接，解析题目结构并生成答题任务</p>
-              </div>
-            </div>
-
-            <div className="hero-command-area">
-              <div className="hero-primary-row">
-                <div className="url-input-wrapper">
-                  <InputText
-                    value={dashboard.surveyUrl}
-                    placeholder="在此粘贴问卷网络链接..."
-                    clearButton
-                    width="100%"
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => onUpdateUrl(event.target.value)}
-                    onClearButtonClick={() => onUpdateUrl('')}
-                  />
-                </div>
-                <Button
-                  type="primary"
-                  value="智能解析问卷"
-                  icon={<Play size={15} />}
-                  disabled={busy || !dashboard.surveyUrl}
-                  isLoading={busy}
-                  onClick={onAutoConfig}
+          <div className="command-main">
+            <div className="command-row">
+              <div className="url-input-wrapper">
+                <InputText
+                  value={dashboard.surveyUrl}
+                  placeholder="粘贴问卷链接"
+                  clearButton
+                  width="100%"
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => onUpdateUrl(event.target.value)}
+                  onClearButtonClick={() => onUpdateUrl('')}
                 />
               </div>
-              <div className="hero-secondary-row">
-                <ButtonGroup>
-                  <Button value="识别二维码" icon={<QrCode size={15} />} disabled={busy} onClick={onLoadQRCode} />
-                  <Button value="载入配置" icon={<FolderOpen size={15} />} onClick={onLoadConfig} />
-                  <Button value="保存配置" icon={<Save size={15} />} onClick={onSaveConfig} />
-                </ButtonGroup>
-              </div>
-              {dashboard.quickActions.length ? (
-                <div className="quick-action-strip">
-                  {dashboard.quickActions.map((action) => (
-                    <QuickActionButton
-                      key={action.id}
-                      action={action}
-                      disabled={busy}
-                      onParse={onAutoConfig}
-                      onLoadConfig={onLoadConfig}
-                      onSaveConfig={onSaveConfig}
-                      onOpenRuntime={onOpenRuntime}
-                    />
-                  ))}
-                </div>
-              ) : null}
+              <Button
+                value="解析"
+                icon={<QrCode size={15} />}
+                disabled={busy || !dashboard.surveyUrl}
+                isLoading={busy}
+                onClick={onAutoConfig}
+              />
+              <Button
+                type="primary"
+                value="开始执行"
+                icon={<Play size={16} />}
+                disabled={busy || !dashboard.surveyUrl}
+                onClick={onRun}
+              />
             </div>
+            <div className="command-meta">
+              <span>{dashboard.platformLabel || '未配置平台'}</span>
+              <span>{dashboard.statusText}</span>
+              <span>{dashboard.questionCount} 题</span>
+              <strong>{dashboard.progressCurrent}/{dashboard.progressTarget}</strong>
+            </div>
+          </div>
+
+          <div className="command-actions">
+            <Button value="扫码" icon={<QrCode size={15} />} disabled={busy} onClick={onLoadQRCode} />
+            <Button value="导入" icon={<Upload size={15} />} onClick={onLoadConfig} />
+            <Button value="导出" icon={<Download size={15} />} onClick={onSaveConfig} />
           </div>
         </section>
 
-        {/* 2. MAIN WORKSPACE GRID: Left configurations, Right structure details */}
-        <div className="dashboard-main-grid">
-          {/* LEFT COLUMN */}
-          <div className="dashboard-left-column">
-            <section className="surface control-panel">
-              <div className="panel-header">
-                <div className="panel-title-group">
-                  <Settings size={18} />
-                  <h4>快捷设置</h4>
-                </div>
-                <span className="platform-tag">{dashboard.platformLabel || '无运行配置'}</span>
+        <div className="dashboard-work-grid">
+          <section className="surface control-panel">
+            <div className="panel-header">
+              <div className="panel-title-group">
+                <Settings size={18} />
+                <h4>任务设置</h4>
               </div>
-
-              <div className="control-items-list">
-                <div className="control-item">
-                  <div className="item-label-group">
-                    <Target size={15} />
-                    <span>目标份数</span>
-                  </div>
-                  <div className="item-input-area">
-                    <InputText
-                      value={String(dashboard.targetCount)}
-                      width="8rem"
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => onTargetChange(Number(event.target.value))}
-                    />
-                  </div>
-                </div>
-
-                <div className="control-item">
-                  <div className="item-label-group">
-                    <Zap size={15} />
-                    <span>并发线程</span>
-                  </div>
-                  <div className="item-slider-area">
-                    <SliderControl
-                      key={`threads-${dashboard.threadCount}`}
-                      min={1}
-                      max={32}
-                      defaultValue={Math.max(1, Math.min(dashboard.threadCount, 32))}
-                      width="10rem"
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => onThreadsChange(Number(event.target.value))}
-                    />
-                    <strong className="slider-value">{Math.max(1, Math.min(dashboard.threadCount, 32))}</strong>
-                  </div>
-                </div>
-
-                <div className="control-item">
-                  <div className="item-label-group">
-                    <ShieldCheck size={15} />
-                    <span>随机 IP 机制</span>
-                  </div>
-                  <div className="item-switch-area">
-                    <Switch
-                      key={`random-ip-${dashboard.randomIpEnabled}`}
-                      label
-                      labelOn="已开启"
-                      labelOff="已关闭"
-                      defaultChecked={dashboard.randomIpEnabled}
-                      onChange={() => onRandomIpChange(!dashboard.randomIpEnabled)}
-                    />
-                  </div>
-                </div>
-
-                <div className="control-item">
-                  <div className="item-label-group">
-                    <Globe size={15} />
-                    <span>网络代理源</span>
-                  </div>
-                  <div className="item-select-area">
-                    <SelectControl
-                      data={[
-                        { label: '默认代理源', value: '默认' },
-                        { label: '限时福利源', value: '限时福利' },
-                        { label: '自定义代理', value: '自定义' },
-                      ]}
-                      value={dashboard.proxySource}
-                      onChange={(event) => onProxySourceChange(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="control-item">
-                  <div className="item-label-group">
-                    <Terminal size={15} />
-                    <span>运行提示</span>
-                  </div>
-                  <div className="item-input-area">
-                    <span className="dashboard-note">{dashboard.runtimeHint}</span>
-                  </div>
-                </div>
-
-                <div className="control-item">
-                  <div className="item-label-group">
-                    <ShieldCheck size={15} />
-                    <span>代理提示</span>
-                  </div>
-                  <div className="item-input-area">
-                    <span className="dashboard-note">{dashboard.proxyHint}</span>
-                  </div>
-                </div>
-
-                {/* ADVANCED PARAMETERS BUTTON CARD */}
-                <div className="advanced-options-card" onClick={onOpenRuntime}>
-                  <div className="card-content">
-                    <SlidersHorizontal size={16} />
-                    <div className="text-group">
-                      <h5>配置高级作答参数</h5>
-                      <p>调整防关联规则与随机延时模型</p>
-                    </div>
-                  </div>
-                  <span className="arrow-indicator">→</span>
-                </div>
-              </div>
-            </section>
-
-            <section className="surface terminal-logs-card">
-              <div className="terminal-header">
-                <div className="dots-group">
-                  <span className="dot red" />
-                  <span className="dot yellow" />
-                  <span className="dot green" />
-                </div>
-                <div className="terminal-title">
-                  <Terminal size={14} />
-                  <span>运行日志</span>
-                </div>
-              </div>
-              <div className="terminal-body">
-                {recentLogs.length ? (
-                  recentLogs.map((line, index) => (
-                    <div key={`${index}-${line}`} className="terminal-line">
-                      <span className="line-number">{index + 1}</span>
-                      <span className="line-content">{line}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="terminal-cursor-line">
-                    <span className="line-number">1</span>
-                    <span className="line-content">等待任务输出...</span>
-                  </div>
-                )}
-              </div>
-            </section>
-
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="dashboard-right-column">
-            {/* 2*2 METRICS GRID WIDGET */}
-            <div className="dashboard-metrics-grid-2x2">
-              {dashboard.metrics.map((metric) => {
-                const toneClass = metric.tone ? `tone-${metric.tone}` : ''
-                return (
-                  <div key={metric.label} className={`metric-stat-card ${toneClass}`}>
-                    <div className="stat-icon-wrapper">
-                      {getMetricIcon(metric.label)}
-                    </div>
-                    <div className="stat-content">
-                      <span className="stat-label">{metric.label}</span>
-                      <strong className="stat-value">{metric.value}</strong>
-                    </div>
-                  </div>
-                )
-              })}
+              <Button value="高级参数" icon={<SlidersHorizontal size={15} />} onClick={onOpenRuntime} />
             </div>
 
-            <section className="surface quota-panel dashboard-quota-card">
-              <div className="quota-panel-head">
-                <div className="panel-title-group">
-                  <Globe size={18} />
-                  <h4>随机 IP 额度</h4>
+            <div className="control-items-list">
+              <div className="control-item primary-control-item">
+                <div className="item-label-group">
+                  <Target size={15} />
+                  <span>目标份数</span>
                 </div>
-                <span className="platform-tag">{dashboard.randomIpEnabled ? '已启用' : '未启用'}</span>
+                <div className="item-input-area">
+                  <InputText
+                    value={String(dashboard.targetCount)}
+                    width="7rem"
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => onTargetChange(Number(event.target.value))}
+                  />
+                </div>
               </div>
-              <div className="quota-panel-body">
-                <div className="quota-panel-summary">
+
+              <div className="control-item">
+                <div className="item-label-group">
+                  <Zap size={15} />
+                  <span>并发线程</span>
+                </div>
+                <div className="item-slider-area">
+                  <SliderControl
+                    key={`threads-${dashboard.threadCount}`}
+                    min={1}
+                    max={32}
+                    defaultValue={normalizedThreads}
+                    width="9rem"
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => onThreadsChange(Number(event.target.value))}
+                  />
+                  <strong className="slider-value">{normalizedThreads}</strong>
+                </div>
+              </div>
+
+              <div className="control-item switch-control-item">
+                <div className="item-label-group">
+                  <ShieldCheck size={15} />
+                  <span>随机 IP</span>
+                </div>
+                <div className="item-switch-area">
+                  <Switch
+                    key={`random-ip-${dashboard.randomIpEnabled}`}
+                    label
+                    labelOn="已开启"
+                    labelOff="已关闭"
+                    defaultChecked={dashboard.randomIpEnabled}
+                    onChange={() => onRandomIpChange(!dashboard.randomIpEnabled)}
+                  />
+                </div>
+              </div>
+
+              <div className="control-item proxy-source-item">
+                <div className="item-label-group">
+                  <Globe size={15} />
+                  <span>代理源</span>
+                </div>
+                <div className="item-select-area">
+                  <SelectControl
+                    data={[
+                      { label: '默认代理源', value: '默认' },
+                      { label: '限时福利源', value: '限时福利' },
+                      { label: '自定义代理', value: '自定义' },
+                    ]}
+                    value={dashboard.proxySource}
+                    onChange={(event) => onProxySourceChange(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="control-item quota-control-item">
+                <div className="item-label-group">
+                  <Globe size={15} />
+                  <span>IP 额度</span>
+                </div>
+                <div className="quota-inline-area">
                   <strong>{dashboard.randomIpQuotaLabel}</strong>
-                  <span>{dashboard.randomIpStatus}</span>
-                </div>
-                <div className="quota-panel-row">
-                  <span>可用</span>
-                  <strong>{dashboard.proxyAvailable ?? 0}</strong>
-                  <span>占用</span>
-                  <strong>{dashboard.proxyInUse ?? 0}</strong>
-                </div>
-                <div className="quota-panel-actions">
+                  <span>可用 {dashboard.proxyAvailable ?? 0} / 占用 {dashboard.proxyInUse ?? 0}</span>
                   <Button
-                    value="同步额度"
+                    value="同步"
                     icon={<Globe size={14} />}
                     disabled={busy}
                     onClick={onSyncProxyStatus}
                   />
-                  <InputText
-                    value={proxyCardCode}
-                    placeholder="额度卡密"
-                    clearButton
-                    width="100%"
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => setProxyCardCode(event.target.value)}
-                    onClearButtonClick={() => setProxyCardCode('')}
-                  />
-                  <Button
-                    value="兑换"
-                    icon={<QrCode size={14} />}
-                    disabled={busy || !proxyCardCode.trim()}
-                    onClick={() => onRedeemProxyCard(proxyCardCode)}
-                  />
                 </div>
               </div>
-            </section>
 
-            <section className="surface thread-switch-card">
-              <div className="panel-header">
-                <div className="panel-title-group">
-                  <Activity size={18} />
-                  <h4>题目清单与会话进度</h4>
+              <div className="proxy-card-row">
+                <InputText
+                  value={proxyCardCode}
+                  placeholder="额度卡密"
+                  clearButton
+                  width="100%"
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setProxyCardCode(event.target.value)}
+                  onClearButtonClick={() => setProxyCardCode('')}
+                />
+                <Button
+                  value="兑换"
+                  icon={<Save size={14} />}
+                  disabled={busy || !proxyCardCode.trim()}
+                  onClick={() => onRedeemProxyCard(proxyCardCode)}
+                />
+              </div>
+
+              <div className="control-note-list">
+                <div>
+                  <span>运行</span>
+                  <strong>{dashboard.runtimeHint}</strong>
                 </div>
+                <div>
+                  <span>代理</span>
+                  <strong>{dashboard.proxyHint}</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="surface table-panel thread-table-panel">
+            <div className="panel-header table-panel-head">
+              <div className="panel-title-group">
+                <Activity size={18} />
+                <h4>{threadView === 'questions' ? `题目清单 (${dashboard.questionRows.length})` : `会话进度 (${sessionRows.length})`}</h4>
               </div>
               <div className="thread-switch-row">
                 <Button
-                  value="题目清单"
+                  value="题目"
                   type={threadView === 'questions' ? 'primary' : undefined}
                   onClick={() => setThreadView('questions')}
                 />
                 <Button
-                  value="会话进度"
+                  value="会话"
                   type={threadView === 'progress' ? 'primary' : undefined}
                   onClick={() => setThreadView('progress')}
                 />
               </div>
-            </section>
-
-            <section className="surface table-panel thread-table-panel">
-              <div className="panel-header">
-                <div className="panel-title-group">
-                  <HelpCircle size={18} />
-                  <h4>{threadView === 'questions' ? `已配置的问卷结构 (${dashboard.questionRows.length} 题)` : `会话进度 (${sessionRows.length} 路)`}</h4>
-                </div>
-              </div>
-              <div className="table-wrapper-scroll question-table-scroll">
-                {threadView === 'questions' ? (
-                  dashboard.questionRows.length === 0 ? (
-                    <div className="table-empty-state">
-                      <HelpCircle size={28} className="empty-icon" />
-                      <h5>暂无已解析的问卷</h5>
-                      <p>请粘贴问卷网络链接并点击“智能解析问卷”，系统会自动提取题目结构与作答维度。</p>
-                      <div className="platform-badges">
-                        <span className="badge wjx">问卷星</span>
-                        <span className="badge tencent">腾讯问卷</span>
-                        <span className="badge credamo">Credamo 见数</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <TableControl
-                      columns={[
-                        { title: '序号', showSortIcon: false },
-                        { title: '类型', showSortIcon: false },
-                        { title: '映射维度', showSortIcon: false },
-                        { title: '作答策略', showSortIcon: false },
-                      ]}
-                      rows={questionRows}
-                      rowFontSize={13}
-                      headerFontSize={13}
-                    />
-                  )
-                ) : sessionRows.length ? (
+            </div>
+            <div className="table-wrapper-scroll question-table-scroll">
+              {threadView === 'questions' ? (
+                dashboard.questionRows.length === 0 ? (
+                  <div className="table-empty-state">
+                    <h5>未解析</h5>
+                    <p>粘贴链接后解析题目结构。</p>
+                  </div>
+                ) : (
                   <TableControl
                     columns={[
-                      { title: '线程', showSortIcon: false },
-                      { title: '状态', showSortIcon: false },
-                      { title: '进度', showSortIcon: false },
+                      { title: '序号', showSortIcon: false },
+                      { title: '类型', showSortIcon: false },
+                      { title: '映射维度', showSortIcon: false },
+                      { title: '作答策略', showSortIcon: false },
                     ]}
-                    rows={sessionRows}
+                    rows={questionRows}
                     rowFontSize={13}
                     headerFontSize={13}
                   />
-                ) : (
-                  <div className="table-empty-state">
-                    <Activity size={28} className="empty-icon" />
-                    <h5>暂无会话进度</h5>
-                    <p>开始运行后，这里会显示每条线程的状态和进度。</p>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
+                )
+              ) : sessionRows.length ? (
+                <TableControl
+                  columns={[
+                    { title: '线程', showSortIcon: false },
+                    { title: '状态', showSortIcon: false },
+                    { title: '进度', showSortIcon: false },
+                  ]}
+                  rows={sessionRows}
+                  rowFontSize={13}
+                  headerFontSize={13}
+                />
+              ) : (
+                <div className="table-empty-state">
+                  <h5>未运行</h5>
+                  <p>任务启动后显示线程进度。</p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
+
+        <section className="surface terminal-logs-card dashboard-log-strip">
+          <div className="terminal-header">
+            <div className="terminal-title">
+              <Terminal size={14} />
+              <span>运行日志</span>
+            </div>
+          </div>
+          <div className="terminal-body">
+            {recentLogs.length ? (
+              recentLogs.map((line, index) => (
+                <div key={`${index}-${line}`} className="terminal-line">
+                  <span className="line-number">{index + 1}</span>
+                  <span className="line-content">{line}</span>
+                </div>
+              ))
+            ) : (
+              <div className="terminal-cursor-line">
+                <span className="line-content">暂无日志</span>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* 4. FOOTER: MODERN RUN STATUS BAR */}
       <footer className="run-footer-modern">
         <div className="footer-status-info">
           <div className="status-indicator-ping">
             <span className={`ping-dot ${busy ? 'active' : ''}`}></span>
           </div>
           <div className="status-text-block">
-            <span className="label">状态信息</span>
+            <span className="label">状态</span>
             <strong className="status-desc">{dashboard.statusText}</strong>
           </div>
         </div>
@@ -526,19 +419,6 @@ function DashboardView({
 
         <div className="footer-actions-group">
           <Button
-            value="同步额度"
-            icon={<Globe size={14} />}
-            disabled={busy}
-            onClick={onSyncProxyStatus}
-          />
-          <Button
-            value="兑换"
-            icon={<QrCode size={14} />}
-            disabled={busy || !proxyCardCode.trim()}
-            onClick={() => onRedeemProxyCard(proxyCardCode)}
-          />
-          <Button
-            type="primary"
             value="开始执行"
             icon={<Play size={16} />}
             disabled={busy || !dashboard.surveyUrl}
@@ -546,7 +426,7 @@ function DashboardView({
           />
           <Button
             value="暂停"
-            icon={<Square size={14} />}
+            icon={<Pause size={14} />}
             disabled={!busy}
             onClick={onPauseRun}
           />
@@ -593,70 +473,6 @@ export function isSupportedQRImage(file: File): boolean {
   const name = file.name.toLowerCase()
   const type = file.type.toLowerCase()
   return type.startsWith('image/') || /\.(png|jpe?g|gif|bmp|webp)$/.test(name)
-}
-
-function QuickActionButton({
-  action,
-  disabled,
-  onParse,
-  onLoadConfig,
-  onSaveConfig,
-  onOpenRuntime,
-}: {
-  action: QuickAction
-  disabled: boolean
-  onParse: () => void
-  onLoadConfig: () => void
-  onSaveConfig: () => void
-  onOpenRuntime: () => void
-}) {
-  const icon = quickActionIcon(action.icon)
-  const onClick = quickActionHandler(action.id, onParse, onLoadConfig, onSaveConfig, onOpenRuntime)
-  return (
-    <Button
-      value={action.label}
-      type={action.emphasis === 'primary' ? 'primary' : undefined}
-      icon={icon}
-      disabled={disabled}
-      onClick={onClick}
-    />
-  )
-}
-
-function quickActionHandler(
-  id: string,
-  onParse: () => void,
-  onLoadConfig: () => void,
-  onSaveConfig: () => void,
-  onOpenRuntime: () => void,
-) {
-  switch (id) {
-    case 'parse':
-      return onParse
-    case 'load-config':
-      return onLoadConfig
-    case 'save-config':
-      return onSaveConfig
-    case 'open-runtime':
-      return onOpenRuntime
-    default:
-      return onOpenRuntime
-  }
-}
-
-function quickActionIcon(icon: string) {
-  switch (icon) {
-    case 'scan':
-      return <Play size={15} />
-    case 'folder':
-      return <FolderOpen size={15} />
-    case 'save':
-      return <Save size={15} />
-    case 'tune':
-      return <SlidersHorizontal size={15} />
-    default:
-      return <Terminal size={15} />
-  }
 }
 
 function buildThreadProgressRows(rows: DashboardState['sessionRows']): string[][] {

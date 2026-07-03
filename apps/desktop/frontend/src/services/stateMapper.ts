@@ -414,8 +414,8 @@ function mapDashboard(base: DashboardState, config: RuntimeConfig, runState: Run
     ],
     quickActions: [
       { id: 'parse', label: '智能解析问卷', icon: 'scan', emphasis: 'primary' },
-      { id: 'load-config', label: '载入配置', icon: 'folder' },
-      { id: 'save-config', label: '保存配置', icon: 'save' },
+      { id: 'load-config', label: '导入配置', icon: 'import' },
+      { id: 'save-config', label: '导出配置', icon: 'export' },
       { id: 'open-runtime', label: '高级参数', icon: 'tune' },
     ],
     runtimeHint: config.random_ua_enabled ? '随机 UA 已开启' : '随机 UA 未开启',
