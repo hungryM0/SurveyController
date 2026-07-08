@@ -1,6 +1,6 @@
 ---
 name: go-wails-migration
-description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁移技能。用于修改 packages/proxycore、packages/surveycore、apps/desktop、Wails 服务、前端绑定、桌面配置路径、构建发布链路和 Go 测试策略。适合处理 Go 核心模块、Wails 桌面壳、Windows/Linux/macOS 原生构建、目录边界和迁移兼容问题；不用于恢复 Python、浏览器自动化、Docker、server mode 或 iOS 适配。
+description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁移技能。用于修改 packages/proxycore、packages/surveycore、apps/desktop、Wails 服务、前端绑定、桌面配置路径、Windows 构建发布链路和 Go 测试策略。适合处理 Go 核心模块、Wails 桌面壳、Windows 构建、目录边界和迁移兼容问题；不用于恢复 Python 或浏览器自动化。
 ---
 
 # Go Wails Migration
@@ -18,7 +18,7 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
    - `AGENTS.md`
    - `CONTRIBUTING.md`
    - 目标模块和对应 Go 测试
-   - `apps/desktop/Taskfile.yml` 与 `apps/desktop/build/` 中相关平台 Taskfile
+   - `apps/desktop/Taskfile.yml` 与 `apps/desktop/build/` 中 Windows 构建任务
 2. Go 代码按现有模块放置。
    - 代理核心放 `packages/proxycore/`。
    - 问卷核心和平台实现放 `packages/surveycore/`。
@@ -33,8 +33,6 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
    - Wails WebView 只做桌面 UI，不承担问卷提交自动化。
 5. 不恢复已移除链路。
    - 不恢复 Python、uv、Python CI、`software/` 或顶层平台 Python 包。
-   - 不恢复 Docker 构建、server mode、iOS 适配。
-   - macOS 只保留原生 darwin 构建和 `.app` 打包，不做 Docker 跨编译。
 6. 不照搬旧全局状态。
    - QSettings、安全存储、UI 弹窗、线程 stop_signal 这类耦合要重新设计接口。
    - Go 核心优先用显式配置、`context.Context`、接口和 fake 测试。
@@ -69,9 +67,8 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
 - Wails 服务方法只做应用层编排，不塞具体平台解析细节。
 - 前端不要写解释迁移状态的界面文案，除非用户明确要求。
 - 构建平台边界：
-  - 保留 Windows、Linux、macOS 原生构建。
-  - 保留 Android 现有模板，除非用户明确要求再删。
-  - 禁止恢复 Docker 跨编译、server mode、iOS 目录或 iOS 任务。
+  - 只维护 Windows 桌面端。
+  - 构建入口只围绕 Windows 安装包和 Windows 可执行文件。
   - Windows stable feed 仍使用 `https://dl.hungrym0.com/surveycontroller/win/stable/`。
 
 ## validation
@@ -79,7 +76,7 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
 - Go 核心模块：跑 `go test ./packages/proxycore/... ./packages/surveycore/...`。
 - Wails 桌面模块：跑 `cd apps/desktop; go test ./...`。
 - 新增或修改 Wails 服务绑定：跑 `cd apps/desktop; wails3 generate bindings`，再跑桌面模块测试。
-- 修改 Taskfile 或构建入口：跑 `cd apps/desktop; wails3 task --list`，确认没有恢复 Docker、server mode、iOS 入口。
+- 修改 Taskfile 或构建入口：跑 `cd apps/desktop; wails3 task --list`，确认只保留 Windows 构建任务。
 - 单元测试不访问真实问卷、真实账号、真实付费代理。
 
 ## common_commands

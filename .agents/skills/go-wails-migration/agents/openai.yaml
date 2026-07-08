@@ -1,4 +1,4 @@
 interface:
   display_name: "Go Wails Migration"
   short_description: "Go+Wails desktop migration boundaries"
-  default_prompt: "Use $go-wails-migration when modifying SurveyController Go packages, Wails desktop services, bindings, config paths, or native desktop build tasks without restoring Python, Docker, server mode, or iOS."
+  default_prompt: "Use $go-wails-migration when modifying SurveyController Go packages, Wails desktop services, bindings, config paths, or Windows desktop build tasks without restoring Python or browser automation."
