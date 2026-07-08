@@ -261,18 +261,6 @@ function App() {
     return () => window.clearTimeout(t)
   }, [notice])
 
-  useEffect(() => {
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!shouldAskSaveOnClose(settingsRef.current)) {
-        return
-      }
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', beforeUnload)
-    return () => window.removeEventListener('beforeunload', beforeUnload)
-  }, [])
-
   async function withBusy(action: () => Promise<void>) {
     setBusy(true)
     setError('')
