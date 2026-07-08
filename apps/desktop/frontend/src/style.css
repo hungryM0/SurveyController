@@ -5095,3 +5095,43 @@ select {
   font-size: 0.88rem;
   line-height: 1.55;
 }
+
+/* ===== Dashboard viewport containment ===== */
+.dashboard-page {
+  min-height: 0;
+}
+
+.dashboard-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+.dashboard-shell {
+  align-content: start;
+}
+
+.dashboard-command {
+  flex-shrink: 0;
+}
+
+.dashboard-work-grid {
+  min-height: 0;
+}
+
+.run-footer-modern {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-height: 760px) {
+  .dashboard-work-grid .control-panel,
+  .thread-table-panel {
+    min-height: 24rem;
+  }
+
+  .dashboard-log-strip .terminal-body {
+    max-height: 3.5rem;
+  }
+}
