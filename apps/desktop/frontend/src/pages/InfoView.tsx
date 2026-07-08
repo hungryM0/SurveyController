@@ -1,4 +1,4 @@
-import { Eye, FolderOpen, RotateCcw, Save } from 'lucide-react'
+import { Bell, Eye, FolderOpen, Palette, RotateCcw, Save, Settings2, Sliders } from 'lucide-react'
 import { Button } from 'react-windows-ui'
 import SettingField from '../components/SettingField'
 import type { PageMetric, ReverseFillRow, SettingsGroup } from '../types'
@@ -19,6 +19,16 @@ interface InfoViewProps {
   onResetSettings?: () => void
 }
 
+const GROUP_ICONS: Record<string, React.ReactNode> = {
+  '外观设置': <Palette size={16} />,
+  '行为设置': <Sliders size={16} />,
+  '通知': <Bell size={16} />,
+}
+
+function getGroupIcon(title: string): React.ReactNode {
+  return GROUP_ICONS[title] ?? <Settings2 size={16} />
+}
+
 function InfoView({
   title,
   items,
@@ -37,18 +47,10 @@ function InfoView({
   return (
     <section className="page scroll-page">
       <div className="content-stack">
-        <section className="surface info-panel">
+        <section className="surface settings-hero-card">
           <div className="section-heading">
             <h2>{title}</h2>
           </div>
-
-          {reverseFill ? (
-            <div className="toolbar-row">
-              <Button value="选择 Excel" icon={<FolderOpen size={15} />} onClick={onChooseReverseFill} />
-              <Button value="预览反填" icon={<Eye size={15} />} disabled={busy || !reverseFillPath} onClick={onPreviewReverseFill} />
-              <span>{reverseFillPath || '未选择文件'}</span>
-            </div>
-          ) : null}
 
           {items?.length ? (
             <div className="info-list">
@@ -66,23 +68,36 @@ function InfoView({
               ))}
             </div>
           ) : null}
-
-          {reverseFill?.length ? (
-            <div className="reverse-list">
-              {reverseFill.map((row) => (
-                <div key={`${row.question}-${row.column}`}>
-                  <span>{row.question}</span>
-                  <small>{row.column}</small>
-                  <strong>{row.state}</strong>
-                </div>
-              ))}
-            </div>
-          ) : null}
         </section>
+
+        {reverseFill !== undefined ? (
+          <section className="surface info-panel">
+            <div className="section-heading">
+              <h2>反填配置</h2>
+            </div>
+            <div className="toolbar-row">
+              <Button value="选择 Excel" icon={<FolderOpen size={15} />} onClick={onChooseReverseFill} />
+              <Button value="预览反填" icon={<Eye size={15} />} disabled={busy || !reverseFillPath} onClick={onPreviewReverseFill} />
+              <span>{reverseFillPath || '未选择文件'}</span>
+            </div>
+            {reverseFill?.length ? (
+              <div className="reverse-list">
+                {reverseFill.map((row) => (
+                  <div key={`${row.question}-${row.column}`}>
+                    <span>{row.question}</span>
+                    <small>{row.column}</small>
+                    <strong>{row.state}</strong>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         {settings?.map((group) => (
           <section className="surface settings-panel" key={group.title}>
             <div className="section-heading">
+              {getGroupIcon(group.title)}
               <h2>{group.title}</h2>
             </div>
             {group.title === '行为设置' ? (
@@ -106,7 +121,7 @@ function InfoView({
         ))}
 
         {settings?.length ? (
-          <div className="footer-actions">
+          <div className="settings-footer-actions">
             <Button type="primary" value="保存设置" icon={<Save size={15} />} disabled={busy} onClick={onSaveSettings} />
           </div>
         ) : null}

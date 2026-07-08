@@ -90,6 +90,10 @@ function App() {
   const config = model?.config ?? null
   const currentConfig = config ?? model?.config ?? null
   const runBusy = busy || Boolean(runState?.running || runState?.canceling)
+  const runPhase = runState?.canceling ? 'canceling' as const
+    : runState?.paused ? 'paused' as const
+    : (runState?.running || runBusy) ? 'running' as const
+    : 'idle' as const
 
   useEffect(() => {
     settingsRef.current = model?.settings ?? null
@@ -250,6 +254,12 @@ function App() {
       }
     }
   }, [loading, model?.settings.startupTutorialHintSeen])
+
+  useEffect(() => {
+    if (!notice) return
+    const t = window.setTimeout(() => setNotice(''), 3500)
+    return () => window.clearTimeout(t)
+  }, [notice])
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -681,6 +691,7 @@ function App() {
                 dashboard={shell.dashboard}
                 logs={shell.logLines}
                 busy={runBusy}
+                runPhase={runPhase}
                 onUpdateUrl={updateURL}
                 onAutoConfig={autoConfig}
                 onLoadQRCode={loadQRCodeFromDialog}

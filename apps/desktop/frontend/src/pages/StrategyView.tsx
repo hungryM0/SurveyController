@@ -364,29 +364,21 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
   }
 
   return (
-    <section className="page strategy-page">
-      <div className="strategy-tabs">
+    <section className="page scroll-page strategy-scroll" style={{ overflow: 'hidden' }}>
+      <div className="strategy-tab-bar surface">
         <Button value="条件规则" type={tab === 'rules' ? 'primary' : undefined} onClick={() => setTab('rules')} />
         <Button value="维度分组" type={tab === 'dimensions' ? 'primary' : undefined} onClick={() => setTab('dimensions')} />
         <Button value="题目编辑" type={tab === 'questions' ? 'primary' : undefined} onClick={() => setTab('questions')} />
       </div>
 
+      <div className="strategy-tab-content">
       {tab === 'rules' ? (
         <>
-          <section className="surface strategy-editor-panel">
-            <div className="section-heading">
-              <h2>条件规则</h2>
-              <span>{rules.length}</span>
-            </div>
-            <div className="strategy-action-row">
-              <Button type="primary" value="新增条件规则" onClick={openNewRuleDialog} />
-            </div>
-          </section>
-
           <section className="surface strategy-table-panel">
             <div className="section-heading">
               <h2>条件规则</h2>
               <span>{rules.length}</span>
+              <Button type="primary" value="新增条件规则" onClick={openNewRuleDialog} />
             </div>
             <TableControl
               columns={[
@@ -838,6 +830,7 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
           />
         </>
       )}
+      </div>
     </section>
   )
 }

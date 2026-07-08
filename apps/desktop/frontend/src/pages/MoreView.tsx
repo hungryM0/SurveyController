@@ -31,7 +31,8 @@ interface MoreViewProps {
   version: string
   summary: IPUsageSummary | null
   aboutItems: PageMetric[]
-  donateItems: PageMetric[]
+  // ponytail: declared but never rendered in JSX; kept to avoid breaking callers
+  donateItems?: PageMetric[]
   ipUsageItems: PageMetric[]
   randomIpBonusPlayed?: boolean
   busy?: boolean
@@ -243,7 +244,7 @@ function MoreView({
               </div>
               <Button value={bonusBusy ? '领取中...' : '领取彩蛋奖励'} disabled={busy || bonusBusy || bonusPlayed} onClick={() => void claimBonus()} />
             </div>
-            <div className="ip-usage-chart-card">
+            <div className="surface ip-usage-chart-card">
               <div className="ip-usage-chart-head">
                 <div>
                   <strong>每日提取 IP 数</strong>

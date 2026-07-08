@@ -1,6 +1,7 @@
 import { type ChangeEvent, type ClipboardEvent, type DragEvent, type ReactElement, useState } from 'react'
 import {
   Activity,
+  CreditCard,
   Download,
   Globe,
   Pause,
@@ -23,6 +24,7 @@ interface DashboardViewProps {
   dashboard: DashboardState
   logs: string[]
   busy?: boolean
+  runPhase?: 'idle' | 'running' | 'paused' | 'canceling'
   onUpdateUrl: (value: string) => void
   onAutoConfig: () => void
   onLoadQRCode: () => void
@@ -67,6 +69,7 @@ function DashboardView({
   dashboard,
   logs,
   busy = false,
+  runPhase = 'idle',
   onUpdateUrl,
   onAutoConfig,
   onLoadQRCode,
@@ -140,6 +143,7 @@ function DashboardView({
   return (
     <section className="page dashboard-page">
       <div className="dashboard-scroll dashboard-shell">
+        {/* command section: 2-col grid — command-main (url+meta) | command-actions (扫码/导入/导出) */}
         <section
           className={`surface dashboard-command ${qrDropActive ? 'qr-drop-active' : ''}`}
           onPaste={handlePaste}
@@ -148,7 +152,7 @@ function DashboardView({
           onDrop={handleDrop}
         >
           <div className="command-main">
-            <div className="command-row">
+            <div className="command-url-area">
               <div className="url-input-wrapper">
                 <InputText
                   value={dashboard.surveyUrl}
@@ -165,13 +169,6 @@ function DashboardView({
                 disabled={busy || !dashboard.surveyUrl}
                 isLoading={busy}
                 onClick={onAutoConfig}
-              />
-              <Button
-                type="primary"
-                value="开始执行"
-                icon={<Play size={16} />}
-                disabled={busy || !dashboard.surveyUrl}
-                onClick={onRun}
               />
             </div>
             <div className="command-meta">
@@ -269,7 +266,7 @@ function DashboardView({
 
               <div className="control-item quota-control-item">
                 <div className="item-label-group">
-                  <Globe size={15} />
+                  <CreditCard size={15} />
                   <span>IP 额度</span>
                 </div>
                 <div className="quota-inline-area">
@@ -284,31 +281,41 @@ function DashboardView({
                 </div>
               </div>
 
-              <div className="proxy-card-row">
-                <InputText
-                  value={proxyCardCode}
-                  placeholder="额度卡密"
-                  clearButton
-                  width="100%"
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => setProxyCardCode(event.target.value)}
-                  onClearButtonClick={() => setProxyCardCode('')}
-                />
-                <Button
-                  value="兑换"
-                  icon={<Save size={14} />}
-                  disabled={busy || !proxyCardCode.trim()}
-                  onClick={() => onRedeemProxyCard(proxyCardCode)}
-                />
+              {/* proxy-card-row as a proper control-item with label */}
+              <div className="control-item proxy-card-row">
+                <div className="item-label-group">
+                  <Save size={15} />
+                  <span>兑换卡密</span>
+                </div>
+                <div className="proxy-card-input-area">
+                  <InputText
+                    value={proxyCardCode}
+                    placeholder="额度卡密"
+                    clearButton
+                    width="100%"
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setProxyCardCode(event.target.value)}
+                    onClearButtonClick={() => setProxyCardCode('')}
+                  />
+                  <Button
+                    value="兑换"
+                    icon={<Save size={14} />}
+                    disabled={busy || !proxyCardCode.trim()}
+                    onClick={() => onRedeemProxyCard(proxyCardCode)}
+                  />
+                </div>
               </div>
 
-              <div className="control-note-list">
-                <div>
-                  <span>运行</span>
-                  <strong>{dashboard.runtimeHint}</strong>
-                </div>
-                <div>
-                  <span>代理</span>
-                  <strong>{dashboard.proxyHint}</strong>
+              {/* control-note-list wrapped as a distinct info block */}
+              <div className="surface-soft control-note-block">
+                <div className="control-note-list">
+                  <div>
+                    <span>运行</span>
+                    <strong>{dashboard.runtimeHint}</strong>
+                  </div>
+                  <div>
+                    <span>代理</span>
+                    <strong>{dashboard.proxyHint}</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -376,6 +383,12 @@ function DashboardView({
 
         <section className="surface terminal-logs-card dashboard-log-strip">
           <div className="terminal-header">
+            {/* macOS-style window chrome dots */}
+            <div className="dots-group">
+              <span className="dot red" />
+              <span className="dot yellow" />
+              <span className="dot green" />
+            </div>
             <div className="terminal-title">
               <Terminal size={14} />
               <span>运行日志</span>
@@ -408,7 +421,7 @@ function DashboardView({
             <strong className="status-desc">{dashboard.statusText}</strong>
           </div>
         </div>
-        
+
         <div className="footer-progress-wrapper">
           <div className="progress-label-bar">
             <span>总体进度</span>
@@ -418,30 +431,55 @@ function DashboardView({
         </div>
 
         <div className="footer-actions-group">
-          <Button
-            value="开始执行"
-            icon={<Play size={16} />}
-            disabled={busy || !dashboard.surveyUrl}
-            onClick={onRun}
-          />
-          <Button
-            value="暂停"
-            icon={<Pause size={14} />}
-            disabled={!busy}
-            onClick={onPauseRun}
-          />
-          <Button
-            value="恢复"
-            icon={<Play size={14} />}
-            disabled={!busy}
-            onClick={onResumeRun}
-          />
-          <Button
-            value="停止"
-            icon={<Square size={14} />}
-            disabled={!busy}
-            onClick={onCancelRun}
-          />
+          {runPhase === 'idle' && (
+            <Button
+              value="开始执行"
+              type="primary"
+              icon={<Play size={16} />}
+              disabled={busy || !dashboard.surveyUrl}
+              onClick={onRun}
+            />
+          )}
+          {runPhase === 'running' && (
+            <>
+              <Button
+                value="暂停"
+                icon={<Pause size={14} />}
+                disabled={busy}
+                onClick={onPauseRun}
+              />
+              <Button
+                value="停止"
+                icon={<Square size={14} />}
+                disabled={busy}
+                onClick={onCancelRun}
+              />
+            </>
+          )}
+          {runPhase === 'paused' && (
+            <>
+              <Button
+                value="恢复"
+                type="primary"
+                icon={<Play size={14} />}
+                disabled={busy}
+                onClick={onResumeRun}
+              />
+              <Button
+                value="停止"
+                icon={<Square size={14} />}
+                disabled={busy}
+                onClick={onCancelRun}
+              />
+            </>
+          )}
+          {runPhase === 'canceling' && (
+            <Button
+              value="停止中..."
+              icon={<Square size={14} />}
+              disabled
+            />
+          )}
         </div>
       </footer>
     </section>
@@ -478,4 +516,3 @@ export function isSupportedQRImage(file: File): boolean {
 function buildThreadProgressRows(rows: DashboardState['sessionRows']): string[][] {
   return rows.map((row) => [row.thread, row.status, `${row.progress}%`])
 }
-

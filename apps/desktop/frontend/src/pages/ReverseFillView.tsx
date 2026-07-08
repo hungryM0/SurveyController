@@ -1,4 +1,4 @@
-import { Eye, FolderOpen } from 'lucide-react'
+import { Eye, FileSpreadsheet, FolderOpen } from 'lucide-react'
 import { Button } from 'react-windows-ui'
 import type { ReverseFillRow } from '../types'
 
@@ -21,9 +21,10 @@ function ReverseFillView({
 
   return (
     <section className="page scroll-page">
-      <div className="content-stack">
+      <div className="content-stack reverse-fill-stack">
         <section className="surface info-panel reverse-fill-panel">
           <div className="section-heading">
+            <FileSpreadsheet size={18} />
             <h2>反填</h2>
             <span>{reverseFill.length}</span>
           </div>
@@ -33,11 +34,11 @@ function ReverseFillView({
           <div className="toolbar-row">
             <Button value="选择 Excel" icon={<FolderOpen size={15} />} disabled={busy} onClick={onChooseReverseFill} />
             <Button value="预览反填" icon={<Eye size={15} />} disabled={busy || !reverseFillPath} onClick={onPreviewReverseFill} />
-            <span>{reverseFillPath || '未选择文件'}</span>
+            <span className="filepath-badge">{reverseFillPath || '未选择文件'}</span>
           </div>
 
           <div className="metric-grid reverse-metrics">
-            <div className="metric-tile">
+            <div className="metric-tile tone-success">
               <span>已匹配</span>
               <strong>{matchedCount}</strong>
             </div>
@@ -49,13 +50,18 @@ function ReverseFillView({
 
           <div className="reverse-list">
             {reverseFill.length ? reverseFill.map((row) => (
-              <div key={`${row.question}-${row.column}`}>
+              <div key={`${row.question}-${row.column}`} className="reverse-row">
                 <span>{row.question}</span>
                 <small>{row.column}</small>
-                <strong>{row.state}</strong>
+                <span className={`reverse-row-state ${row.state.startsWith('已匹配') ? 'match' : 'pending'}`}>
+                  {row.state}
+                </span>
               </div>
             )) : (
-              <div className="reverse-empty">还没有预览结果。</div>
+              <div className="empty-state">
+                <FileSpreadsheet size={32} />
+                <span>还没有预览结果</span>
+              </div>
             )}
           </div>
         </section>

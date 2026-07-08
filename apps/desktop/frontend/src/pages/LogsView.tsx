@@ -1,4 +1,4 @@
-import { Clipboard, Save } from 'lucide-react'
+import { Clipboard, Save, Terminal } from 'lucide-react'
 import { Browser, Clipboard as RuntimeClipboard, Dialogs } from '@wailsio/runtime'
 import { Button } from 'react-windows-ui'
 
@@ -35,21 +35,33 @@ function LogsView({ logs, busy = false, onExport }: LogsViewProps) {
   }
 
   return (
-    <section className="page scroll-page">
-      <section className="surface log-panel">
+    <section className="page logs-page">
+      <div className="logs-header">
         <div className="section-heading">
           <h2>日志</h2>
           <span>{logs.length}</span>
         </div>
-        <div className="toolbar-row log-toolbar">
+        <div className="surface logs-toolbar-card">
           <Button value="复制全部" icon={<Clipboard size={15} />} disabled={busy || !logs.length} onClick={() => void copyAll()} />
           <Button value="导出日志" icon={<Save size={15} />} disabled={busy || !logs.length} onClick={() => void exportLogs()} />
           <Button value="报错反馈" disabled={busy} onClick={() => void openFeedbackPage()} />
         </div>
-        <div className="log-lines">
-          {logs.map((line, index) => <code key={`${index}-${line}`}>{line}</code>)}
-        </div>
-      </section>
+      </div>
+      <div className="logs-terminal-body">
+        {logs.length === 0 ? (
+          <div className="logs-empty-state">
+            <Terminal size={24} />
+            <p>暂无运行日志</p>
+          </div>
+        ) : (
+          logs.map((line, index) => (
+            <div className="terminal-line" key={`${index}-${line}`}>
+              <span className="line-number">{index + 1}</span>
+              <span className="line-content">{line}</span>
+            </div>
+          ))
+        )}
+      </div>
     </section>
   )
 }

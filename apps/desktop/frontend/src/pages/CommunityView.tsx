@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, MessageCircle, PenLine, ShieldCheck } from 'lucide-react'
+import { BookOpen, ExternalLink, MessageCircle, PenLine, QrCode, ShieldCheck } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
 import { Button } from 'react-windows-ui'
 import ContactDialog from '../components/ContactDialog'
@@ -26,6 +26,12 @@ function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
   const [sending, setSending] = useState(false)
   const [notice, setNotice] = useState('')
   const [contactStatus, setContactStatus] = useState<ContactStatus | null>(null)
+
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(() => setNotice(''), 3000)
+    return () => clearTimeout(t)
+  }, [notice])
 
   useEffect(() => {
     if (!contactOpen) {
@@ -72,9 +78,15 @@ function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
           <div className="community-hero-copy">
             <span className="eyebrow">社区</span>
             <h2>QQ 群、反馈、贡献、许可</h2>
-            <p>扫码进群，提问题，提建议，提代码。</p>
+            <p className="community-hero-desc">扫码进群，提问题，提建议，提代码。</p>
           </div>
-          <img className="community-hero-qr" src="/community_qr.png" alt="QQ 群二维码" />
+          <div className="qr-image-wrapper">
+            {qrUrl ? (
+              <img className="community-hero-qr" src="/community_qr.png" alt="QQ 群二维码" />
+            ) : (
+              <div className="qr-placeholder"><QrCode size={48} /></div>
+            )}
+          </div>
         </section>
         {notice ? <div className="status-banner status-banner-info">{notice}</div> : null}
 
@@ -126,7 +138,7 @@ function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
 
           <article className="surface community-card">
             <div className="community-card-head">
-              <ShieldCheck size={18} />
+              <BookOpen size={18} />
               <strong>开源许可</strong>
             </div>
             <p>GPL-3.0。改了再发，就得把源码一并给出去。</p>
