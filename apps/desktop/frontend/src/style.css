@@ -3534,9 +3534,9 @@ select {
 }
 
 .platform-badges .badge.wjx {
-  background: rgba(0, 103, 192, 0.08);
-  color: var(--accent);
-  border-color: rgba(0, 103, 192, 0.2);
+  background: rgba(209, 138, 0, 0.1);
+  color: #d18a00;
+  border-color: rgba(209, 138, 0, 0.24);
 }
 
 .platform-badges .badge.tencent {
@@ -3546,9 +3546,9 @@ select {
 }
 
 .platform-badges .badge.credamo {
-  background: rgba(157, 93, 0, 0.08);
-  color: var(--warn);
-  border-color: rgba(157, 93, 0, 0.2);
+  background: rgba(0, 103, 192, 0.08);
+  color: var(--accent);
+  border-color: rgba(0, 103, 192, 0.2);
 }
 
 /* Full Width Table Layout (when no concurrent threads active) */
@@ -5094,5 +5094,223 @@ select {
   .dashboard-work-grid .control-panel,
   .thread-table-panel {
     min-height: 24rem;
+  }
+}
+
+/* ===== Dashboard proxy side tools ===== */
+.dashboard-work-grid {
+  grid-template-columns: minmax(28rem, 1.05fr) minmax(24rem, 0.95fr);
+  grid-template-areas: "settings side";
+  align-items: stretch;
+}
+
+.dashboard-work-grid .control-panel {
+  grid-area: settings;
+}
+
+.dashboard-side-stack {
+  display: grid;
+  grid-area: side;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.quota-side-panel {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 8.5rem;
+  padding: 0.85rem;
+}
+
+.quota-panel-head {
+  min-height: 2rem;
+  padding-bottom: 0.45rem;
+}
+
+.quota-panel-head .ui-btn {
+  flex-shrink: 0;
+}
+
+.quota-readout {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.quota-readout strong {
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quota-readout span {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.quota-side-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.quota-page-head {
+  justify-content: flex-start;
+  gap: 0.6rem;
+}
+
+.quota-page-head strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.quota-redeem-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.quota-redeem-form .ui-input-container,
+.quota-redeem-form .ui-input-text {
+  width: 100% !important;
+  min-width: 0;
+}
+
+.dashboard-side-stack .thread-table-panel {
+  min-height: 0;
+}
+
+@media (max-width: 980px) {
+  .dashboard-work-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "settings"
+      "side";
+  }
+}
+
+@media (max-width: 720px) {
+  .quota-redeem-form {
+    grid-template-columns: 1fr;
+  }
+
+  .quota-side-actions,
+  .quota-redeem-form .ui-btn {
+    justify-self: stretch;
+  }
+}
+
+/* ===== Dashboard command bento layout ===== */
+.dashboard-command {
+  grid-template-columns: minmax(7rem, auto) minmax(0, 1fr) auto;
+  grid-template-areas:
+    "scan main files"
+    "scan main files";
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.command-scan-area {
+  display: grid;
+  grid-area: scan;
+  align-content: space-between;
+  gap: 0.5rem;
+}
+
+.command-scan-area .ui-btn,
+.command-actions .ui-btn {
+  min-width: 5.9rem;
+}
+
+.command-main {
+  grid-area: main;
+  align-content: start;
+}
+
+.command-url-area {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.command-actions {
+  display: flex;
+  grid-area: files;
+  align-items: start;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.command-platform-badges {
+  min-height: 1.6rem;
+  align-items: center;
+}
+
+.command-platform-badges .badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: none;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1;
+  padding: 0.22rem 0.5rem;
+  white-space: nowrap;
+}
+
+.command-platform-badges .badge::before {
+  content: none !important;
+  margin: 0;
+}
+
+.command-platform-badges .badge.wjx {
+  background: rgba(209, 138, 0, 0.1);
+  border-color: rgba(209, 138, 0, 0.24);
+  color: #d18a00;
+}
+
+.command-platform-badges .badge.tencent {
+  background: rgba(15, 123, 15, 0.1);
+  border-color: rgba(15, 123, 15, 0.24);
+  color: var(--success);
+}
+
+.command-platform-badges .badge.credamo {
+  background: rgba(0, 103, 192, 0.1);
+  border-color: rgba(0, 103, 192, 0.24);
+  color: var(--accent);
+}
+
+@media (max-width: 980px) {
+  .dashboard-command {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main files"
+      "scan scan";
+  }
+
+  .command-scan-area {
+    grid-template-columns: repeat(2, minmax(0, auto));
+    align-content: start;
+    justify-content: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-command {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "main"
+      "scan"
+      "files";
+  }
+
+  .command-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
