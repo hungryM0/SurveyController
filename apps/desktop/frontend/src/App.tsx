@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { AppTheme, LoaderBusy } from 'react-windows-ui'
-import { Browser, Dialogs, Events, Window } from '@wailsio/runtime'
+import { Browser, Dialogs, Window } from '@wailsio/runtime'
 import NavRail from './components/NavRail'
 import StartupTutorialHint, {
   STARTUP_TUTORIAL_HINT_DELAY_MS,
@@ -436,10 +436,6 @@ function App() {
     await Window.Close()
   }
 
-  async function confirmAndCloseWindow() {
-    await closeWindow()
-  }
-
   async function exportLogs(path: string, lines: string[]) {
     await withBusy(async () => {
       await exportLogLines(path, lines)
@@ -623,13 +619,6 @@ function App() {
   useEffect(() => {
     previousPage.current = currentPage
   }, [currentPage])
-
-  useEffect(() => {
-    const off = Events.On('surveycontroller:confirm-close', () => {
-      void confirmAndCloseWindow()
-    })
-    return off
-  }, [])
 
   if (loading) {
     return (

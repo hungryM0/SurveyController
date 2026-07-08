@@ -50,7 +50,6 @@ func main() {
 		if !service.ShouldConfirmClose() {
 			return
 		}
-		app.Event.Emit("surveycontroller:confirm-close", nil)
 		event.Cancel()
 	})
 	window.Center()
