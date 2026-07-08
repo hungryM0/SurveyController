@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyConfigToShell, normalizeRuntimeConfig } from '../services/stateMapper'
 import { emptyShellState } from '../services/shellFixture'
 import type { AppSettings } from '../types'
-import { firstSupportedQRImageFile, getRecentLogLines, isSupportedQRImage } from './DashboardView'
+import { firstSupportedQRImageFile, isSupportedQRImage } from './DashboardView'
 
 const settings: AppSettings = {
   configDirectory: 'D:/configs',
@@ -14,11 +14,7 @@ const settings: AppSettings = {
   autosaveLogCount: 5,
 }
 
-describe('DashboardView logs', () => {
-  it('keeps only the most recent lines', () => {
-    expect(getRecentLogLines(['1', '2', '3', '4', '5', '6'], 5)).toEqual(['2', '3', '4', '5', '6'])
-  })
-
+describe('DashboardView', () => {
   it('keeps question and session data on the dashboard model', () => {
     const shell = applyConfigToShell(
       emptyShellState,

@@ -4814,33 +4814,6 @@ select {
   min-height: 0;
 }
 
-.dashboard-log-strip {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  min-height: 3.15rem;
-  overflow: hidden;
-}
-
-.dashboard-log-strip .terminal-header {
-  min-height: 0;
-  border-right: 1px solid var(--line);
-  border-bottom: 0;
-  padding: 0.55rem 0.75rem;
-}
-
-.dashboard-log-strip .terminal-body {
-  min-height: 0;
-  max-height: 4.5rem;
-  justify-content: center;
-  padding: 0.45rem 0.75rem;
-  background: transparent;
-}
-
-.dashboard-log-strip .terminal-line,
-.dashboard-log-strip .terminal-cursor-line {
-  margin-bottom: 0.05rem;
-}
-
 .run-footer-modern {
   grid-template-columns: minmax(10rem, 0.32fr) minmax(12rem, 1fr) auto;
   min-height: 3.25rem;
@@ -4873,14 +4846,6 @@ select {
     min-height: auto;
   }
 
-  .dashboard-log-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-log-strip .terminal-header {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
 }
 
 @media (max-width: 720px) {
@@ -5129,9 +5094,5 @@ select {
   .dashboard-work-grid .control-panel,
   .thread-table-panel {
     min-height: 24rem;
-  }
-
-  .dashboard-log-strip .terminal-body {
-    max-height: 3.5rem;
   }
 }

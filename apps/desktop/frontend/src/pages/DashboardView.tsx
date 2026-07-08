@@ -13,7 +13,6 @@ import {
   SlidersHorizontal,
   Square,
   Target,
-  Terminal,
   Upload,
   Zap,
 } from 'lucide-react'
@@ -22,7 +21,6 @@ import type { DashboardState } from '../types'
 
 interface DashboardViewProps {
   dashboard: DashboardState
-  logs: string[]
   busy?: boolean
   runPhase?: 'idle' | 'running' | 'paused' | 'canceling'
   onUpdateUrl: (value: string) => void
@@ -67,7 +65,6 @@ const SliderControl = SliderBar as unknown as (props: {
 
 function DashboardView({
   dashboard,
-  logs,
   busy = false,
   runPhase = 'idle',
   onUpdateUrl,
@@ -97,7 +94,6 @@ function DashboardView({
     row.strategy || '-',
   ])
   const sessionRows = buildThreadProgressRows(dashboard.sessionRows)
-  const recentLogs = getRecentLogLines(logs, 3)
   const [qrDropActive, setQrDropActive] = useState(false)
   const normalizedThreads = Math.max(1, Math.min(dashboard.threadCount, 32))
 
@@ -381,34 +377,6 @@ function DashboardView({
           </section>
         </div>
 
-        <section className="surface terminal-logs-card dashboard-log-strip">
-          <div className="terminal-header">
-            {/* macOS-style window chrome dots */}
-            <div className="dots-group">
-              <span className="dot red" />
-              <span className="dot yellow" />
-              <span className="dot green" />
-            </div>
-            <div className="terminal-title">
-              <Terminal size={14} />
-              <span>运行日志</span>
-            </div>
-          </div>
-          <div className="terminal-body">
-            {recentLogs.length ? (
-              recentLogs.map((line, index) => (
-                <div key={`${index}-${line}`} className="terminal-line">
-                  <span className="line-number">{index + 1}</span>
-                  <span className="line-content">{line}</span>
-                </div>
-              ))
-            ) : (
-              <div className="terminal-cursor-line">
-                <span className="line-content">暂无日志</span>
-              </div>
-            )}
-          </div>
-        </section>
       </div>
 
       <footer className="run-footer-modern">
@@ -487,13 +455,6 @@ function DashboardView({
 }
 
 export default DashboardView
-
-export function getRecentLogLines(logs: string[], limit = 5): string[] {
-  if (!Array.isArray(logs) || limit <= 0) {
-    return []
-  }
-  return logs.slice(Math.max(0, logs.length - limit))
-}
 
 export function firstSupportedQRImageFile(files?: FileList | File[] | null): File | null {
   if (!files?.length) {

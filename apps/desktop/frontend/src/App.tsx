@@ -678,7 +678,6 @@ function App() {
             {currentPage === 'dashboard' ? (
               <DashboardView
                 dashboard={shell.dashboard}
-                logs={shell.logLines}
                 busy={runBusy}
                 runPhase={runPhase}
                 onUpdateUrl={updateURL}
