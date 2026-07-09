@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { AppTheme, LoaderBusy } from 'react-windows-ui'
 import { Browser, Dialogs, Window } from '@wailsio/runtime'
@@ -8,14 +8,6 @@ import StartupTutorialHint, {
   shouldScheduleStartupTutorialHint,
 } from './components/StartupTutorialHint'
 import WindowControls from './components/WindowControls'
-import DashboardView from './pages/DashboardView'
-import CommunityView from './pages/CommunityView'
-import InfoView from './pages/InfoView'
-import LogsView from './pages/LogsView'
-import MoreView from './pages/MoreView'
-import ReverseFillView from './pages/ReverseFillView'
-import RuntimeView from './pages/RuntimeView'
-import StrategyView from './pages/StrategyView'
 import {
   buildDefaultConfig,
   cancelRuntimeConfig,
@@ -58,6 +50,15 @@ import {
 } from './services/desktopSettings'
 import type { IPUsageSummary, ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
 import type { StartupTutorialHintState } from './types'
+
+const DashboardView = lazy(() => import('./pages/DashboardView'))
+const RuntimeView = lazy(() => import('./pages/RuntimeView'))
+const StrategyView = lazy(() => import('./pages/StrategyView'))
+const ReverseFillView = lazy(() => import('./pages/ReverseFillView'))
+const LogsView = lazy(() => import('./pages/LogsView'))
+const CommunityView = lazy(() => import('./pages/CommunityView'))
+const InfoView = lazy(() => import('./pages/InfoView'))
+const MoreView = lazy(() => import('./pages/MoreView'))
 
 function App() {
   useEffect(() => {
@@ -662,74 +663,76 @@ function App() {
             {notice ? <div className="status-banner status-banner-info">{notice}</div> : null}
           </div>
 
-          <div key={currentPage} className={`page-transition ${pageMotion}`}>
-            {currentPage === 'dashboard' ? (
-              <DashboardView
-                dashboard={shell.dashboard}
-                busy={runBusy}
-                runPhase={runPhase}
-                onUpdateUrl={updateURL}
-                onAutoConfig={autoConfig}
-                onLoadQRCode={loadQRCodeFromDialog}
-                onDecodeQRCodeImage={(file) => void decodeQRCodeFromImageFile(file)}
-                onLoadConfig={loadConfigFromDialog}
-                onSaveConfig={saveConfigToDialog}
-                onOpenRuntime={() => setCurrentPage('runtime')}
-                onTargetChange={(value) => updateConfigField('target', String(value))}
-                onThreadsChange={(value) => updateConfigField('threads', String(value))}
-                onRandomIpChange={(value) => updateConfigField('random-ip', value)}
-                onProxySourceChange={(value) => updateConfigField('proxy-source', value)}
-                onSyncProxyStatus={syncRandomIpQuota}
-                onRedeemProxyCard={(cardCode) => void redeemRandomIpQuota(cardCode)}
-                onRun={runSurvey}
-                onCancelRun={cancelRun}
-                onPauseRun={pauseRun}
-                onResumeRun={resumeRun}
-              />
-            ) : null}
-            {currentPage === 'runtime' ? (
-              <RuntimeView groups={shell.runtimeGroups} config={currentConfig} onFieldChange={updateConfigField} />
-            ) : null}
-            {currentPage === 'strategy' ? (
-              currentConfig ? <StrategyView config={currentConfig} onConfigChange={setConfig} /> : null
-            ) : null}
-            {currentPage === 'reverse-fill' ? (
-              <ReverseFillView
-                reverseFill={shell.reverseFillPlan}
-                reverseFillPath={config?.reverse_fill_source_path}
-                busy={busy}
-                onChooseReverseFill={chooseReverseFillFile}
-                onPreviewReverseFill={previewReverseFillFile}
-              />
-            ) : null}
-            {currentPage === 'logs' ? <LogsView logs={shell.logLines} busy={busy} onExport={exportLogs} /> : null}
-            {currentPage === 'community' ? <CommunityView config={currentConfig} logLines={shell.logLines} /> : null}
-            {currentPage === 'settings' ? (
-              <InfoView
-                title="设置"
-                settings={shell.settingsGroups}
-                busy={busy}
-                onSettingChange={updateSettingsField}
-                onSaveSettings={saveAppSettings}
-                onChooseConfigDirectory={chooseConfigDirectory}
-                onResetSettings={resetAppSettings}
-              />
-            ) : null}
-            {currentPage === 'more' ? (
-              <MoreView
-                version={shell.appVersion}
-                summary={ipUsageSummary}
-                aboutItems={shell.aboutItems}
-                donateItems={shell.donateItems}
-                ipUsageItems={shell.ipUsageItems}
-                randomIpBonusPlayed={randomIpBonusPlayed}
-                busy={busy}
-                autoCheckUpdate={settingsRef.current?.autoCheckUpdate ?? true}
-                onRefreshSummary={() => void refreshRandomIpSummary()}
-                onRandomIpBonusPlayed={(played) => void markRandomIpBonusPlayed(played)}
-              />
-            ) : null}
-          </div>
+          <Suspense fallback={<PageLoadFallback />}>
+            <div key={currentPage} className={`page-transition ${pageMotion}`}>
+              {currentPage === 'dashboard' ? (
+                <DashboardView
+                  dashboard={shell.dashboard}
+                  busy={runBusy}
+                  runPhase={runPhase}
+                  onUpdateUrl={updateURL}
+                  onAutoConfig={autoConfig}
+                  onLoadQRCode={loadQRCodeFromDialog}
+                  onDecodeQRCodeImage={(file) => void decodeQRCodeFromImageFile(file)}
+                  onLoadConfig={loadConfigFromDialog}
+                  onSaveConfig={saveConfigToDialog}
+                  onOpenRuntime={() => setCurrentPage('runtime')}
+                  onTargetChange={(value) => updateConfigField('target', String(value))}
+                  onThreadsChange={(value) => updateConfigField('threads', String(value))}
+                  onRandomIpChange={(value) => updateConfigField('random-ip', value)}
+                  onProxySourceChange={(value) => updateConfigField('proxy-source', value)}
+                  onSyncProxyStatus={syncRandomIpQuota}
+                  onRedeemProxyCard={(cardCode) => void redeemRandomIpQuota(cardCode)}
+                  onRun={runSurvey}
+                  onCancelRun={cancelRun}
+                  onPauseRun={pauseRun}
+                  onResumeRun={resumeRun}
+                />
+              ) : null}
+              {currentPage === 'runtime' ? (
+                <RuntimeView groups={shell.runtimeGroups} config={currentConfig} onFieldChange={updateConfigField} />
+              ) : null}
+              {currentPage === 'strategy' ? (
+                currentConfig ? <StrategyView config={currentConfig} onConfigChange={setConfig} /> : null
+              ) : null}
+              {currentPage === 'reverse-fill' ? (
+                <ReverseFillView
+                  reverseFill={shell.reverseFillPlan}
+                  reverseFillPath={config?.reverse_fill_source_path}
+                  busy={busy}
+                  onChooseReverseFill={chooseReverseFillFile}
+                  onPreviewReverseFill={previewReverseFillFile}
+                />
+              ) : null}
+              {currentPage === 'logs' ? <LogsView logs={shell.logLines} busy={busy} onExport={exportLogs} /> : null}
+              {currentPage === 'community' ? <CommunityView config={currentConfig} logLines={shell.logLines} /> : null}
+              {currentPage === 'settings' ? (
+                <InfoView
+                  title="设置"
+                  settings={shell.settingsGroups}
+                  busy={busy}
+                  onSettingChange={updateSettingsField}
+                  onSaveSettings={saveAppSettings}
+                  onChooseConfigDirectory={chooseConfigDirectory}
+                  onResetSettings={resetAppSettings}
+                />
+              ) : null}
+              {currentPage === 'more' ? (
+                <MoreView
+                  version={shell.appVersion}
+                  summary={ipUsageSummary}
+                  aboutItems={shell.aboutItems}
+                  donateItems={shell.donateItems}
+                  ipUsageItems={shell.ipUsageItems}
+                  randomIpBonusPlayed={randomIpBonusPlayed}
+                  busy={busy}
+                  autoCheckUpdate={settingsRef.current?.autoCheckUpdate ?? true}
+                  onRefreshSummary={() => void refreshRandomIpSummary()}
+                  onRandomIpBonusPlayed={(played) => void markRandomIpBonusPlayed(played)}
+                />
+              ) : null}
+            </div>
+          </Suspense>
         </main>
       </div>
       {startupTutorialVisible ? (
@@ -743,6 +746,14 @@ function App() {
 }
 
 export default App
+
+function PageLoadFallback() {
+  return (
+    <div className="page-loading">
+      <LoaderBusy isLoading />
+    </div>
+  )
+}
 
 function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

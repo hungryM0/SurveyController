@@ -388,6 +388,12 @@ select {
   place-items: center;
 }
 
+.page-loading {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+}
+
 .error-panel {
   display: flex;
   max-width: 28rem;

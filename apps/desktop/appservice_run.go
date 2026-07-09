@@ -9,6 +9,8 @@ import (
 	"surveycontroller/surveycore"
 )
 
+const maxRunTaskStateEvents = 200
+
 func (s *AppService) StartRun(ctx context.Context, request RunSurveyRequest) (RunTaskState, error) {
 	s.runMu.Lock()
 	if s.run.Running {
@@ -159,7 +161,11 @@ func (s *AppService) reportSubmissionResult(ctx context.Context, cfg surveycore.
 
 func (s *AppService) cloneRunStateLocked() RunTaskState {
 	state := s.run
-	state.Events = append([]surveycore.Event(nil), s.run.Events...)
+	events := s.run.Events
+	if len(events) > maxRunTaskStateEvents {
+		events = events[len(events)-maxRunTaskStateEvents:]
+	}
+	state.Events = append([]surveycore.Event(nil), events...)
 	if s.run.Config != nil {
 		cfg := *s.run.Config
 		state.Config = &cfg

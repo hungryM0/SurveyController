@@ -12,20 +12,19 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@wailsio/runtime": "latest",
-    "core-js": "latest",
-    "lucide-react": "latest",
+    "@wailsio/runtime": "3.0.0-alpha.79",
+    "core-js": "3.49.0",
+    "lucide-react": "1.21.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-router-dom": "6.30.4",
     "react-windows-ui": "4.2.4"
   },
   "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "@vitejs/plugin-react": "latest",
-    "typescript": "latest",
-    "vite": "latest",
-    "vitest": "^4.1.9"
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "6.0.3",
+    "typescript": "5.9.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.9"
   }
 }

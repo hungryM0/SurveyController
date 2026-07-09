@@ -488,6 +488,23 @@ func TestAppServiceStartRunStoresTaskState(t *testing.T) {
 	}
 }
 
+func TestAppServiceRunStateCapsEventsSnapshot(t *testing.T) {
+	service := NewAppService()
+	service.runMu.Lock()
+	for i := 0; i < maxRunTaskStateEvents+5; i++ {
+		service.run.Events = append(service.run.Events, surveycore.Event{Current: i + 1})
+	}
+	service.runMu.Unlock()
+
+	state := service.GetRunTaskState()
+	if len(state.Events) != maxRunTaskStateEvents {
+		t.Fatalf("events len = %d", len(state.Events))
+	}
+	if state.Events[0].Current != 6 || state.Events[len(state.Events)-1].Current != maxRunTaskStateEvents+5 {
+		t.Fatalf("events window = first %d last %d", state.Events[0].Current, state.Events[len(state.Events)-1].Current)
+	}
+}
+
 func TestAppServiceStartRunBlocksSleepWhenEnabled(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
 	server := newAppCredamoRunServer(t)
