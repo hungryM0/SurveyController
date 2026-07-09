@@ -705,7 +705,7 @@ function App() {
                 />
               ) : null}
               {currentPage === 'logs' ? <LogsView logs={shell.logLines} busy={busy} onExport={exportLogs} /> : null}
-              {currentPage === 'community' ? <CommunityView config={currentConfig} logLines={shell.logLines} /> : null}
+              {currentPage === 'community' ? <CommunityView /> : null}
               {currentPage === 'settings' ? (
                 <InfoView
                   title="设置"

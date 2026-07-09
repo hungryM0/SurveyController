@@ -7,11 +7,6 @@ vi.mock('@wailsio/runtime', () => ({
   Browser: { OpenURL: vi.fn() },
 }))
 
-vi.mock('../services/shell', () => ({
-  loadContactStatus: vi.fn(),
-  submitContactMessage: vi.fn(),
-}))
-
 describe('CommunityView assets', () => {
   it('keeps community QR asset name stable', () => {
     const url = new URL('/community_qr.png', 'https://example.com/')
@@ -23,8 +18,8 @@ describe('CommunityView assets', () => {
     expect(resolveCommunityQrUrl('https://example.com', 'file:')).toBe('')
   })
 
-  it('renders community page with config/log props', () => {
-    const html = renderToStaticMarkup(<CommunityView config={{ url: 'https://example.com/s/1' }} logLines={['[core] done']} />)
-    expect(html).toContain('联系开发者')
+  it('renders community page', () => {
+    const html = renderToStaticMarkup(<CommunityView />)
+    expect(html).toContain('问题反馈')
   })
 })

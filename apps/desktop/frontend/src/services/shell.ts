@@ -1,4 +1,4 @@
-import type { AIConnectionTestState, AppSettings, ContactRequest, ContactState, ContactStatus, CustomProxyAPITestState, IPUsageSummary, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, RandomIPBonusState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, StartupTutorialHintState, SurveyCoreState } from '../types'
+import type { AIConnectionTestState, AppSettings, CustomProxyAPITestState, IPUsageSummary, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, RandomIPBonusState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, StartupTutorialHintState, SurveyCoreState } from '../types'
 import {
   BuildDefaultConfig,
   CancelRun,
@@ -6,7 +6,6 @@ import {
   DecodeQRCode,
   DismissStartupTutorialHint,
   GetIPUsageSummary,
-  GetContactStatus,
   GetProxyAreaOptions,
   GetProxyStatus,
   GetRunTaskState,
@@ -25,7 +24,6 @@ import {
   SaveAppSettings,
   SaveConfig,
   StartRun,
-  SubmitContactMessage,
   SyncProxyStatus,
   TestAIConnection,
   TestCustomProxyAPI,
@@ -177,14 +175,6 @@ export async function testAIConnection(config: RuntimeConfig): Promise<AIConnect
   return await TestAIConnection({ config: config as any }) as AIConnectionTestState
 }
 
-export async function submitContactMessage(request: ContactRequest): Promise<ContactState> {
-  return await SubmitContactMessage(request as any) as ContactState
-}
-
-export async function loadContactStatus(): Promise<ContactStatus> {
-  return await GetContactStatus() as ContactStatus
-}
-
 function canUsePreviewState(): boolean {
   return import.meta.env.DEV && !hasNativeWailsBridge()
 }
@@ -274,7 +264,7 @@ function previewShellState(): ShellState {
     logLines: [],
     communityItems: [
       'QQ 群交流',
-      '联系开发者',
+      '问题反馈',
       '参与贡献',
       '开源许可',
     ],

@@ -1,11 +1,7 @@
-import { useEffect, useState } from 'react'
 import { BookOpen, ExternalLink, MessageCircle, PenLine, QrCode, ShieldCheck } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
 import { Button } from 'react-windows-ui'
-import ContactDialog from '../components/ContactDialog'
 import { buildCommunityIssueUrl, COMMUNITY_REPO_URL, resolveCommunityQrUrl } from './communityViewModel'
-import { loadContactStatus, submitContactMessage } from '../services/shell'
-import type { ContactRequest, ContactStatus, RuntimeConfig } from '../types'
 
 async function openUrl(url: string) {
   try {
@@ -15,61 +11,8 @@ async function openUrl(url: string) {
   }
 }
 
-interface CommunityViewProps {
-  config?: RuntimeConfig | null
-  logLines?: string[]
-}
-
-function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
+function CommunityView() {
   const qrUrl = typeof window === 'undefined' ? '' : resolveCommunityQrUrl(window.location.origin, window.location.protocol)
-  const [contactOpen, setContactOpen] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [notice, setNotice] = useState('')
-  const [contactStatus, setContactStatus] = useState<ContactStatus | null>(null)
-
-  useEffect(() => {
-    if (!notice) return
-    const t = setTimeout(() => setNotice(''), 3000)
-    return () => clearTimeout(t)
-  }, [notice])
-
-  useEffect(() => {
-    if (!contactOpen) {
-      return
-    }
-    let ignore = false
-    async function refreshStatus() {
-      try {
-        const status = await loadContactStatus()
-        if (!ignore) {
-          setContactStatus(status)
-        }
-      } catch {
-        if (!ignore) {
-          setContactStatus({ text: '未知：状态获取失败', color: '#666666' })
-        }
-      }
-    }
-    void refreshStatus()
-    const timer = window.setInterval(() => void refreshStatus(), 5000)
-    return () => {
-      ignore = true
-      window.clearInterval(timer)
-    }
-  }, [contactOpen])
-
-  async function sendContact(request: ContactRequest) {
-    setSending(true)
-    setNotice('')
-    try {
-      const state = await submitContactMessage(request)
-      setNotice(state.message || '消息已发送')
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err))
-    } finally {
-      setSending(false)
-    }
-  }
 
   return (
     <section className="page scroll-page">
@@ -88,7 +31,6 @@ function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
             )}
           </div>
         </section>
-        {notice ? <div className="status-banner status-banner-info">{notice}</div> : null}
 
         <section className="community-grid">
           <article className="surface community-card">
@@ -106,17 +48,17 @@ function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
           <article className="surface community-card">
             <div className="community-card-head">
               <PenLine size={18} />
-              <strong>联系开发者</strong>
+              <strong>问题反馈</strong>
             </div>
-            <p>要反馈、要建议、要报错，直接留消息。</p>
+            <p>问题、建议、报错，统一走 GitHub issue。</p>
             <div className="community-text-list">
               <span>GitHub Issues</span>
               <span>仓库讨论</span>
-              <span>日志反馈</span>
+              <span>问题跟踪</span>
             </div>
             <div className="community-actions">
               <Button value="打开仓库" icon={<ExternalLink size={14} />} onClick={() => void openUrl(COMMUNITY_REPO_URL)} />
-              <Button value="提交 issue" icon={<ExternalLink size={14} />} onClick={() => setContactOpen(true)} />
+              <Button value="提交 issue" icon={<ExternalLink size={14} />} onClick={() => void openUrl(buildCommunityIssueUrl(COMMUNITY_REPO_URL))} />
             </div>
           </article>
 
@@ -153,16 +95,6 @@ function CommunityView({ config = null, logLines = [] }: CommunityViewProps) {
           </article>
         </section>
       </div>
-      <ContactDialog
-        open={contactOpen}
-        onClose={() => setContactOpen(false)}
-        onOpenIssue={() => void openUrl(buildCommunityIssueUrl(COMMUNITY_REPO_URL))}
-        onSubmit={sendContact}
-        config={config}
-        logLines={logLines}
-        status={contactStatus}
-        busy={sending}
-      />
     </section>
   )
 }

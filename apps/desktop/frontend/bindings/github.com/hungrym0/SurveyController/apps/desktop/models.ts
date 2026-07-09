@@ -40,28 +40,6 @@ export interface ConfigFileState {
     "config"?: surveycore$0.RuntimeConfig | null;
 }
 
-export interface ContactRequest {
-    "messageType": string;
-    "issueTitle": string;
-    "email": string;
-    "message": string;
-    "attachments": string[] | null;
-    "autoAttachConfig": boolean;
-    "autoAttachLog": boolean;
-    "config"?: surveycore$0.RuntimeConfig | null;
-    "logLines"?: string[] | null;
-}
-
-export interface ContactState {
-    "sent": boolean;
-    "message": string;
-}
-
-export interface ContactStatus {
-    "text": string;
-    "color": string;
-}
-
 export interface CustomProxyAPITestState {
     "success": boolean;
     "message": string;

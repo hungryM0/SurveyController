@@ -44,7 +44,7 @@ function LogsView({ logs, busy = false, onExport }: LogsViewProps) {
         <div className="surface logs-toolbar-card">
           <Button value="复制全部" icon={<Clipboard size={15} />} disabled={busy || !logs.length} onClick={() => void copyAll()} />
           <Button value="导出日志" icon={<Save size={15} />} disabled={busy || !logs.length} onClick={() => void exportLogs()} />
-          <Button value="报错反馈" disabled={busy} onClick={() => void openFeedbackPage()} />
+          <Button value="提交 issue" disabled={busy} onClick={() => void openFeedbackPage()} />
         </div>
       </div>
       <div className="logs-terminal-body">

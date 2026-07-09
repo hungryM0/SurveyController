@@ -45,10 +45,6 @@ export function GetAppSettings(): $CancellablePromise<$models.AppSettings> {
     return $Call.ByID(120288048);
 }
 
-export function GetContactStatus(): $CancellablePromise<$models.ContactStatus> {
-    return $Call.ByID(4132353704);
-}
-
 export function GetIPUsageSummary(): $CancellablePromise<$models.IPUsageSummary> {
     return $Call.ByID(1693062290);
 }
@@ -123,10 +119,6 @@ export function ShouldConfirmClose(): $CancellablePromise<boolean> {
 
 export function StartRun(request: $models.RunSurveyRequest): $CancellablePromise<$models.RunTaskState> {
     return $Call.ByID(1211922163, request);
-}
-
-export function SubmitContactMessage(request: $models.ContactRequest): $CancellablePromise<$models.ContactState> {
-    return $Call.ByID(3578130657, request);
 }
 
 export function SyncProxyStatus(source: string): $CancellablePromise<$models.ProxyStatus> {

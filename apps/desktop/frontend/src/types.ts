@@ -338,28 +338,6 @@ export interface QRCodeDecodeState {
   text: string
 }
 
-export interface ContactRequest {
-  messageType: string
-  issueTitle: string
-  email: string
-  message: string
-  attachments: string[]
-  autoAttachConfig: boolean
-  autoAttachLog: boolean
-  config?: RuntimeConfig | null
-  logLines?: string[]
-}
-
-export interface ContactState {
-  sent: boolean
-  message: string
-}
-
-export interface ContactStatus {
-  text: string
-  color: string
-}
-
 export interface RunEvent {
   worker: string
   message: string
