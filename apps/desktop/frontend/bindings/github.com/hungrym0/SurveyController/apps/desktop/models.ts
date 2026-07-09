@@ -24,7 +24,6 @@ export interface AppSettings {
     "taskResultNotification": boolean;
     "submissionReportTelemetry": boolean;
     "startupTutorialHintSeen": boolean;
-    "randomIpBonusPlayed": boolean;
     "autoCheckUpdate": boolean;
     "autoSaveLogs": boolean;
     "notifications": boolean;
@@ -70,22 +69,6 @@ export interface DecodeQRCodeRequest {
     "path": string;
     "dataUrl"?: string;
     "name"?: string;
-}
-
-export interface IPUsageRecord {
-    "label": string;
-    "total": number;
-}
-
-export interface IPUsageSummary {
-    "remainingQuota": string;
-    "totalQuota": string;
-    "available": number;
-    "inUse": number;
-    "source": string;
-    "message": string;
-    "updatedAt": string;
-    "records": IPUsageRecord[] | null;
 }
 
 export interface LoadConfigRequest {
@@ -165,13 +148,6 @@ export interface QuickAction {
     "label": string;
     "icon": string;
     "emphasis"?: string;
-}
-
-export interface RandomIPBonusState {
-    "claimed": boolean;
-    "bonusQuota": number;
-    "detail"?: string;
-    "playConfetti": boolean;
 }
 
 export interface RedeemProxyCardRequest {
@@ -254,7 +230,6 @@ export interface ShellState {
     "communityItems": string[] | null;
     "aboutItems": PageMetric[] | null;
     "donateItems": PageMetric[] | null;
-    "ipUsageItems": PageMetric[] | null;
     "settingsGroups": SettingsGroup[] | null;
 }
 

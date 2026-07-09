@@ -9,10 +9,6 @@ func (s *AppService) GetProxyStatus() ProxyStatus {
 	return s.proxyRuntime().statusSnapshot()
 }
 
-func (s *AppService) GetIPUsageSummary() IPUsageSummary {
-	return s.proxyRuntime().usageSummary()
-}
-
 func (s *AppService) GetProxyAreaOptions(source string) ProxyAreaOptionsState {
 	return proxyAreaOptionsForSource(source)
 }

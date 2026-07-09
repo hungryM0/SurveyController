@@ -16,7 +16,6 @@ import {
   decodeQRCodeDataURL,
   dismissStartupTutorialHint,
   exportLogLines,
-  loadIPUsageSummary,
   loadAppModel,
   loadProxyStatus,
   loadRunTaskState,
@@ -48,7 +47,7 @@ import {
   shouldSaveBeforeClose,
   showTaskResultNotification,
 } from './services/desktopSettings'
-import type { IPUsageSummary, ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
+import type { ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
 import type { StartupTutorialHintState } from './types'
 
 const DashboardView = lazy(() => import('./pages/DashboardView'))
@@ -76,11 +75,9 @@ function App() {
   const [notice, setNotice] = useState('')
   const [runState, setRunState] = useState<RunTaskState | null>(null)
   const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null)
-  const [ipUsageSummary, setIPUsageSummary] = useState<IPUsageSummary | null>(null)
   const [runtimeLogLines, setRuntimeLogLines] = useState<string[]>([])
   const [startupTutorialHint, setStartupTutorialHint] = useState<StartupTutorialHintState | null>(null)
   const [startupTutorialVisible, setStartupTutorialVisible] = useState(false)
-  const [randomIpBonusPlayed, setRandomIpBonusPlayed] = useState(false)
   const previousPage = useRef(currentPage)
   const runPollTimer = useRef<number | null>(null)
   const settingsRef = useRef(model?.settings ?? null)
@@ -100,7 +97,6 @@ function App() {
     settingsRef.current = model?.settings ?? null
     configRef.current = model?.config ?? null
     configPathRef.current = model?.configPath ?? ''
-    setRandomIpBonusPlayed(model?.settings?.randomIpBonusPlayed ?? false)
   }, [model])
 
   const shell = useMemo<ShellState | null>(() => {
@@ -190,7 +186,7 @@ function App() {
         }
         setModel(loaded)
         setCurrentPage(loaded.shell.currentPage || 'dashboard')
-        const [proxy, run, usage] = await Promise.allSettled([loadProxyStatus(), loadRunTaskState(), loadIPUsageSummary()])
+        const [proxy, run] = await Promise.allSettled([loadProxyStatus(), loadRunTaskState()])
         if (ignore) {
           return
         }
@@ -202,9 +198,6 @@ function App() {
           if (run.value.running) {
             startRunPolling()
           }
-        }
-        if (usage.status === 'fulfilled') {
-          setIPUsageSummary(usage.value)
         }
       } catch (err) {
         if (!ignore) {
@@ -575,31 +568,8 @@ function App() {
     await withBusy(async () => {
       const status = await syncProxyStatus(config?.proxy_source ?? 'default')
       setProxyStatus(status)
-      setIPUsageSummary(await loadIPUsageSummary())
       setNotice('随机 IP 额度已同步')
     })
-  }
-
-  async function refreshRandomIpSummary() {
-    await syncRandomIpQuota()
-  }
-
-  async function markRandomIpBonusPlayed(played: boolean) {
-    if (!played) {
-      return
-    }
-    setRandomIpBonusPlayed(true)
-    setModel((current) => current ? { ...current, settings: { ...current.settings, randomIpBonusPlayed: true } } : current)
-    const current = model?.settings
-    if (!current) {
-      return
-    }
-    try {
-      const saved = await saveSettings({ ...current, randomIpBonusPlayed: true })
-      setModel((latest) => latest ? { ...latest, settings: saved } : latest)
-    } catch {
-      return
-    }
   }
 
   const scheme = shell?.themeMode === 'dark' || shell?.themeMode === 'light' ? shell.themeMode : 'system'
@@ -720,15 +690,10 @@ function App() {
               {currentPage === 'more' ? (
                 <MoreView
                   version={shell.appVersion}
-                  summary={ipUsageSummary}
                   aboutItems={shell.aboutItems}
                   donateItems={shell.donateItems}
-                  ipUsageItems={shell.ipUsageItems}
-                  randomIpBonusPlayed={randomIpBonusPlayed}
                   busy={busy}
                   autoCheckUpdate={settingsRef.current?.autoCheckUpdate ?? true}
-                  onRefreshSummary={() => void refreshRandomIpSummary()}
-                  onRandomIpBonusPlayed={(played) => void markRandomIpBonusPlayed(played)}
                 />
               ) : null}
             </div>

@@ -23,7 +23,7 @@ type AppService struct {
 }
 
 func NewAppService() *AppService {
-	proxy := newProxyRuntime(newIPUsageStore())
+	proxy := newProxyRuntime()
 	return &AppService{
 		survey:   surveycore.New(surveycore.WithFreeAIIdentityProvider(proxy)),
 		proxy:    proxy,
@@ -43,7 +43,7 @@ func (s *AppService) proxyRuntime() *proxyRuntime {
 	s.proxyMu.Lock()
 	defer s.proxyMu.Unlock()
 	if s.proxy == nil {
-		s.proxy = newProxyRuntime(newIPUsageStore())
+		s.proxy = newProxyRuntime()
 	}
 	return s.proxy
 }

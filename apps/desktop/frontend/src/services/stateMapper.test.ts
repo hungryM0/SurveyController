@@ -261,6 +261,5 @@ describe('stateMapper', () => {
 
     expect(shell.aboutItems.length).toBeGreaterThan(0)
     expect(shell.donateItems.length).toBeGreaterThan(0)
-    expect(shell.ipUsageItems.length).toBeGreaterThan(0)
   })
 })

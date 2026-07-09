@@ -11,7 +11,6 @@ const settings: AppSettings = {
   topmost: false,
   notifications: true,
   autosaveLogCount: 5,
-  randomIpBonusPlayed: false,
   startupTutorialHintSeen: false,
 }
 

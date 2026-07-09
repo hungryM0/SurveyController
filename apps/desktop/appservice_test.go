@@ -798,46 +798,6 @@ func TestAppServiceStartupTutorialHintShowsUntilDismissed(t *testing.T) {
 	}
 }
 
-func TestAppServiceClaimRandomIPBonusUsesOfficialClient(t *testing.T) {
-	var requestBody map[string]any
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/bonus" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			t.Fatalf("decode bonus body: %v", err)
-		}
-		writeAppJSON(t, w, map[string]any{
-			"claimed":         true,
-			"bonus_quota":     5,
-			"remaining_quota": 6,
-			"total_quota":     7,
-			"used_quota":      1,
-			"detail":          "ok",
-		})
-	}))
-	defer server.Close()
-
-	manager := proxycore.NewOfficialSessionManager(proxycore.OfficialSessionManagerOptions{
-		InitialSession: proxycore.RandomIPSession{DeviceID: "desktop-test", UserID: 99},
-	})
-	service := &AppService{proxy: &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{
-		BonusEndpoint:  server.URL + "/bonus",
-		SessionManager: manager,
-	})}}
-
-	state, err := service.ClaimRandomIPBonus(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if requestBody["user_id"] != float64(99) || requestBody["bonus_code"] != randomIPBonusCode {
-		t.Fatalf("bonus body = %#v", requestBody)
-	}
-	if !state.Claimed || state.BonusQuota != 5 || state.Detail != "ok" || !state.PlayConfetti {
-		t.Fatalf("state = %#v", state)
-	}
-}
-
 func TestAppServiceTestAIConnection(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

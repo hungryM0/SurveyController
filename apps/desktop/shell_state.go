@@ -58,11 +58,6 @@ func initialShellState(version string) ShellState {
 			{Label: "微信", Value: "赞赏码"},
 			{Label: "支付宝", Value: "收款码"},
 		},
-		IPUsageItems: []PageMetric{
-			{Label: "说明", Value: "按日统计"},
-			{Label: "来源", Value: "代理服务"},
-			{Label: "状态", Value: "实时同步"},
-		},
 		SettingsGroups: []SettingsGroup{
 			{
 				Title: "界面外观",

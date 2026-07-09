@@ -1,17 +1,15 @@
-import type { AIConnectionTestState, AppSettings, CustomProxyAPITestState, IPUsageSummary, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, RandomIPBonusState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, StartupTutorialHintState, SurveyCoreState } from '../types'
+import type { AIConnectionTestState, AppSettings, CustomProxyAPITestState, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, StartupTutorialHintState, SurveyCoreState } from '../types'
 import {
   BuildDefaultConfig,
   CancelRun,
   ConfirmClose,
   DecodeQRCode,
   DismissStartupTutorialHint,
-  GetIPUsageSummary,
   GetProxyAreaOptions,
   GetProxyStatus,
   GetRunTaskState,
   GetAppSettings,
   GetShellState,
-  ClaimRandomIPBonus,
   GetStartupTutorialHint,
   LoadConfig,
   PauseRun,
@@ -94,10 +92,6 @@ export async function resetSettings(): Promise<AppSettings> {
   return await ResetAppSettings() as AppSettings
 }
 
-export async function claimRandomIPBonus(): Promise<RandomIPBonusState> {
-  return await ClaimRandomIPBonus() as RandomIPBonusState
-}
-
 export async function loadStartupTutorialHint(): Promise<StartupTutorialHintState> {
   return await GetStartupTutorialHint() as StartupTutorialHintState
 }
@@ -155,10 +149,6 @@ export async function loadProxyAreaOptions(source = 'default'): Promise<ProxyAre
   return await GetProxyAreaOptions(source) as ProxyAreaOptionsState
 }
 
-export async function loadIPUsageSummary(): Promise<IPUsageSummary> {
-  return await GetIPUsageSummary() as IPUsageSummary
-}
-
 export async function syncProxyStatus(source = 'default'): Promise<ProxyStatus> {
   return await SyncProxyStatus(source) as ProxyStatus
 }
@@ -204,7 +194,6 @@ function previewAppSettings(): AppSettings {
     taskResultNotification: true,
     submissionReportTelemetry: true,
     startupTutorialHintSeen: false,
-    randomIpBonusPlayed: false,
     autoCheckUpdate: true,
     autoSaveLogs: true,
     notifications: true,
@@ -242,6 +231,9 @@ function previewShellState(): ShellState {
       randomIpStatus: '未连接代理服务',
       randomIpStatusTone: '',
       proxySource: '默认',
+      proxyRemainingQuota: '0',
+      proxyTotalQuota: '0',
+      proxyQuotaKnown: false,
       proxyAvailable: 0,
       proxyInUse: 0,
       questionCount: 0,
@@ -276,11 +268,6 @@ function previewShellState(): ShellState {
     donateItems: [
       { label: '微信', value: '赞赏码' },
       { label: '支付宝', value: '收款码' },
-    ],
-    ipUsageItems: [
-      { label: '说明', value: '按日统计' },
-      { label: '来源', value: '代理服务' },
-      { label: '状态', value: '实时同步' },
     ],
     settingsGroups: [],
   }

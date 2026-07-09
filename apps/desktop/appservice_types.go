@@ -96,19 +96,3 @@ type ProxyStatus struct {
 	Message         string                  `json:"message"`
 	Quota           proxycore.QuotaSnapshot `json:"quota"`
 }
-
-type IPUsageRecord struct {
-	Label string `json:"label"`
-	Total int    `json:"total"`
-}
-
-type IPUsageSummary struct {
-	RemainingQuota string          `json:"remainingQuota"`
-	TotalQuota     string          `json:"totalQuota"`
-	Available      int             `json:"available"`
-	InUse          int             `json:"inUse"`
-	Source         string          `json:"source"`
-	Message        string          `json:"message"`
-	UpdatedAt      string          `json:"updatedAt"`
-	Records        []IPUsageRecord `json:"records"`
-}

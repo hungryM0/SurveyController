@@ -21,10 +21,6 @@ export function CancelRun(): $CancellablePromise<$models.RunTaskState> {
     return $Call.ByID(56584525);
 }
 
-export function ClaimRandomIPBonus(): $CancellablePromise<$models.RandomIPBonusState> {
-    return $Call.ByID(3791153487);
-}
-
 export function ConfirmClose(): $CancellablePromise<void> {
     return $Call.ByID(4006498174);
 }
@@ -43,10 +39,6 @@ export function ExportLogLines(path: string, lines: string[] | null): $Cancellab
 
 export function GetAppSettings(): $CancellablePromise<$models.AppSettings> {
     return $Call.ByID(120288048);
-}
-
-export function GetIPUsageSummary(): $CancellablePromise<$models.IPUsageSummary> {
-    return $Call.ByID(1693062290);
 }
 
 export function GetProxyAreaOptions(source: string): $CancellablePromise<$models.ProxyAreaOptionsState> {
@@ -71,10 +63,6 @@ export function GetStartupTutorialHint(): $CancellablePromise<$models.StartupTut
 
 export function LoadConfig(request: $models.LoadConfigRequest): $CancellablePromise<$models.ConfigFileState> {
     return $Call.ByID(1600851788, request);
-}
-
-export function MarkRandomIPBonusPlayed(): $CancellablePromise<$models.AppSettings> {
-    return $Call.ByID(3386304207);
 }
 
 export function ParseSurvey(request: $models.ParseSurveyRequest): $CancellablePromise<$models.SurveyCoreState> {

@@ -1,20 +1,15 @@
-import { useEffect, useMemo, useState, type CSSProperties, type PointerEvent } from 'react'
-import { ChartColumn, GitBranch, Globe, HeartHandshake, RotateCcw, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { GitBranch, Globe, HeartHandshake, RotateCcw, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
 import { Button } from '../components/ui'
-import type { IPUsageSummary, PageMetric } from '../types'
+import type { PageMetric } from '../types'
 import TermsDialog from '../components/TermsDialog'
-import { claimRandomIPBonus } from '../services/shell'
-import { buildBonusMessage, formatQuotaValue } from './moreBonusViewModel'
 import {
   buildStableReleaseInfo,
   buildVelopackFeedReleaseInfo,
-  buildIPUsageChartModel,
   checkingReleaseInfo,
   emptyReleaseInfo,
   errorReleaseInfo,
-  IP_USAGE_CHART_HEIGHT,
-  IP_USAGE_CHART_WIDTH,
   MORE_RELEASES_URL,
   MORE_REPO_URL,
   releaseStatusText,
@@ -23,22 +18,16 @@ import {
   WINDOWS_STABLE_MANIFEST_URL,
   type StableReleaseManifest,
   type VelopackFeedPayload,
-  type IPUsageChartPoint,
   type ReleaseInfo,
 } from './moreViewModel'
 
 interface MoreViewProps {
   version: string
-  summary: IPUsageSummary | null
   aboutItems: PageMetric[]
   // ponytail: declared but never rendered in JSX; kept to avoid breaking callers
   donateItems?: PageMetric[]
-  ipUsageItems: PageMetric[]
-  randomIpBonusPlayed?: boolean
   busy?: boolean
   autoCheckUpdate?: boolean
-  onRefreshSummary: () => void
-  onRandomIpBonusPlayed?: (played: boolean) => void
 }
 
 const DOC_URL = 'https://surveydoc.hungrym0.com/'
@@ -60,42 +49,15 @@ async function openUrl(url: string) {
   }
 }
 
-function closestChartPoint(event: PointerEvent<SVGSVGElement>, points: IPUsageChartPoint[]): IPUsageChartPoint | null {
-  if (!points.length) {
-    return null
-  }
-  const rect = event.currentTarget.getBoundingClientRect()
-  const scale = IP_USAGE_CHART_WIDTH / Math.max(1, rect.width)
-  const x = (event.clientX - rect.left) * scale
-  return points.reduce((closest, point) => (
-    Math.abs(point.x - x) < Math.abs(closest.x - x) ? point : closest
-  ), points[0])
-}
-
 function MoreView({
   version,
-  summary,
   aboutItems,
-  ipUsageItems,
-  randomIpBonusPlayed = false,
   busy = false,
   autoCheckUpdate = true,
-  onRefreshSummary,
-  onRandomIpBonusPlayed,
 }: MoreViewProps) {
   const [release, setRelease] = useState<ReleaseInfo>(() => emptyReleaseInfo(version))
   const [refreshTick, setRefreshTick] = useState(0)
   const [termsOpen, setTermsOpen] = useState(false)
-  const [bonusPlayed, setBonusPlayed] = useState(randomIpBonusPlayed)
-  const [bonusBusy, setBonusBusy] = useState(false)
-  const [bonusMessage, setBonusMessage] = useState('')
-  const [confettiActive, setConfettiActive] = useState(false)
-  const [hoverPoint, setHoverPoint] = useState<IPUsageChartPoint | null>(null)
-  const chart = useMemo(() => buildIPUsageChartModel(summary?.records ?? []), [summary?.records])
-
-  useEffect(() => {
-    setBonusPlayed(randomIpBonusPlayed)
-  }, [randomIpBonusPlayed])
 
   useEffect(() => {
     let ignore = false
@@ -137,32 +99,6 @@ function MoreView({
       ignore = true
     }
   }, [autoCheckUpdate, version, refreshTick])
-
-  async function claimBonus() {
-    if (bonusBusy || bonusPlayed) {
-      return
-    }
-    setBonusBusy(true)
-    try {
-      const result = await claimRandomIPBonus()
-      const claimed = result.claimed || result.detail === 'bonus_already_claimed' || result.detail === 'easter_egg_already_claimed'
-      const message = buildBonusMessage(result)
-      setBonusMessage(message)
-      if (claimed) {
-        setBonusPlayed(true)
-        onRandomIpBonusPlayed?.(true)
-      }
-      if (result.playConfetti && !bonusPlayed) {
-        setConfettiActive(true)
-        window.setTimeout(() => setConfettiActive(false), 1800)
-      }
-      await onRefreshSummary()
-    } catch (err) {
-      setBonusMessage(`领取彩蛋奖励失败：${err instanceof Error ? err.message : String(err)}`)
-    } finally {
-      setBonusBusy(false)
-    }
-  }
 
   return (
     <section className="page scroll-page">
@@ -232,121 +168,6 @@ function MoreView({
             <small className="more-thanks-text">感谢每一位支持者，你们的鼓励是持续更新的动力。</small>
           </article>
 
-          <article className="surface more-card more-summary-card">
-            <div className="more-card-head">
-              <ChartColumn size={18} />
-              <strong>IP 使用记录</strong>
-            </div>
-            <div className="more-bonus-row">
-              <div className="more-bonus-copy">
-                <strong>彩蛋奖励</strong>
-                <span>{bonusPlayed ? '已触发过' : '激活随机 IP 后可领取隐藏福利'}</span>
-              </div>
-              <Button value={bonusBusy ? '领取中...' : '领取彩蛋奖励'} disabled={busy || bonusBusy || bonusPlayed} onClick={() => void claimBonus()} />
-            </div>
-            <div className="surface ip-usage-chart-card">
-              <div className="ip-usage-chart-head">
-                <div>
-                  <strong>每日提取 IP 数</strong>
-                  <span>{chart.rangeLabel}</span>
-                </div>
-                <div className="ip-usage-chart-stats">
-                  <span>合计 {chart.total}</span>
-                  <span>日均 {chart.average}</span>
-                  <span>峰值 {chart.peakTotal}</span>
-                </div>
-              </div>
-              <div className="ip-usage-chart-frame">
-                <svg
-                  className="ip-usage-chart"
-                  viewBox={`0 0 ${IP_USAGE_CHART_WIDTH} ${IP_USAGE_CHART_HEIGHT}`}
-                  role="img"
-                  aria-label="每日提取 IP 数折线图"
-                  onPointerMove={(event) => setHoverPoint(closestChartPoint(event, chart.points))}
-                  onPointerLeave={() => setHoverPoint(null)}
-                >
-                  <defs>
-                    <linearGradient id="ip-usage-gradient" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.24" />
-                      <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" />
-                    </linearGradient>
-                  </defs>
-                  {chart.yTicks.map((tick) => (
-                    <g key={tick.value}>
-                      <line className="ip-usage-grid-line" x1="52" x2="616" y1={tick.y} y2={tick.y} />
-                      <text className="ip-usage-axis-text" x="42" y={tick.y + 4} textAnchor="end">{tick.value}</text>
-                    </g>
-                  ))}
-                  {chart.xLabels.map((item) => (
-                    <text key={`${item.label}-${item.x}`} className="ip-usage-axis-text" x={item.x} y="244" textAnchor="middle">{item.label}</text>
-                  ))}
-                  {chart.areaPath ? <path className="ip-usage-area" d={chart.areaPath} /> : null}
-                  {chart.linePath ? <path className="ip-usage-line" d={chart.linePath} /> : null}
-                  {chart.points.map((point) => (
-                    <circle key={point.label} className="ip-usage-point" cx={point.x} cy={point.y} r={hoverPoint?.label === point.label ? 5 : 3.5} />
-                  ))}
-                  {hoverPoint ? (
-                    <g className="ip-usage-hover">
-                      <line x1={hoverPoint.x} x2={hoverPoint.x} y1="22" y2="218" />
-                      <circle cx={hoverPoint.x} cy={hoverPoint.y} r="6" />
-                    </g>
-                  ) : null}
-                </svg>
-                {!chart.hasData ? <div className="ip-usage-chart-empty">暂无数据</div> : null}
-                {hoverPoint ? (
-                  <div className="ip-usage-tooltip" style={{ left: `${(hoverPoint.x / IP_USAGE_CHART_WIDTH) * 100}%`, top: `${(hoverPoint.y / IP_USAGE_CHART_HEIGHT) * 100}%` }}>
-                    <span>{hoverPoint.label}</span>
-                    <strong>提取数量：{hoverPoint.total}</strong>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="more-summary-list">
-              {ipUsageItems.map((item) => (
-                <div key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-            <div className="more-summary-line">
-              <span>剩余额度</span>
-              <strong>{summary?.remainingQuota || '0'}</strong>
-            </div>
-            <div className="more-summary-line">
-              <span>总额度</span>
-              <strong>{summary?.totalQuota || '0'}</strong>
-            </div>
-            <div className="more-summary-line">
-              <span>可用 / 占用</span>
-              <strong>{summary ? `${summary.available} / ${summary.inUse}` : '0 / 0'}</strong>
-            </div>
-            <div className="more-summary-line">
-              <span>状态</span>
-              <strong>{summary?.message || '未同步'}</strong>
-            </div>
-            <div className="more-summary-line">
-              <span>数据源</span>
-              <strong>{summary?.source || '-'}</strong>
-            </div>
-            <div className="more-summary-line">
-              <span>更新时间</span>
-              <strong>{summary?.updatedAt || '-'}</strong>
-            </div>
-            <div className="more-actions">
-              <Button value="同步额度" icon={<RotateCcw size={14} />} disabled={busy} onClick={onRefreshSummary} />
-            </div>
-            {bonusMessage ? <div className="more-bonus-message">{bonusMessage}</div> : null}
-            <div className="more-summary-list">
-              {summary?.records?.length ? summary.records.map((item) => (
-                <div key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.total}</strong>
-                </div>
-              )) : <span className="more-empty">还没有使用记录。</span>}
-            </div>
-          </article>
-
           <article className="surface more-card">
             <div className="more-card-head">
               <ShieldCheck size={18} />
@@ -378,13 +199,6 @@ function MoreView({
           </article>
         </section>
       </div>
-      {confettiActive ? (
-        <div className="bonus-confetti-layer" aria-hidden="true">
-          {Array.from({ length: 24 }).map((_, index) => (
-            <span key={index} style={{ '--delay': `${index * 18}ms`, '--x': `${(index % 6) * 16}px` } as CSSProperties} />
-          ))}
-        </div>
-      ) : null}
       <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
     </section>
   )

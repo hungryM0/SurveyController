@@ -99,6 +99,15 @@ function DashboardView({
   const [qrDropActive, setQrDropActive] = useState(false)
   const normalizedThreads = Math.max(1, Math.min(dashboard.threadCount, 32))
   const platformBadge = resolvePlatformBadge(dashboard.platformLabel)
+  const proxyAvailable = dashboard.proxyAvailable ?? 0
+  const proxyInUse = dashboard.proxyInUse ?? 0
+  const accountRemaining = dashboard.proxyRemainingQuota ?? '0'
+  const accountTotal = dashboard.proxyTotalQuota ?? '0'
+  const accountRemainingValue = quotaNumber(accountRemaining)
+  const accountTotalValue = quotaNumber(accountTotal)
+  const accountBalancePercent = dashboard.proxyQuotaKnown && accountTotalValue > 0
+    ? clampPercent(Math.round((accountRemainingValue / accountTotalValue) * 100))
+    : 0
 
   function handleQRImageFile(file?: File | null) {
     if (!file || busy || !isSupportedQRImage(file)) {
@@ -194,7 +203,7 @@ function DashboardView({
           </div>
         </section>
 
-        <div className="dashboard-work-grid">
+        <div className="dashboard-work-grid dashboard-task-grid">
           <section className="surface control-panel">
             <div className="panel-header">
               <div className="panel-title-group">
@@ -288,7 +297,7 @@ function DashboardView({
             </div>
           </section>
 
-          <div className="dashboard-side-stack">
+          <div className="dashboard-side-stack dashboard-quota-stack">
             <section className="surface quota-side-panel">
               {quotaPage === 'summary' ? (
                 <>
@@ -304,9 +313,40 @@ function DashboardView({
                       onClick={onSyncProxyStatus}
                     />
                   </div>
-                  <div className="quota-readout">
-                    <strong>{dashboard.randomIpQuotaLabel}</strong>
-                    <span>可用 {dashboard.proxyAvailable ?? 0} / 占用 {dashboard.proxyInUse ?? 0}</span>
+                  <div className="quota-vertical-body">
+                    <div className="quota-progress-ring" aria-label={`账号 IP 余额 ${accountRemaining}`}>
+                      <svg viewBox="0 0 120 120" role="img" aria-hidden="true">
+                        <circle className="quota-ring-track" cx="60" cy="60" r="48" pathLength="100" />
+                        <circle
+                          className={`quota-ring-value ${accountBalancePercent === 0 ? 'is-empty' : ''}`}
+                          cx="60"
+                          cy="60"
+                          r="48"
+                          pathLength="100"
+                          strokeDasharray={`${accountBalancePercent} ${100 - accountBalancePercent}`}
+                        />
+                      </svg>
+                      <div className="quota-ring-center">
+                        <strong>{dashboard.proxyQuotaKnown ? accountRemaining : '-'}</strong>
+                        <span>账号余额</span>
+                      </div>
+                    </div>
+
+                    <div className="quota-status-block">
+                      <strong>{dashboard.randomIpStatus}</strong>
+                      <span>总额度 {dashboard.proxyQuotaKnown ? accountTotal : '-'}</span>
+                    </div>
+
+                    <div className="quota-count-grid">
+                      <div>
+                        <span>IP池剩余</span>
+                        <strong>{proxyAvailable}</strong>
+                      </div>
+                      <div>
+                        <span>占用</span>
+                        <strong>{proxyInUse}</strong>
+                      </div>
+                    </div>
                   </div>
                   <div className="quota-side-actions">
                     <Button
@@ -517,4 +557,16 @@ function resolvePlatformBadge(platformLabel: string): { label: string, className
     return { label: '见数', className: 'credamo' }
   }
   return { label: '问卷星', className: 'wjx' }
+}
+
+function quotaNumber(value: string | undefined): number {
+  const parsed = Number(String(value ?? '0').trim())
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return Math.min(100, Math.max(0, value))
 }

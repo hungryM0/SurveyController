@@ -58,10 +58,5 @@ export const emptyShellState: ShellState = {
     { label: '微信', value: '赞赏码' },
     { label: '支付宝', value: '收款码' },
   ],
-  ipUsageItems: [
-    { label: '说明', value: '按日统计' },
-    { label: '来源', value: '代理服务' },
-    { label: '状态', value: '实时同步' },
-  ],
   settingsGroups: [],
 }

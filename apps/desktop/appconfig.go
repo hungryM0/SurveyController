@@ -21,7 +21,6 @@ type AppSettings struct {
 	TaskResultNotification    bool              `json:"taskResultNotification"`
 	SubmissionReportTelemetry bool              `json:"submissionReportTelemetry"`
 	StartupTutorialHintSeen   bool              `json:"startupTutorialHintSeen"`
-	RandomIPBonusPlayed       bool              `json:"randomIpBonusPlayed"`
 	AutoCheckUpdate           bool              `json:"autoCheckUpdate"`
 	AutoSaveLogs              bool              `json:"autoSaveLogs"`
 	Notifications             bool              `json:"notifications"`

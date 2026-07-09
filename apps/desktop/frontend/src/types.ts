@@ -46,6 +46,9 @@ export interface DashboardState {
   randomIpStatus: string
   randomIpStatusTone: Tone
   proxySource: string
+  proxyRemainingQuota?: string
+  proxyTotalQuota?: string
+  proxyQuotaKnown?: boolean
   proxyAvailable?: number
   proxyInUse?: number
   questionCount: number
@@ -88,22 +91,6 @@ export interface ReverseFillRow {
   state: string
 }
 
-export interface IPUsageRecord {
-  label: string
-  total: number
-}
-
-export interface IPUsageSummary {
-  remainingQuota: string
-  totalQuota: string
-  available: number
-  inUse: number
-  source: string
-  message: string
-  updatedAt: string
-  records: IPUsageRecord[]
-}
-
 export interface ShellState {
   appTitle: string
   appVersion: string
@@ -120,7 +107,6 @@ export interface ShellState {
   communityItems: string[]
   aboutItems: PageMetric[]
   donateItems: PageMetric[]
-  ipUsageItems: PageMetric[]
   settingsGroups: SettingsGroup[]
 }
 
@@ -266,7 +252,6 @@ export interface AppSettings {
   taskResultNotification?: boolean
   submissionReportTelemetry?: boolean
   startupTutorialHintSeen?: boolean
-  randomIpBonusPlayed?: boolean
   autoCheckUpdate?: boolean
   autoSaveLogs?: boolean
   notifications: boolean
@@ -277,13 +262,6 @@ export interface AppSettings {
 export interface StartupTutorialHintState {
   shouldShow: boolean
   docUrl: string
-}
-
-export interface RandomIPBonusState {
-  claimed: boolean
-  bonusQuota: number
-  detail?: string
-  playConfetti: boolean
 }
 
 export interface ProxyStatus {

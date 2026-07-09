@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildStableReleaseInfo,
   buildVelopackFeedReleaseInfo,
-  buildIPUsageChartModel,
   compareVersion,
-  formatUsageAverage,
   formatReleaseDate,
   latestFullVelopackAsset,
   previewReleaseNotes,
@@ -78,35 +76,4 @@ describe('moreViewModel', () => {
     expect(shouldAutoCheckRelease(false, 1)).toBe(true)
   })
 
-  it('builds sorted IP usage chart data with main page scale rules', () => {
-    const chart = buildIPUsageChartModel([
-      { label: '2026-06-30', total: 1600 },
-      { label: 'bad-date', total: 999 },
-      { label: '2026-06-28', total: 400 },
-      { label: '2026-06-29', total: 1000 },
-    ])
-
-    expect(chart.hasData).toBe(true)
-    expect(chart.points.map((point) => point.label)).toEqual(['2026-06-28', '2026-06-29', '2026-06-30'])
-    expect(chart.total).toBe(3000)
-    expect(chart.average).toBe('1000')
-    expect(chart.peakLabel).toBe('2026-06-30')
-    expect(chart.peakTotal).toBe(1600)
-    expect(chart.maxY).toBe(2000)
-    expect(chart.rangeLabel).toBe('2026-06-28 ~ 2026-06-30')
-    expect(chart.linePath).toContain('M ')
-    expect(chart.areaPath.endsWith('Z')).toBe(true)
-    expect(chart.yTicks.map((tick) => tick.value)).toEqual([0, 500, 1000, 1500, 2000])
-  })
-
-  it('keeps empty IP usage chart renderable', () => {
-    const chart = buildIPUsageChartModel([])
-
-    expect(chart.hasData).toBe(false)
-    expect(chart.rangeLabel).toBe('暂无数据')
-    expect(chart.linePath).toBe('')
-    expect(chart.yTicks.map((tick) => tick.value)).toEqual([0, 250, 500, 750, 1000])
-    expect(formatUsageAverage(5, 2)).toBe('2.5')
-    expect(formatUsageAverage(5, 0)).toBe('0')
-  })
 })

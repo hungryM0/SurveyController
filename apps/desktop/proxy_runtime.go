@@ -18,11 +18,10 @@ type proxyRuntime struct {
 	pool           *proxycore.Pool
 	status         ProxyStatus
 	officialClient *proxycore.OfficialClient
-	usage          *ipUsageStore
 }
 
-func newProxyRuntime(store *ipUsageStore) *proxyRuntime {
-	return &proxyRuntime{usage: store}
+func newProxyRuntime() *proxyRuntime {
+	return &proxyRuntime{}
 }
 
 func (r *proxyRuntime) statusSnapshot() ProxyStatus {
@@ -40,23 +39,6 @@ func (r *proxyRuntime) statusSnapshot() ProxyStatus {
 		status.InUse = r.pool.InUseLen()
 	}
 	return status
-}
-
-func (r *proxyRuntime) usageSummary() IPUsageSummary {
-	status := r.statusSnapshot()
-	summary := IPUsageSummary{
-		RemainingQuota: status.RemainingQuota,
-		TotalQuota:     status.TotalQuota,
-		Available:      status.Available,
-		InUse:          status.InUse,
-		Source:         status.Source,
-		Message:        status.Message,
-		UpdatedAt:      time.Now().Format("2006-01-02 15:04:05"),
-	}
-	if r.usage != nil {
-		summary.Records = r.usage.snapshot()
-	}
-	return summary
 }
 
 func (r *proxyRuntime) executionOptions(ctx context.Context, cfg surveycore.RuntimeConfig) (surveycore.ExecutionOptions, error) {
@@ -136,7 +118,7 @@ func (r *proxyRuntime) customLeaseManager(_ context.Context, cfg surveycore.Runt
 		Source:          source,
 		Message:         "自定义代理已连接",
 	}
-	return proxyLeaseManager{pool: r.pool, usage: r.usage}, nil
+	return proxyLeaseManager{pool: r.pool}, nil
 }
 
 func (r *proxyRuntime) officialLeaseManager(ctx context.Context, cfg surveycore.RuntimeConfig, source string, options surveycore.ExecutionOptions) (surveycore.LeaseManager, error) {
@@ -182,8 +164,7 @@ func (r *proxyRuntime) officialLeaseManager(ctx context.Context, cfg surveycore.
 
 	r.refreshOfficialStatus(ctx, key, pool, source, "官方代理已连接")
 	return proxyLeaseManager{
-		pool:  pool,
-		usage: r.usage,
+		pool: pool,
 		afterAcquire: func(acquireCtx context.Context) {
 			r.refreshOfficialStatus(acquireCtx, key, pool, source, "官方代理已连接")
 		},
@@ -393,7 +374,6 @@ func (r *proxyRuntime) updateStatus(key string, pool *proxycore.Pool, status Pro
 
 type proxyLeaseManager struct {
 	pool         *proxycore.Pool
-	usage        *ipUsageStore
 	afterAcquire func(context.Context)
 }
 
@@ -407,9 +387,6 @@ func (m proxyLeaseManager) Acquire(ctx context.Context, owner string) (surveycor
 	}
 	if m.afterAcquire != nil {
 		m.afterAcquire(ctx)
-	}
-	if m.usage != nil {
-		m.usage.add(time.Now(), 1)
 	}
 	return surveycore.ExecutionLease{Address: lease.Address, Source: lease.Source}, nil
 }

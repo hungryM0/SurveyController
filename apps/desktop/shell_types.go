@@ -100,6 +100,5 @@ type ShellState struct {
 	CommunityItems  []string         `json:"communityItems"`
 	AboutItems      []PageMetric     `json:"aboutItems"`
 	DonateItems     []PageMetric     `json:"donateItems"`
-	IPUsageItems    []PageMetric     `json:"ipUsageItems"`
 	SettingsGroups  []SettingsGroup  `json:"settingsGroups"`
 }
