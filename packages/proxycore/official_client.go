@@ -16,6 +16,7 @@ type OfficialClient struct {
 	extractEndpoint string
 	bonusEndpoint   string
 	redeemEndpoint  string
+	usageEndpoint   string
 	httpClient      *http.Client
 	headers         map[string]string
 	sessionManager  *OfficialSessionManager
@@ -35,6 +36,7 @@ func NewOfficialClient(options OfficialClientOptions) *OfficialClient {
 		extractEndpoint: endpointOrDefault(options.ExtractEndpoint, DefaultOfficialExtractEndpoint),
 		bonusEndpoint:   endpointOrDefault(options.BonusEndpoint, DefaultOfficialBonusEndpoint),
 		redeemEndpoint:  endpointOrDefault(options.RedeemEndpoint, DefaultOfficialRedeemEndpoint),
+		usageEndpoint:   endpointOrDefault(options.UsageEndpoint, DefaultOfficialUsageEndpoint),
 		httpClient:      httpClient,
 		headers:         cloneHeaders(options.Headers),
 		sessionManager:  manager,
@@ -158,6 +160,53 @@ func (c *OfficialClient) RedeemCard(ctx context.Context, cardCode string) (Redee
 		Detail:    strings.TrimSpace(fmt.Sprint(payload["detail"])),
 		Quota:     normalizeQuotaSnapshot(updated),
 	}, nil
+}
+
+func (c *OfficialClient) Usage(ctx context.Context) (UsageSnapshot, error) {
+	payload, err := c.getJSON(ctx, c.usageEndpoint, 10*time.Second)
+	if err != nil {
+		return UsageSnapshot{}, err
+	}
+	return UsageSnapshot{RemainingIP: nonNegativeInt(payload["remaining_ip"], 0)}, nil
+}
+
+func (c *OfficialClient) getJSON(ctx context.Context, endpoint string, timeout time.Duration) (map[string]any, error) {
+	reqCtx := ctx
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		reqCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+	request, err := http.NewRequestWithContext(reqCtx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range defaultOfficialHeaders() {
+		request.Header.Set(key, value)
+	}
+	for key, value := range c.headers {
+		request.Header.Set(key, value)
+	}
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, RandomIPError{Detail: "network_error:" + err.Error()}
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, RandomIPError{Detail: "network_error:" + err.Error(), StatusCode: response.StatusCode}
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, parseErrorPayload(response, responseBody)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(responseBody, &payload); err != nil {
+		return nil, RandomIPError{Detail: "invalid_response:" + err.Error(), StatusCode: response.StatusCode}
+	}
+	if payload == nil {
+		return nil, RandomIPError{Detail: "invalid_response", StatusCode: response.StatusCode}
+	}
+	return payload, nil
 }
 
 func (c *OfficialClient) postJSON(ctx context.Context, endpoint string, body map[string]any, timeout time.Duration) (map[string]any, error) {

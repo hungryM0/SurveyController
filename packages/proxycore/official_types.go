@@ -10,6 +10,7 @@ const (
 	DefaultOfficialExtractEndpoint = "https://api-wjx.hungrym0.com/api/ip/extract"
 	DefaultOfficialBonusEndpoint   = "https://api-wjx.hungrym0.com/api/bonus"
 	DefaultOfficialRedeemEndpoint  = "https://api-wjx.hungrym0.com/api/cards/redeem"
+	DefaultOfficialUsageEndpoint   = "https://api-wjx.hungrym0.com/ipzan/usage"
 
 	OfficialSourceDefault = "default"
 	OfficialSourceBenefit = "benefit"
@@ -94,6 +95,7 @@ type OfficialClientOptions struct {
 	ExtractEndpoint string
 	BonusEndpoint   string
 	RedeemEndpoint  string
+	UsageEndpoint   string
 	HTTPClient      *http.Client
 	Headers         map[string]string
 	SessionManager  *OfficialSessionManager
@@ -121,4 +123,8 @@ type RedeemResult struct {
 	CardQuota float64
 	Detail    string
 	Quota     QuotaSnapshot
+}
+
+type UsageSnapshot struct {
+	RemainingIP int
 }

@@ -127,6 +127,10 @@ describe('stateMapper', () => {
       {
         available: 2,
         inUse: 1,
+        userId: 73952,
+        userKnown: true,
+        poolRemainingIp: 75772,
+        poolRemainingKnown: true,
         remainingQuota: '8',
         totalQuota: '10',
         quotaKnown: true,
@@ -140,6 +144,10 @@ describe('stateMapper', () => {
     expect(shell.dashboard.randomIpStatus).toBe('额度兑换成功')
     expect(shell.dashboard.proxyAvailable).toBe(2)
     expect(shell.dashboard.proxyInUse).toBe(1)
+    expect(shell.dashboard.proxyUserId).toBe(73952)
+    expect(shell.dashboard.proxyUserKnown).toBe(true)
+    expect(shell.dashboard.proxyPoolRemainingIp).toBe(75772)
+    expect(shell.dashboard.proxyPoolRemainingKnown).toBe(true)
     expect(shell.dashboard.runtimeHint).toBe('随机 UA 已开启')
     expect(shell.dashboard.quickActions).toHaveLength(4)
   })

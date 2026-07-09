@@ -178,18 +178,24 @@ func TestAppServiceProxyRuntimeUsesOfficialSource(t *testing.T) {
 func TestAppServiceSyncProxyStatusUsesOfficialClient(t *testing.T) {
 	var trialBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/trial" {
+		switch r.URL.Path {
+		case "/trial":
+			if err := json.NewDecoder(r.Body).Decode(&trialBody); err != nil {
+				t.Fatalf("decode trial body: %v", err)
+			}
+			writeAppJSON(t, w, map[string]any{
+				"user_id":         88,
+				"remaining_quota": 9,
+				"total_quota":     10,
+				"used_quota":      1,
+			})
+		case "/usage":
+			writeAppJSON(t, w, map[string]any{
+				"remaining_ip": 75772,
+			})
+		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		if err := json.NewDecoder(r.Body).Decode(&trialBody); err != nil {
-			t.Fatalf("decode trial body: %v", err)
-		}
-		writeAppJSON(t, w, map[string]any{
-			"user_id":         88,
-			"remaining_quota": 9,
-			"total_quota":     10,
-			"used_quota":      1,
-		})
 	}))
 	defer server.Close()
 
@@ -198,6 +204,7 @@ func TestAppServiceSyncProxyStatusUsesOfficialClient(t *testing.T) {
 	})
 	service := &AppService{proxy: &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{
 		TrialEndpoint:  server.URL + "/trial",
+		UsageEndpoint:  server.URL + "/usage",
 		SessionManager: manager,
 	})}}
 	status, err := service.SyncProxyStatus(context.Background(), "benefit")
@@ -209,6 +216,12 @@ func TestAppServiceSyncProxyStatusUsesOfficialClient(t *testing.T) {
 	}
 	if status.Source != "benefit" || status.RemainingQuota != "9" || status.TotalQuota != "10" || !status.QuotaKnown {
 		t.Fatalf("status = %#v", status)
+	}
+	if !status.UserKnown || status.UserID != 88 {
+		t.Fatalf("user status = %#v", status)
+	}
+	if !status.PoolRemainingKnown || status.PoolRemainingIP != 75772 {
+		t.Fatalf("pool remaining status = %#v", status)
 	}
 }
 

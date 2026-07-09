@@ -121,6 +121,31 @@ func TestOfficialClientExtractProxyBuildsRequestAndUpdatesQuota(t *testing.T) {
 	}
 }
 
+func TestOfficialClientUsageReadsRemainingIP(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/usage" {
+			t.Fatalf("path = %s", r.URL.Path)
+		}
+		writeJSON(t, w, map[string]any{
+			"remaining_ip": 75772,
+			"logs":         []map[string]any{},
+		})
+	}))
+	defer server.Close()
+
+	client := NewOfficialClient(OfficialClientOptions{
+		UsageEndpoint: server.URL + "/usage",
+	})
+
+	usage, err := client.Usage(context.Background())
+	if err != nil {
+		t.Fatalf("Usage() error = %v", err)
+	}
+	if usage.RemainingIP != 75772 {
+		t.Fatalf("RemainingIP = %d", usage.RemainingIP)
+	}
+}
+
 func TestOfficialFetcherConvertsExtractResultToLeases(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(t, w, map[string]any{

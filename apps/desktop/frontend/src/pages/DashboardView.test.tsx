@@ -47,6 +47,10 @@ describe('DashboardView', () => {
       {
         available: 1,
         inUse: 1,
+        userId: 73952,
+        userKnown: true,
+        poolRemainingIp: 75772,
+        poolRemainingKnown: true,
         remainingQuota: '3',
         totalQuota: '5',
         quotaKnown: true,

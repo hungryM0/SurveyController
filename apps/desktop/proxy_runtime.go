@@ -279,12 +279,19 @@ func (r *proxyRuntime) SyncOfficialStatus(ctx context.Context, source string) (P
 		}
 	}
 	key, pool := r.currentPoolStateForSource(source)
-	r.updateStatus(key, pool, ProxyStatus{
+	status := ProxyStatus{
 		RandomIPEnabled: true,
 		Source:          source,
 		Message:         "官方代理额度已同步",
+		UserID:          session.UserID,
+		UserKnown:       session.UserID > 0,
 		Quota:           proxycore.QuotaSnapshot{RemainingQuota: session.RemainingQuota, TotalQuota: session.TotalQuota, UsedQuota: session.UsedQuota, QuotaKnown: session.QuotaKnown},
-	})
+	}
+	if usage, usageErr := client.Usage(ctx); usageErr == nil {
+		status.PoolRemainingIP = usage.RemainingIP
+		status.PoolRemainingKnown = true
+	}
+	r.updateStatus(key, pool, status)
 	return r.statusSnapshot(), nil
 }
 
@@ -331,6 +338,8 @@ func (r *proxyRuntime) RedeemOfficialCard(ctx context.Context, source string, ca
 		RandomIPEnabled: true,
 		Source:          source,
 		Message:         "额度兑换成功",
+		UserID:          session.UserID,
+		UserKnown:       session.UserID > 0,
 		Quota:           result.Quota,
 	})
 	return ProxyRedeemState{
@@ -343,14 +352,18 @@ func (r *proxyRuntime) RedeemOfficialCard(ctx context.Context, source string, ca
 }
 
 func (r *proxyRuntime) refreshOfficialStatus(ctx context.Context, key string, pool *proxycore.Pool, source string, message string) {
-	quota, err := r.officialProxyClient().SessionManager().QuotaSnapshot(ctx)
+	manager := r.officialProxyClient().SessionManager()
+	quota, err := manager.QuotaSnapshot(ctx)
 	if err != nil {
 		quota = proxycore.QuotaSnapshot{}
 	}
+	session, sessionErr := manager.Snapshot(ctx)
 	r.updateStatus(key, pool, ProxyStatus{
 		RandomIPEnabled: true,
 		Source:          source,
 		Message:         message,
+		UserID:          session.UserID,
+		UserKnown:       sessionErr == nil && session.UserID > 0,
 		Quota:           quota,
 	})
 }
@@ -367,6 +380,14 @@ func (r *proxyRuntime) currentPoolStateForSource(source string) (string, *proxyc
 func (r *proxyRuntime) updateStatus(key string, pool *proxycore.Pool, status ProxyStatus) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if isOfficialProxySource(status.Source) && !status.PoolRemainingKnown && r.status.PoolRemainingKnown {
+		status.PoolRemainingIP = r.status.PoolRemainingIP
+		status.PoolRemainingKnown = true
+	}
+	if isOfficialProxySource(status.Source) && !status.UserKnown && r.status.UserKnown {
+		status.UserID = r.status.UserID
+		status.UserKnown = true
+	}
 	r.key = key
 	r.pool = pool
 	r.status = status
@@ -431,6 +452,11 @@ func officialUpstreamFromSource(source string) string {
 		return proxycore.OfficialUpstreamBenefit
 	}
 	return proxycore.OfficialUpstreamDefault
+}
+
+func isOfficialProxySource(source string) bool {
+	normalized := normalizeDesktopProxySource(source)
+	return normalized == proxycore.OfficialSourceDefault || normalized == proxycore.OfficialSourceBenefit
 }
 
 func resolveDesktopProxyArea(source string, areaCode *string) string {

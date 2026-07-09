@@ -49,6 +49,10 @@ export interface DashboardState {
   proxyRemainingQuota?: string
   proxyTotalQuota?: string
   proxyQuotaKnown?: boolean
+  proxyUserId?: number
+  proxyUserKnown?: boolean
+  proxyPoolRemainingIp?: number
+  proxyPoolRemainingKnown?: boolean
   proxyAvailable?: number
   proxyInUse?: number
   questionCount: number
@@ -267,6 +271,10 @@ export interface StartupTutorialHintState {
 export interface ProxyStatus {
   available: number
   inUse: number
+  userId: number
+  userKnown: boolean
+  poolRemainingIp: number
+  poolRemainingKnown: boolean
   remainingQuota: string
   totalQuota: string
   quotaKnown: boolean

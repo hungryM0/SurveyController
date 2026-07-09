@@ -86,13 +86,17 @@ type SurveyCoreState struct {
 }
 
 type ProxyStatus struct {
-	Available       int                     `json:"available"`
-	InUse           int                     `json:"inUse"`
-	RemainingQuota  string                  `json:"remainingQuota"`
-	TotalQuota      string                  `json:"totalQuota"`
-	QuotaKnown      bool                    `json:"quotaKnown"`
-	RandomIPEnabled bool                    `json:"randomIpEnabled"`
-	Source          string                  `json:"source"`
-	Message         string                  `json:"message"`
-	Quota           proxycore.QuotaSnapshot `json:"quota"`
+	Available          int                     `json:"available"`
+	InUse              int                     `json:"inUse"`
+	UserID             int                     `json:"userId"`
+	UserKnown          bool                    `json:"userKnown"`
+	PoolRemainingIP    int                     `json:"poolRemainingIp"`
+	PoolRemainingKnown bool                    `json:"poolRemainingKnown"`
+	RemainingQuota     string                  `json:"remainingQuota"`
+	TotalQuota         string                  `json:"totalQuota"`
+	QuotaKnown         bool                    `json:"quotaKnown"`
+	RandomIPEnabled    bool                    `json:"randomIpEnabled"`
+	Source             string                  `json:"source"`
+	Message            string                  `json:"message"`
+	Quota              proxycore.QuotaSnapshot `json:"quota"`
 }

@@ -99,8 +99,8 @@ function DashboardView({
   const [qrDropActive, setQrDropActive] = useState(false)
   const normalizedThreads = Math.max(1, Math.min(dashboard.threadCount, 32))
   const platformBadge = resolvePlatformBadge(dashboard.platformLabel)
-  const proxyAvailable = dashboard.proxyAvailable ?? 0
-  const proxyInUse = dashboard.proxyInUse ?? 0
+  const proxyUserId = dashboard.proxyUserKnown ? String(dashboard.proxyUserId ?? 0) : '-'
+  const proxyPoolRemaining = dashboard.proxyPoolRemainingKnown ? String(dashboard.proxyPoolRemainingIp ?? 0) : '-'
   const accountRemaining = dashboard.proxyRemainingQuota ?? '0'
   const accountTotal = dashboard.proxyTotalQuota ?? '0'
   const accountRemainingValue = quotaNumber(accountRemaining)
@@ -334,17 +334,16 @@ function DashboardView({
 
                     <div className="quota-status-block">
                       <strong>{dashboard.randomIpStatus}</strong>
-                      <span>总额度 {dashboard.proxyQuotaKnown ? accountTotal : '-'}</span>
                     </div>
 
                     <div className="quota-count-grid">
                       <div>
-                        <span>IP池剩余</span>
-                        <strong>{proxyAvailable}</strong>
+                        <span>用户ID</span>
+                        <strong>{proxyUserId}</strong>
                       </div>
                       <div>
-                        <span>占用</span>
-                        <strong>{proxyInUse}</strong>
+                        <span>IP池总剩余</span>
+                        <strong>{proxyPoolRemaining}</strong>
                       </div>
                     </div>
                   </div>

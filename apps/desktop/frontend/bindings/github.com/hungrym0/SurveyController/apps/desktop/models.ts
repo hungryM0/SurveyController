@@ -122,6 +122,10 @@ export interface ProxyRedeemState {
 export interface ProxyStatus {
     "available": number;
     "inUse": number;
+    "userId": number;
+    "userKnown": boolean;
+    "poolRemainingIp": number;
+    "poolRemainingKnown": boolean;
     "remainingQuota": string;
     "totalQuota": string;
     "quotaKnown": boolean;
