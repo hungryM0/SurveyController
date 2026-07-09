@@ -5,10 +5,10 @@
   [![GitHub Stars](https://img.shields.io/github/stars/SurveyController/SurveyController?style=flat&logo=github&color=yellow)](https://github.com/SurveyController/SurveyController/stargazers)
   ![Downloads](https://img.shields.io/github/downloads/SurveyController/SurveyController/total?style=flat&logo=github&color=green)
   [![License](https://img.shields.io/github/license/SurveyController/SurveyController?style=flat&color=orange)](./LICENSE)
-  [![Go](https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
+  [![Go](https://img.shields.io/badge/Go-1.26.5%2B-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
   [![Wails](https://img.shields.io/badge/Wails-v3-2D8CFF?style=flat)](https://wails.io/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-  [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38B2AC?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+  [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white)](https://react.dev/)
 
   <p><strong>一站式问卷自动化处理程序，适配问卷星、腾讯问卷、Credamo见数平台</strong></p>
   <p>支持指定ip填写地区、信度系数、作答时长与分布比例</p>
@@ -39,7 +39,7 @@
 
 ### 从源码运行
 
-**环境要求：** Go 1.26+，Git，Node.js，npm，Wails v3
+**环境要求：** Go 1.26.5+，Git，Node.js，npm，Wails v3
 
 当前只维护 Windows 桌面端和 Windows 安装包。
 
@@ -48,7 +48,7 @@
 
 安装 Wails CLI：
 ```powershell
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 ```
 
 克隆、安装前端依赖、运行桌面端：

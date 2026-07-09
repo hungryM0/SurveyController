@@ -7,9 +7,6 @@ import * as proxycore$0 from "../../../../../surveycontroller/proxycore/models.j
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as surveycore$0 from "../../../../../surveycontroller/surveycore/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
-import * as time$0 from "../../../../../time/models.js";
 
 export interface AIConnectionTestState {
     "success": boolean;
@@ -207,8 +204,8 @@ export interface RunTaskState {
     "result"?: surveycore$0.RunResult | null;
     "events"?: surveycore$0.Event[] | null;
     "error"?: string;
-    "startedAt"?: time$0.Time;
-    "endedAt"?: time$0.Time;
+    "startedAt"?: string;
+    "endedAt"?: string;
     "config"?: surveycore$0.RuntimeConfig | null;
 }
 

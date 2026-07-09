@@ -9,7 +9,7 @@
 需要准备：
 
 - Windows 10/11
-- Go 1.26 或更新版本
+- Go 1.26.5 或更新版本
 - Git
 - Wails v3（只在开发 Wails 应用壳时需要）
 - Node.js 与 npm（只在开发 Wails 前端时需要）

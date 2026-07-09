@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@wailsio/runtime": "3.0.0-alpha.79",
+    "@wailsio/runtime": "3.0.0-alpha.97",
     "core-js": "3.49.0",
     "lucide-react": "1.21.0",
     "react": "18.2.0",

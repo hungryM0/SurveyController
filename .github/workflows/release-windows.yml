@@ -9,9 +9,9 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: "1.26.4"
+  GO_VERSION: "1.26.5"
   NODE_VERSION: "22"
-  WAILS_VERSION: "v3.0.0-alpha2.104"
+  WAILS_VERSION: "v3.0.0-alpha2.117"
   R2_RELEASE_PREFIX: "surveycontroller/win/stable"
 
 concurrency:
