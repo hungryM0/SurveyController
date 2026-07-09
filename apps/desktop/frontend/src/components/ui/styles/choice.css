@@ -1,0 +1,242 @@
+.sc-select-trigger {
+  display: inline-flex;
+  min-height: 2.1rem;
+  min-width: 8rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.22);
+  border-radius: 0.35rem;
+  background-color: var(--control);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  padding: 0.35rem 0.58rem 0.35rem 0.7rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.sc-select-trigger:hover {
+  background-color: var(--control-hover);
+}
+
+.sc-select-trigger:active {
+  background-color: var(--control);
+  transform: scale(0.97);
+}
+
+.sc-select-trigger:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.sc-select-icon {
+  display: inline-flex;
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .sc-select-trigger {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.18);
+}
+
+.sc-select-content {
+  z-index: 80;
+  overflow: hidden;
+  min-width: var(--radix-select-trigger-width);
+  max-height: min(18rem, var(--radix-select-content-available-height));
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px) saturate(145%);
+  animation: sc-select-in 167ms cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.sc-select-viewport {
+  padding: 0.25rem;
+}
+
+.sc-select-item {
+  position: relative;
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  padding: 0.45rem 2rem 0.45rem 0.65rem;
+  border-radius: 0.32rem;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.84rem;
+  outline: none;
+  user-select: none;
+}
+
+.sc-select-item[data-highlighted] {
+  background: var(--control-hover);
+}
+
+.sc-select-item[data-state="checked"]::before {
+  position: absolute;
+  left: 0.2rem;
+  width: 3px;
+  height: 1rem;
+  border-radius: 999px;
+  background: var(--accent);
+  content: "";
+}
+
+.sc-select-item-indicator {
+  position: absolute;
+  right: 0.55rem;
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.sc-switch-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.sc-switch {
+  position: relative;
+  display: inline-flex;
+  width: 40px;
+  height: 20px;
+  align-items: center;
+  border: 1px solid var(--muted);
+  border-radius: 20px;
+  background-color: var(--control);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.sc-switch:hover {
+  background-color: var(--control-hover);
+}
+
+.sc-switch[data-state="checked"] {
+  border-color: var(--accent);
+  background-color: var(--accent);
+}
+
+.sc-switch-thumb {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text);
+  transform: translateX(3px);
+  transition:
+    transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1),
+    width 0.15s ease,
+    height 0.15s ease;
+}
+
+.sc-switch[data-state="checked"] .sc-switch-thumb {
+  background: var(--surface-strong);
+  transform: translateX(23px);
+}
+
+.sc-switch:active .sc-switch-thumb {
+  width: 16px;
+}
+
+.sc-switch[data-state="checked"]:active .sc-switch-thumb {
+  transform: translateX(19px);
+}
+
+.sc-switch-label {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.sc-range-slider {
+  position: relative;
+  display: inline-flex;
+  height: 20px;
+  align-items: center;
+  padding: 8px 0;
+  touch-action: none;
+  user-select: none;
+}
+
+.sc-range-track {
+  position: relative;
+  height: 4px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.sc-range-fill {
+  position: absolute;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.sc-range-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--surface-strong);
+  border-radius: 50%;
+  background-color: var(--accent);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    border-width 0.1s ease;
+}
+
+.sc-range-thumb:hover {
+  border-width: 2px;
+  transform: scale(1.15);
+}
+
+.sc-range-thumb:active {
+  border-width: 4px;
+  transform: scale(0.95);
+}
+
+.sc-range-thumb:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.sc-progress-bar {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.sc-progress-bar.hide {
+  height: 0;
+}
+
+.sc-progress-indicator {
+  position: absolute;
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--accent);
+  transition: width 1s ease-in-out;
+}
+
+.sc-progress-indicator.indeterminate {
+  width: 100%;
+  transform-origin: 0% 50%;
+  animation: sc-progress-indeterminate 1s infinite linear;
+}

@@ -1,6 +1,6 @@
 import { BookOpen, ExternalLink, MessageCircle, PenLine, QrCode, ShieldCheck } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
-import { Button } from 'react-windows-ui'
+import { Button } from '../components/ui'
 import { buildCommunityIssueUrl, COMMUNITY_REPO_URL, resolveCommunityQrUrl } from './communityViewModel'
 
 async function openUrl(url: string) {

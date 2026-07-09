@@ -12,12 +12,15 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "1.1.19",
+    "@radix-ui/react-progress": "1.1.12",
+    "@radix-ui/react-select": "2.3.3",
+    "@radix-ui/react-slider": "1.4.3",
+    "@radix-ui/react-switch": "1.3.3",
     "@wailsio/runtime": "3.0.0-alpha.97",
-    "core-js": "3.49.0",
     "lucide-react": "1.23.0",
     "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "react-windows-ui": "4.2.4"
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
     "@types/react": "19.2.17",

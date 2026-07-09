@@ -1,0 +1,59 @@
+.sc-table-view-container {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.sc-table-view {
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.sc-table-view th,
+.sc-table-view td {
+  border-color: var(--line);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.sc-table-view th {
+  border-bottom: 1px solid var(--line);
+  background-color: var(--surface-soft);
+  font-weight: 600;
+  padding: 10px 16px;
+}
+
+.sc-table-view th.sortable {
+  cursor: pointer;
+}
+
+.sc-table-view td {
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  padding: 10px 16px;
+}
+
+.sc-table-view tr:hover td {
+  background-color: var(--control-hover);
+}
+
+.sc-table-view tr:last-child td {
+  border-bottom: none;
+}
+
+.sc-table-sort-icon {
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin-left: 0.35rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.55;
+  transform: rotate(45deg) translateY(-0.12rem);
+}
+
+.sc-table-sort-icon.asc {
+  transform: rotate(225deg) translateY(-0.02rem);
+}

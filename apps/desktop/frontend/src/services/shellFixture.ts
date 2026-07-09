@@ -51,7 +51,7 @@ export const emptyShellState: ShellState = {
   communityItems: [],
   aboutItems: [
     { label: '版本', value: 'test' },
-    { label: '前端栈', value: 'React + react-windows-ui + Wails v3' },
+    { label: '前端栈', value: 'React + Radix UI + Wails v3' },
     { label: '桌面壳', value: 'Wails v3' },
   ],
   donateItems: [

@@ -1,0 +1,39 @@
+.sc-loader-busy {
+  position: relative;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.sc-loader-busy.loader-lg {
+  width: 42px;
+  height: 42px;
+}
+
+.sc-loader-busy.loader-sm {
+  width: 20px;
+  height: 20px;
+}
+
+.sc-loader-busy.animate {
+  opacity: 1;
+}
+
+.sc-loader-busy .sc-ldr-busy {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-width: 2px;
+  transform-origin: 50% 50%;
+  animation: sc-loader-spin 2s linear infinite;
+}
+
+.sc-loader-busy.light .sc-ldr-busy,
+.sc-button-primary .sc-ldr-busy,
+.sc-button-danger .sc-ldr-busy,
+.sc-button-success .sc-ldr-busy {
+  stroke: currentColor;
+}

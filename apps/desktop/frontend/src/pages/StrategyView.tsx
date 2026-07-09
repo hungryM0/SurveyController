@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent, type ReactElement } from 'react'
-import { Button, InputText, SelectNative, TableView } from 'react-windows-ui'
+import { Button, InputText, SelectNative, TableView } from '../components/ui'
 import ConditionRuleDialog from '../components/ConditionRuleDialog'
 import QuestionLogicPreview from '../components/QuestionLogicPreview'
 import QuestionMediaPreview from '../components/QuestionMediaPreview'

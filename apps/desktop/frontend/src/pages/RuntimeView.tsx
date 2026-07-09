@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
 import { Activity, Globe, Settings, SlidersHorizontal, Zap } from 'lucide-react'
-import { Button, InputText, SelectNative } from 'react-windows-ui'
+import { Button, InputText, SelectNative } from '../components/ui'
 import SettingField from '../components/SettingField'
 import { loadProxyAreaOptions, testAIConnection, testCustomProxyAPI } from '../services/shell'
 import type { ProxyAreaOptionsState, RuntimeConfig, SettingField as SettingFieldType, SettingsGroup } from '../types'

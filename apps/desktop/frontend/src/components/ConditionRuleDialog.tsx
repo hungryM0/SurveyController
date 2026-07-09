@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
-import { Button, SelectNative } from 'react-windows-ui'
+import * as Dialog from '@radix-ui/react-dialog'
+import { Button, SelectNative } from './ui'
 import type { RuntimeConfig } from '../types'
 import {
   buildRuleOptionLabels,
@@ -99,12 +100,18 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
   const targetOptionLabels = buildRuleOptionLabels(targetQuestion)
 
   return (
-    <div className="condition-rule-dialog-backdrop" role="presentation" onClick={onCancel}>
-      <section className="condition-rule-dialog surface" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="condition-rule-dialog-backdrop" />
+        <Dialog.Content className="condition-rule-dialog surface">
         <div className="condition-rule-dialog-head">
           <div>
-            <h2>{initialRule ? '编辑条件规则' : '新增条件规则'}</h2>
-            <span>前置条件 · 题号必须递增</span>
+            <Dialog.Title asChild>
+              <h2>{initialRule ? '编辑条件规则' : '新增条件规则'}</h2>
+            </Dialog.Title>
+            <Dialog.Description asChild>
+              <span>前置条件 · 题号必须递增</span>
+            </Dialog.Description>
           </div>
           <Button value="关闭" onClick={onCancel} />
         </div>
@@ -195,8 +202,9 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
           <Button value="取消" onClick={onCancel} />
           <Button type="primary" value="保存规则" onClick={saveRule} />
         </div>
-      </section>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 

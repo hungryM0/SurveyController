@@ -1,0 +1,196 @@
+.sc-button {
+  position: relative;
+  display: inline-flex;
+  min-height: 2.1rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.22);
+  border-radius: 0.35rem;
+  background-color: var(--control);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.84rem;
+  line-height: 1;
+  padding: 0.35rem 0.78rem;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    filter 0.15s ease,
+    transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.sc-button svg {
+  flex: 0 0 auto;
+}
+
+.sc-button:hover {
+  background-color: var(--control-hover);
+}
+
+.sc-button:active {
+  background-color: var(--control);
+  transform: scale(0.97);
+}
+
+.sc-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.sc-button-primary {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.28);
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+.sc-button-primary:hover {
+  background-color: var(--accent);
+  filter: brightness(1.08);
+  opacity: 0.92;
+}
+
+.sc-button-primary:active {
+  filter: brightness(0.92);
+}
+
+.sc-button-danger {
+  background-color: var(--danger);
+  color: #ffffff;
+}
+
+.sc-button-success {
+  background-color: var(--success);
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .sc-button {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.18);
+  background-color: var(--control);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="dark"] .sc-button:active {
+  background-color: var(--surface-soft);
+}
+
+:root[data-theme="dark"] .sc-button-primary {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.25);
+  background-color: var(--accent);
+  color: #000000;
+}
+
+.sc-input-container {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.sc-input {
+  min-height: 2.1rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  background-color: var(--control);
+  background-image: none;
+  color: var(--text);
+  font: inherit;
+  padding: 0 2rem 0 10px;
+  transition:
+    border-bottom-color 0.18s cubic-bezier(0.1, 0.9, 0.2, 1),
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sc-input:hover:not(:focus) {
+  background-color: var(--control-hover);
+}
+
+.sc-input:focus {
+  border-color: rgba(0, 0, 0, 0.12);
+  border-bottom: 2px solid var(--accent);
+  outline: none;
+  background-color: var(--surface-strong);
+  box-shadow: none;
+}
+
+.sc-input::placeholder {
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+}
+
+:root[data-theme="dark"] .sc-input {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.35);
+}
+
+:root[data-theme="dark"] .sc-input:focus {
+  border-color: rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid var(--accent);
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.sc-input-label {
+  margin-right: 0.45rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.sc-input-end-content {
+  position: absolute;
+  right: 5px;
+  display: inline-flex;
+  height: 100%;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.sc-input-end-content button,
+.sc-input-end-content .sc-loader-busy {
+  pointer-events: auto;
+}
+
+.sc-input-clear,
+.sc-input-password {
+  display: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.sc-input-clear.show,
+.sc-input-password {
+  display: grid;
+  place-items: center;
+}
+
+.sc-input-clear::before,
+.sc-input-password::before {
+  content: "";
+  width: 0.72rem;
+  height: 0.72rem;
+  background: currentColor;
+  mask: linear-gradient(#000 0 0);
+}
+
+.sc-input-clear::before {
+  clip-path: polygon(12% 0, 50% 38%, 88% 0, 100% 12%, 62% 50%, 100% 88%, 88% 100%, 50% 62%, 12% 100%, 0 88%, 38% 50%, 0 12%);
+}
+
+.sc-input-password::before {
+  border-radius: 999px;
+  clip-path: ellipse(48% 32% at 50% 50%);
+}

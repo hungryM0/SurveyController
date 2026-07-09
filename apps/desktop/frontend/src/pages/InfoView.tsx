@@ -1,5 +1,5 @@
 import { Bell, Eye, FolderOpen, Palette, RotateCcw, Save, Settings2, Sliders } from 'lucide-react'
-import { Button } from 'react-windows-ui'
+import { Button } from '../components/ui'
 import SettingField from '../components/SettingField'
 import type { PageMetric, ReverseFillRow, SettingsGroup } from '../types'
 

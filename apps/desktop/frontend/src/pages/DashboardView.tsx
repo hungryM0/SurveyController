@@ -17,7 +17,7 @@ import {
   Upload,
   Zap,
 } from 'lucide-react'
-import { Button, InputText, ProgressBar, SelectNative, SliderBar, Switch, TableView } from 'react-windows-ui'
+import { Button, InputText, ProgressBar, SelectNative, SliderBar, Switch, TableView } from '../components/ui'
 import type { DashboardState } from '../types'
 
 interface DashboardViewProps {

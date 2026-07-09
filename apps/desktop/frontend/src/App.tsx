@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
-import { AppTheme, LoaderBusy } from 'react-windows-ui'
+import { AppTheme, LoaderBusy } from './components/ui'
 import { Browser, Dialogs, Window } from '@wailsio/runtime'
 import NavRail from './components/NavRail'
 import StartupTutorialHint, {

@@ -1,5 +1,5 @@
 import { BookOpen, X } from 'lucide-react'
-import { Button } from 'react-windows-ui'
+import { Button } from './ui'
 
 export const STARTUP_TUTORIAL_DOC_URL = 'https://surveydoc.hungrym0.com/'
 export const STARTUP_TUTORIAL_HINT_DELAY_MS = 1800

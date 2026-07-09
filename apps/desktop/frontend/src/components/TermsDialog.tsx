@@ -1,4 +1,5 @@
-import { Button } from 'react-windows-ui'
+import * as Dialog from '@radix-ui/react-dialog'
+import { Button } from './ui'
 
 interface TermsDialogProps {
   open: boolean
@@ -107,19 +108,26 @@ function TermsDialog({ open, variant = 'terms', onClose }: TermsDialogProps) {
   const copy = termsDialogCopy(variant)
 
   return (
-    <div className="terms-dialog-backdrop" role="presentation" onClick={onClose}>
-      <section className="terms-dialog surface" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="terms-dialog-backdrop" />
+        <Dialog.Content className="terms-dialog surface">
         <div className="terms-dialog-head">
           <div>
-            <h2>{copy.title}</h2>
-            <span>{copy.subtitle}</span>
+            <Dialog.Title asChild>
+              <h2>{copy.title}</h2>
+            </Dialog.Title>
+            <Dialog.Description asChild>
+              <span>{copy.subtitle}</span>
+            </Dialog.Description>
           </div>
           <Button value="关闭" onClick={onClose} />
         </div>
 
         <pre className="terms-dialog-body">{copy.body}</pre>
-      </section>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 

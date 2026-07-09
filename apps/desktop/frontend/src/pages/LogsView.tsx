@@ -1,6 +1,6 @@
 import { Clipboard, Save, Terminal } from 'lucide-react'
 import { Browser, Clipboard as RuntimeClipboard, Dialogs } from '@wailsio/runtime'
-import { Button } from 'react-windows-ui'
+import { Button } from '../components/ui'
 
 interface LogsViewProps {
   logs: string[]

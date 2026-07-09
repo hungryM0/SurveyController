@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react'
-import { NavBarLink } from 'react-windows-ui'
+import { NavBarLink } from './ui'
 import type { NavItem } from '../types'
 
 interface NavRailProps {

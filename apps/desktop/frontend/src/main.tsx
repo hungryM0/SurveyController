@@ -1,8 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import 'react-windows-ui/config/app-config.css'
-import 'react-windows-ui/dist/react-windows-ui.min.css'
-import 'react-windows-ui/icons/winui-icons.min.css'
+import './components/ui/ui.css'
 import './style.css'
 import App from './App'
 

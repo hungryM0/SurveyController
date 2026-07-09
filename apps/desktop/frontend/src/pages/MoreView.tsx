@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type PointerEvent } from 'react'
 import { ChartColumn, GitBranch, Globe, HeartHandshake, RotateCcw, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
-import { Button } from 'react-windows-ui'
+import { Button } from '../components/ui'
 import type { IPUsageSummary, PageMetric } from '../types'
 import TermsDialog from '../components/TermsDialog'
 import { claimRandomIPBonus } from '../services/shell'

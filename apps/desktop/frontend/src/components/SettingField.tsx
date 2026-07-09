@@ -1,5 +1,5 @@
 import { useMemo, type ChangeEvent, type ReactElement } from 'react'
-import { InputText, SelectNative, Switch } from 'react-windows-ui'
+import { InputText, SelectNative, Switch } from './ui'
 import type { SettingField as SettingFieldType } from '../types'
 
 interface SettingFieldProps {

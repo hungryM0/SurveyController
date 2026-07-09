@@ -1,5 +1,6 @@
-import { useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
-import { Button, InputText, TableView } from 'react-windows-ui'
+import { useMemo, useState, type ChangeEvent } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
+import { Button, InputText } from './ui'
 import type { DimensionQuestionRow } from '../pages/strategyEditor'
 
 interface QuestionSelectorDialogProps {
@@ -9,13 +10,6 @@ interface QuestionSelectorDialogProps {
   onCancel: () => void
   onConfirm: (indices: number[]) => void
 }
-
-const TableControl = TableView as unknown as (props: {
-  columns: Array<{ title: string, sortable?: boolean, showSortIcon?: boolean }>
-  rows: string[][]
-  rowFontSize?: number
-  headerFontSize?: number
-}) => ReactElement
 
 function QuestionSelectorDialog({ open, title, questions, onCancel, onConfirm }: QuestionSelectorDialogProps) {
   const [searchText, setSearchText] = useState('')
@@ -56,12 +50,18 @@ function QuestionSelectorDialog({ open, title, questions, onCancel, onConfirm }:
   }
 
   return (
-    <div className="question-selector-backdrop" role="presentation" onClick={onCancel}>
-      <section className="question-selector-dialog surface" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="question-selector-backdrop" />
+        <Dialog.Content className="question-selector-dialog surface">
         <div className="question-selector-head">
           <div>
-            <h2>{title}</h2>
-            <span>支持搜索和多选</span>
+            <Dialog.Title asChild>
+              <h2>{title}</h2>
+            </Dialog.Title>
+            <Dialog.Description asChild>
+              <span>支持搜索和多选</span>
+            </Dialog.Description>
           </div>
           <Button value="关闭" onClick={onCancel} />
         </div>
@@ -99,8 +99,9 @@ function QuestionSelectorDialog({ open, title, questions, onCancel, onConfirm }:
           <Button value="取消" onClick={onCancel} />
           <Button type="primary" value="确定" onClick={confirm} />
         </div>
-      </section>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
