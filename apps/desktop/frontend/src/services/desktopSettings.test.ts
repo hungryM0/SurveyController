@@ -3,9 +3,7 @@ import {
   applyTopmostSetting,
   buildTaskResultNotification,
   shouldAskSaveOnClose,
-  shouldCloseAfterSavePrompt,
   shouldNotifyTaskResult,
-  shouldSaveBeforeClose,
   showTaskResultNotification,
 } from './desktopSettings'
 
@@ -14,14 +12,6 @@ describe('desktop settings helpers', () => {
     expect(shouldAskSaveOnClose(null)).toBe(true)
     expect(shouldAskSaveOnClose({ askSaveOnClose: true })).toBe(true)
     expect(shouldAskSaveOnClose({ askSaveOnClose: false })).toBe(false)
-  })
-
-  it('maps close prompt choices', () => {
-    expect(shouldCloseAfterSavePrompt('保存')).toBe(true)
-    expect(shouldCloseAfterSavePrompt('不保存')).toBe(true)
-    expect(shouldCloseAfterSavePrompt('取消')).toBe(false)
-    expect(shouldSaveBeforeClose('保存')).toBe(true)
-    expect(shouldSaveBeforeClose('不保存')).toBe(false)
   })
 
   it('applies topmost setting through Wails window API', async () => {

@@ -4,14 +4,6 @@ export function shouldAskSaveOnClose(settings: Pick<AppSettings, 'askSaveOnClose
   return settings?.askSaveOnClose !== false
 }
 
-export function shouldCloseAfterSavePrompt(choice: string): boolean {
-  return choice === '保存' || choice === '不保存'
-}
-
-export function shouldSaveBeforeClose(choice: string): boolean {
-  return choice === '保存'
-}
-
 export async function applyTopmostSetting(
   windowApi: { SetAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void> | void },
   settings: Pick<AppSettings, 'topmost'> | null | undefined,

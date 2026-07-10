@@ -1874,6 +1874,67 @@ select {
   transform: translate(-50%, -50%);
 }
 
+.close-confirmation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(8, 12, 18, 0.52);
+  backdrop-filter: blur(14px);
+}
+
+.close-confirmation-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 81;
+  width: min(30rem, calc(100vw - 2rem));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  padding: 1.2rem;
+  transform: translate(-50%, -50%);
+}
+
+.close-confirmation-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  place-items: center;
+}
+
+.close-confirmation-content {
+  display: grid;
+  align-content: center;
+  gap: 0.3rem;
+}
+
+.close-confirmation-content h2,
+.close-confirmation-content p {
+  margin: 0;
+}
+
+.close-confirmation-content h2 {
+  color: var(--text);
+  font-size: 1.02rem;
+}
+
+.close-confirmation-content p {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.close-confirmation-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
 .question-selector-head,
 .condition-rule-dialog-head,
 .question-selector-foot,

@@ -8,6 +8,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
+const closeRequestedEvent = "surveycontroller:close-requested"
+
 //go:embed all:frontend/dist
 var assets embed.FS
 
@@ -51,6 +53,7 @@ func main() {
 			return
 		}
 		event.Cancel()
+		window.EmitEvent(closeRequestedEvent)
 	})
 	window.Center()
 	window.Show()

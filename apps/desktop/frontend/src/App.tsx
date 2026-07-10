@@ -1,7 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { AppTheme, LoaderBusy } from './components/ui'
-import { Browser, Dialogs, Window } from '@wailsio/runtime'
+import { Browser, Dialogs, Events, Window } from '@wailsio/runtime'
+import CloseConfirmationDialog from './components/CloseConfirmationDialog'
+import { useCloseConfirmation } from './hooks/useCloseConfirmation'
 import NavRail from './components/NavRail'
 import StartupTutorialHint, {
   STARTUP_TUTORIAL_HINT_DELAY_MS,
@@ -42,9 +44,7 @@ import {
   applyTopmostSetting,
   buildTaskResultNotification,
   shouldAskSaveOnClose,
-  shouldCloseAfterSavePrompt,
   shouldNotifyTaskResult,
-  shouldSaveBeforeClose,
   showTaskResultNotification,
 } from './services/desktopSettings'
 import type { ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
@@ -396,27 +396,15 @@ function App() {
       : existing)
   }
 
-  async function closeWindow() {
-    if (shouldAskSaveOnClose(settingsRef.current)) {
-      const choice = await Dialogs.Question({
-        Title: '保存配置',
-        Message: '是否保存当前配置？',
-        Buttons: [
-          { Label: '保存', IsDefault: true },
-          { Label: '不保存' },
-          { Label: '取消', IsCancel: true },
-        ],
-      })
-      if (!shouldCloseAfterSavePrompt(choice)) {
-        return
-      }
-      if (shouldSaveBeforeClose(choice)) {
-        await saveCurrentConfig()
-      }
-    }
-    await confirmClose()
-    await Window.Close()
-  }
+  const closeConfirmation = useCloseConfirmation({
+    shouldAsk: () => shouldAskSaveOnClose(settingsRef.current),
+    save: saveCurrentConfig,
+    confirm: confirmClose,
+    close: Window.Close,
+    onError: (err) => setError(err.message),
+  })
+
+  useEffect(() => Events.On('surveycontroller:close-requested', () => closeConfirmation.requestClose()), [closeConfirmation.requestClose])
 
   async function exportLogs(path: string, lines: string[]) {
     await withBusy(async () => {
@@ -616,7 +604,7 @@ function App() {
             <small>{shell.appVersion}</small>
           </div>
         </div>
-        <WindowControls onClose={closeWindow} />
+        <WindowControls onClose={closeConfirmation.requestClose} />
       </header>
 
       <div className="app-frame">
@@ -706,6 +694,13 @@ function App() {
           onOpen={() => void openStartupTutorial()}
         />
       ) : null}
+      <CloseConfirmationDialog
+        open={closeConfirmation.open}
+        busy={closeConfirmation.busy}
+        onCancel={closeConfirmation.cancelClose}
+        onDiscard={() => void closeConfirmation.closeWithoutSaving()}
+        onSave={() => void closeConfirmation.saveAndClose()}
+      />
     </div>
   )
 }
