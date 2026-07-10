@@ -31,12 +31,11 @@ function SettingField({ field, onChange }: SettingFieldProps) {
 
       {field.kind === 'toggle' ? (
         <Switch
-          key={`${field.id}-${field.value}`}
           label
           labelOn="开"
           labelOff="关"
-          defaultChecked={field.value === 'true'}
-          onChange={() => onChange(field.id, field.value !== 'true')}
+          checked={field.value === 'true'}
+          onChange={(checked) => onChange(field.id, checked)}
         />
       ) : null}
 

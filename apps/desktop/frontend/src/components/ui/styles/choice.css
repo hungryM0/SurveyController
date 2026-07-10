@@ -106,8 +106,9 @@
 .sc-switch {
   position: relative;
   display: inline-flex;
-  width: 40px;
-  height: 20px;
+  width: 42px;
+  height: 22px;
+  box-sizing: border-box;
   align-items: center;
   border: 1px solid var(--muted);
   border-radius: 20px;
@@ -129,29 +130,29 @@
 }
 
 .sc-switch-thumb {
-  display: block;
-  width: 12px;
-  height: 12px;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--text);
-  transform: translateX(3px);
   transition:
-    transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1),
-    width 0.15s ease,
-    height 0.15s ease;
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.15s ease;
 }
 
 .sc-switch[data-state="checked"] .sc-switch-thumb {
   background: var(--surface-strong);
-  transform: translateX(23px);
+  transform: translateX(22px);
 }
 
 .sc-switch:active .sc-switch-thumb {
-  width: 16px;
+  transform: scale(0.94);
 }
 
 .sc-switch[data-state="checked"]:active .sc-switch-thumb {
-  transform: translateX(19px);
+  transform: translateX(22px) scale(0.94);
 }
 
 .sc-switch-label {

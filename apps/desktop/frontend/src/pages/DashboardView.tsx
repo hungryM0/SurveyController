@@ -253,12 +253,11 @@ function DashboardView({
                 </div>
                 <div className="item-switch-area">
                   <Switch
-                    key={`random-ip-${dashboard.randomIpEnabled}`}
                     label
                     labelOn="已开启"
                     labelOff="已关闭"
-                    defaultChecked={dashboard.randomIpEnabled}
-                    onChange={() => onRandomIpChange(!dashboard.randomIpEnabled)}
+                    checked={dashboard.randomIpEnabled}
+                    onChange={onRandomIpChange}
                   />
                 </div>
               </div>

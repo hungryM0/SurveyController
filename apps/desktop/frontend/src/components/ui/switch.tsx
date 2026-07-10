@@ -8,7 +8,7 @@ interface SwitchProps extends Omit<ComponentPropsWithoutRef<typeof RadixSwitch.R
   labelOff?: string
   labelFixedWidth?: string
   labelPosition?: 'start' | 'end'
-  onChange?: () => void
+  onChange?: (checked: boolean) => void
 }
 
 const Switch = forwardRef<HTMLButtonElement, SwitchProps>(({
@@ -41,7 +41,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(({
         checked={checked}
         onCheckedChange={(next) => {
           setUncontrolledChecked(next)
-          onChange()
+          onChange(next)
         }}
         {...props}
       >
