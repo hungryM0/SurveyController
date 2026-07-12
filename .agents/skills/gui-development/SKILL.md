@@ -1,96 +1,87 @@
 ---
 name: gui-development
-description: 面向 SurveyController 桌面端的 GUI 开发与界面修复技能。用于修改 software/ui/ 下的 PySide6 + QFluentWidgets 页面、弹窗、导航、配置编辑、运行状态展示和日志界面，处理信号槽、线程协作、对象生命周期、布局、主题和窗口缩放问题。适合做桌面界面开发、交互修复和配置同步，不适合把耗时逻辑直接塞进主线程。
+description: 面向 SurveyController 当前 Go+Wails + React 桌面端的 GUI 开发与界面修复技能。用于修改 `apps/desktop/frontend/` 的页面、组件、表单、导航、弹窗、动效、配置编辑和运行状态展示；处理 Radix 控件、Wails 绑定、异步状态、焦点态、窗口生命周期、布局缩放和真实后端接线。不要用于恢复旧 Python/PySide6 UI 或浏览器自动化。
 ---
 
-# gui-development
+# SurveyController GUI Development
 
-## name
+## 基线
 
-`gui-development`
+- 桌面壳在 `apps/desktop/`，React 前端在 `apps/desktop/frontend/`。
+- 前端通过 `src/services/shell.ts` 调 Wails 绑定。不要在组件里直接写 HTTP、读配置文件或伪造成功状态。
+- 组件优先复用 `src/components/ui/` 的 Radix 封装、`lucide-react` 图标和现有 CSS 变量。
+- 样式入口是 `src/style.css`，基础控件样式在 `src/components/ui/styles/`。
+- 只维护 Windows 桌面端。Wails WebView 只承载 UI，不承担问卷自动化。
 
-## description
+## 开始前
 
-这个 skill 处理桌面 GUI。
-重点是页面、弹窗、交互逻辑、配置编辑、日志展示和运行状态反馈。
-技术栈是 PySide6 加 QFluentWidgets。
+1. 读 `AGENTS.md`、目标页面、对应服务函数和已有测试。
+2. 沿着 `页面 -> App.tsx -> services/shell.ts -> Wails binding -> AppService` 检查数据流。
+3. 先确认改动是视觉、交互、状态还是后端能力。不要用 UI 层的假数据掩盖缺失的服务能力。
+4. 涉及窗口关闭、文件选择、通知、代理验活等能力时，先找已有 Wails 方法和错误映射。
 
-## when_to_use
+## UI 设计协议
 
-出现这些情况时用：
+### 视觉方向
 
-- 要改 `software/ui/` 下的页面、对话框、导航、卡片、表格、日志面板。
-- 配置项在 UI 里显示错、保存错、同步错。
-- 运行状态、错误提示、日志展示不清楚。
-- 主线程卡死、信号槽没接好、对象生命周期出问题。
+- 延续当前 Windows Fluent/Mica 方向：半透明层、细边框、低强度阴影、蓝色功能强调色。
+- 不新增紫色渐变、Emoji 图标、默认浏览器控件外观或与现有页面割裂的卡片风格。
+- 图标统一使用 `lucide-react`，尺寸和描边保持邻近控件一致。
+- 文案保持简洁中文。不要把迁移说明、内部状态、开发解释写进界面。
+- 同一类控件共享变量、圆角、边框和状态样式，不在页面里复制一套近似 CSS。
 
-这些情况别乱搞：
+### 动效与缓动
 
-- 把网络、解析、平台逻辑直接塞进页面类。
-- 在主线程里跑 HTTP、磁盘大 IO、长循环。
+- 进入使用缓出，退出使用缓入；禁止在线性缓动上堆动画。
+- 普通控件反馈约 `140–220ms`，页面切换约 `200–280ms`，窗口退场约 `160ms`。动画只作用于 `transform`、`opacity`、颜色或阴影。
+- 条件组件用挂载动画展示。需要重播时改变明确的状态 key，不要靠强制重排。
+- 页面切换必须区分前进和后退方向；窗口打开、确认弹窗和窗口关闭保持同一节奏。
+- 所有新动画补 `@media (prefers-reduced-motion: reduce)`，减少动态时移除位移、缩放和等待。
+- 不要给每个元素都加动画。一个视图只突出一到两个主要动效层。
 
-## instructions
+### 交互状态
 
-1. 先读入口和页面装配点。
-   必读：
-   - `software/app/main.py`
-   - `software/ui/shell/main_window.py`
-   - `software/ui/shell/main_window_parts/lazy_pages.py`
-   - 相关页面模块
-2. 优先复用现有 PySide6 / QFluentWidgets 组件。
-   不要自己造一套风格。
-3. 耗时任务别堵主线程。
-   需要走线程、异步桥接、任务队列或现有控制层。
-4. UI 改动时至少检查这些东西：
-   - 信号槽连接
-   - 对象生命周期
-   - 布局是否挤炸
-   - 深色模式
-   - DPI 缩放
-   - 异常提示是否能看懂
-5. 涉及配置编辑时，先找真实读写路径。
-   重点看：
-   - `software/app/settings_store.py`
-   - `software/app/user_paths.py`
-   - 相关 `software/io/` 和页面同步模块
-6. 涉及运行状态时，优先检查：
-   - `software/ui/controller/`
-   - `software/ui/pages/workbench/runtime_panel/`
-   - `software/ui/pages/workbench/log_panel/`
-   - `software/ui/pages/workbench/dashboard/`
-7. 不要吞异常。
-   用户至少要看到清楚的错误反馈，日志里也要能追。
-8. 修改后做基本 smoke test。
-   至少确保应用能启动，并能进入相关页面。
+- 每个可点击控件都要有默认、悬停、按下、禁用、错误和成功状态；耗时操作还要有忙碌状态。
+- 鼠标点击不显示 WebView 原生蓝色焦点框；保留 `:focus-visible` 键盘焦点提示。
+- 下拉框、开关、滑块等 Radix 控件必须明确 `touch-action`、`user-select`、焦点和指针捕获规则。
+- 受控控件的 value 变化不能导致组件重建。禁止用随数值变化的 `key` 包住正在拖动的控件。
+- 条件显示的输入框、按钮和结果提示必须跟真实状态绑定。隐藏时卸载，显示时播放进入动画；不要保留不可用的空占位。
+- 错误要显示在用户能定位的位置，同时保留服务层错误信息；不要吞异常或只在控制台打印。
 
-## project_conventions
+### 布局与可用性
 
-- GUI 主目录是真实存在的 `software/ui/`。
-- 设置页、更多页、工作台页都通过主窗口懒加载组织，别乱改路由键。
-- 资源路径别写死安装目录。只读资源看 `software/app/runtime_paths.py`，用户可写配置看 `software/app/user_paths.py`。
-- 改 UI 优先用 QFluentWidgets 原生组件。
-- 不要把内部解释、迁移提示、开发说明直接写进图形界面。
-- 如果用了 Playwright MCP，本项目约束是用系统 Edge；但当前仓库规则同时禁止引入浏览器自动化依赖，普通 GUI 改动优先用 Qt smoke test。
+- 先保证桌面窗口常规尺寸可用，再处理窄窗口和 DPI 缩放；禁止固定宽度把输入框、按钮挤出视口。
+- 表单标签、输入框、按钮按同一行的视觉层级排列；条件表单展开后不能覆盖相邻内容。
+- 交互区域保留足够点击尺寸，文本不要依赖颜色单独表达状态。
+- 深色模式、`prefers-reduced-motion`、键盘 Tab 导航和禁用状态必须一起检查。
 
-## common_commands
+## 实施边界
 
-```bash
-uv run python SurveyController.py
-uv run pytest CI/unit_tests/app
-uv run pytest CI/unit_tests/app/test_runtime_panel_cards_qtbot.py
-uv run pytest CI/unit_tests/app/test_question_wizard_dialog_qtbot.py
-uv run pytest CI/unit_tests/app/test_quota_redeem_dialog.py
-uv run python CI/python_ci.py
-uv run python CI/python_ci.py --full
-rg "QFluent|Signal|slot|qtbot|Page|Dialog" software/ui CI/unit_tests/app
-```
+- 组件负责展示、交互和局部状态；页面负责编排；`services/` 负责 Wails 调用和数据映射。
+- 网络请求、文件 IO、代理验活、问卷运行不能写进渲染函数，也不能阻塞 UI 线程。
+- 可复用的输入/验活/反馈组合抽到 `src/components/`，不要在 Dashboard、Runtime 等页面复制。
+- Go 服务接口变化后重新生成 TypeScript bindings，不手写生成文件。
+- 不恢复 Python、uv、`software/`、Playwright、Selenium 或浏览器自动化兜底。
 
-## validation_checklist
+## 验证
 
-- 是否先读了主窗口、目标页面、相关控制器和配置读写代码。
-- 是否复用了现有 PySide6 / QFluentWidgets 组件。
-- 是否没有把耗时任务放到主线程。
-- 信号槽、对象生命周期、布局、深色模式、缩放是否检查过。
-- 配置项显示和实际配置读写是否一致。
-- 日志、任务状态、错误反馈是否清楚，没有吞异常。
-- 是否做了基本 GUI smoke test；没跑要说明原因。
+- 前端改动至少运行：
+
+  ```powershell
+  cd apps/desktop/frontend
+  npm run check
+  npm test -- --run
+  npm run build
+  ```
+
+- 交互改动补静态渲染或行为测试，至少覆盖条件展示、禁用/忙碌状态和错误反馈。
+- Wails 服务或绑定改动追加：
+
+  ```powershell
+  cd apps/desktop
+  wails3 generate bindings
+  go test ./...
+  ```
+
+- 不能做真实外部问卷、账号或付费代理请求。需要网络验证时使用 fake server 或明确的 live/integration 测试。
+- 输出时说明实际改动、文件路径和运行过的检查；不要创建 Markdown 验证清单。
