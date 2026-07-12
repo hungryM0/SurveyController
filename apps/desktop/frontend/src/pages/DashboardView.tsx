@@ -279,28 +279,13 @@ function DashboardView({
                   />
                 </div>
               </div>
-
-              {/* control-note-list wrapped as a distinct info block */}
-              <div className="surface-soft control-note-block">
-                <div className="control-note-list">
-                  <div>
-                    <span>运行</span>
-                    <strong>{dashboard.runtimeHint}</strong>
-                  </div>
-                  <div>
-                    <span>代理</span>
-                    <strong>{dashboard.proxyHint}</strong>
-                  </div>
-                </div>
-              </div>
             </div>
           </section>
 
           <div className="dashboard-side-stack dashboard-quota-stack">
             <section className="surface quota-side-panel">
-              {quotaPage === 'summary' ? (
-                <>
-                  <div className="panel-header quota-panel-head">
+              <>
+                <div className="panel-header quota-panel-head">
                     <div className="panel-title-group">
                       <CreditCard size={18} />
                       <h4>IP 额度</h4>
@@ -311,8 +296,8 @@ function DashboardView({
                       disabled={busy}
                       onClick={onSyncProxyStatus}
                     />
-                  </div>
-                  <div className="quota-vertical-body">
+                </div>
+                <div className="quota-vertical-body">
                     <div className="quota-progress-ring" aria-label={`账号 IP 余额 ${accountRemaining}`}>
                       <svg viewBox="0 0 120 120" role="img" aria-hidden="true">
                         <circle className="quota-ring-track" cx="60" cy="60" r="48" pathLength="100" />
@@ -341,8 +326,9 @@ function DashboardView({
                         <strong>{proxyPoolRemaining}个</strong>
                       </div>
                     </div>
-                  </div>
-                  <div className="quota-side-actions">
+                </div>
+                {quotaPage === 'summary' ? (
+                  <div className="quota-subpage quota-subpage-summary quota-side-actions">
                     <Button
                       value="兑换卡密"
                       icon={<Save size={14} />}
@@ -350,18 +336,17 @@ function DashboardView({
                       onClick={() => setQuotaPage('redeem')}
                     />
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="panel-header quota-panel-head quota-page-head">
+                ) : (
+                  <div className="quota-subpage quota-subpage-redeem quota-redeem-section">
+                    <div className="panel-header quota-panel-head quota-page-head">
                     <Button
                       value="返回"
                       icon={<ArrowLeft size={14} />}
                       onClick={() => setQuotaPage('summary')}
                     />
                     <strong>兑换卡密</strong>
-                  </div>
-                  <div className="quota-redeem-form">
+                    </div>
+                    <div className="quota-redeem-form">
                     <InputText
                       value={proxyCardCode}
                       placeholder="额度卡密"
@@ -376,9 +361,10 @@ function DashboardView({
                       disabled={busy || !proxyCardCode.trim()}
                       onClick={redeemProxyCard}
                     />
+                    </div>
                   </div>
-                </>
-              )}
+                )}
+              </>
             </section>
           </div>
         </div>

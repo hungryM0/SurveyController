@@ -5093,6 +5093,35 @@ select {
   justify-content: stretch;
 }
 
+.quota-subpage {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+
+.quota-subpage-summary {
+  animation-name: quota-slide-from-left;
+}
+
+.quota-subpage-redeem {
+  animation-name: quota-slide-from-right;
+}
+
+@keyframes quota-slide-from-right {
+  from { opacity: 0; transform: translateX(1.5rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes quota-slide-from-left {
+  from { opacity: 0; transform: translateX(-1.5rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quota-subpage { animation: none; }
+}
+
 .quota-side-actions .sc-button {
   width: 100%;
 }
