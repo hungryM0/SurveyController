@@ -331,10 +331,6 @@ function DashboardView({
                       </div>
                     </div>
 
-                    <div className="quota-status-block">
-                      <strong>{dashboard.randomIpStatus}</strong>
-                    </div>
-
                     <div className="quota-count-grid">
                       <div>
                         <span>用户ID</span>
@@ -342,7 +338,7 @@ function DashboardView({
                       </div>
                       <div>
                         <span>IP池总剩余</span>
-                        <strong>{proxyPoolRemaining}</strong>
+                        <strong>{proxyPoolRemaining}个</strong>
                       </div>
                     </div>
                   </div>
