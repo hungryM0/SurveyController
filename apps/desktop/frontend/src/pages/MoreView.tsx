@@ -4,6 +4,7 @@ import { Browser } from '@wailsio/runtime'
 import { Button } from '../components/ui'
 import type { PageMetric } from '../types'
 import TermsDialog from '../components/TermsDialog'
+import PageHeader from '../components/PageHeader'
 import {
   buildStableReleaseInfo,
   buildVelopackFeedReleaseInfo,
@@ -101,20 +102,13 @@ function MoreView({
   }, [autoCheckUpdate, version, refreshTick])
 
   return (
-    <section className="page scroll-page">
+    <section className="page scroll-page workspace-page">
       <div className="content-stack more-layout">
-        <section className="surface more-hero">
-          <div className="more-hero-copy">
-            <span className="eyebrow">更多</span>
-            <h2>SurveyController</h2>
-            <p>高效的自动化问卷填写工具。</p>
-          </div>
-          <div className="more-version-card">
+        <PageHeader eyebrow="关于应用" title="SurveyController" description="版本、更新、项目资源与开源信息。" meta={<div className="more-version-card">
             <span>当前版本</span>
             <strong>{version}</strong>
             <small>{release.message}</small>
-          </div>
-        </section>
+          </div>} />
         <section className="more-warning-bar">
           <TriangleAlert size={17} />
           <span>本项目仅供学习交流使用，开源以供研究软件原理，禁止用于任何恶意滥用行为。</span>
@@ -168,7 +162,7 @@ function MoreView({
             <small className="more-thanks-text">感谢每一位支持者，你们的鼓励是持续更新的动力。</small>
           </article>
 
-          <article className="surface more-card">
+          <article className="surface more-card more-card-update">
             <div className="more-card-head">
               <ShieldCheck size={18} />
               <strong>关于</strong>

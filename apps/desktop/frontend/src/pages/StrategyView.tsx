@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent, type ReactElement } from 'react'
 import { Button, InputText, SelectNative, TableView } from '../components/ui'
 import ConditionRuleDialog from '../components/ConditionRuleDialog'
+import PageHeader from '../components/PageHeader'
 import QuestionLogicPreview from '../components/QuestionLogicPreview'
 import QuestionMediaPreview from '../components/QuestionMediaPreview'
 import QuestionTreePreview from '../components/QuestionTreePreview'
@@ -364,8 +365,9 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
   }
 
   return (
-    <section className="page scroll-page strategy-scroll" style={{ overflow: 'hidden' }}>
-      <div className="strategy-tab-bar surface">
+    <section className="page scroll-page strategy-scroll workspace-page" style={{ overflow: 'hidden' }}>
+      <PageHeader eyebrow="策略编辑" title="定义题目规则与答案策略" description="集中管理条件规则、维度分组和逐题配置。" meta={<span>{questions.length} 道题目</span>} />
+      <div className="strategy-tab-bar surface" role="tablist" aria-label="策略编辑分类">
         <Button value="条件规则" type={tab === 'rules' ? 'primary' : undefined} onClick={() => setTab('rules')} />
         <Button value="维度分组" type={tab === 'dimensions' ? 'primary' : undefined} onClick={() => setTab('dimensions')} />
         <Button value="题目编辑" type={tab === 'questions' ? 'primary' : undefined} onClick={() => setTab('questions')} />

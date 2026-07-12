@@ -16,17 +16,11 @@
   padding: 0.35rem 0.58rem 0.35rem 0.7rem;
   transition:
     background-color 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+    border-color 0.15s ease;
 }
 
 .sc-select-trigger:hover {
   background-color: var(--control-hover);
-}
-
-.sc-select-trigger:active {
-  background-color: var(--control);
-  transform: scale(0.97);
 }
 
 .sc-select-trigger:focus-visible {

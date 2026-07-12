@@ -1,6 +1,7 @@
 import { Clipboard, Save, Terminal } from 'lucide-react'
 import { Browser, Clipboard as RuntimeClipboard, Dialogs } from '@wailsio/runtime'
 import { Button } from '../components/ui'
+import PageHeader from '../components/PageHeader'
 
 interface LogsViewProps {
   logs: string[]
@@ -35,19 +36,15 @@ function LogsView({ logs, busy = false, onExport }: LogsViewProps) {
   }
 
   return (
-    <section className="page logs-page">
-      <div className="logs-header">
-        <div className="section-heading">
-          <h2>日志</h2>
-          <span>{logs.length}</span>
-        </div>
-        <div className="surface logs-toolbar-card">
+    <section className="page logs-page workspace-page">
+      <PageHeader eyebrow="运行日志" title="诊断任务状态" description="查看本次会话的运行记录，复制或导出后提交问题。" meta={<span>{logs.length} 条记录</span>} actions={(
+        <div className="logs-toolbar-card">
           <Button value="复制全部" icon={<Clipboard size={15} />} disabled={busy || !logs.length} onClick={() => void copyAll()} />
           <Button value="导出日志" icon={<Save size={15} />} disabled={busy || !logs.length} onClick={() => void exportLogs()} />
           <Button value="提交 issue" disabled={busy} onClick={() => void openFeedbackPage()} />
         </div>
-      </div>
-      <div className="logs-terminal-body">
+      )} />
+      <div className="surface logs-terminal-body">
         {logs.length === 0 ? (
           <div className="logs-empty-state">
             <Terminal size={24} />

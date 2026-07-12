@@ -12,6 +12,11 @@ interface SliderBarProps extends Omit<ComponentPropsWithoutRef<typeof Slider.Roo
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
+interface RangeSliderBarProps extends Omit<SliderBarProps, 'defaultValue' | 'value' | 'onChange'> {
+  values: [number, number]
+  onChange?: (values: [number, number]) => void
+}
+
 function emitSliderChange(onChange: SliderBarProps['onChange'], value: number) {
   onChange?.({ target: { value: String(value) } } as ChangeEvent<HTMLInputElement>)
 }
@@ -52,3 +57,22 @@ SliderBar.displayName = 'SliderBar'
 
 export default SliderBar
 export type { SliderBarProps }
+
+export function RangeSliderBar({ values, onChange, min = 0, max = 100, step = 1, width, ...props }: RangeSliderBarProps) {
+  return (
+    <Slider.Root
+      className="sc-range-slider"
+      min={min}
+      max={max}
+      step={step}
+      value={values}
+      style={{ width }}
+      onValueChange={(next) => onChange?.([next[0] ?? min, next[1] ?? max])}
+      {...props}
+    >
+      <Slider.Track className="sc-range-track"><Slider.Range className="sc-range-fill" /></Slider.Track>
+      <Slider.Thumb className="sc-range-thumb" aria-label="范围起点" />
+      <Slider.Thumb className="sc-range-thumb" aria-label="范围终点" />
+    </Slider.Root>
+  )
+}

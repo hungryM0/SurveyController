@@ -1,6 +1,6 @@
 ---
 name: gui-development
-description: 面向 SurveyController 当前 Go+Wails + React 桌面端的 GUI 开发与界面修复技能。用于修改 `apps/desktop/frontend/` 的页面、组件、表单、导航、弹窗、动效、配置编辑和运行状态展示；处理 Radix 控件、Wails 绑定、异步状态、焦点态、窗口生命周期、布局缩放和真实后端接线。不要用于恢复旧 Python/PySide6 UI 或浏览器自动化。
+description: 面向 SurveyController Go+Wails + React 桌面端的 GUI 开发与界面修复技能。用于修改 `apps/desktop/frontend/` 的页面、组件、表单、导航、弹窗、动效、配置编辑和运行状态展示；处理 Radix 控件、Wails 绑定、异步状态、焦点态、窗口生命周期、布局缩放和真实后端接线。
 ---
 
 # SurveyController GUI Development
@@ -32,8 +32,10 @@ description: 面向 SurveyController 当前 Go+Wails + React 桌面端的 GUI �
 
 ### 动效与缓动
 
+- 新增任何控件都必须先定义进入、悬停、按下、禁用和退出状态，再写样式。
 - 进入使用缓出，退出使用缓入；禁止在线性缓动上堆动画。
 - 普通控件反馈约 `140–220ms`，页面切换约 `200–280ms`，窗口退场约 `160ms`。动画只作用于 `transform`、`opacity`、颜色或阴影。
+- 下拉框、弹窗、日期选择器、提示条等条件控件必须有可见的进入缓动；卸载前用状态控制退出，不得瞬间闪现或突然消失。
 - 条件组件用挂载动画展示。需要重播时改变明确的状态 key，不要靠强制重排。
 - 页面切换必须区分前进和后退方向；窗口打开、确认弹窗和窗口关闭保持同一节奏。
 - 所有新动画补 `@media (prefers-reduced-motion: reduce)`，减少动态时移除位移、缩放和等待。
@@ -61,7 +63,7 @@ description: 面向 SurveyController 当前 Go+Wails + React 桌面端的 GUI �
 - 网络请求、文件 IO、代理验活、问卷运行不能写进渲染函数，也不能阻塞 UI 线程。
 - 可复用的输入/验活/反馈组合抽到 `src/components/`，不要在 Dashboard、Runtime 等页面复制。
 - Go 服务接口变化后重新生成 TypeScript bindings，不手写生成文件。
-- 不恢复 Python、uv、`software/`、Playwright、Selenium 或浏览器自动化兜底。
+- UI 只依赖当前 Go、Wails、React、TypeScript 和 Radix 组件体系，不引入与项目无关的 UI 框架或运行时。
 
 ## 验证
 

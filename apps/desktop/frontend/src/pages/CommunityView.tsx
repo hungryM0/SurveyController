@@ -2,6 +2,7 @@ import { BookOpen, ExternalLink, MessageCircle, PenLine, QrCode, ShieldCheck } f
 import { Browser } from '@wailsio/runtime'
 import { Button } from '../components/ui'
 import { buildCommunityIssueUrl, COMMUNITY_REPO_URL, resolveCommunityQrUrl } from './communityViewModel'
+import PageHeader from '../components/PageHeader'
 
 async function openUrl(url: string) {
   try {
@@ -15,14 +16,11 @@ function CommunityView() {
   const qrUrl = typeof window === 'undefined' ? '' : resolveCommunityQrUrl(window.location.origin, window.location.protocol)
 
   return (
-    <section className="page scroll-page">
+    <section className="page scroll-page workspace-page">
       <div className="content-stack community-layout">
+        <PageHeader eyebrow="社区" title="交流、反馈与参与贡献" description="找到合适的渠道，获取帮助或参与项目。" />
         <section className="surface community-hero">
-          <div className="community-hero-copy">
-            <span className="eyebrow">社区</span>
-            <h2>QQ 群、反馈、贡献、许可</h2>
-            <p className="community-hero-desc">扫码进群，提问题，提建议，提代码。</p>
-          </div>
+          <div className="community-hero-copy"><h2>QQ 群交流</h2><p className="community-hero-desc">扫码加入交流群，获取更新并交流使用经验。</p></div>
           <div className="qr-image-wrapper">
             {qrUrl ? (
               <img className="community-hero-qr" src="/community_qr.png" alt="QQ 群二维码" />
@@ -33,7 +31,7 @@ function CommunityView() {
         </section>
 
         <section className="community-grid">
-          <article className="surface community-card">
+          <article className="surface community-card community-card-featured">
             <div className="community-card-head">
               <MessageCircle size={18} />
               <strong>QQ 群交流</strong>

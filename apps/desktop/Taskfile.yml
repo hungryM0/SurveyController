@@ -37,4 +37,4 @@ tasks:
   dev:
     summary: Runs the application in development mode
     cmds:
-      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+      - powershell -NoProfile -ExecutionPolicy Bypass -File ./build/scripts/dev.ps1 -VitePort {{.VITE_PORT}}

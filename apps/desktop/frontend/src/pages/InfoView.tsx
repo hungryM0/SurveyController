@@ -2,6 +2,7 @@ import { Bell, Eye, FolderOpen, Palette, RotateCcw, Save, Settings2, Sliders } f
 import { Button } from '../components/ui'
 import SettingField from '../components/SettingField'
 import type { PageMetric, ReverseFillRow, SettingsGroup } from '../types'
+import PageHeader from '../components/PageHeader'
 
 interface InfoViewProps {
   title: string
@@ -45,12 +46,10 @@ function InfoView({
   onResetSettings,
 }: InfoViewProps) {
   return (
-    <section className="page scroll-page">
-      <div className="content-stack">
-        <section className="surface settings-hero-card">
-          <div className="section-heading">
-            <h2>{title}</h2>
-          </div>
+    <section className="page scroll-page workspace-page">
+      <div className="content-stack form-workspace">
+        <PageHeader eyebrow="应用设置" title={title} description="调整界面、行为与通知偏好。" meta={<span>{settings?.length ?? 0} 组设置</span>} />
+        {(items?.length || metrics?.length) ? <section className="surface settings-hero-card">
 
           {items?.length ? (
             <div className="info-list">
@@ -68,7 +67,7 @@ function InfoView({
               ))}
             </div>
           ) : null}
-        </section>
+        </section> : null}
 
         {reverseFill !== undefined ? (
           <section className="surface info-panel">
@@ -94,6 +93,7 @@ function InfoView({
           </section>
         ) : null}
 
+        <div className="settings-section-grid">
         {settings?.map((group) => (
           <section className="surface settings-panel" key={group.title}>
             <div className="section-heading">
@@ -119,6 +119,7 @@ function InfoView({
             ))}
           </section>
         ))}
+        </div>
 
         {settings?.length ? (
           <div className="settings-footer-actions">

@@ -1,6 +1,7 @@
 import { Eye, FileSpreadsheet, FolderOpen } from 'lucide-react'
 import { Button } from '../components/ui'
 import type { ReverseFillRow } from '../types'
+import PageHeader from '../components/PageHeader'
 
 interface ReverseFillViewProps {
   reverseFill: ReverseFillRow[]
@@ -20,16 +21,15 @@ function ReverseFillView({
   const matchedCount = reverseFill.filter((row) => row.state.startsWith('已匹配')).length
 
   return (
-    <section className="page scroll-page">
+    <section className="page scroll-page workspace-page">
       <div className="content-stack reverse-fill-stack">
+        <PageHeader eyebrow="数据反填" title="从 Excel 映射问卷答案" description="选择数据文件，预览题目与列的匹配结果。" meta={<span>{matchedCount}/{reverseFill.length} 已匹配</span>} />
         <section className="surface info-panel reverse-fill-panel">
           <div className="section-heading">
             <FileSpreadsheet size={18} />
-            <h2>反填</h2>
+            <h2>数据源与映射结果</h2>
             <span>{reverseFill.length}</span>
           </div>
-
-          <p className="page-note">按 Excel 回放答案，先选文件，再预览映射结果。</p>
 
           <div className="toolbar-row">
             <Button value="选择 Excel" icon={<FolderOpen size={15} />} disabled={busy} onClick={onChooseReverseFill} />

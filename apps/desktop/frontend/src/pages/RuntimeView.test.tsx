@@ -59,6 +59,23 @@ describe('RuntimeView data mapping', () => {
     expect(html).toContain('选择省份或城市')
   })
 
+  it('renders an accessible datetime window disclosure', () => {
+    const shell = applyConfigToShell(
+      emptyShellState,
+      settings,
+      normalizeRuntimeConfig({
+        url: 'https://www.wjx.cn/vm/demo.aspx',
+        answer_datetime_window: ['2024-03-10 09:00:00', '2024-03-10 10:00:00'],
+      }),
+      null,
+    )
+
+    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} onFieldChange={() => undefined} />)
+
+    expect(html).toContain('aria-expanded="false"')
+    expect(html).toContain('2024-03-10 09:00:00 至 2024-03-10 10:00:00')
+  })
+
   it('renders custom proxy API detector', () => {
     const shell = applyConfigToShell(
       emptyShellState,
