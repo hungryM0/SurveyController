@@ -71,6 +71,24 @@ select {
   font: inherit;
 }
 
+button,
+a,
+input,
+select,
+[role="button"],
+[role="combobox"],
+[tabindex] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus,
+a:focus,
+[role="button"]:focus,
+[role="combobox"]:focus,
+[tabindex]:focus {
+  outline: none;
+}
+
 input,
 select {
   user-select: text;

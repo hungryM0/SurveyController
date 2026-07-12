@@ -37,6 +37,13 @@
   transform: scale(0.97);
 }
 
+.sc-button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--surface-strong),
+    0 0 0 4px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
 .sc-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
