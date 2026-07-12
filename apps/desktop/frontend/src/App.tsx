@@ -186,7 +186,11 @@ function App() {
         }
         setModel(loaded)
         setCurrentPage(loaded.shell.currentPage || 'dashboard')
-        const [proxy, run] = await Promise.allSettled([loadProxyStatus(), loadRunTaskState()])
+        const proxySource = loaded.config?.proxy_source ?? 'default'
+        const [proxy, run] = await Promise.allSettled([
+          syncProxyStatus(proxySource).catch(async () => await loadProxyStatus()),
+          loadRunTaskState(),
+        ])
         if (ignore) {
           return
         }
