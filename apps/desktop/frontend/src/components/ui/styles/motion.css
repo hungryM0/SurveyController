@@ -41,6 +41,46 @@
   }
 }
 
+@keyframes sc-window-open {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sc-window-close {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+}
+
+@keyframes sc-dialog-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sc-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 8px)) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sc-button,
   .sc-input,
@@ -58,5 +98,11 @@
   .sc-loader-busy .sc-ldr-busy,
   .sc-progress-indicator.indeterminate {
     animation-duration: 3s;
+  }
+
+  .app-root,
+  .close-confirmation-backdrop,
+  .close-confirmation-dialog {
+    animation: none !important;
   }
 }

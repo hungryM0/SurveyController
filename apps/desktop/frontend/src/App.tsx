@@ -49,6 +49,7 @@ import {
 } from './services/desktopSettings'
 import type { ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
 import type { StartupTutorialHintState } from './types'
+import { resolvePageMotion, waitForWindowExit } from './motion'
 
 const DashboardView = lazy(() => import('./pages/DashboardView'))
 const RuntimeView = lazy(() => import('./pages/RuntimeView'))
@@ -79,6 +80,7 @@ function App() {
   const [startupTutorialHint, setStartupTutorialHint] = useState<StartupTutorialHintState | null>(null)
   const [startupTutorialVisible, setStartupTutorialVisible] = useState(false)
   const previousPage = useRef(currentPage)
+  const windowClosing = useRef(false)
   const runPollTimer = useRef<number | null>(null)
   const settingsRef = useRef(model?.settings ?? null)
   const configRef = useRef<RuntimeConfig | null>(null)
@@ -400,11 +402,27 @@ function App() {
       : existing)
   }
 
+  const closeWindow = useCallback(async () => {
+    if (windowClosing.current) {
+      return
+    }
+    windowClosing.current = true
+    document.documentElement.classList.add('window-closing')
+    try {
+      await waitForWindowExit()
+      await Window.Close()
+    } catch (error) {
+      windowClosing.current = false
+      document.documentElement.classList.remove('window-closing')
+      throw error
+    }
+  }, [])
+
   const closeConfirmation = useCloseConfirmation({
     shouldAsk: () => shouldAskSaveOnClose(settingsRef.current),
     save: saveCurrentConfig,
     confirm: confirmClose,
-    close: Window.Close,
+    close: closeWindow,
     onError: (err) => setError(err.message),
   })
 
@@ -565,7 +583,8 @@ function App() {
   }
 
   const scheme = shell?.themeMode === 'dark' || shell?.themeMode === 'light' ? shell.themeMode : 'system'
-  const pageMotion = previousPage.current === currentPage ? 'page-motion-initial' : 'page-motion-forward'
+  const pageOrder = shell ? [...shell.topNav, ...shell.bottomNav].map((item) => item.id) : []
+  const pageMotion = resolvePageMotion(previousPage.current, currentPage, pageOrder)
 
   useEffect(() => {
     previousPage.current = currentPage
