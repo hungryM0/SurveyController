@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Button, InputText, ProgressBar, SelectNative, SliderBar, Switch, TableView } from '../components/ui'
 import type { DashboardState } from '../types'
+import CustomProxyAPIField from '../components/CustomProxyAPIField'
 
 interface DashboardViewProps {
   dashboard: DashboardState
@@ -35,6 +36,8 @@ interface DashboardViewProps {
   onThreadsChange: (value: number) => void
   onRandomIpChange: (value: boolean) => void
   onProxySourceChange: (value: string) => void
+  customProxyAPI: string
+  onCustomProxyAPIChange: (value: string) => void
   onSyncProxyStatus: () => void
   onRedeemProxyCard: (cardCode: string) => void
   onRun: () => void
@@ -79,6 +82,8 @@ function DashboardView({
   onThreadsChange,
   onRandomIpChange,
   onProxySourceChange,
+  customProxyAPI,
+  onCustomProxyAPIChange,
   onSyncProxyStatus,
   onRedeemProxyCard,
   onRun,
@@ -278,6 +283,20 @@ function DashboardView({
                   />
                 </div>
               </div>
+              {dashboard.proxySource === '自定义' || dashboard.proxySource === 'custom' ? (
+                <div className="control-item custom-proxy-reveal">
+                  <div className="item-label-group">
+                    <Activity size={15} />
+                    <span>代理 API</span>
+                  </div>
+                  <CustomProxyAPIField
+                    value={customProxyAPI}
+                    actionLabel="验活"
+                    width="min(22rem, 48vw)"
+                    onChange={onCustomProxyAPIChange}
+                  />
+                </div>
+              ) : null}
             </div>
           </section>
 

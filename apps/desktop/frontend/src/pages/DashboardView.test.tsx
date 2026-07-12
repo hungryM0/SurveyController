@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { applyConfigToShell, normalizeRuntimeConfig } from '../services/stateMapper'
 import { emptyShellState } from '../services/shellFixture'
 import type { AppSettings } from '../types'
 import { firstSupportedQRImageFile, isSupportedQRImage } from './DashboardView'
+import DashboardView from './DashboardView'
 
 const settings: AppSettings = {
   configDirectory: 'D:/configs',
@@ -76,5 +78,37 @@ describe('DashboardView', () => {
     expect(isSupportedQRImage(legacyBmp)).toBe(true)
     expect(firstSupportedQRImageFile([txt, png])).toBe(png)
     expect(firstSupportedQRImageFile([txt])).toBeNull()
+  })
+
+  it('reveals the custom proxy API field and health action', () => {
+    const html = renderToStaticMarkup(
+      <DashboardView
+        dashboard={{ ...emptyShellState.dashboard, proxySource: '自定义' }}
+        customProxyAPI="https://proxy.example/api"
+        onUpdateUrl={() => undefined}
+        onAutoConfig={() => undefined}
+        onLoadQRCode={() => undefined}
+        onDecodeQRCodeImage={() => undefined}
+        onLoadConfig={() => undefined}
+        onSaveConfig={() => undefined}
+        onOpenRuntime={() => undefined}
+        onTargetChange={() => undefined}
+        onThreadsChange={() => undefined}
+        onRandomIpChange={() => undefined}
+        onProxySourceChange={() => undefined}
+        onCustomProxyAPIChange={() => undefined}
+        onSyncProxyStatus={() => undefined}
+        onRedeemProxyCard={() => undefined}
+        onRun={() => undefined}
+        onCancelRun={() => undefined}
+        onPauseRun={() => undefined}
+        onResumeRun={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('代理 API')
+    expect(html).toContain('https://proxy.example/api')
+    expect(html).toContain('验活')
+    expect(html).toContain('custom-proxy-reveal')
   })
 })

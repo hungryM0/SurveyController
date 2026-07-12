@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
 import { Activity, Globe, Settings, SlidersHorizontal, Zap } from 'lucide-react'
-import { Button, InputText, SelectNative } from '../components/ui'
+import { Button, SelectNative } from '../components/ui'
 import SettingField from '../components/SettingField'
-import { loadProxyAreaOptions, testAIConnection, testCustomProxyAPI } from '../services/shell'
+import { loadProxyAreaOptions, testAIConnection } from '../services/shell'
 import type { ProxyAreaOptionsState, RuntimeConfig, SettingField as SettingFieldType, SettingsGroup } from '../types'
+import CustomProxyAPIField from '../components/CustomProxyAPIField'
 
 interface RuntimeViewProps {
   groups: SettingsGroup[]
@@ -37,10 +38,7 @@ function RuntimeView({ groups, config, onFieldChange }: RuntimeViewProps) {
   const aiMode = aiModeValue(fields.find((field) => field.id === 'ai-mode')?.value)
   const aiProvider = aiProviderValue(fields.find((field) => field.id === 'ai-provider')?.value)
   const areaCode = fields.find((field) => field.id === 'proxy-area-code')?.value ?? ''
-  const customProxyAPI = fields.find((field) => field.id === 'custom-proxy-api')?.value ?? ''
   const [areaOptions, setAreaOptions] = useState<ProxyAreaOptionsState | null>(null)
-  const [apiTestBusy, setAPITestBusy] = useState(false)
-  const [apiTestMessage, setAPITestMessage] = useState('')
   const [aiTestBusy, setAITestBusy] = useState(false)
   const [aiTestMessage, setAITestMessage] = useState('')
 
@@ -64,20 +62,6 @@ function RuntimeView({ groups, config, onFieldChange }: RuntimeViewProps) {
 
   function handleAreaChange(code: string) {
     onFieldChange('proxy-area-code', code)
-  }
-
-  async function testProxyAPI() {
-    setAPITestBusy(true)
-    setAPITestMessage('')
-    try {
-      const state = await testCustomProxyAPI(customProxyAPI)
-      const suffix = state.success && state.proxies.length ? `，示例：${state.proxies[0]}` : ''
-      setAPITestMessage(`${state.message || (state.success ? '检测通过' : '检测失败')}${suffix}`)
-    } catch (err) {
-      setAPITestMessage(err instanceof Error ? err.message : String(err))
-    } finally {
-      setAPITestBusy(false)
-    }
   }
 
   async function runAITest() {
@@ -123,14 +107,13 @@ function RuntimeView({ groups, config, onFieldChange }: RuntimeViewProps) {
                   )
                 : field.id === 'custom-proxy-api'
                   ? (
-                      <CustomProxyAPIField
-                        key={field.id}
-                        value={field.value}
-                        busy={apiTestBusy}
-                        message={apiTestMessage}
-                        onChange={(value) => onFieldChange(field.id, value)}
-                        onTest={testProxyAPI}
-                      />
+                      <div className="setting-row" key={field.id}>
+                        <div className="setting-copy">
+                          <span>自定义代理 API</span>
+                          <small>仅支持 JSON 或纯文本返回代理地址。</small>
+                        </div>
+                        <CustomProxyAPIField value={field.value} onChange={(value) => onFieldChange(field.id, value)} />
+                      </div>
                     )
                 : field.id === 'ai-test-connection'
                   ? (
@@ -184,38 +167,6 @@ function AIConnectionField({ busy, message, onTest }: AIConnectionFieldProps) {
       </div>
       <div className="custom-proxy-api-field">
         <Button value={busy ? '测试中...' : '测试'} disabled={busy} onClick={onTest} />
-        {message ? (
-          <div className={`test-result-banner ${isTestFailure(message) ? 'error' : 'success'}`}>
-            {message}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-interface CustomProxyAPIFieldProps {
-  value: string
-  busy: boolean
-  message: string
-  onChange: (value: string) => void
-  onTest: () => void
-}
-
-function CustomProxyAPIField({ value, busy, message, onChange, onTest }: CustomProxyAPIFieldProps) {
-  return (
-    <div className="setting-row">
-      <div className="setting-copy">
-        <span>自定义代理 API</span>
-        <small>仅支持 JSON 或纯文本返回代理地址。</small>
-      </div>
-      <div className="custom-proxy-api-field">
-        <InputText
-          value={value}
-          width="18rem"
-          onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
-        />
-        <Button value={busy ? '检测中...' : '检测'} disabled={busy || !value.trim()} onClick={onTest} />
         {message ? (
           <div className={`test-result-banner ${isTestFailure(message) ? 'error' : 'success'}`}>
             {message}

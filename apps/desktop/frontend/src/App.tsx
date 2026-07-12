@@ -662,6 +662,8 @@ function App() {
                   onThreadsChange={(value) => updateConfigField('threads', String(value))}
                   onRandomIpChange={(value) => updateConfigField('random-ip', value)}
                   onProxySourceChange={(value) => updateConfigField('proxy-source', value)}
+                  customProxyAPI={config?.custom_proxy_api ?? ''}
+                  onCustomProxyAPIChange={(value) => updateConfigField('custom-proxy-api', value)}
                   onSyncProxyStatus={syncRandomIpQuota}
                   onRedeemProxyCard={(cardCode) => void redeemRandomIpQuota(cardCode)}
                   onRun={runSurvey}
