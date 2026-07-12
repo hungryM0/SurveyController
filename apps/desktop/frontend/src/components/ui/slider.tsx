@@ -1,11 +1,12 @@
 import * as Slider from '@radix-ui/react-slider'
 import { forwardRef, type ChangeEvent, type ComponentPropsWithoutRef, type CSSProperties } from 'react'
 
-interface SliderBarProps extends Omit<ComponentPropsWithoutRef<typeof Slider.Root>, 'defaultValue' | 'onChange' | 'onValueChange'> {
+interface SliderBarProps extends Omit<ComponentPropsWithoutRef<typeof Slider.Root>, 'defaultValue' | 'value' | 'onChange' | 'onValueChange'> {
   min?: number
   max?: number
   step?: number
   defaultValue?: number
+  value?: number
   width?: CSSProperties['width']
   tooltip?: string
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void
@@ -20,6 +21,7 @@ const SliderBar = forwardRef<HTMLSpanElement, SliderBarProps>(({
   max = 100,
   step = 1,
   defaultValue = 0,
+  value,
   width,
   tooltip,
   onChange,
@@ -32,6 +34,7 @@ const SliderBar = forwardRef<HTMLSpanElement, SliderBarProps>(({
       max={max}
       step={step}
       defaultValue={[defaultValue]}
+      value={value === undefined ? undefined : [value]}
       style={{ width }}
       title={tooltip}
       onValueChange={(next) => emitSliderChange(onChange, next[0] ?? min)}

@@ -59,7 +59,7 @@ const TableControl = TableView as unknown as (props: {
 const SliderControl = SliderBar as unknown as (props: {
   min: number
   max: number
-  defaultValue: number
+  value: number
   width?: string
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void
 }) => ReactElement
@@ -235,10 +235,9 @@ function DashboardView({
                 </div>
                 <div className="item-slider-area">
                   <SliderControl
-                    key={`threads-${dashboard.threadCount}`}
                     min={1}
                     max={32}
-                    defaultValue={normalizedThreads}
+                    value={normalizedThreads}
                     width="9rem"
                     onChange={(event: ChangeEvent<HTMLInputElement>) => onThreadsChange(Number(event.target.value))}
                   />
