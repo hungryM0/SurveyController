@@ -476,7 +476,6 @@ function mapRuntimeGroups(config: RuntimeConfig): SettingsGroup[] {
       title: 'AI 与反填',
       fields: [
         field('ai-mode', 'AI 模式', '目前仅可用于填空题、多项填空题的 AI 填空作答', 'select', aiModeLabels[config.ai_mode ?? 'free'] ?? '限时免费', Object.values(aiModeLabels)),
-        field('ai-free-notice', '限时免费', 'AI 填空限时免费至 2026-06-28，如有长期使用需求请自行准备 API Key。', 'notice', ''),
         field('ai-privacy-notice', '隐私声明', '不会上传 API Key 等隐私信息，所有配置仅保存在本地。', 'notice', ''),
         field('ai-provider', 'AI 服务商', '选择 AI 服务，自定义模式支持任意 OpenAI 兼容接口', 'select', aiProviderLabels[config.ai_provider ?? 'deepseek'] ?? 'DeepSeek', Object.values(aiProviderLabels)),
         field('ai-api-key', 'API Key', '输入对应服务的 API 密钥，获取方法请查阅服务商 API 文档', 'password', config.ai_api_key ?? ''),

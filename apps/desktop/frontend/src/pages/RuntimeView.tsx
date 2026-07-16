@@ -85,7 +85,7 @@ function RuntimeView({ groups, config, onFieldChange }: RuntimeViewProps) {
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack form-workspace runtime-workspace">
-        <PageHeader title="运行参数" meta={<span>{groups.length} 组设置</span>} />
+        <PageHeader title="运行参数" />
         <div className="settings-section-grid runtime-settings-grid">
         {groups.map((group, idx) => (
           <section className="surface settings-panel" key={group.title}>
@@ -277,13 +277,10 @@ function isRuntimeFieldVisible(field: SettingFieldType, proxySource: string, aiM
   if (field.id === 'custom-proxy-api') {
     return proxySource === 'custom'
   }
-  if (field.id === 'ai-free-notice') {
-    return aiMode === 'free'
-  }
   if (field.id === 'ai-privacy-notice') {
     return aiMode !== 'free'
   }
-  if (field.id.startsWith('ai-') && field.id !== 'ai-mode' && field.id !== 'ai-free-notice' && field.id !== 'ai-privacy-notice') {
+  if (field.id.startsWith('ai-') && field.id !== 'ai-mode' && field.id !== 'ai-privacy-notice') {
     if (aiMode === 'free') {
       return field.id === 'ai-test-connection' || field.id === 'ai-system-prompt'
     }

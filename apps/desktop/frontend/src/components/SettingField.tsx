@@ -25,7 +25,7 @@ function SettingField({ field, onChange }: SettingFieldProps) {
   const isConcurrency = field.id === 'threads' || field.id === 'reverse-fill-threads'
 
   return (
-    <div className="setting-row">
+    <div className={`setting-row ${field.kind === 'textarea' ? 'textarea-setting-row' : ''}`}>
       <div className="setting-copy">
         <span>{field.label}</span>
         {field.description ? <small>{field.description}</small> : null}
