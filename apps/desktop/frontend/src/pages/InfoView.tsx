@@ -1,4 +1,4 @@
-import { Bell, Eye, FolderOpen, Palette, RotateCcw, Save, Settings2, Sliders } from 'lucide-react'
+import { Eye, FolderOpen, RotateCcw, Save } from 'lucide-react'
 import { Button } from '../components/ui'
 import SettingField from '../components/SettingField'
 import type { PageMetric, ReverseFillRow, SettingsGroup } from '../types'
@@ -18,16 +18,6 @@ interface InfoViewProps {
   onSaveSettings?: () => void
   onChooseConfigDirectory?: () => void
   onResetSettings?: () => void
-}
-
-const GROUP_ICONS: Record<string, React.ReactNode> = {
-  '外观设置': <Palette size={16} />,
-  '行为设置': <Sliders size={16} />,
-  '通知': <Bell size={16} />,
-}
-
-function getGroupIcon(title: string): React.ReactNode {
-  return GROUP_ICONS[title] ?? <Settings2 size={16} />
 }
 
 function InfoView({
@@ -97,7 +87,6 @@ function InfoView({
         {settings?.map((group) => (
           <section className="surface settings-panel" key={group.title}>
             <div className="section-heading">
-              {getGroupIcon(group.title)}
               <h2>{group.title}</h2>
             </div>
             {group.title === '行为设置' ? (

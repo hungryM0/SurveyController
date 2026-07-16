@@ -682,7 +682,9 @@ function App() {
                 <ReverseFillView
                   reverseFill={shell.reverseFillPlan}
                   reverseFillPath={config?.reverse_fill_source_path}
+                  config={config}
                   busy={busy}
+                  onFieldChange={updateConfigField}
                   onChooseReverseFill={chooseReverseFillFile}
                   onPreviewReverseFill={previewReverseFillFile}
                 />

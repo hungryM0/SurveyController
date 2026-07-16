@@ -9,6 +9,7 @@ interface SliderBarProps extends Omit<ComponentPropsWithoutRef<typeof Slider.Roo
   value?: number
   width?: CSSProperties['width']
   tooltip?: string
+  thumbLabel?: string
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -29,6 +30,7 @@ const SliderBar = forwardRef<HTMLSpanElement, SliderBarProps>(({
   value,
   width,
   tooltip,
+  thumbLabel = '滑块',
   onChange,
   ...props
 }, ref) => {
@@ -48,7 +50,7 @@ const SliderBar = forwardRef<HTMLSpanElement, SliderBarProps>(({
       <Slider.Track className="sc-range-track">
         <Slider.Range className="sc-range-fill" />
       </Slider.Track>
-      <Slider.Thumb ref={ref} className="sc-range-thumb" aria-label="滑块" />
+      <Slider.Thumb ref={ref} className="sc-range-thumb" aria-label={thumbLabel} />
     </Slider.Root>
   )
 })

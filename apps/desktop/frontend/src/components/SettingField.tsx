@@ -51,8 +51,15 @@ function SettingField({ field, onChange }: SettingFieldProps) {
 
       {field.kind === 'number' && isConcurrency ? (
         <div className="single-slider-field">
-          <SliderBar min={1} max={32} value={Number(field.value) || 1} width="min(20rem, 100%)" tooltip={`${field.value} 路并发`} onChange={(event) => onChange(field.id, event.target.value)} />
+          <SliderBar min={1} max={32} value={Number(field.value) || 1} width="min(20rem, 100%)" tooltip={`${field.value} 路并发`} thumbLabel={field.label} onChange={(event) => onChange(field.id, event.target.value)} />
           <output>{field.value}</output>
+        </div>
+      ) : null}
+
+      {field.kind === 'slider' ? (
+        <div className="single-slider-field ratio-slider-field">
+          <SliderBar min={0} max={100} value={Number(field.value) || 0} width="100%" tooltip={`${field.label} ${field.value}%`} thumbLabel={field.label} onChange={(event) => onChange(field.id, event.target.value)} />
+          <output>{field.value}%</output>
         </div>
       ) : null}
 
@@ -101,7 +108,7 @@ function SettingField({ field, onChange }: SettingFieldProps) {
         <DateTimeWindowField start={datetimeStart} end={datetimeEnd} onChange={(value) => onChange(field.id, value)} />
       ) : null}
 
-      {!['toggle', 'select', 'number', 'range', 'text', 'password', 'textarea', 'datetime-window'].includes(field.kind) ? (
+      {!['toggle', 'select', 'number', 'slider', 'range', 'text', 'password', 'textarea', 'datetime-window'].includes(field.kind) ? (
         <span className="readonly-value">{field.value}</span>
       ) : null}
     </div>

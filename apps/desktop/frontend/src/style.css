@@ -5400,6 +5400,10 @@ select {
 .single-slider-field .sc-range-slider,
 .dual-slider-field .sc-range-slider { width: 100% !important; }
 
+.ratio-slider-field {
+  grid-template-columns: minmax(0, 1fr) 3.5rem;
+}
+
 .datetime-window-field {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5456,6 +5460,14 @@ select {
 .reverse-fill-panel > .toolbar-row { grid-area: toolbar; }
 .reverse-fill-panel > .reverse-metrics { grid-area: metrics; align-content: start; border-top: 0; padding-top: 0; }
 .reverse-fill-panel > .reverse-list { grid-area: list; }
+
+.reverse-fill-settings-panel {
+  padding: 1rem 1.1rem;
+}
+
+.reverse-fill-settings-panel .setting-row {
+  grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 28rem);
+}
 
 .logs-page {
   display: grid;

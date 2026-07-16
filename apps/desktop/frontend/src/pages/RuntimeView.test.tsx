@@ -97,6 +97,20 @@ describe('RuntimeView data mapping', () => {
     expect(html).toContain('仅支持 JSON 或纯文本返回代理地址')
   })
 
+  it('keeps reverse fill controls on the reverse fill page', () => {
+    const config = normalizeRuntimeConfig({
+      url: 'https://www.wjx.cn/vm/demo.aspx',
+      reverse_fill_enabled: true,
+      reverse_fill_source_path: 'D:/answers.xlsx',
+    })
+    const shell = applyConfigToShell(emptyShellState, settings, config, null)
+    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} config={config} onFieldChange={() => undefined} />)
+
+    expect(html).not.toContain('Excel 反填')
+    expect(html).not.toContain('反填文件')
+    expect(html).not.toContain('反填并发')
+  })
+
   it('renders provider AI controls with test action and prompt editor', () => {
     const config = normalizeRuntimeConfig({
       url: 'https://www.wjx.cn/vm/demo.aspx',

@@ -83,7 +83,7 @@ describe('stateMapper', () => {
     })
     expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'custom-proxy-api'))).toBe(true)
     expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'proxy-area-code'))).toBe(true)
-    expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'reverse-fill-enabled'))).toBe(true)
+    expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'reverse-fill-enabled'))).toBe(false)
     expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'ai-api-key'))).toBe(true)
     expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'ai-api-protocol'))).toBe(true)
     expect(shell.runtimeGroups.some((group) => group.fields.some((field) => field.id === 'ai-test-connection'))).toBe(true)
@@ -92,6 +92,11 @@ describe('stateMapper', () => {
       'random-ua-wechat',
       'random-ua-mobile',
       'random-ua-pc',
+    ])
+    expect(shell.runtimeGroups.flatMap((group) => group.fields).filter((field) => field.id.startsWith('random-ua-')).map((field) => field.kind)).toEqual([
+      'slider',
+      'slider',
+      'slider',
     ])
     expect(shell.runtimeGroups.flatMap((group) => group.fields).find((field) => field.id === 'answer-datetime-window')?.kind).toBe('datetime-window')
   })

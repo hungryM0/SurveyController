@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
 import type { ReverseFillRow } from '../types'
 import { buildAppModel } from '../services/stateMapper'
 import { emptyShellState } from '../services/shellFixture'
+import ReverseFillView from './ReverseFillView'
 
 describe('ReverseFillView support data', () => {
   it('maps preview rows into a stable summary', () => {
@@ -41,5 +43,28 @@ describe('ReverseFillView support data', () => {
     const rows: ReverseFillRow[] = model.shell.reverseFillPlan
     expect(rows).toHaveLength(1)
     expect(rows[0].question).toBe('第 1 题')
+  })
+
+  it('renders reverse fill settings on the dedicated page', () => {
+    const html = renderToStaticMarkup(
+      <ReverseFillView
+        reverseFill={[]}
+        reverseFillPath="D:/answers.xlsx"
+        config={{
+          url: 'https://www.wjx.cn/vm/demo.aspx',
+          reverse_fill_enabled: true,
+          reverse_fill_format: 'auto',
+          reverse_fill_start_row: 1,
+          reverse_fill_threads: 2,
+        }}
+        onChooseReverseFill={() => undefined}
+        onPreviewReverseFill={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('反填参数')
+    expect(html).toContain('启用反填')
+    expect(html).toContain('反填格式')
+    expect(html).toContain('反填并发')
   })
 })

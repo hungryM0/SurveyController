@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
-import { Activity, Globe, Settings, SlidersHorizontal, Zap } from 'lucide-react'
 import { Button, SelectNative } from '../components/ui'
 import SettingField from '../components/SettingField'
 import { loadProxyAreaOptions, testAIConnection } from '../services/shell'
@@ -18,16 +17,6 @@ const SelectControl = SelectNative as unknown as (props: {
   value?: string
   onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
 }) => ReactElement
-
-function groupIcon(title: string) {
-  switch (title) {
-    case '基础设置': return <Settings size={14} />
-    case '代理设置': return <Globe size={14} />
-    case 'AI 设置': return <Zap size={14} />
-    case '提交行为': return <Activity size={14} />
-    default: return <SlidersHorizontal size={14} />
-  }
-}
 
 function isTestFailure(message: string): boolean {
   return /失败|错误|fail|error/i.test(message)
@@ -90,7 +79,6 @@ function RuntimeView({ groups, config, onFieldChange }: RuntimeViewProps) {
         {groups.map((group, idx) => (
           <section className="surface settings-panel" key={group.title}>
             <div className="section-heading group-heading">
-              <span className="group-icon">{groupIcon(group.title)}</span>
               <h2>{group.title}</h2>
             </div>
             {group.fields.map((field) => {
