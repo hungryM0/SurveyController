@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CreditCard,
   Download,
+  FileSearch,
   Globe,
   Pause,
   Play,
@@ -177,7 +178,7 @@ function DashboardView({
             <Button value="扫码" icon={<QrCode size={15} />} disabled={busy} onClick={onLoadQRCode} />
             <Button
               value="解析"
-              icon={<QrCode size={15} />}
+              icon={<FileSearch size={15} />}
               disabled={busy || !dashboard.surveyUrl}
               isLoading={busy}
               onClick={onAutoConfig}
@@ -197,9 +198,11 @@ function DashboardView({
                 />
               </div>
             </div>
-            <div className="command-meta command-platform-badges">
-              <span className={`badge ${platformBadge.className}`}>{platformBadge.label}</span>
-            </div>
+            {dashboard.surveyUrl.trim() ? (
+              <div className="command-meta command-platform-badges">
+                <span className={`badge ${platformBadge.className}`}>{platformBadge.label}</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="command-actions">

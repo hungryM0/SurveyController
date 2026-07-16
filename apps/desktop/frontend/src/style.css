@@ -5671,6 +5671,60 @@ select {
   font-size: 0.78rem;
 }
 
+/* Keep navigation labels subordinate to the content area and clear of the active marker. */
+.side-nav .sc-navbar-list-item a span {
+  font-size: 0.66rem;
+  line-height: 1.1;
+}
+
+.side-nav .sc-navbar-list-item a::before {
+  left: 0.1rem;
+  width: 2px;
+  top: 31%;
+  height: 38%;
+}
+
+.community-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.strategy-empty-state {
+  display: grid;
+  flex: 1;
+  min-height: 12rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.strategy-empty-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  margin-bottom: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  border-radius: 0.8rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.strategy-empty-state h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.strategy-empty-state p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .terminal-line {
     transition: none;

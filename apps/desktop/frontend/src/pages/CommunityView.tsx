@@ -1,4 +1,4 @@
-import { BookOpen, ExternalLink, MessageCircle, PenLine, QrCode, ShieldCheck } from 'lucide-react'
+import { BookOpen, ExternalLink, PenLine, QrCode } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
 import { Button } from '../components/ui'
 import { buildCommunityIssueUrl, COMMUNITY_REPO_URL, resolveCommunityQrUrl } from './communityViewModel'
@@ -31,18 +31,6 @@ function CommunityView() {
         </section>
 
         <section className="community-grid">
-          <article className="surface community-card community-card-featured">
-            <div className="community-card-head">
-              <MessageCircle size={18} />
-              <strong>QQ 群交流</strong>
-            </div>
-            <p>扫码加入 QQ 交流群，获取更新、反馈问题、交流使用经验。</p>
-            <img className="community-qr" src="/community_qr.png" alt="QQ 群二维码" />
-            <div className="community-actions">
-              <Button value="打开二维码" icon={<ExternalLink size={14} />} disabled={!qrUrl} onClick={() => void openUrl(qrUrl)} />
-            </div>
-          </article>
-
           <article className="surface community-card">
             <div className="community-card-head">
               <PenLine size={18} />
@@ -62,33 +50,17 @@ function CommunityView() {
 
           <article className="surface community-card">
             <div className="community-card-head">
-              <ShieldCheck size={18} />
-              <strong>参与贡献</strong>
-            </div>
-            <p>开发、设计、测试、提 issue 都算贡献。</p>
-            <div className="community-text-list">
-              <span>代码提交</span>
-              <span>测试用例</span>
-              <span>体验反馈</span>
-            </div>
-            <div className="community-actions">
-              <Button value="查看贡献方式" icon={<ExternalLink size={14} />} onClick={() => void openUrl('https://github.com/SurveyController/SurveyController')} />
-            </div>
-          </article>
-
-          <article className="surface community-card">
-            <div className="community-card-head">
               <BookOpen size={18} />
               <strong>开源许可</strong>
             </div>
-            <p>GPL-3.0。改了再发，就得把源码一并给出去。</p>
+            <p>本项目采用 GPL-3.0 许可证。修改并再发布时，应同时公开相应源代码。</p>
             <div className="community-text-list">
-              <span>GPL-3.0</span>
-              <span>源码公开</span>
-              <span>保留署名</span>
+              <span>GPL-3.0 许可证</span>
+              <span>公开相应源代码</span>
+              <span>保留版权声明</span>
             </div>
             <div className="community-actions">
-              <Button value="查看协议" icon={<ExternalLink size={14} />} onClick={() => void openUrl(`${COMMUNITY_REPO_URL}/blob/main/LICENSE`)} />
+              <Button value="查看许可证" icon={<ExternalLink size={14} />} onClick={() => void openUrl(`${COMMUNITY_REPO_URL}/blob/main/LICENSE`)} />
             </div>
           </article>
         </section>

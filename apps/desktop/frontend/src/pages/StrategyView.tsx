@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent, type ReactElement } from 'react'
+import { Activity } from 'lucide-react'
 import { Button, InputText, SelectNative, TableView } from '../components/ui'
 import ConditionRuleDialog from '../components/ConditionRuleDialog'
 import PageHeader from '../components/PageHeader'
@@ -366,11 +367,10 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
 
   return (
     <section className="page scroll-page strategy-scroll workspace-page" style={{ overflow: 'hidden' }}>
-      <PageHeader title="题目策略" meta={<span>{questions.length} 道题目</span>} />
+      <PageHeader title="题目策略" />
       <div className="strategy-tab-bar surface" role="tablist" aria-label="策略编辑分类">
         <Button value="条件规则" type={tab === 'rules' ? 'primary' : undefined} onClick={() => setTab('rules')} />
         <Button value="维度分组" type={tab === 'dimensions' ? 'primary' : undefined} onClick={() => setTab('dimensions')} />
-        <Button value="题目编辑" type={tab === 'questions' ? 'primary' : undefined} onClick={() => setTab('questions')} />
       </div>
 
       <div className="strategy-tab-content">
@@ -408,7 +408,13 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
                   </div>
                 </div>
               ))}
-              {!rules.length ? <div className="strategy-empty">还没有条件规则。</div> : null}
+              {!rules.length ? (
+                <div className="strategy-empty-state" role="status">
+                  <div className="strategy-empty-icon" aria-hidden="true"><Activity size={22} /></div>
+                  <h3>暂无条件规则</h3>
+                  <p>添加规则后，题目之间的条件关系会显示在这里。</p>
+                </div>
+              ) : null}
             </div>
           </section>
           <ConditionRuleDialog
