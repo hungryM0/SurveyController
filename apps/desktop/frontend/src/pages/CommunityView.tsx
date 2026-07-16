@@ -18,7 +18,7 @@ function CommunityView() {
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack community-layout">
-        <PageHeader eyebrow="社区" title="交流、反馈与参与贡献" description="找到合适的渠道，获取帮助或参与项目。" />
+        <PageHeader title="社区" />
         <section className="surface community-hero">
           <div className="community-hero-copy"><h2>QQ 群交流</h2><p className="community-hero-desc">扫码加入交流群，获取更新并交流使用经验。</p></div>
           <div className="qr-image-wrapper">

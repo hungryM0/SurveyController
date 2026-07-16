@@ -366,7 +366,7 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
 
   return (
     <section className="page scroll-page strategy-scroll workspace-page" style={{ overflow: 'hidden' }}>
-      <PageHeader eyebrow="策略编辑" title="定义题目规则与答案策略" description="集中管理条件规则、维度分组和逐题配置。" meta={<span>{questions.length} 道题目</span>} />
+      <PageHeader title="题目策略" meta={<span>{questions.length} 道题目</span>} />
       <div className="strategy-tab-bar surface" role="tablist" aria-label="策略编辑分类">
         <Button value="条件规则" type={tab === 'rules' ? 'primary' : undefined} onClick={() => setTab('rules')} />
         <Button value="维度分组" type={tab === 'dimensions' ? 'primary' : undefined} onClick={() => setTab('dimensions')} />

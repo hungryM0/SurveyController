@@ -48,7 +48,7 @@ function InfoView({
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack form-workspace">
-        <PageHeader eyebrow="应用设置" title={title} description="调整界面、行为与通知偏好。" meta={<span>{settings?.length ?? 0} 组设置</span>} />
+        <PageHeader title={title} meta={<span>{settings?.length ?? 0} 组设置</span>} />
         {(items?.length || metrics?.length) ? <section className="surface settings-hero-card">
 
           {items?.length ? (

@@ -59,7 +59,7 @@ describe('RuntimeView data mapping', () => {
     expect(html).toContain('选择省份或城市')
   })
 
-  it('renders an accessible datetime window disclosure', () => {
+  it('renders datetime inputs without a disclosure control', () => {
     const shell = applyConfigToShell(
       emptyShellState,
       settings,
@@ -72,8 +72,10 @@ describe('RuntimeView data mapping', () => {
 
     const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} onFieldChange={() => undefined} />)
 
-    expect(html).toContain('aria-expanded="false"')
-    expect(html).toContain('2024-03-10 09:00:00 至 2024-03-10 10:00:00')
+    expect(html).toContain('开始时间')
+    expect(html).toContain('结束时间')
+    expect(html).toContain('type="datetime-local"')
+    expect(html).not.toContain('选择提交时间范围')
   })
 
   it('renders custom proxy API detector', () => {

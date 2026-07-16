@@ -1,5 +1,4 @@
-import { useId, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { useId, useMemo, type ChangeEvent, type ReactElement } from 'react'
 import { InputText, SelectNative, Switch, SliderBar, RangeSliderBar } from './ui'
 import type { SettingField as SettingFieldType } from '../types'
 
@@ -140,29 +139,18 @@ function formatDuration(seconds: number): string {
 }
 
 function DateTimeWindowField({ start, end, onChange }: { start: string; end: string; onChange: (value: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const panelId = useId()
   const startId = useId()
   const endId = useId()
   return (
-    <div className={`datetime-window-field${open ? ' is-open' : ''}`}>
-      <button
-        type="button"
-        className="datetime-window-trigger"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span>{start && end ? `${start} 至 ${end}` : '选择提交时间范围'}</span>
-        <ChevronDown className="datetime-window-chevron" size={16} aria-hidden="true" />
-      </button>
-      {open ? (
-        <div className="datetime-window-popover" id={panelId}>
-          <label htmlFor={startId}>开始时间<InputText id={startId} type="datetime-local" value={toDateTimeLocal(start)} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(`${fromDateTimeLocal(event.target.value)} | ${end}`)} /></label>
-          <label htmlFor={endId}>结束时间<InputText id={endId} type="datetime-local" value={toDateTimeLocal(end)} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(`${start} | ${fromDateTimeLocal(event.target.value)}`)} /></label>
-          <button type="button" className="datetime-window-done" onClick={() => setOpen(false)}>完成</button>
-        </div>
-      ) : null}
+    <div className="datetime-window-field">
+      <label htmlFor={startId}>
+        <span>开始时间</span>
+        <InputText id={startId} type="datetime-local" value={toDateTimeLocal(start)} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(`${fromDateTimeLocal(event.target.value)} | ${end}`)} />
+      </label>
+      <label htmlFor={endId}>
+        <span>结束时间</span>
+        <InputText id={endId} type="datetime-local" value={toDateTimeLocal(end)} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(`${start} | ${fromDateTimeLocal(event.target.value)}`)} />
+      </label>
     </div>
   )
 }

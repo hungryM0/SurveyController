@@ -104,7 +104,7 @@ function MoreView({
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack more-layout">
-        <PageHeader eyebrow="关于应用" title="SurveyController" description="版本、更新、项目资源与开源信息。" meta={<div className="more-version-card">
+        <PageHeader title="关于" meta={<div className="more-version-card">
             <span>当前版本</span>
             <strong>{version}</strong>
             <small>{release.message}</small>

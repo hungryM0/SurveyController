@@ -85,7 +85,7 @@ function RuntimeView({ groups, config, onFieldChange }: RuntimeViewProps) {
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack form-workspace runtime-workspace">
-        <PageHeader eyebrow="运行配置" title="控制每次任务的运行方式" description="按功能分组调整提交、代理和智能填充参数。" meta={<span>{groups.length} 组设置</span>} />
+        <PageHeader title="运行参数" meta={<span>{groups.length} 组设置</span>} />
         <div className="settings-section-grid runtime-settings-grid">
         {groups.map((group, idx) => (
           <section className="surface settings-panel" key={group.title}>

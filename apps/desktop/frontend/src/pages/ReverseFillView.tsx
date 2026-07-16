@@ -23,7 +23,7 @@ function ReverseFillView({
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack reverse-fill-stack">
-        <PageHeader eyebrow="数据反填" title="从 Excel 映射问卷答案" description="选择数据文件，预览题目与列的匹配结果。" meta={<span>{matchedCount}/{reverseFill.length} 已匹配</span>} />
+        <PageHeader title="反填" meta={<span>{matchedCount}/{reverseFill.length} 已匹配</span>} />
         <section className="surface info-panel reverse-fill-panel">
           <div className="section-heading">
             <FileSpreadsheet size={18} />
