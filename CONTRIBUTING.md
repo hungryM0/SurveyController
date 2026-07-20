@@ -40,6 +40,7 @@ Wails 模块建好后再使用：
 wails3 dev
 wails3 build
 wails3 generate bindings
+wails3 task package ARCH=amd64 INSTALL_SCOPE=user
 ```
 
 ## 目录边界

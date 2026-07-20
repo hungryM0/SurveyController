@@ -46,12 +46,6 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
 
-      - name: Install Task
-        shell: powershell
-        run: |
-          go install github.com/go-task/task/v3/cmd/task@latest
-          "$(go env GOPATH)\bin" >> $env:GITHUB_PATH
-
       - name: Install NSIS
         shell: powershell
         run: |
@@ -64,18 +58,28 @@ jobs:
       - name: Build Windows package
         working-directory: apps/desktop
         shell: powershell
-        run: task windows:package ARCH=amd64 INSTALL_SCOPE=user
+        run: wails3 task package ARCH=amd64 INSTALL_SCOPE=user
 
       - name: Resolve release metadata
         id: release_meta
         shell: powershell
         run: |
           $tag = "${{ github.ref_name }}"
-          $version = $tag
+          $configPath = "apps/desktop/build/config.yml"
+          $configText = Get-Content -LiteralPath $configPath -Raw
+          $match = [regex]::Match($configText, '(?ms)^info:\s*.*?^\s+version:\s*["'']?([^"''#\r\n]+)["'']?\s*(?:#.*)?$')
+          if (-not $match.Success) {
+            throw "Application version is missing from $configPath"
+          }
+          $version = $match.Groups[1].Value.Trim()
+          $expectedTag = "v$version"
+          if ($tag -cne $expectedTag) {
+            throw "Release tag $tag does not match application version $version (expected $expectedTag)."
+          }
           $releaseDir = Join-Path "${{ runner.temp }}" "release"
           New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
 
-          $installerName = "SurveyController $version.exe"
+          $installerName = "SurveyController $tag.exe"
 
           Copy-Item -Force "apps/desktop/bin/SurveyController-amd64-installer.exe" (Join-Path $releaseDir $installerName)
 

@@ -27,7 +27,6 @@ func main() {
 
 	must(copyFile(sourcePNG, filepath.Join(buildDir, "appicon.png")))
 	must(copyFile(sourceICO, filepath.Join(buildDir, "windows", "icon.ico")))
-	must(copyFile(sourcePNG, filepath.Join(desktopRoot, "frontend", "public", "appicon.png")))
 
 	source, err := loadPNG(sourcePNG)
 	must(err)

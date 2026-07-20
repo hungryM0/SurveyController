@@ -179,21 +179,40 @@ tasks:
     cmds:
       - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true{{if eq .OBFUSCATED "true"}} -obfuscated{{end}} -ts -i
 
+  sync:version:
+    summary: Synchronizes Windows build metadata with build/config.yml.
+    run: once
+    dir: build
+    sources:
+      - "scripts/sync_version/main.go"
+      - "config.yml"
+    generates:
+      - "windows/info.json"
+      - "windows/wails.exe.manifest"
+      - "windows/msix/app_manifest.xml"
+      - "windows/msix/template.xml"
+      - "windows/nsis/wails_tools.nsh"
+    cmds:
+      - go run ./scripts/sync_version -root ..
+
   generate:icons:
     summary: Generates Windows icon assets from an image.
     run: once
     dir: build
     sources:
-      - "appicon.png"
       - "../../../assets/icon.png"
       - "../../../assets/icon.ico"
       - "scripts/sync_icons/main.go"
-      - "scripts/sync_version/main.go"
-      - "config.yml"
     generates:
+      - "appicon.png"
       - "windows/icon.ico"
+      - "windows/msix/Assets/AppIcon.png"
+      - "windows/msix/Assets/SplashScreen.png"
+      - "windows/msix/Assets/Square150x150Logo.png"
+      - "windows/msix/Assets/Square44x44Logo.png"
+      - "windows/msix/Assets/StoreLogo.png"
+      - "windows/msix/Assets/Wide310x150Logo.png"
     cmds:
-      - go run ./scripts/sync_version -root ..
       - go run ./scripts/sync_icons -root ..
 
   dev:frontend:
