@@ -99,6 +99,9 @@ describe('stateMapper', () => {
       'slider',
     ])
     expect(shell.runtimeGroups.flatMap((group) => group.fields).find((field) => field.id === 'answer-datetime-window')?.kind).toBe('datetime-window')
+    expect(shell.runtimeGroups.flatMap((group) => group.fields).find((field) => field.id === 'threads')?.description).toBe('同时处理的任务数量')
+    expect(shell.dashboard.metrics.find((item) => item.label === '并发数')?.value).toBe('3')
+    expect(shell.dashboard.quickActions.map((item) => item.label)).toEqual(['解析问卷', '导入配置', '保存配置', '高级参数'])
   })
 
   it('normalizes missing runtime values', () => {
@@ -251,6 +254,8 @@ describe('stateMapper', () => {
     const shell = applyConfigToShell(emptyShellState, settings, baseConfig, null)
     const fieldIds = shell.settingsGroups.flatMap((group) => group.fields.map((field) => field.id))
     const autosaveField = shell.settingsGroups.flatMap((group) => group.fields).find((field) => field.id === 'autosave')
+    const navTextField = shell.settingsGroups.flatMap((group) => group.fields).find((field) => field.id === 'nav-text')
+    const micaField = shell.settingsGroups.flatMap((group) => group.fields).find((field) => field.id === 'mica')
 
     expect(fieldIds).toEqual(expect.arrayContaining([
       'ask-save-on-close',
@@ -262,6 +267,9 @@ describe('stateMapper', () => {
       'auto-update',
     ]))
     expect(autosaveField?.options).toEqual(['3', '5', '10', '20', '30', '50'])
+    expect(navTextField).toMatchObject({ label: '导航文字', description: '在侧栏显示页面名称' })
+    expect(micaField).toMatchObject({ label: '窗口背景效果', description: '跟随系统主题显示半透明背景' })
+    expect(shell.settingsGroups.flatMap((group) => group.fields).map((field) => field.description).join(' ')).not.toMatch(/QFluentWidgets|WinUI/)
   })
 
   it('labels provider question types', () => {

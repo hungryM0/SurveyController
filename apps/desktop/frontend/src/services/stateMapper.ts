@@ -19,6 +19,7 @@ export interface AppModel {
   settings: AppSettings
   config: RuntimeConfig
   configPath: string
+  configExists: boolean
   reverseFillPreview: ReverseFillPreview | null
 }
 
@@ -87,7 +88,13 @@ const aiProtocols = ['auto', 'chat_completions', 'responses']
 const randomUAKeys = ['wechat', 'mobile', 'pc'] as const
 const defaultRandomUARatios: Record<string, number> = { wechat: 33, mobile: 33, pc: 34 }
 
-export function buildAppModel(shell: ShellState, settings: AppSettings, config?: RuntimeConfig | null, configPath = ''): AppModel {
+export function buildAppModel(
+  shell: ShellState,
+  settings: AppSettings,
+  config?: RuntimeConfig | null,
+  configPath = '',
+  configExists = false,
+): AppModel {
   const runtimeConfig = normalizeRuntimeConfig(config ?? {
     url: shell.dashboard.surveyUrl,
     survey_title: shell.dashboard.surveyTitle,
@@ -101,6 +108,7 @@ export function buildAppModel(shell: ShellState, settings: AppSettings, config?:
     settings,
     config: runtimeConfig,
     configPath,
+    configExists,
     reverseFillPreview: null,
   }
 }
@@ -415,14 +423,14 @@ function mapDashboard(base: DashboardState, config: RuntimeConfig, runState: Run
     platformLabel: providerLabels[config.survey_provider ?? 'wjx'] ?? '问卷星',
     metrics: [
       { label: '已解析题目', value: String(questions.length) },
-      { label: '当前并发', value: String(config.threads ?? 1) },
+      { label: '并发数', value: String(config.threads ?? 1) },
       { label: '随机 IP', value: config.random_ip_enabled ? '已启用' : '未启用', tone: config.random_ip_enabled ? 'success' : '' },
       { label: '反填', value: config.reverse_fill_enabled ? '已启用' : '未启用', tone: config.reverse_fill_enabled ? 'success' : '' },
     ],
     quickActions: [
-      { id: 'parse', label: '智能解析问卷', icon: 'scan', emphasis: 'primary' },
+      { id: 'parse', label: '解析问卷', icon: 'scan', emphasis: 'primary' },
       { id: 'load-config', label: '导入配置', icon: 'import' },
-      { id: 'save-config', label: '导出配置', icon: 'export' },
+      { id: 'save-config', label: '保存配置', icon: 'export' },
       { id: 'open-runtime', label: '高级参数', icon: 'tune' },
     ],
     runtimeHint: config.random_ua_enabled ? '随机 UA 已开启' : '随机 UA 未开启',
@@ -452,7 +460,7 @@ function mapRuntimeGroups(config: RuntimeConfig): SettingsGroup[] {
       title: '执行参数',
       fields: [
         field('target', '目标份数', '限制本次任务的目标提交量', 'number', String(config.target ?? 1)),
-        field('threads', '并发数', '纯 HTTP 并发，不走浏览器兜底', 'number', String(config.threads ?? 1)),
+        field('threads', '并发数', '同时处理的任务数量', 'number', String(config.threads ?? 1)),
         field('interval', '提交间隔（秒）', '每份提交之间的等待范围', 'range', `${submitInterval[0]} - ${submitInterval[1]}`),
         field('answer-duration', '作答时长（秒）', '控制整卷耗时分布', 'range', `${answerDuration[0]} - ${answerDuration[1]}`),
         field('answer-datetime-window', '提交时间', '设置见数的提交日期时间范围', 'datetime-window', formatDateTimeWindow(config.answer_datetime_window)),
@@ -499,8 +507,8 @@ function mapSettingsGroups(settings: AppSettings): SettingsGroup[] {
       title: '界面外观',
       fields: [
         field('theme', '主题', '跟随系统或固定明暗色', 'select', settings.themeMode || 'system', ['system', 'light', 'dark']),
-        field('nav-text', '显示导航文本', '贴近 QFluentWidgets 侧栏表现', 'toggle', String(settings.showNavigationText)),
-        field('mica', '启用 Mica 背景', 'WinUI 3 风格窗口材质', 'toggle', String(settings.micaEnabled)),
+        field('nav-text', '导航文字', '在侧栏显示页面名称', 'toggle', String(settings.showNavigationText)),
+        field('mica', '窗口背景效果', '跟随系统主题显示半透明背景', 'toggle', String(settings.micaEnabled)),
       ],
     },
     {
@@ -513,7 +521,7 @@ function mapSettingsGroups(settings: AppSettings): SettingsGroup[] {
         field('submission-report-telemetry', '提交结果遥测', '', 'toggle', String(settings.submissionReportTelemetry ?? true)),
         field('auto-save-logs', '自动保存日志', '任务结束后保存最近日志', 'toggle', String(autoSaveLogs)),
         field('autosave', '日志保留数量', '保留最近几份日志', 'select', String(settings.autosaveLogCount || 10), ['3', '5', '10', '20', '30', '50']),
-        field('config-directory', '配置目录', '载入和保存配置的默认目录', 'text', settings.configDirectory || ''),
+        field('config-directory', '配置目录', '打开和保存配置时使用的默认目录', 'text', settings.configDirectory || ''),
       ],
     },
     {

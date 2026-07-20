@@ -29,10 +29,6 @@ export function DecodeQRCode(request: $models.DecodeQRCodeRequest): $Cancellable
     return $Call.ByID(1524137838, request);
 }
 
-export function DismissStartupTutorialHint(): $CancellablePromise<$models.AppSettings> {
-    return $Call.ByID(580762776);
-}
-
 export function ExportLogLines(path: string, lines: string[] | null): $CancellablePromise<string> {
     return $Call.ByID(572398321, path, lines);
 }
@@ -55,10 +51,6 @@ export function GetRunTaskState(): $CancellablePromise<$models.RunTaskState> {
 
 export function GetShellState(): $CancellablePromise<$models.ShellState> {
     return $Call.ByID(4132789757);
-}
-
-export function GetStartupTutorialHint(): $CancellablePromise<$models.StartupTutorialHintState> {
-    return $Call.ByID(3040083232);
 }
 
 export function LoadConfig(request: $models.LoadConfigRequest): $CancellablePromise<$models.ConfigFileState> {

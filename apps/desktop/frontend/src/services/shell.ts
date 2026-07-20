@@ -1,16 +1,14 @@
-import type { AIConnectionTestState, AppSettings, CustomProxyAPITestState, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, StartupTutorialHintState, SurveyCoreState } from '../types'
+import type { AIConnectionTestState, AppSettings, CustomProxyAPITestState, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, SurveyCoreState } from '../types'
 import {
   BuildDefaultConfig,
   CancelRun,
   ConfirmClose,
   DecodeQRCode,
-  DismissStartupTutorialHint,
   GetProxyAreaOptions,
   GetProxyStatus,
   GetRunTaskState,
   GetAppSettings,
   GetShellState,
-  GetStartupTutorialHint,
   LoadConfig,
   PauseRun,
   PreviewReverseFill,
@@ -45,8 +43,12 @@ export async function loadAppModel(): Promise<AppModel> {
       Promise.resolve(GetShellState() as unknown as ShellState),
       GetAppSettings() as Promise<AppSettings>,
     ])
-    const loaded = await LoadConfig({ path: '' }).catch(() => null)
-    return buildAppModel(shell, settings, (loaded?.config ?? null) as RuntimeConfig | null, loaded?.path ?? '')
+    const loaded = await LoadConfig({ path: '' }) as {
+      path: string
+      exists: boolean
+      config?: RuntimeConfig | null
+    }
+    return buildAppModel(shell, settings, loaded.config ?? null, loaded.path, loaded.exists)
   } catch (err) {
     if (canUsePreviewState()) {
       return buildAppModel(previewShellState(), previewAppSettings(), null)
@@ -72,7 +74,10 @@ export async function decodeQRCodeDataURL(dataUrl: string, name = ''): Promise<Q
 }
 
 export async function loadRuntimeConfig(path: string): Promise<{ path: string; config: RuntimeConfig }> {
-  const state = await LoadConfig({ path }) as { path: string; config?: RuntimeConfig | null }
+  const state = await LoadConfig({ path }) as { path: string; exists: boolean; config?: RuntimeConfig | null }
+  if (!state.exists) {
+    throw new Error('配置文件不存在')
+  }
   if (!state.config) {
     throw new Error('配置文件没有运行配置')
   }
@@ -90,14 +95,6 @@ export async function saveSettings(settings: AppSettings): Promise<AppSettings> 
 
 export async function resetSettings(): Promise<AppSettings> {
   return await ResetAppSettings() as AppSettings
-}
-
-export async function loadStartupTutorialHint(): Promise<StartupTutorialHintState> {
-  return await GetStartupTutorialHint() as StartupTutorialHintState
-}
-
-export async function dismissStartupTutorialHint(): Promise<AppSettings> {
-  return await DismissStartupTutorialHint() as AppSettings
 }
 
 export async function confirmClose(): Promise<void> {
@@ -193,7 +190,7 @@ function previewAppSettings(): AppSettings {
     preventSleepDuringRun: true,
     taskResultNotification: true,
     submissionReportTelemetry: true,
-    startupTutorialHintSeen: false,
+    setupWizardVersion: 0,
     autoCheckUpdate: true,
     autoSaveLogs: true,
     notifications: true,

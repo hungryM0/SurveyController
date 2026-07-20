@@ -36,7 +36,6 @@ export type {
     SettingField,
     SettingsGroup,
     ShellState,
-    StartupTutorialHintState,
     StrategyRule,
     SurveyCoreState,
     TestAIConnectionRequest,

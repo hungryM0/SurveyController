@@ -370,6 +370,7 @@ function StrategyView({ config, onConfigChange }: StrategyViewProps) {
       <PageHeader title="题目策略" />
       <div className="strategy-tab-bar surface" role="tablist" aria-label="策略编辑分类">
         <Button value="条件规则" type={tab === 'rules' ? 'primary' : undefined} onClick={() => setTab('rules')} />
+        <Button value="逐题配置" type={tab === 'questions' ? 'primary' : undefined} onClick={() => setTab('questions')} />
         <Button value="维度分组" type={tab === 'dimensions' ? 'primary' : undefined} onClick={() => setTab('dimensions')} />
       </div>
 

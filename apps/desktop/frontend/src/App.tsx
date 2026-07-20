@@ -1,14 +1,17 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { AppTheme, LoaderBusy } from './components/ui'
-import { Browser, Dialogs, Events, Window } from '@wailsio/runtime'
+import { Dialogs, Events, Window } from '@wailsio/runtime'
 import CloseConfirmationDialog from './components/CloseConfirmationDialog'
 import { useCloseConfirmation } from './hooks/useCloseConfirmation'
 import NavRail from './components/NavRail'
-import StartupTutorialHint, {
-  STARTUP_TUTORIAL_HINT_DELAY_MS,
-  shouldScheduleStartupTutorialHint,
-} from './components/StartupTutorialHint'
+import {
+  ConfigurationWizard,
+  mergeParsedConfig,
+  useConfigurationWizard,
+  updateWizardURL,
+  validateWizardStep,
+} from './components/config-wizard'
 import WindowControls from './components/WindowControls'
 import {
   buildDefaultConfig,
@@ -16,13 +19,11 @@ import {
   confirmClose,
   decodeQRCode,
   decodeQRCodeDataURL,
-  dismissStartupTutorialHint,
   exportLogLines,
   loadAppModel,
   loadProxyStatus,
   loadRunTaskState,
   loadRuntimeConfig,
-  loadStartupTutorialHint,
   pauseRuntimeConfig,
   previewReverseFill,
   redeemProxyCard,
@@ -48,7 +49,6 @@ import {
   showTaskResultNotification,
 } from './services/desktopSettings'
 import type { ProxyStatus, RunTaskState, RuntimeConfig, ShellState } from './types'
-import type { StartupTutorialHintState } from './types'
 import { resolvePageMotion, waitForWindowExit } from './motion'
 
 const DashboardView = lazy(() => import('./pages/DashboardView'))
@@ -77,8 +77,6 @@ function App() {
   const [runState, setRunState] = useState<RunTaskState | null>(null)
   const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null)
   const [runtimeLogLines, setRuntimeLogLines] = useState<string[]>([])
-  const [startupTutorialHint, setStartupTutorialHint] = useState<StartupTutorialHintState | null>(null)
-  const [startupTutorialVisible, setStartupTutorialVisible] = useState(false)
   const previousPage = useRef(currentPage)
   const windowClosing = useRef(false)
   const runPollTimer = useRef<number | null>(null)
@@ -94,6 +92,25 @@ function App() {
     : runState?.paused ? 'paused' as const
     : (runState?.running || runBusy) ? 'running' as const
     : 'idle' as const
+  const runReadiness = useMemo(
+    () => config ? validateWizardStep('review', config) : { valid: false, message: '请先完成问卷配置。' },
+    [config],
+  )
+
+  const { openWizard, wizardProps } = useConfigurationWizard({
+    loading,
+    config,
+    configExists: model?.configExists ?? false,
+    configPath: model?.configPath ?? '',
+    settings: model?.settings ?? null,
+    onPersisted: ({ config: savedConfig, configPath, settings }) => {
+      setModel((current) => current
+        ? { ...current, config: savedConfig, configPath, configExists: true, settings }
+        : current)
+    },
+    onNotice: setNotice,
+    onComplete: () => setCurrentPage('dashboard'),
+  })
 
   useEffect(() => {
     settingsRef.current = model?.settings ?? null
@@ -227,35 +244,6 @@ function App() {
   }, [model?.settings])
 
   useEffect(() => {
-    if (!model || loading) {
-      return
-    }
-    let active = true
-    let timer: number | null = null
-
-    void loadStartupTutorialHint()
-      .then((hint) => {
-        if (!active || !shouldScheduleStartupTutorialHint(loading, hint.shouldShow)) {
-          return
-        }
-        setStartupTutorialHint(hint)
-        timer = window.setTimeout(() => {
-          if (active) {
-            setStartupTutorialVisible(true)
-          }
-        }, STARTUP_TUTORIAL_HINT_DELAY_MS)
-      })
-      .catch(() => undefined)
-
-    return () => {
-      active = false
-      if (timer !== null) {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [loading, model?.settings.startupTutorialHintSeen])
-
-  useEffect(() => {
     if (!notice) return
     const t = window.setTimeout(() => setNotice(''), 3500)
     return () => window.clearTimeout(t)
@@ -301,7 +289,7 @@ function App() {
     if (!config) {
       return
     }
-    setConfig({ ...config, url: value })
+    setConfig(updateWizardURL(config, value))
   }
 
   async function autoConfig() {
@@ -310,14 +298,7 @@ function App() {
         throw new Error('问卷链接不能为空')
       }
       const next = await buildDefaultConfig(config.url)
-      setConfig({
-        ...config,
-        ...next,
-        target: config.target,
-        threads: config.threads,
-        random_ip_enabled: config.random_ip_enabled,
-        proxy_source: config.proxy_source,
-      })
+      setConfig(mergeParsedConfig(config, next, config.url))
       setNotice('问卷配置已生成')
     })
   }
@@ -325,7 +306,7 @@ function App() {
   async function loadConfigFromDialog() {
     await withBusy(async () => {
       const path = await Dialogs.OpenFile({
-        Title: '载入配置',
+        Title: '导入配置',
         CanChooseFiles: true,
         Filters: [{ DisplayName: 'JSON 配置', Pattern: '*.json' }],
       })
@@ -334,9 +315,9 @@ function App() {
       }
       const loaded = await loadRuntimeConfig(path)
       setModel((current) => current
-        ? { ...current, configPath: loaded.path, config: loaded.config }
+        ? { ...current, configPath: loaded.path, config: loaded.config, configExists: true }
         : current)
-      setNotice('配置已载入')
+      setNotice('配置已导入')
     })
   }
 
@@ -354,7 +335,7 @@ function App() {
       if (!config) {
         return
       }
-      setConfig({ ...config, url: decoded.text })
+      setConfig(updateWizardURL(config, decoded.text))
       setNotice('二维码已识别')
     })
   }
@@ -365,7 +346,7 @@ function App() {
       if (!config) {
         return
       }
-      setConfig({ ...config, url: decoded.text })
+      setConfig(updateWizardURL(config, decoded.text))
       setNotice('二维码已识别')
     })
   }
@@ -385,7 +366,7 @@ function App() {
       }
       const saved = await saveRuntimeConfig(config, path)
       setModel((current) => current
-        ? { ...current, configPath: saved.path, config: saved.config }
+        ? { ...current, configPath: saved.path, config: saved.config, configExists: true }
         : current)
       setNotice('配置已保存')
     })
@@ -398,7 +379,7 @@ function App() {
     }
     const saved = await saveRuntimeConfig(current, configPathRef.current)
     setModel((existing) => existing
-      ? { ...existing, configPath: saved.path, config: saved.config }
+      ? { ...existing, configPath: saved.path, config: saved.config, configExists: true }
       : existing)
   }
 
@@ -499,30 +480,14 @@ function App() {
     })
   }
 
-  async function dismissStartupTutorial() {
-    setStartupTutorialVisible(false)
-    try {
-      const saved = await dismissStartupTutorialHint()
-      setModel((current) => current ? { ...current, settings: saved } : current)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
-  }
-
-  async function openStartupTutorial() {
-    const url = startupTutorialHint?.docUrl || 'https://surveydoc.hungrym0.com/'
-    await dismissStartupTutorial()
-    try {
-      await Browser.OpenURL(url)
-    } catch {
-      setNotice(url)
-    }
-  }
-
   async function runSurvey() {
     await withBusy(async () => {
       if (!config) {
         return
+      }
+      const readiness = validateWizardStep('review', config)
+      if (!readiness.valid) {
+        throw new Error(readiness.message ?? '当前配置还不能启动。')
       }
       setRuntimeLogLines([])
       const nextRun = await startRuntimeConfig(config)
@@ -604,7 +569,7 @@ function App() {
         <div className="error-panel">
           <AlertCircle size={18} />
           <div>
-            <strong>服务连接失败</strong>
+            <strong>应用加载失败</strong>
             <span>{error}</span>
           </div>
         </div>
@@ -651,12 +616,15 @@ function App() {
                   dashboard={shell.dashboard}
                   busy={runBusy}
                   runPhase={runPhase}
+                  canRun={runReadiness.valid}
+                  runBlockedReason={runReadiness.message}
                   onUpdateUrl={updateURL}
                   onAutoConfig={autoConfig}
                   onLoadQRCode={loadQRCodeFromDialog}
                   onDecodeQRCodeImage={(file) => void decodeQRCodeFromImageFile(file)}
                   onLoadConfig={loadConfigFromDialog}
                   onSaveConfig={saveConfigToDialog}
+                  onOpenSetupWizard={openWizard}
                   onOpenRuntime={() => setCurrentPage('runtime')}
                   onTargetChange={(value) => updateConfigField('target', String(value))}
                   onThreadsChange={(value) => updateConfigField('threads', String(value))}
@@ -715,12 +683,7 @@ function App() {
           </Suspense>
         </main>
       </div>
-      {startupTutorialVisible ? (
-        <StartupTutorialHint
-          onDismiss={() => void dismissStartupTutorial()}
-          onOpen={() => void openStartupTutorial()}
-        />
-      ) : null}
+      <ConfigurationWizard {...wizardProps} />
       <CloseConfirmationDialog
         open={closeConfirmation.open}
         busy={closeConfirmation.busy}

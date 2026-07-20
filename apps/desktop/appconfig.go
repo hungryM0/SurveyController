@@ -20,7 +20,7 @@ type AppSettings struct {
 	PreventSleepDuringRun     bool              `json:"preventSleepDuringRun"`
 	TaskResultNotification    bool              `json:"taskResultNotification"`
 	SubmissionReportTelemetry bool              `json:"submissionReportTelemetry"`
-	StartupTutorialHintSeen   bool              `json:"startupTutorialHintSeen"`
+	SetupWizardVersion        int               `json:"setupWizardVersion"`
 	AutoCheckUpdate           bool              `json:"autoCheckUpdate"`
 	AutoSaveLogs              bool              `json:"autoSaveLogs"`
 	Notifications             bool              `json:"notifications"`
@@ -43,6 +43,7 @@ type SaveSettingsRequest struct {
 
 type ConfigFileState struct {
 	Path   string                    `json:"path"`
+	Exists bool                      `json:"exists"`
 	Config *surveycore.RuntimeConfig `json:"config,omitempty"`
 }
 
@@ -105,6 +106,9 @@ func normalizeAppSettings(settings AppSettings) AppSettings {
 	}
 	if settings.AutosaveLogCount <= 0 {
 		settings.AutosaveLogCount = 10
+	}
+	if settings.SetupWizardVersion < 0 {
+		settings.SetupWizardVersion = 0
 	}
 	settings.Notifications = settings.TaskResultNotification
 	if settings.RuntimeDefaults == nil {

@@ -30,13 +30,13 @@ func initialShellState(version string) ShellState {
 			PlatformLabel:      "问卷星",
 			Metrics: []PageMetric{
 				{Label: "已解析题目", Value: "0"},
-				{Label: "当前并发", Value: "1"},
+				{Label: "并发数", Value: "1"},
 				{Label: "随机 IP", Value: "未启用"},
 				{Label: "反填", Value: "未启用"},
 			},
 			QuickActions: []QuickAction{
 				{ID: "parse", Label: "解析问卷", Icon: "scan", Emphasis: "primary"},
-				{ID: "load-config", Label: "载入配置", Icon: "folder"},
+				{ID: "load-config", Label: "导入配置", Icon: "folder"},
 				{ID: "save-config", Label: "保存配置", Icon: "save"},
 				{ID: "open-runtime", Label: "高级参数", Icon: "tune"},
 			},

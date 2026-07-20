@@ -782,35 +782,6 @@ func TestAppServiceResetAppSettingsRestoresDefaults(t *testing.T) {
 	}
 }
 
-func TestAppServiceStartupTutorialHintShowsUntilDismissed(t *testing.T) {
-	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
-
-	hint, err := service.GetStartupTutorialHint()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !hint.ShouldShow || hint.DocURL != startupTutorialDocURL {
-		t.Fatalf("hint = %#v", hint)
-	}
-
-	settings, err := service.DismissStartupTutorialHint()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !settings.StartupTutorialHintSeen {
-		t.Fatalf("settings = %#v", settings)
-	}
-
-	hint, err = service.GetStartupTutorialHint()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if hint.ShouldShow {
-		t.Fatalf("hint after dismiss = %#v", hint)
-	}
-}
-
 func TestAppServiceTestAIConnection(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

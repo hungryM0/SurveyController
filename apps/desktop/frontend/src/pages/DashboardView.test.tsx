@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { applyConfigToShell, normalizeRuntimeConfig } from '../services/stateMapper'
@@ -14,6 +15,34 @@ const settings: AppSettings = {
   topmost: false,
   notifications: true,
   autosaveLogCount: 5,
+}
+
+const dashboardProps: ComponentProps<typeof DashboardView> = {
+  dashboard: emptyShellState.dashboard,
+  customProxyAPI: '',
+  onUpdateUrl: () => undefined,
+  onAutoConfig: () => undefined,
+  onLoadQRCode: () => undefined,
+  onDecodeQRCodeImage: () => undefined,
+  onLoadConfig: () => undefined,
+  onSaveConfig: () => undefined,
+  onOpenSetupWizard: () => undefined,
+  onOpenRuntime: () => undefined,
+  onTargetChange: () => undefined,
+  onThreadsChange: () => undefined,
+  onRandomIpChange: () => undefined,
+  onProxySourceChange: () => undefined,
+  onCustomProxyAPIChange: () => undefined,
+  onSyncProxyStatus: () => undefined,
+  onRedeemProxyCard: () => undefined,
+  onRun: () => undefined,
+  onCancelRun: () => undefined,
+  onPauseRun: () => undefined,
+  onResumeRun: () => undefined,
+}
+
+function renderDashboard(props: Partial<ComponentProps<typeof DashboardView>> = {}) {
+  return renderToStaticMarkup(<DashboardView {...dashboardProps} {...props} />)
 }
 
 describe('DashboardView', () => {
@@ -81,34 +110,40 @@ describe('DashboardView', () => {
   })
 
   it('reveals the custom proxy API field and health action', () => {
-    const html = renderToStaticMarkup(
-      <DashboardView
-        dashboard={{ ...emptyShellState.dashboard, proxySource: '自定义' }}
-        customProxyAPI="https://proxy.example/api"
-        onUpdateUrl={() => undefined}
-        onAutoConfig={() => undefined}
-        onLoadQRCode={() => undefined}
-        onDecodeQRCodeImage={() => undefined}
-        onLoadConfig={() => undefined}
-        onSaveConfig={() => undefined}
-        onOpenRuntime={() => undefined}
-        onTargetChange={() => undefined}
-        onThreadsChange={() => undefined}
-        onRandomIpChange={() => undefined}
-        onProxySourceChange={() => undefined}
-        onCustomProxyAPIChange={() => undefined}
-        onSyncProxyStatus={() => undefined}
-        onRedeemProxyCard={() => undefined}
-        onRun={() => undefined}
-        onCancelRun={() => undefined}
-        onPauseRun={() => undefined}
-        onResumeRun={() => undefined}
-      />,
-    )
+    const html = renderDashboard({
+      dashboard: { ...emptyShellState.dashboard, proxySource: '自定义' },
+      customProxyAPI: 'https://proxy.example/api',
+    })
 
     expect(html).toContain('代理 API')
     expect(html).toContain('https://proxy.example/api')
     expect(html).toContain('验活')
     expect(html).toContain('custom-proxy-reveal')
+  })
+
+  it('keeps setup as the primary entry and uses consistent action labels', () => {
+    const emptyHtml = renderDashboard()
+    const configuredHtml = renderDashboard({
+      dashboard: { ...emptyShellState.dashboard, surveyUrl: 'https://www.wjx.cn/vm/demo.aspx' },
+    })
+
+    expect(emptyHtml).toContain('配置问卷')
+    expect(emptyHtml).toContain('解析问卷')
+    expect(emptyHtml).toContain('导入配置')
+    expect(emptyHtml).toContain('保存配置')
+    expect(emptyHtml).toContain('并发数')
+    expect(configuredHtml).toContain('重新配置')
+    expect(configuredHtml).not.toContain('>配置问卷<')
+  })
+
+  it('keeps start disabled until the full configuration is ready', () => {
+    const html = renderDashboard({
+      dashboard: { ...emptyShellState.dashboard, surveyUrl: 'https://www.wjx.cn/vm/demo.aspx' },
+      canRun: false,
+      runBlockedReason: '请先解析问卷。',
+    })
+
+    expect(html).toContain('title="请先解析问卷。"')
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="请先解析问卷。"|<button[^>]*title="请先解析问卷。"[^>]*disabled=""/)
   })
 })

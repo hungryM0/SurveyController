@@ -23,7 +23,7 @@ export interface AppSettings {
     "preventSleepDuringRun": boolean;
     "taskResultNotification": boolean;
     "submissionReportTelemetry": boolean;
-    "startupTutorialHintSeen": boolean;
+    "setupWizardVersion": number;
     "autoCheckUpdate": boolean;
     "autoSaveLogs": boolean;
     "notifications": boolean;
@@ -33,6 +33,7 @@ export interface AppSettings {
 
 export interface ConfigFileState {
     "path": string;
+    "exists": boolean;
     "config"?: surveycore$0.RuntimeConfig | null;
 }
 
@@ -235,11 +236,6 @@ export interface ShellState {
     "aboutItems": PageMetric[] | null;
     "donateItems": PageMetric[] | null;
     "settingsGroups": SettingsGroup[] | null;
-}
-
-export interface StartupTutorialHintState {
-    "shouldShow": boolean;
-    "docUrl": string;
 }
 
 export interface StrategyRule {

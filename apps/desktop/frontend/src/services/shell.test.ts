@@ -11,7 +11,7 @@ const settings: AppSettings = {
   topmost: false,
   notifications: true,
   autosaveLogCount: 5,
-  startupTutorialHintSeen: false,
+  setupWizardVersion: 0,
 }
 
 const config: RuntimeConfig = {

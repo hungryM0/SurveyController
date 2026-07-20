@@ -71,10 +71,10 @@ func (s *AppService) LoadConfig(_ context.Context, request LoadConfigRequest) (C
 	path := configPathFromRequest(request.Path, settings)
 	cfg, err := configio.Load(path, true)
 	if err != nil {
-		if strings.TrimSpace(request.Path) == "" && errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			empty := surveycore.RuntimeConfig{}
 			empty = applyAIRuntimeDefaults(empty, settings, false)
-			return ConfigFileState{Path: path, Config: &empty}, nil
+			return ConfigFileState{Path: path, Exists: false, Config: &empty}, nil
 		}
 		return ConfigFileState{}, err
 	}
@@ -83,7 +83,7 @@ func (s *AppService) LoadConfig(_ context.Context, request LoadConfigRequest) (C
 		return ConfigFileState{}, err
 	}
 	cfg = applyAIRuntimeDefaults(cfg, settings, hasAISettings)
-	return ConfigFileState{Path: path, Config: &cfg}, nil
+	return ConfigFileState{Path: path, Exists: true, Config: &cfg}, nil
 }
 
 func (s *AppService) SaveConfig(_ context.Context, request SaveConfigRequest) (ConfigFileState, error) {
@@ -103,7 +103,7 @@ func (s *AppService) SaveConfig(_ context.Context, request SaveConfigRequest) (C
 		return ConfigFileState{}, err
 	}
 	cfg := request.Config
-	return ConfigFileState{Path: savedPath, Config: &cfg}, nil
+	return ConfigFileState{Path: savedPath, Exists: true, Config: &cfg}, nil
 }
 
 func (s *AppService) PreviewReverseFill(_ context.Context, request ReverseFillPreviewRequest) (reversefill.Preview, error) {

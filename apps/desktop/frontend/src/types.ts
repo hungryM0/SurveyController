@@ -255,17 +255,12 @@ export interface AppSettings {
   preventSleepDuringRun?: boolean
   taskResultNotification?: boolean
   submissionReportTelemetry?: boolean
-  startupTutorialHintSeen?: boolean
+  setupWizardVersion?: number
   autoCheckUpdate?: boolean
   autoSaveLogs?: boolean
   notifications: boolean
   autosaveLogCount: number
   runtimeDefaults?: Record<string, string>
-}
-
-export interface StartupTutorialHintState {
-  shouldShow: boolean
-  docUrl: string
 }
 
 export interface ProxyStatus {

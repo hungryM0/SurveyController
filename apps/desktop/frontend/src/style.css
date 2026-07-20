@@ -1250,94 +1250,6 @@ select {
   gap: 0.55rem;
 }
 
-.startup-tutorial-flyout {
-  position: fixed;
-  right: 1.75rem;
-  bottom: 1.75rem;
-  z-index: 60;
-  width: min(22.5rem, calc(100vw - 2rem));
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: 0.9rem;
-  background: var(--surface-strong);
-  box-shadow: var(--shadow);
-  color: var(--text);
-  padding: 1rem;
-  backdrop-filter: blur(22px) saturate(150%);
-  animation: startup-tutorial-slide-in 220ms cubic-bezier(0.1, 0.9, 0.2, 1) both;
-}
-
-.startup-tutorial-icon {
-  display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.7rem;
-  background: var(--accent-soft);
-  color: var(--accent);
-  place-items: center;
-}
-
-.startup-tutorial-close {
-  display: grid;
-  width: 1.8rem;
-  height: 1.8rem;
-  border: 0;
-  border-radius: 0.45rem;
-  background: transparent;
-  color: var(--muted);
-  place-items: center;
-}
-
-.startup-tutorial-close:hover {
-  background: var(--control-hover);
-  color: var(--text);
-}
-
-.startup-tutorial-body {
-  display: grid;
-  min-width: 0;
-  gap: 0.25rem;
-}
-
-.startup-tutorial-body h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 0.98rem;
-  font-weight: 650;
-}
-
-.startup-tutorial-body p {
-  margin: 0;
-  color: var(--text);
-  font-size: 0.86rem;
-}
-
-.startup-tutorial-body span {
-  color: var(--muted);
-  font-size: 0.76rem;
-}
-
-.startup-tutorial-actions {
-  grid-column: 2 / 4;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding-top: 0.1rem;
-}
-
-@keyframes startup-tutorial-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(1.2rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .contact-form label {
   display: grid;
   gap: 0.3rem;
@@ -3056,17 +2968,6 @@ select {
     padding: 1rem;
   }
 
-  .startup-tutorial-flyout {
-    right: 1rem;
-    bottom: 1rem;
-    left: 1rem;
-    width: auto;
-  }
-
-  .startup-tutorial-actions {
-    grid-column: 1 / 4;
-  }
-
   .card-icon-accent {
     width: 2.75rem;
     height: 2.75rem;
@@ -3714,14 +3615,6 @@ select {
   gap: 0.45rem;
 }
 
-.startup-tutorial-flyout {
-  right: 1rem;
-  bottom: 5.25rem;
-  z-index: 45;
-  width: min(20rem, calc(100vw - 2rem));
-  border-radius: 0.65rem;
-}
-
 .platform-windows .app-root,
 .platform-windows .workspace,
 .platform-windows .app-titlebar,
@@ -3818,12 +3711,6 @@ select {
     grid-template-rows: auto minmax(18rem, 1fr);
   }
 
-  .startup-tutorial-flyout {
-    right: 0.75rem;
-    bottom: 0.75rem;
-    left: 0.75rem;
-    width: auto;
-  }
 }
 
 /* Dashboard polish: practical desktop workspace */
@@ -5803,4 +5690,454 @@ select {
   .terminal-line {
     transition: none;
   }
+}
+
+/* Configuration wizard: a focused, keyboard-friendly setup surface. */
+.config-wizard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(8, 12, 18, 0.58);
+  backdrop-filter: blur(12px);
+  animation: config-wizard-fade-in 200ms ease-out both;
+}
+
+.config-wizard-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 81;
+  width: min(860px, calc(100vw - 2rem));
+  max-height: min(720px, calc(100vh - 2rem));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(135%);
+  animation: config-wizard-dialog-in 240ms cubic-bezier(0.1, 0.9, 0.2, 1) both;
+}
+
+.config-wizard-header,
+.config-wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.05rem 1.2rem;
+}
+
+.config-wizard-header { border-bottom: 1px solid var(--line); }
+
+.config-wizard-title {
+  display: block;
+  margin: 0;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.config-wizard-description {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.config-wizard-step-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.config-wizard-layout {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 14.5rem minmax(0, 1fr);
+}
+
+.config-wizard-progress {
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  padding: 1rem 0.65rem;
+}
+
+.config-wizard-progress ol {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-wizard-progress button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.85rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.55rem 0.45rem;
+  text-align: left;
+  transition: background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+}
+
+.config-wizard-progress button:not(:disabled):hover {
+  border-color: var(--line);
+  background: var(--control-hover);
+  color: var(--text);
+}
+
+.config-wizard-progress li.is-active button {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.config-wizard-progress li.is-complete button { color: var(--text); }
+
+.config-wizard-progress-index {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: inherit;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.config-wizard-progress li.is-active .config-wizard-progress-index,
+.config-wizard-progress li.is-complete .config-wizard-progress-index {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #fff);
+}
+
+.config-wizard-progress-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.config-wizard-progress-copy strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.83rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-wizard-progress-copy small {
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.7rem;
+  opacity: 0.8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-wizard-main {
+  min-width: 0;
+  overflow: auto;
+  padding: 1.25rem 1.35rem;
+}
+
+.config-wizard-step {
+  display: grid;
+  gap: 1.2rem;
+  animation: config-wizard-step-in 200ms ease-out both;
+}
+
+.config-wizard-reveal {
+  animation: config-wizard-reveal-in 180ms cubic-bezier(0.1, 0.9, 0.2, 1) both;
+}
+
+.config-wizard-step-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.config-wizard-step-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.12rem;
+  font-weight: 700;
+}
+
+.config-wizard-step-heading p,
+.config-wizard-hint,
+.config-wizard-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.config-wizard-form-grid { display: grid; gap: 0.7rem; }
+
+.config-wizard-field {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.9fr) minmax(12rem, 1.1fr);
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.config-wizard-field-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.config-wizard-field-label {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.config-wizard-field-copy small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.config-wizard-field > .sc-input-container,
+.config-wizard-field > .sc-select-trigger,
+.config-wizard-field > .sc-switch-container,
+.config-wizard-field > .config-wizard-slider-field { justify-self: end; }
+
+.config-wizard-slider-field {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.config-wizard-slider-field output {
+  min-width: 5.5rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.config-wizard-url-field {
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+  padding-top: 0;
+}
+
+.config-wizard-url-field .sc-input-container { width: 100%; }
+
+.config-wizard-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.config-wizard-parse-result,
+.config-wizard-ready-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--line));
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--success) 8%, var(--surface-soft));
+  color: var(--success);
+  padding: 0.75rem;
+}
+
+.config-wizard-parse-result > div,
+.config-wizard-ready-card > div { display: grid; gap: 0.15rem; }
+
+.config-wizard-parse-result strong,
+.config-wizard-ready-card strong { color: var(--text); font-size: 0.86rem; }
+
+.config-wizard-parse-result span,
+.config-wizard-ready-card span { color: var(--muted); font-size: 0.77rem; }
+
+.config-wizard-error {
+  border: 1px solid color-mix(in srgb, var(--danger) 38%, var(--line));
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-soft));
+  color: var(--danger);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.config-wizard-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.config-wizard-review-item {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface-soft);
+  padding: 0.65rem 0.75rem;
+}
+
+.config-wizard-review-item dt,
+.config-wizard-review-url span { color: var(--muted); font-size: 0.72rem; }
+
+.config-wizard-review-item dd {
+  overflow: hidden;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-wizard-review-url { display: grid; gap: 0.35rem; }
+
+.config-wizard-review-url code {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface-soft);
+  color: var(--text);
+  padding: 0.65rem 0.75rem;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.config-wizard-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.config-wizard-footer-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.config-wizard-discard-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--line));
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-soft));
+  padding: 0.65rem 0.75rem;
+}
+
+.config-wizard-discard-confirm > div:first-child {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.config-wizard-discard-confirm strong {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.config-wizard-discard-confirm span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.config-wizard-discard-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+}
+
+.config-wizard-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@keyframes config-wizard-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes config-wizard-dialog-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 0.6rem)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes config-wizard-step-in {
+  from { opacity: 0; transform: translateY(0.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes config-wizard-reveal-in {
+  from { opacity: 0; transform: translateY(-0.2rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+  .config-wizard-dialog { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); }
+  .config-wizard-layout { grid-template-columns: 1fr; }
+  .config-wizard-progress {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 0.55rem 0.7rem;
+  }
+  .config-wizard-progress ol { display: flex; gap: 0.35rem; overflow-x: auto; }
+  .config-wizard-progress li { flex: 1 0 2rem; }
+  .config-wizard-progress button {
+    width: auto;
+    grid-template-columns: 1.75rem;
+    justify-items: center;
+    padding: 0.35rem;
+  }
+  .config-wizard-progress-copy { display: none; }
+  .config-wizard-main { padding: 1rem; }
+  .config-wizard-field,
+  .config-wizard-field > .sc-input-container,
+  .config-wizard-field > .sc-select-trigger,
+  .config-wizard-field > .sc-switch-container,
+  .config-wizard-field > .config-wizard-slider-field {
+    grid-template-columns: 1fr;
+    justify-self: stretch;
+  }
+  .config-wizard-slider-field output { text-align: left; }
+  .config-wizard-review-grid { grid-template-columns: 1fr; }
+  .config-wizard-footer { align-items: stretch; }
+  .config-wizard-footer-main,
+  .config-wizard-discard-confirm { align-items: stretch; flex-direction: column; }
+  .config-wizard-footer-main { gap: 0.55rem; }
+  .config-wizard-discard-actions { width: 100%; }
+  .config-wizard-discard-actions .sc-button { flex: 1 1 8rem; }
+  .config-wizard-footer-actions .sc-button { flex: 1 1 8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config-wizard-backdrop,
+  .config-wizard-dialog,
+  .config-wizard-step,
+  .config-wizard-reveal { animation: none; }
+  .config-wizard-progress button { transition: none; }
 }

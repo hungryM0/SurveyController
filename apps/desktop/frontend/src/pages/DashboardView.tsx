@@ -3,7 +3,6 @@ import {
   Activity,
   ArrowLeft,
   CreditCard,
-  Download,
   FileSearch,
   Globe,
   Pause,
@@ -26,12 +25,15 @@ interface DashboardViewProps {
   dashboard: DashboardState
   busy?: boolean
   runPhase?: 'idle' | 'running' | 'paused' | 'canceling'
+  canRun?: boolean
+  runBlockedReason?: string
   onUpdateUrl: (value: string) => void
   onAutoConfig: () => void
   onLoadQRCode: () => void
   onDecodeQRCodeImage: (file: File) => void
   onLoadConfig: () => void
   onSaveConfig: () => void
+  onOpenSetupWizard?: () => void
   onOpenRuntime: () => void
   onTargetChange: (value: number) => void
   onThreadsChange: (value: number) => void
@@ -72,12 +74,15 @@ function DashboardView({
   dashboard,
   busy = false,
   runPhase = 'idle',
+  canRun = Boolean(dashboard.surveyUrl.trim()),
+  runBlockedReason,
   onUpdateUrl,
   onAutoConfig,
   onLoadQRCode,
   onDecodeQRCodeImage,
   onLoadConfig,
   onSaveConfig,
+  onOpenSetupWizard,
   onOpenRuntime,
   onTargetChange,
   onThreadsChange,
@@ -114,6 +119,7 @@ function DashboardView({
   const accountBalancePercent = dashboard.proxyQuotaKnown && accountTotalValue > 0
     ? clampPercent(Math.round((accountRemainingValue / accountTotalValue) * 100))
     : 0
+  const hasSurveyConfig = Boolean(dashboard.surveyUrl.trim())
 
   function handleQRImageFile(file?: File | null) {
     if (!file || busy || !isSupportedQRImage(file)) {
@@ -177,7 +183,7 @@ function DashboardView({
           <div className="command-scan-area">
             <Button value="扫码" icon={<QrCode size={15} />} disabled={busy} onClick={onLoadQRCode} />
             <Button
-              value="解析"
+              value="解析问卷"
               icon={<FileSearch size={15} />}
               disabled={busy || !dashboard.surveyUrl}
               isLoading={busy}
@@ -206,8 +212,17 @@ function DashboardView({
           </div>
 
           <div className="command-actions">
-            <Button value="导入" icon={<Upload size={15} />} onClick={onLoadConfig} />
-            <Button value="导出" icon={<Download size={15} />} onClick={onSaveConfig} />
+            {onOpenSetupWizard ? (
+              <Button
+                value={hasSurveyConfig ? '重新配置' : '配置问卷'}
+                type="primary"
+                icon={<Settings size={15} />}
+                disabled={busy}
+                onClick={onOpenSetupWizard}
+              />
+            ) : null}
+            <Button value="导入配置" icon={<Upload size={15} />} disabled={busy} onClick={onLoadConfig} />
+            <Button value="保存配置" icon={<Save size={15} />} disabled={busy} onClick={onSaveConfig} />
           </div>
         </section>
 
@@ -239,7 +254,7 @@ function DashboardView({
               <div className="control-item">
                 <div className="item-label-group">
                   <Zap size={15} />
-                  <span>并发线程</span>
+                  <span>并发数</span>
                 </div>
                 <div className="item-slider-area">
                   <SliderControl
@@ -475,7 +490,8 @@ function DashboardView({
               value="开始执行"
               type="primary"
               icon={<Play size={16} />}
-              disabled={busy || !dashboard.surveyUrl}
+              disabled={busy || !canRun}
+              tooltip={!canRun ? runBlockedReason : undefined}
               onClick={onRun}
             />
           )}
