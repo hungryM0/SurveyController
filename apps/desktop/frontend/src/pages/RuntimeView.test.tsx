@@ -59,7 +59,7 @@ describe('RuntimeView data mapping', () => {
     expect(html).toContain('选择省份或城市')
   })
 
-  it('renders datetime inputs without a disclosure control', () => {
+  it('renders Fluent datetime triggers without the native disclosure control', () => {
     const shell = applyConfigToShell(
       emptyShellState,
       settings,
@@ -74,7 +74,8 @@ describe('RuntimeView data mapping', () => {
 
     expect(html).toContain('开始时间')
     expect(html).toContain('结束时间')
-    expect(html).toContain('type="datetime-local"')
+    expect(html).toContain('aria-haspopup="dialog"')
+    expect(html).toContain('2024年03月10日 09:00')
     expect(html).not.toContain('选择提交时间范围')
   })
 

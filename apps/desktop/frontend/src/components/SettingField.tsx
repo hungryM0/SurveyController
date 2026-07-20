@@ -1,5 +1,7 @@
-import { useId, useMemo, type ChangeEvent, type ReactElement } from 'react'
-import { InputText, SelectNative, Switch, SliderBar, RangeSliderBar } from './ui'
+import { useMemo, type ChangeEvent, type ReactElement } from 'react'
+import { Minus, Plus } from 'lucide-react'
+import { Button, InputText, SelectNative, Switch, SliderBar, RangeSliderBar } from './ui'
+import FluentDateTimePicker from './FluentDateTimePicker'
 import type { SettingField as SettingFieldType } from '../types'
 
 interface SettingFieldProps {
@@ -63,7 +65,11 @@ function SettingField({ field, onChange }: SettingFieldProps) {
         </div>
       ) : null}
 
-      {field.kind === 'number' && !isConcurrency ? (
+      {field.kind === 'number' && field.id === 'target' ? (
+        <NumberButtonField value={field.value} onChange={(value) => onChange(field.id, value)} />
+      ) : null}
+
+      {field.kind === 'number' && !isConcurrency && field.id !== 'target' ? (
         <InputText
           value={field.value}
           width="8rem"
@@ -128,14 +134,6 @@ function splitDateTimeValue(value: string): [string, string] {
   return [parts[0] ?? '', parts[1] ?? '']
 }
 
-function toDateTimeLocal(value: string): string {
-  return value ? value.replace(' ', 'T').slice(0, 16) : ''
-}
-
-function fromDateTimeLocal(value: string): string {
-  return value ? `${value.replace('T', ' ')}:00` : ''
-}
-
 function formatDuration(seconds: number): string {
   const safe = Math.max(0, Math.round(seconds || 0))
   const minutes = Math.floor(safe / 60)
@@ -146,18 +144,31 @@ function formatDuration(seconds: number): string {
 }
 
 function DateTimeWindowField({ start, end, onChange }: { start: string; end: string; onChange: (value: string) => void }) {
-  const startId = useId()
-  const endId = useId()
   return (
     <div className="datetime-window-field">
-      <label htmlFor={startId}>
+      <label>
         <span>开始时间</span>
-        <InputText id={startId} type="datetime-local" value={toDateTimeLocal(start)} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(`${fromDateTimeLocal(event.target.value)} | ${end}`)} />
+        <FluentDateTimePicker value={start} onChange={(value) => onChange(`${value} | ${end}`)} />
       </label>
-      <label htmlFor={endId}>
+      <label>
         <span>结束时间</span>
-        <InputText id={endId} type="datetime-local" value={toDateTimeLocal(end)} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(`${start} | ${fromDateTimeLocal(event.target.value)}`)} />
+        <FluentDateTimePicker value={end} onChange={(value) => onChange(`${start} | ${value}`)} />
       </label>
+    </div>
+  )
+}
+
+function NumberButtonField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const current = Math.max(1, Number(value) || 1)
+  return (
+    <div className="number-button-field" role="group" aria-label="目标份数">
+      <Button className="number-step-button" aria-label="减少目标份数" disabled={current <= 1} onClick={() => onChange(String(current - 1))}>
+        <Minus size={15} strokeWidth={2} />
+      </Button>
+      <output aria-live="polite">{current}</output>
+      <Button className="number-step-button" aria-label="增加目标份数" onClick={() => onChange(String(current + 1))}>
+        <Plus size={15} strokeWidth={2} />
+      </Button>
     </div>
   )
 }
