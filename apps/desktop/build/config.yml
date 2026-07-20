@@ -37,7 +37,7 @@ dev_mode:
       type: blocking
     - cmd: wails3 task common:dev:frontend
       type: background
-    - cmd: wails3 task run
+    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/run-dev-primary.ps1
       type: primary
 
 # 文件关联
