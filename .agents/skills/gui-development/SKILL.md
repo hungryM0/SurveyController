@@ -11,6 +11,7 @@ description: 面向 SurveyController Go+Wails + React 桌面端的 GUI 开发与
 - 前端通过 `src/services/shell.ts` 调 Wails 绑定。不要在组件里直接写 HTTP、读配置文件或伪造成功状态。
 - 组件优先复用 `src/components/ui/` 的 Radix 封装、`lucide-react` 图标和现有 CSS 变量。
 - 样式入口是 `src/style.css`，基础控件样式在 `src/components/ui/styles/`。
+- 根目录 `DESIGN.md` 是项目 UI 设计契约。任何 GUI 改动先读它；它定义颜色、字体、间距、控件、弹层、动效、可访问性和设计评审门槛。
 - 只维护 Windows 桌面端。Wails WebView 只承载 UI，不承担问卷自动化。
 
 ## 开始前
@@ -21,6 +22,13 @@ description: 面向 SurveyController Go+Wails + React 桌面端的 GUI 开发与
 4. 涉及窗口关闭、文件选择、通知、代理验活等能力时，先找已有 Wails 方法和错误映射。
 
 ## UI 设计协议
+
+### 设计契约
+
+- 设计实现必须同时满足根目录 `DESIGN.md` 和本 skill；出现冲突时，以仓库当前实现和 `DESIGN.md` 的明确 token 为准，并在改动说明中指出冲突。
+- 参考外部设计模板时，只取信息层级、间距或交互启发，不直接复制品牌色、圆角、阴影、渐变或组件结构。
+- 项目已有 `SelectNative`、`sc-select-trigger`、`sc-select-content` 是下拉和弹层的基准。日期、时间、代理源、地区等弹出控件要复用同一套触发器和弹层协议。
+- 新建组件前先搜索 `src/components/ui/` 和 `src/components/`。能组合现有组件就不要造平行组件。
 
 ### 视觉方向
 
