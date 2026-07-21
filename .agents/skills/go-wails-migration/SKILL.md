@@ -18,7 +18,7 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
    - `AGENTS.md`
    - `CONTRIBUTING.md`
    - 目标模块和对应 Go 测试
-   - `apps/desktop/Taskfile.yml` 与 `apps/desktop/build/` 中 Windows 构建任务
+   - `apps/desktop/build/config.yml` 和 `apps/desktop/build/` 下的 Bun TypeScript 构建脚本
 2. Go 代码按现有模块放置。
    - 代理核心放 `packages/proxycore/`。
    - 问卷核心和平台实现放 `packages/surveycore/`。
@@ -62,7 +62,8 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
 
 ## wails_rules
 
-- 使用 Wails v3 命令时以官方文档为准：`wails3 dev`、`wails3 build`、`wails3 generate bindings`。
+- Wails 命令只作为底层能力使用；开发、绑定、构建和打包统一从 `apps/desktop` 的 Bun 脚本进入。
+- `apps/desktop/build/config.yml` 保存 Wails 开发配置和资源元数据。
 - 生成的 frontend bindings 不手写；改 Go 服务后重新生成。
 - Wails 服务方法只做应用层编排，不塞具体平台解析细节。
 - 前端不要写解释迁移状态的界面文案，除非用户明确要求。
@@ -75,8 +76,8 @@ description: 面向 SurveyController 当前 Go+Wails 重构分支的桌面端迁
 
 - Go 核心模块：跑 `go test ./packages/proxycore/... ./packages/surveycore/...`。
 - Wails 桌面模块：跑 `cd apps/desktop; go test ./...`。
-- 新增或修改 Wails 服务绑定：跑 `cd apps/desktop; wails3 generate bindings`，再跑桌面模块测试。
-- 修改 Taskfile 或构建入口：跑 `cd apps/desktop; wails3 task --list`，确认只保留 Windows 构建任务。
+- 新增或修改 Wails 服务绑定：跑 `cd apps/desktop; bun run desktop:bindings`，再跑桌面模块测试。
+- 修改桌面构建入口：检查 `apps/desktop/build/` 下的 Bun TypeScript 脚本，并运行对应 `desktop:*` 脚本。
 - 单元测试不访问真实问卷、真实账号、真实付费代理。
 
 ## common_commands
@@ -86,8 +87,8 @@ go test ./packages/proxycore/... ./packages/surveycore/...
 
 cd apps/desktop
 go test ./...
-wails3 task --list
-wails3 dev
-wails3 build
-wails3 generate bindings
+bun run desktop:dev
+bun run desktop:build
+bun run desktop:bindings
+bun run desktop:package
 ```

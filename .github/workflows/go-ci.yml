@@ -7,7 +7,7 @@ on:
 
 env:
   GO_VERSION: "1.26.5"
-  NODE_VERSION: "22"
+  BUN_VERSION: "1.3.14"
 
 jobs:
   go-test:
@@ -27,19 +27,17 @@ jobs:
       - name: Test core modules
         run: go test ./packages/proxycore/... ./packages/surveycore/...
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/desktop/frontend/package-lock.json
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install frontend dependencies
         working-directory: apps/desktop/frontend
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build frontend
         working-directory: apps/desktop/frontend
-        run: npm run build
+        run: bun run build
 
       - name: Test desktop module
         working-directory: apps/desktop
@@ -51,16 +49,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/desktop/frontend/package-lock.json
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install frontend dependencies
         working-directory: apps/desktop/frontend
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Test frontend
         working-directory: apps/desktop/frontend
-        run: npm test -- --run
+        run: bun run test

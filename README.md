@@ -39,7 +39,7 @@
 
 ### 从源码运行
 
-**环境要求：** Go 1.26.5+，Git，Node.js，npm，Wails v3
+**环境要求：** Go 1.26.5+，Git，Bun，Wails v3
 
 当前只维护 Windows 桌面端和 Windows 安装包。
 
@@ -47,7 +47,7 @@
 <summary>Windows 使用</summary>
 
 安装 Wails CLI：
-```powershell
+```bash
 go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 ```
 
@@ -57,10 +57,10 @@ git clone https://github.com/SurveyController/SurveyController.git
 cd SurveyController
 go test ./packages/proxycore/... ./packages/surveycore/...
 cd apps/desktop/frontend
-npm ci
+bun install --frozen-lockfile
 cd ..
-wails3 generate bindings
-wails3 dev
+bun run desktop:bindings
+bun run desktop:dev
 ```
 
 </details>

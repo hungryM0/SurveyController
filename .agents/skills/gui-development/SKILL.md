@@ -77,21 +77,23 @@ description: 面向 SurveyController Go+Wails + React 桌面端的 GUI 开发与
 
 - 前端改动至少运行：
 
-  ```powershell
+  ```bash
   cd apps/desktop/frontend
-  npm run check
-  npm test -- --run
-  npm run build
+  bun run check
+  bun run test
+  bun run build
   ```
 
 - 交互改动补静态渲染或行为测试，至少覆盖条件展示、禁用/忙碌状态和错误反馈。
 - Wails 服务或绑定改动追加：
 
-  ```powershell
+  ```bash
   cd apps/desktop
-  wails3 generate bindings
+  bun run desktop:bindings
   go test ./...
   ```
+
+- `apps/desktop/package.json` 是桌面开发和构建入口；底层编排位于 `apps/desktop/build/scripts/` 的 `dev.ts`、`build.ts`。
 
 - 不能做真实外部问卷、账号或付费代理请求。需要网络验证时使用 fake server 或明确的 live/integration 测试。
 - 输出时说明实际改动、文件路径和运行过的检查；不要创建 Markdown 验证清单。

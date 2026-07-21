@@ -1,5 +1,5 @@
 # 桌面端构建配置
-# 修改 `info.version` 后运行 `wails3 task common:sync:version` 同步 Windows 版本元数据。
+# 修改 `info.version` 后运行 `bun run desktop:build` 同步 Windows 版本元数据。
 version: '3'
 
 # 这些信息用于生成构建资源。
@@ -33,28 +33,9 @@ dev_mode:
       - "*.ts"
     git_ignore: true
   executes:
-    - cmd: wails3 build DEV=true
+    - cmd: bun build/scripts/dev.ts dev-build
       type: blocking
-    - cmd: wails3 task common:dev:frontend
+    - cmd: bun build/scripts/dev.ts frontend-dev
       type: background
-    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/run-dev-primary.ps1
+    - cmd: bun build/scripts/dev.ts run
       type: primary
-
-# 文件关联
-# 详情见：https://v3.wails.io/noit/done/yet
-fileAssociations:
-#  - ext: wails
-#    name: Wails
-#    description: Wails 应用文件
-#    iconName: wailsFileIcon
-#    role: Editor
-#  - ext: jpg
-#    name: JPEG
-#    description: 图片文件
-#    iconName: jpegFileIcon
-#    role: Editor
-#    mimeType: image/jpeg  # 可选
-
-# 其他数据
-other:
-  - name: My Other Data

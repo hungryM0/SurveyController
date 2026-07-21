@@ -12,7 +12,7 @@
 - Go 1.26.5 或更新版本
 - Git
 - Wails v3（只在开发 Wails 应用壳时需要）
-- Node.js 与 npm（只在开发 Wails 前端时需要）
+- Bun（用于前端依赖、开发、测试和桌面构建编排）
 
 当前只维护 Windows 桌面端和 Windows 安装包。
 
@@ -34,14 +34,17 @@ cd ../../packages/surveycore
 go test ./...
 ```
 
-Wails 模块建好后再使用：
+桌面端开发和发布使用：
 
 ```bash
-wails3 dev
-wails3 build
-wails3 generate bindings
-wails3 task package ARCH=amd64 INSTALL_SCOPE=user
+cd apps/desktop
+bun run desktop:dev
+bun run desktop:build
+bun run desktop:bindings
+bun run desktop:package
 ```
+
+桌面构建由 `apps/desktop/build/` 下的 Bun TypeScript 脚本负责。`apps/desktop/build/config.yml` 保存 Wails 开发配置和资源元数据。
 
 ## 目录边界
 

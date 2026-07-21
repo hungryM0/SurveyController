@@ -26,21 +26,11 @@ func main() {
 	if version == "" {
 		log.Fatalf("version not found in %s", configPath)
 	}
-	msixVersion := version + ".0"
-
 	must(writeWindowsInfo(filepath.Join(buildDir, "windows", "info.json"), version))
 	replaceFile(filepath.Join(buildDir, "windows", "wails.exe.manifest"), func(text string) string {
 		pattern := regexp.MustCompile(`(<assemblyIdentity\s+type="win32"\s+name="com\.hungrym0\.surveycontroller"\s+)version="[^"]+"`)
 		return pattern.ReplaceAllString(text, fmt.Sprintf(`${1}version="%s"`, version))
 	})
-	for _, path := range []string{
-		filepath.Join(buildDir, "windows", "msix", "app_manifest.xml"),
-		filepath.Join(buildDir, "windows", "msix", "template.xml"),
-	} {
-		replaceFile(path, func(text string) string {
-			return replaceMSIXPackageVersion(text, msixVersion)
-		})
-	}
 	replaceFile(filepath.Join(buildDir, "windows", "nsis", "wails_tools.nsh"), func(text string) string {
 		return regexp.MustCompile(`!define INFO_PRODUCTVERSION "[^"]+"`).ReplaceAllString(text, fmt.Sprintf(`!define INFO_PRODUCTVERSION "%s"`, version))
 	})
@@ -66,14 +56,6 @@ func configVersionFromText(text string) string {
 		}
 	}
 	return ""
-}
-
-func replaceMSIXPackageVersion(text, value string) string {
-	identityPattern := regexp.MustCompile(`(<Identity[^>]*\sVersion=")[^"]+(")`)
-	text = identityPattern.ReplaceAllString(text, fmt.Sprintf("${1}%s${2}", value))
-
-	packagePattern := regexp.MustCompile(`(<PackageInformation[^>]*\sVersion=")[^"]+(")`)
-	return packagePattern.ReplaceAllString(text, fmt.Sprintf("${1}%s${2}", value))
 }
 
 func writeWindowsInfo(path string, version string) error {
