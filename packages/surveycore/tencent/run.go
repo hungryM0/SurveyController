@@ -11,50 +11,108 @@ import (
 	"surveycontroller/surveycore/internal/httpjson"
 	"surveycontroller/surveycore/internal/model"
 	"surveycontroller/surveycore/internal/proxyhttp"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler EventHandler) (Result, error) {
-	target := 1
-	if cfg != nil && cfg.Target > 0 {
-		target = cfg.Target
+	prepared, err := r.Prepare(ctx, cfg)
+	if err != nil {
+		return pendingResult(cfg), err
 	}
-	result := Result{Target: target, Status: "pending"}
+	return r.RunPrepared(ctx, cfg, prepared, handler)
+}
+
+func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*PreparedSurvey, error) {
 	if cfg == nil || strings.TrimSpace(cfg.URL) == "" {
-		return result, fmt.Errorf("配置为空")
+		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
 	surveyID, hashValue, err := extractIdentifiers(cfg.URL)
 	if err != nil {
-		return result, err
+		return nil, runerror.Wrap(runerror.KindParse, err)
 	}
 	page := pageURL(surveyID, hashValue)
 	headers := apiHeaders(page, r.UserAgent)
+	seedAnswerSession, seedSessionData, err := r.fetchAnswerSession(ctx, surveyID, hashValue, headers)
+	if err != nil {
+		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
+	}
+	questionHeaders := cloneStringMap(headers)
+	if seedAnswerSession != "" {
+		questionHeaders["X-Answer-Session"] = seedAnswerSession
+	}
+	var rawQuestions []map[string]any
+	var lastErr error
+	for _, locale := range locales {
+		questionData, requestErr := r.requestAPI(ctx, surveyID, "questions", hashValue, questionHeaders, map[string]string{"locale": locale}, "")
+		if requestErr != nil {
+			lastErr = requestErr
+			continue
+		}
+		rawQuestions = asMapList(questionData["questions"])
+		if len(rawQuestions) > 0 {
+			break
+		}
+		lastErr = fmt.Errorf("腾讯问卷题目接口未返回可提交题目（locale=%s）", locale)
+	}
+	if len(rawQuestions) == 0 {
+		if lastErr == nil {
+			lastErr = fmt.Errorf("腾讯问卷题目接口未返回可提交题目")
+		}
+		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", lastErr))
+	}
+	return &PreparedSurvey{
+		SurveyID:          surveyID,
+		Hash:              hashValue,
+		PageURL:           page,
+		RawQuestions:      rawQuestions,
+		seedAnswerSession: seedAnswerSession,
+		seedSessionData:   seedSessionData,
+	}, nil
+}
 
+func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
+	result := pendingResult(cfg)
+	if cfg == nil {
+		return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
+	}
+	if prepared == nil || prepared.SurveyID == "" || prepared.Hash == "" || len(prepared.RawQuestions) == 0 {
+		return result, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 缺少已准备的问卷数据"))
+	}
+	target := result.Target
+	headers := apiHeaders(prepared.PageURL, r.UserAgent)
 	for index := 0; index < target; index++ {
 		if err := ctx.Err(); err != nil {
 			result.Status = "stopped"
 			return result, err
 		}
-		answerSessionID, sessionData, rawQuestions, err := r.fetchSubmitSource(ctx, surveyID, hashValue, headers)
+		answerSessionID, sessionData, seeded := prepared.takeSeedSession()
+		var err error
+		if !seeded {
+			answerSessionID, sessionData, err = r.fetchAnswerSession(ctx, prepared.SurveyID, prepared.Hash, headers)
+		}
 		if err != nil {
 			result.Fail++
-			emit(handler, "解析问卷失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("解析问卷失败: %w", err)
+			emit(handler, "初始化失败", false, true, result.Success+result.Fail, target)
+			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("初始化失败: %w", err))
 		}
-		body, err := buildSubmitBody(cfg, surveyID, hashValue, rawQuestions, r.UserAgent)
+		body, err := buildSubmitBody(cfg, prepared.SurveyID, prepared.Hash, prepared.RawQuestions, r.UserAgent)
 		if err != nil {
 			result.Fail++
 			emit(handler, "生成答案失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("生成答案失败: %w", err)
+			if runerror.HasKind(err, runerror.KindUnsupported) {
+				return result, err
+			}
+			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
-		if err := r.submitAnswers(ctx, cfg, surveyID, hashValue, page, answerSessionID, body); err != nil {
+		if err := r.submitAnswers(ctx, cfg, prepared.SurveyID, prepared.Hash, prepared.PageURL, answerSessionID, body); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("提交失败: %w", err)
+			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
 		}
-		if err := r.confirmSubmit(ctx, surveyID, hashValue, headers, answerSessionID, sessionData); err != nil {
+		if err := r.confirmSubmit(ctx, prepared.SurveyID, prepared.Hash, headers, answerSessionID, sessionData); err != nil {
 			result.Fail++
 			emit(handler, "校验失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("提交失败: %w", err)
+			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
 		}
 		result.Success++
 		emit(handler, "提交成功", true, false, result.Success+result.Fail, target)
@@ -63,25 +121,21 @@ func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler Event
 	return result, nil
 }
 
-func (r Runner) fetchSubmitSource(ctx context.Context, surveyID string, hashValue string, headers map[string]string) (string, map[string]any, []map[string]any, error) {
+func (r Runner) fetchAnswerSession(ctx context.Context, surveyID string, hashValue string, headers map[string]string) (string, map[string]any, error) {
 	sessionData, err := r.requestAPI(ctx, surveyID, "session", hashValue, headers, nil, "")
 	if err != nil {
-		return "", nil, nil, err
+		return "", nil, err
 	}
 	answerSessionID := strings.TrimSpace(stringValue(sessionData["answer_session_id"]))
-	nextHeaders := cloneStringMap(headers)
-	if answerSessionID != "" {
-		nextHeaders["X-Answer-Session"] = answerSessionID
+	return answerSessionID, sessionData, nil
+}
+
+func pendingResult(cfg *model.RuntimeConfig) Result {
+	target := 1
+	if cfg != nil && cfg.Target > 0 {
+		target = cfg.Target
 	}
-	questionData, err := r.requestAPI(ctx, surveyID, "questions", hashValue, nextHeaders, map[string]string{"locale": "zhs"}, "")
-	if err != nil {
-		return "", nil, nil, err
-	}
-	rawQuestions := asMapList(questionData["questions"])
-	if len(rawQuestions) == 0 {
-		return "", nil, nil, fmt.Errorf("腾讯问卷题目接口未返回可提交题目")
-	}
-	return answerSessionID, sessionData, rawQuestions, nil
+	return Result{Target: target, Status: "pending"}
 }
 
 func buildSubmitBody(cfg *model.RuntimeConfig, surveyID string, hashValue string, rawQuestions []map[string]any, userAgent string) (map[string]any, error) {
@@ -96,10 +150,10 @@ func buildSubmitBody(cfg *model.RuntimeConfig, surveyID string, hashValue string
 			continue
 		}
 		if label := blockedRuntimeProviderTypes[question.ProviderType]; label != "" {
-			return nil, fmt.Errorf("腾讯问卷第%d题暂不支持：%s", question.Num, label)
+			return nil, runerror.Wrap(runerror.KindUnsupported, fmt.Errorf("腾讯问卷第%d题暂不支持：%s", question.Num, label))
 		}
 		if !supportedProviderTypes[question.ProviderType] {
-			return nil, fmt.Errorf("腾讯问卷第%d题暂不支持：%s", question.Num, firstString(question.ProviderType, question.TypeCode, "unknown"))
+			return nil, runerror.Wrap(runerror.KindUnsupported, fmt.Errorf("腾讯问卷第%d题暂不支持：%s", question.Num, firstString(question.ProviderType, question.TypeCode, "unknown")))
 		}
 	}
 	for _, action := range actions {

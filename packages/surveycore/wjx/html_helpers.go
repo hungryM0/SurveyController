@@ -192,7 +192,7 @@ func countTextInputs(div *nethtml.Node) int {
 	return len(findAll(div, isTextInputNode))
 }
 
-func providerType(typeCode string, textInputs int, optionCount int, sliderMatrix bool) string {
+func providerType(typeCode string, textInputs int, _ int, sliderMatrix bool) string {
 	if sliderMatrix {
 		return "matrix"
 	}
@@ -215,10 +215,10 @@ func providerType(typeCode string, textInputs int, optionCount int, sliderMatrix
 		if textInputs > 1 {
 			return "multi_text"
 		}
-		if textInputs > 0 || optionCount == 0 {
+		if textInputs > 0 {
 			return "text"
 		}
-		return "text"
+		return ""
 	}
 }
 

@@ -138,6 +138,7 @@ func inferQuestionType(question model.QuestionMeta) string {
 		case "text", "textarea":
 			return "text"
 		}
+		return ""
 	}
 	switch question.TypeCode {
 	case "3":
@@ -149,7 +150,10 @@ func inferQuestionType(question model.QuestionMeta) string {
 	case "7":
 		return "dropdown"
 	default:
-		return "text"
+		if question.IsTextLike || question.TextInputs > 0 {
+			return "text"
+		}
+		return ""
 	}
 }
 

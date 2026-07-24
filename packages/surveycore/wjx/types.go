@@ -3,6 +3,8 @@ package wjx
 import (
 	"net/http"
 	"time"
+
+	"surveycontroller/surveycore/internal/model"
 )
 
 type ParseError struct {
@@ -21,6 +23,10 @@ type Parser struct {
 type Runner struct {
 	Client    *http.Client
 	UserAgent string
+}
+
+type PreparedSurvey struct {
+	Definition model.SurveyDefinition
 }
 
 type Event struct {

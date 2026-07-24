@@ -518,7 +518,7 @@ function mapSettingsGroups(settings: AppSettings): SettingsGroup[] {
         field('ask-save-on-close', '关闭前询问是否保存', '', 'toggle', String(settings.askSaveOnClose ?? true)),
         field('prevent-sleep', '执行期间阻止自动休眠', '', 'toggle', String(settings.preventSleepDuringRun ?? true)),
         field('task-result-notification', '后台任务完成/失败时通知', '', 'toggle', String(taskResultNotification)),
-        field('submission-report-telemetry', '提交结果遥测', '', 'toggle', String(settings.submissionReportTelemetry ?? true)),
+        field('submission-report-telemetry', '提交结果遥测', '向官方服务发送用户与设备标识、完整问卷链接、结果、代理来源和版本；不含答案与 API 密钥', 'toggle', String(settings.submissionReportTelemetry ?? true)),
         field('auto-save-logs', '自动保存日志', '任务结束后保存最近日志', 'toggle', String(autoSaveLogs)),
         field('autosave', '日志保留数量', '保留最近几份日志', 'select', String(settings.autosaveLogCount || 10), ['3', '5', '10', '20', '30', '50']),
         field('config-directory', '配置目录', '打开和保存配置时使用的默认目录', 'text', settings.configDirectory || ''),

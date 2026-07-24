@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"surveycontroller/surveycore/internal/model"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 func TestRunnerSubmitsWJX(t *testing.T) {
@@ -41,6 +42,13 @@ func TestRunnerReturnsRejectedSubmit(t *testing.T) {
 	}
 	_, err := (Runner{Client: rewriteWJXClient(server.URL)}).Run(context.Background(), cfg, nil)
 	if err == nil || !strings.Contains(err.Error(), "提交被拒绝") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestBuildSubmitDataRejectsUnknownQuestionType(t *testing.T) {
+	_, err := buildSubmitData([]model.QuestionMeta{{Num: 1, ProviderType: "", TypeCode: "99", Options: 0}}, &model.RuntimeConfig{})
+	if err == nil || !runerror.HasKind(err, runerror.KindUnsupported) {
 		t.Fatalf("err = %v", err)
 	}
 }

@@ -2,6 +2,7 @@ package tencent
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"surveycontroller/surveycore/internal/httpjson"
@@ -53,6 +54,30 @@ type Runner struct {
 		DoJSON(ctx context.Context, method string, url string, headers map[string]string, body any, out any) error
 	}
 	UserAgent string
+}
+
+type PreparedSurvey struct {
+	SurveyID          string
+	Hash              string
+	PageURL           string
+	RawQuestions      []map[string]any
+	seedMu            sync.Mutex
+	seedUsed          bool
+	seedAnswerSession string
+	seedSessionData   map[string]any
+}
+
+func (p *PreparedSurvey) takeSeedSession() (string, map[string]any, bool) {
+	if p == nil {
+		return "", nil, false
+	}
+	p.seedMu.Lock()
+	defer p.seedMu.Unlock()
+	if p.seedUsed {
+		return "", nil, false
+	}
+	p.seedUsed = true
+	return p.seedAnswerSession, p.seedSessionData, true
 }
 
 func httpDoerOrDefault(client interface {

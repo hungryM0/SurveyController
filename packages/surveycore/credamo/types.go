@@ -49,6 +49,13 @@ type Runner struct {
 	UserAgent string
 }
 
+type PreparedSurvey struct {
+	Origin       string
+	ShortURL     string
+	Title        string
+	RawQuestions []map[string]any
+}
+
 type runConfig interface {
 	GetURL() string
 }

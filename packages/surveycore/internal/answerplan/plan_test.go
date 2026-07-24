@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"surveycontroller/surveycore/internal/model"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 type fakeAnswerRuntime struct {
@@ -39,6 +40,39 @@ func TestBuildActionUsesMatrixRowProbabilities(t *testing.T) {
 	}
 	if len(action.MatrixIndices) != 2 || action.MatrixIndices[0] != 1 || action.MatrixIndices[1] != 0 {
 		t.Fatalf("matrix indices = %#v", action.MatrixIndices)
+	}
+}
+
+func TestBuildActionRejectsUnknownQuestionType(t *testing.T) {
+	_, err := BuildAction(model.QuestionMeta{
+		Num:          9,
+		ProviderType: "new_platform_widget",
+		TypeCode:     "99",
+	}, model.QuestionEntry{})
+	if err == nil {
+		t.Fatal("expected unsupported question error")
+	}
+	kind, ok := runerror.KindOf(err)
+	if !ok || kind != runerror.KindUnsupported {
+		t.Fatalf("kind = %q, ok = %v, err = %v", kind, ok, err)
+	}
+	if !strings.Contains(err.Error(), "第9题") || !strings.Contains(err.Error(), "new_platform_widget") || !strings.Contains(err.Error(), "99") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestBuildActionKeepsExplicitTextQuestion(t *testing.T) {
+	action, err := BuildAction(model.QuestionMeta{
+		Num:          1,
+		ProviderType: "text",
+		TypeCode:     "1",
+		TextInputs:   1,
+	}, model.QuestionEntry{QuestionType: "text", Texts: []string{"正常文本"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action.Kind != "text" || len(action.TextValues) != 1 || action.TextValues[0] != "正常文本" {
+		t.Fatalf("action = %#v", action)
 	}
 }
 

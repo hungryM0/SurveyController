@@ -11,53 +11,75 @@ import (
 	"surveycontroller/surveycore/internal/httpjson"
 	"surveycontroller/surveycore/internal/model"
 	"surveycontroller/surveycore/internal/proxyhttp"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 const resolution = "1920px*1080px"
 
 func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler EventHandler) (Result, error) {
-	target := cfg.Target
-	if target <= 0 {
-		target = 1
+	prepared, err := r.Prepare(ctx, cfg)
+	if err != nil {
+		return pendingResult(cfg), err
 	}
-	result := Result{Target: target, Status: "pending"}
-	if cfg.URL == "" {
-		return result, fmt.Errorf("配置为空")
-	}
+	return r.RunPrepared(ctx, cfg, prepared, handler)
+}
 
+func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*PreparedSurvey, error) {
+	if cfg == nil || strings.TrimSpace(cfg.URL) == "" {
+		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
+	}
 	parser := Parser{HTTP: r.HTTP, UserAgent: r.UserAgent}
 	origin, shortURL, detail, err := parser.FetchDetailForRun(ctx, cfg.URL)
 	if err != nil {
-		return result, fmt.Errorf("解析问卷失败: %w", err)
+		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
 	}
 	rawQuestions := iterRawQuestions(detail)
 	if len(rawQuestions) == 0 {
-		return result, fmt.Errorf("解析问卷失败: 见数详情接口未返回可提交题目")
+		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 见数详情接口未返回可提交题目"))
 	}
+	return &PreparedSurvey{
+		Origin:       origin,
+		ShortURL:     shortURL,
+		Title:        surveyTitle(detail),
+		RawQuestions: rawQuestions,
+	}, nil
+}
+
+func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
+	result := pendingResult(cfg)
+	if cfg == nil {
+		return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
+	}
+	if prepared == nil || prepared.Origin == "" || prepared.ShortURL == "" || len(prepared.RawQuestions) == 0 {
+		return result, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 缺少已准备的问卷数据"))
+	}
+	target := result.Target
 	if cfg.SurveyProvider == "" {
 		cfg.SurveyProvider = model.ProviderCredamo
 	}
 	if cfg.SurveyTitle == "" {
-		cfg.SurveyTitle = surveyTitle(detail)
+		cfg.SurveyTitle = prepared.Title
 	}
-	emit(handler, "解析成功", false, false, 0, target)
 
 	for i := 0; i < target; i++ {
 		if err := ctx.Err(); err != nil {
 			result.Status = "stopped"
 			return result, err
 		}
-		initData, err := r.initAnswer(ctx, origin, shortURL, cfg.ActiveProxyAddress)
+		initData, err := r.initAnswer(ctx, prepared.Origin, prepared.ShortURL, cfg.ActiveProxyAddress)
 		if err != nil {
 			result.Fail++
 			emit(handler, "初始化失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("提交失败: %w", err)
+			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
 		}
-		answers, err := buildAnswerItems(rawQuestions, cfg)
+		answers, err := buildAnswerItems(prepared.RawQuestions, cfg)
 		if err != nil {
 			result.Fail++
 			emit(handler, "生成答案失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("生成答案失败: %w", err)
+			if runerror.HasKind(err, runerror.KindUnsupported) {
+				return result, err
+			}
+			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
 		durationSeconds := defaultDurationSeconds(cfg)
 		answerStartedAt := sampleAnswerStartTimeMS(cfg, initData.TimestampMS, durationSeconds)
@@ -66,20 +88,28 @@ func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler Event
 			"answerEndTime":   answerStartedAt + int64(durationSeconds)*1000,
 			"status":          1,
 			"answerQstList":   answers,
-			"shortUrl":        shortURL,
+			"shortUrl":        prepared.ShortURL,
 			"resolution":      resolution,
 			"sourceDetail":    1,
 		}
-		if err := r.saveAnswers(ctx, origin, shortURL, initData, body, cfg.ActiveProxyAddress); err != nil {
+		if err := r.saveAnswers(ctx, prepared.Origin, prepared.ShortURL, initData, body, cfg.ActiveProxyAddress); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("提交失败: %w", err)
+			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
 		}
 		result.Success++
 		emit(handler, "提交成功", true, false, result.Success+result.Fail, target)
 	}
 	result.Status = "success"
 	return result, nil
+}
+
+func pendingResult(cfg *model.RuntimeConfig) Result {
+	target := 1
+	if cfg != nil && cfg.Target > 0 {
+		target = cfg.Target
+	}
+	return Result{Target: target, Status: "pending"}
 }
 
 func (r Runner) initAnswer(ctx context.Context, origin string, shortURL string, proxyAddress string) (answerInit, error) {

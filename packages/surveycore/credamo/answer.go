@@ -6,6 +6,7 @@ import (
 
 	"surveycontroller/surveycore/internal/answerplan"
 	"surveycontroller/surveycore/internal/model"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 func buildAnswerItems(rawQuestions []map[string]any, cfg *model.RuntimeConfig) ([]map[string]any, error) {
@@ -108,7 +109,7 @@ func buildAnswerItem(raw map[string]any, action answerplan.Action, questionNum i
 	case 11:
 		return choiceAnswer(raw, action, questionNum)
 	default:
-		return nil, fmt.Errorf("见数第%d题类型暂不支持纯 HTTP 提交：%d", questionNum, rawQuestionType(raw))
+		return nil, runerror.Wrap(runerror.KindUnsupported, fmt.Errorf("见数第%d题类型暂不支持纯 HTTP 提交：%d", questionNum, rawQuestionType(raw)))
 	}
 }
 
@@ -152,7 +153,7 @@ func questionTypeFromProvider(providerType string) string {
 	case "order":
 		return "order"
 	default:
-		return "text"
+		return ""
 	}
 }
 

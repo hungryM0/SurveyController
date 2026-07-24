@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"surveycontroller/surveycore/internal/model"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 type Action struct {
@@ -112,10 +113,17 @@ func BuildActionWithOptions(question model.QuestionMeta, entry model.QuestionEnt
 	case "slider":
 		action.Kind = kind
 		action.SliderValue = firstNonEmpty(stringValue(firstProbabilityValue(entry.Probabilities)), stringValue(question.SliderMin), defaultSliderValue)
-	default:
+	case "text":
 		action.Kind = "text"
 		count := maxInt(1, question.TextInputs)
 		action.TextValues = ResolveTextValuesWithPersona(entry, question, count, options.Persona)
+	default:
+		return Action{}, runerror.Wrap(runerror.KindUnsupported, fmt.Errorf(
+			"第%d题暂不支持题型：provider_type=%q，type_code=%q",
+			question.Num,
+			question.ProviderType,
+			question.TypeCode,
+		))
 	}
 	if action.QuestionNum <= 0 {
 		return Action{}, fmt.Errorf("题目编号无效")
@@ -134,6 +142,19 @@ func normalizeKind(question model.QuestionMeta, entry model.QuestionEntry) strin
 			return "text"
 		}
 		return kind
+	case "radio":
+		return "single"
+	case "checkbox":
+		return "multiple"
+	case "select":
+		return "dropdown"
+	case "matrix_radio":
+		return "matrix"
+	case "textarea":
+		return "text"
+	}
+	if kind != "" {
+		return ""
 	}
 	switch question.TypeCode {
 	case "3":
@@ -151,6 +172,9 @@ func normalizeKind(question model.QuestionMeta, entry model.QuestionEntry) strin
 	case "11":
 		return "order"
 	default:
-		return "text"
+		if question.IsTextLike || question.TextInputs > 0 {
+			return "text"
+		}
+		return ""
 	}
 }

@@ -747,6 +747,9 @@ func normalizeKind(question model.QuestionMeta, entry model.QuestionEntry) strin
 	case "textarea", "multi_text":
 		return "text"
 	}
+	if kind != "" {
+		return ""
+	}
 	switch question.TypeCode {
 	case "3":
 		return "single"
@@ -763,7 +766,10 @@ func normalizeKind(question model.QuestionMeta, entry model.QuestionEntry) strin
 	case "11":
 		return "order"
 	default:
-		return "text"
+		if question.IsTextLike || question.TextInputs > 0 {
+			return "text"
+		}
+		return ""
 	}
 }
 

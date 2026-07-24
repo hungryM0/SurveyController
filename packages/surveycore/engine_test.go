@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 func TestRunExecutionRunsTargetWithConcurrency(t *testing.T) {
@@ -60,6 +62,48 @@ func TestRunExecutionRetriesRunError(t *testing.T) {
 	}
 	if len(events) == 0 {
 		t.Fatal("expected retry events")
+	}
+}
+
+func TestRunExecutionDoesNotClassifyChineseErrorText(t *testing.T) {
+	var attempts int
+	_, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+		attempts++
+		if attempts == 1 {
+			return &RunResult{Fail: 1}, errors.New("临时网络错误：解析配置答案服务不可用")
+		}
+		return &RunResult{Success: 1}, nil
+	}, nil, ExecutionOptions{MaxRetries: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d", attempts)
+	}
+}
+
+func TestRunExecutionUsesStructuredErrorKind(t *testing.T) {
+	tests := []struct {
+		name string
+		kind runerror.Kind
+		want int
+	}{
+		{name: "parse", kind: runerror.KindParse, want: 1},
+		{name: "config", kind: runerror.KindConfig, want: 1},
+		{name: "unsupported", kind: runerror.KindUnsupported, want: 1},
+		{name: "run", kind: runerror.KindRun, want: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			attempts := 0
+			_, _ = RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+				attempts++
+				return &RunResult{Fail: 1}, runerror.Wrap(tt.kind, errors.New("同一段错误文案"))
+			}, nil, ExecutionOptions{MaxRetries: 1})
+			if attempts != tt.want {
+				t.Fatalf("attempts = %d, want %d", attempts, tt.want)
+			}
+		})
 	}
 }
 

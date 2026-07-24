@@ -50,9 +50,16 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 		return nil, err
 	}
 	if provider == model.ProviderQQ {
+		runner := tencent.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: model.RuntimeUserAgent(runCfg)}
+		prepared, prepareErr := runner.Prepare(ctx, runCfg)
+		if prepareErr != nil {
+			return nil, wrapRunError(prepareErr)
+		}
+		emitPrepared(handler)
 		result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *RuntimeConfig, localHandler EventHandler) (*RunResult, error) {
-			runner := tencent.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: model.RuntimeUserAgent(local)}
-			runResult, runErr := runner.Run(runCtx, local, func(event tencent.Event) {
+			localRunner := runner
+			localRunner.UserAgent = model.RuntimeUserAgent(local)
+			runResult, runErr := localRunner.RunPrepared(runCtx, local, prepared, func(event tencent.Event) {
 				if localHandler == nil {
 					return
 				}
@@ -74,9 +81,16 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 		return result, nil
 	}
 	if provider == model.ProviderWJX {
+		runner := wjx.Runner{Client: c.httpClient.Client, UserAgent: model.RuntimeUserAgent(runCfg)}
+		prepared, prepareErr := runner.Prepare(ctx, runCfg)
+		if prepareErr != nil {
+			return nil, wrapRunError(prepareErr)
+		}
+		emitPrepared(handler)
 		result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *RuntimeConfig, localHandler EventHandler) (*RunResult, error) {
-			runner := wjx.Runner{Client: c.httpClient.Client, UserAgent: model.RuntimeUserAgent(local)}
-			runResult, runErr := runner.Run(runCtx, local, func(event wjx.Event) {
+			localRunner := runner
+			localRunner.UserAgent = model.RuntimeUserAgent(local)
+			runResult, runErr := localRunner.RunPrepared(runCtx, local, prepared, func(event wjx.Event) {
 				if localHandler == nil {
 					return
 				}
@@ -100,9 +114,16 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 	if provider != model.ProviderCredamo {
 		return nil, fmt.Errorf("%w: unsupported provider %q", ErrUnsupportedOperation, provider)
 	}
+	runner := credamo.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: model.RuntimeUserAgent(runCfg)}
+	prepared, prepareErr := runner.Prepare(ctx, runCfg)
+	if prepareErr != nil {
+		return nil, wrapRunError(prepareErr)
+	}
+	emitPrepared(handler)
 	result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *RuntimeConfig, localHandler EventHandler) (*RunResult, error) {
-		runner := credamo.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: model.RuntimeUserAgent(local)}
-		runResult, runErr := runner.Run(runCtx, local, func(event credamo.Event) {
+		localRunner := runner
+		localRunner.UserAgent = model.RuntimeUserAgent(local)
+		runResult, runErr := localRunner.RunPrepared(runCtx, local, prepared, func(event credamo.Event) {
 			if localHandler == nil {
 				return
 			}
@@ -122,6 +143,12 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 		return result, wrapRunError(err)
 	}
 	return result, nil
+}
+
+func emitPrepared(handler EventHandler) {
+	if handler != nil {
+		handler(Event{Message: "解析成功", Time: time.Now()})
+	}
 }
 
 func ExecutionOptionsFromConfig(cfg *RuntimeConfig) ExecutionOptions {
@@ -216,13 +243,16 @@ func wrapRunError(err error) error {
 	if err == nil {
 		return nil
 	}
-	message := err.Error()
-	switch {
-	case strings.Contains(message, "解析"):
-		return fmt.Errorf("%w: %v", ErrParseFailed, err)
-	case strings.Contains(message, "配置") || strings.Contains(message, "答案"):
-		return fmt.Errorf("%w: %v", ErrPrepareConfigFailed, err)
+	switch ClassifyRunError(err) {
+	case ErrorKindCanceled:
+		return err
+	case ErrorKindParse:
+		return fmt.Errorf("%w: %w", ErrParseFailed, err)
+	case ErrorKindConfig:
+		return fmt.Errorf("%w: %w", ErrPrepareConfigFailed, err)
+	case ErrorKindUnsupported:
+		return fmt.Errorf("%w: %w", ErrUnsupportedOperation, err)
 	default:
-		return fmt.Errorf("%w: %v", ErrRunFailed, err)
+		return fmt.Errorf("%w: %w", ErrRunFailed, err)
 	}
 }

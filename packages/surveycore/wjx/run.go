@@ -10,25 +10,42 @@ import (
 	"time"
 
 	"surveycontroller/surveycore/internal/model"
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler EventHandler) (Result, error) {
+	prepared, err := r.Prepare(ctx, cfg)
+	if err != nil {
+		return pendingResult(cfg), err
+	}
+	return r.RunPrepared(ctx, cfg, prepared, handler)
+}
+
+func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*PreparedSurvey, error) {
 	if cfg == nil {
-		return Result{Target: 1, Status: "pending"}, fmt.Errorf("配置为空")
+		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
-	target := cfg.Target
-	if target <= 0 {
-		target = 1
-	}
-	result := Result{Target: target, Status: "pending"}
 	if strings.TrimSpace(cfg.URL) == "" {
-		return result, fmt.Errorf("配置为空")
+		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
 	parser := Parser{Client: r.Client, UserAgent: r.UserAgent}
 	definition, err := parser.Parse(ctx, cfg.URL)
 	if err != nil {
-		return result, fmt.Errorf("解析问卷失败: %w", err)
+		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
 	}
+	return &PreparedSurvey{Definition: definition}, nil
+}
+
+func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
+	result := pendingResult(cfg)
+	if cfg == nil {
+		return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
+	}
+	if prepared == nil || len(prepared.Definition.Questions) == 0 {
+		return result, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 缺少已准备的问卷数据"))
+	}
+	target := result.Target
+	definition := prepared.Definition
 	if cfg.SurveyProvider == "" {
 		cfg.SurveyProvider = model.ProviderWJX
 	}
@@ -38,7 +55,6 @@ func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler Event
 	if len(cfg.QuestionsInfo) == 0 {
 		cfg.QuestionsInfo = definition.Questions
 	}
-	emit(handler, "解析成功", false, false, 0, target)
 	for i := 0; i < target; i++ {
 		if err := ctx.Err(); err != nil {
 			result.Status = "stopped"
@@ -48,18 +64,29 @@ func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler Event
 		if err != nil {
 			result.Fail++
 			emit(handler, "生成答案失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("生成答案失败: %w", err)
+			if runerror.HasKind(err, runerror.KindUnsupported) {
+				return result, err
+			}
+			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
 		if err := r.submit(ctx, cfg, submitData); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
-			return result, fmt.Errorf("提交失败: %w", err)
+			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
 		}
 		result.Success++
 		emit(handler, "提交成功", true, false, result.Success+result.Fail, target)
 	}
 	result.Status = "success"
 	return result, nil
+}
+
+func pendingResult(cfg *model.RuntimeConfig) Result {
+	target := 1
+	if cfg != nil && cfg.Target > 0 {
+		target = cfg.Target
+	}
+	return Result{Target: target, Status: "pending"}
 }
 
 func (r Runner) submit(ctx context.Context, cfg *model.RuntimeConfig, submitData string) error {

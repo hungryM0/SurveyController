@@ -3,8 +3,9 @@ package surveycore
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
+
+	"surveycontroller/surveycore/internal/runerror"
 )
 
 type ErrorKind string
@@ -63,13 +64,17 @@ func ClassifyRunError(err error) ErrorKind {
 	case errors.Is(err, ErrParseFailed):
 		return ErrorKindParse
 	}
-	message := err.Error()
-	switch {
-	case strings.Contains(message, "解析"):
-		return ErrorKindParse
-	case strings.Contains(message, "配置") || strings.Contains(message, "答案"):
-		return ErrorKindConfig
-	default:
-		return ErrorKindRun
+	if kind, ok := runerror.KindOf(err); ok {
+		switch kind {
+		case runerror.KindParse:
+			return ErrorKindParse
+		case runerror.KindConfig:
+			return ErrorKindConfig
+		case runerror.KindUnsupported:
+			return ErrorKindUnsupported
+		case runerror.KindRun:
+			return ErrorKindRun
+		}
 	}
+	return ErrorKindRun
 }

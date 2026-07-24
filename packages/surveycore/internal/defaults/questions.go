@@ -38,7 +38,7 @@ func QuestionType(question model.QuestionMeta) string {
 		if question.IsTextLike || question.TextInputs > 0 {
 			return "text"
 		}
-		return "text"
+		return ""
 	}
 }
 
