@@ -1,0 +1,68 @@
+@media (prefers-reduced-motion: reduce) { .fluent-datetime-trigger, .fluent-datetime-trigger-chevron, .fluent-calendar-nav button, .fluent-calendar-grid button, .fluent-datetime-popover { animation: none; transition: none; } }
+
+@media (max-width: 720px) {
+  .single-slider-field,
+  .dual-slider-field {
+    grid-template-columns: minmax(0, 1fr) 11rem;
+    min-width: 0;
+  }
+  .single-slider-field .sc-range-slider,
+  .dual-slider-field .sc-range-slider { width: 100% !important; }
+
+  .datetime-window-field { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 1024px) {
+  .settings-section-grid,
+  .community-grid,
+  .more-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-section-grid > .settings-panel,
+  .more-card:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .community-card-featured { grid-row: auto; }
+}
+
+@media (max-width: 1180px) {
+  .runtime-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runtime-settings-grid > .settings-panel:nth-child(3) {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "copy" "meta" "actions";
+    align-items: start;
+  }
+
+  .workspace-header-meta,
+  .workspace-header-actions {
+    justify-self: start;
+  }
+
+  .logs-toolbar-card { justify-content: flex-start; }
+
+  .reverse-fill-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "heading" "toolbar" "metrics" "list";
+  }
+
+  .settings-section-grid .setting-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-section-grid .setting-row > :last-child {
+    justify-self: stretch;
+  }
+}
+

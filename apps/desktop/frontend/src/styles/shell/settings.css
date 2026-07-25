@@ -1,0 +1,119 @@
+.settings-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+}
+
+.settings-hero-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.group-heading {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.55rem;
+}
+
+.page-bottom-spacer { height: 1.5rem; flex-shrink: 0; }
+
+.test-result-banner {
+  margin-top: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--line);
+}
+
+.test-result-banner.success {
+  background: rgba(15,123,15,0.08);
+  border-color: rgba(15,123,15,0.25);
+  color: var(--success);
+}
+
+.test-result-banner.error {
+  background: rgba(196,43,28,0.08);
+  border-color: rgba(196,43,28,0.25);
+  color: var(--danger);
+}
+
+.qr-image-wrapper {
+  width: 9rem;
+  height: 9rem;
+  flex-shrink: 0;
+}
+
+.status-indicator-ping {
+  width: 10px;
+  height: 10px;
+}
+
+.status-text-block .label,
+.progress-label-bar {
+  font-size: 0.7rem;
+}
+
+.control-note-list {
+  border-top: 0;
+  padding-top: 0.65rem;
+}
+
+.control-note-list div {
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+}
+
+.settings-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.75rem;
+}
+
+.settings-hero-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.group-heading {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-bottom-spacer {
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.test-result-banner {
+  margin-top: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--line);
+}
+
+.test-result-banner.success {
+  background: rgba(15, 123, 15, 0.08);
+  border-color: rgba(15, 123, 15, 0.25);
+  color: var(--success);
+}
+
+.test-result-banner.error {
+  background: rgba(196, 43, 28, 0.08);
+  border-color: rgba(196, 43, 28, 0.25);
+  color: var(--danger);
+}
+
+.qr-image-wrapper {
+  width: 9rem;
+  height: 9rem;
+  flex-shrink: 0;
+}
+

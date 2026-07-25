@@ -10,58 +10,110 @@ import (
 	"surveycontroller/surveycore"
 )
 
+var replaceConfigFile = atomicReplace
+
 func BuildDefaultConfigFilename(surveyTitle string) string {
 	return sanitizeFilename(surveyTitle) + ".json"
 }
 
-func Load(path string, strict bool) (surveycore.RuntimeConfig, error) {
+func Load(path string, strict bool) (surveycore.RunRequest, error) {
+	document, err := LoadDocument(path, strict)
+	if err != nil {
+		return surveycore.RunRequest{}, err
+	}
+	if document.SchemaVersion == 0 {
+		return surveycore.RunRequest{}, nil
+	}
+	return RunRequestFromConfigDocument(document)
+}
+
+func LoadDocument(path string, strict bool) (ConfigDocument, error) {
 	if strings.TrimSpace(path) == "" {
-		return surveycore.RuntimeConfig{}, fmt.Errorf("配置路径不能为空")
+		return ConfigDocument{}, fmt.Errorf("配置路径不能为空")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if strict {
-			return surveycore.RuntimeConfig{}, fmt.Errorf("读取配置失败: %s -> %w", path, err)
+			return ConfigDocument{}, fmt.Errorf("读取配置失败: %s -> %w", path, err)
 		}
-		return surveycore.RuntimeConfig{}, nil
+		return ConfigDocument{}, nil
 	}
 	cleaned := StripJSONComments(string(data))
 	if strings.TrimSpace(cleaned) == "" {
 		if strict {
-			return surveycore.RuntimeConfig{}, fmt.Errorf("配置文件为空")
+			return ConfigDocument{}, fmt.Errorf("配置文件为空")
 		}
-		return surveycore.RuntimeConfig{}, nil
+		return ConfigDocument{}, nil
 	}
 	var payload map[string]any
 	if err := json.Unmarshal([]byte(cleaned), &payload); err != nil {
 		if strict {
-			return surveycore.RuntimeConfig{}, fmt.Errorf("读取配置失败: %s -> %w", path, err)
+			return ConfigDocument{}, fmt.Errorf("读取配置失败: %s -> %w", path, err)
 		}
-		return surveycore.RuntimeConfig{}, nil
+		return ConfigDocument{}, nil
 	}
-	cfg, err := DeserializeRuntimeConfig(payload)
+	if _, ok := payload["schemaVersion"]; ok {
+		document, err := DeserializeConfigDocument(payload)
+		if err != nil {
+			if strict {
+				return ConfigDocument{}, fmt.Errorf("配置不兼容: %s -> %w", path, err)
+			}
+			return ConfigDocument{}, nil
+		}
+		return document, nil
+	}
+	document, err := migrateLegacyDocument(payload)
 	if err != nil {
 		if strict {
-			return surveycore.RuntimeConfig{}, fmt.Errorf("配置不兼容: %s -> %w", path, err)
+			return ConfigDocument{}, fmt.Errorf("配置不兼容: %s -> %w", path, err)
 		}
-		return surveycore.RuntimeConfig{}, nil
+		return ConfigDocument{}, nil
 	}
-	return cfg, nil
+	return document, nil
 }
 
-func Save(config surveycore.RuntimeConfig, path string) (string, error) {
+func Save(config surveycore.RunRequest, path string) (string, error) {
+	return SaveDocument(ConfigDocumentFromRunRequest(config), path)
+}
+
+func SaveDocument(document ConfigDocument, path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", fmt.Errorf("配置路径不能为空")
 	}
+	path = filepath.Clean(path)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}
-	payload := SerializeRuntimeConfig(config)
+	payload, err := SerializeConfigDocument(document)
+	if err != nil {
+		return "", err
+	}
 	data, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(path, append(data, '\n'), 0o644); err != nil {
+	temp, err := os.CreateTemp(filepath.Dir(path), ".surveycontroller-config-*.tmp")
+	if err != nil {
+		return "", err
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	if err := temp.Chmod(0o644); err != nil {
+		_ = temp.Close()
+		return "", err
+	}
+	if _, err := temp.Write(append(data, '\n')); err != nil {
+		_ = temp.Close()
+		return "", err
+	}
+	if err := temp.Sync(); err != nil {
+		_ = temp.Close()
+		return "", err
+	}
+	if err := temp.Close(); err != nil {
+		return "", err
+	}
+	if err := replaceConfigFile(tempPath, path); err != nil {
 		return "", err
 	}
 	return path, nil

@@ -13,7 +13,7 @@ type PreviewOptions struct {
 	Format          string
 	StartRow        int
 	Questions       []model.QuestionMeta
-	QuestionEntries []model.QuestionEntry
+	QuestionEntries []model.QuestionStrategy
 	MaxSampleRows   int
 }
 

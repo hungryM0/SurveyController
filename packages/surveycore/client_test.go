@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"surveycontroller/surveycore/internal/model"
 )
 
 func TestParseAndDefaultConfig(t *testing.T) {
@@ -28,11 +30,11 @@ func TestParseAndDefaultConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.SurveyProvider != ProviderCredamo || cfg.SurveyTitle != "Credamo 标题" {
+	if cfg.SurveySource.Provider != ProviderCredamo || cfg.SurveyDefinition.Title != "Credamo 标题" {
 		t.Fatalf("cfg = %#v", cfg)
 	}
-	if len(cfg.QuestionEntries) != 7 {
-		t.Fatalf("entry count = %d", len(cfg.QuestionEntries))
+	if len(cfg.AnswerPlan.Strategies) != 7 {
+		t.Fatalf("entry count = %d", len(cfg.AnswerPlan.Strategies))
 	}
 }
 
@@ -52,11 +54,11 @@ func TestParseAndDefaultConfigTencent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.SurveyProvider != ProviderQQ || cfg.SurveyTitle != "腾讯测试" {
+	if cfg.SurveySource.Provider != ProviderQQ || cfg.SurveyDefinition.Title != "腾讯测试" {
 		t.Fatalf("cfg = %#v", cfg)
 	}
-	if len(cfg.QuestionEntries) != 2 {
-		t.Fatalf("entry count = %d", len(cfg.QuestionEntries))
+	if len(cfg.AnswerPlan.Strategies) != 2 {
+		t.Fatalf("entry count = %d", len(cfg.AnswerPlan.Strategies))
 	}
 }
 
@@ -77,7 +79,7 @@ func TestParseDefaultConfigAndRunWJX(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.SurveyProvider != ProviderWJX || cfg.SurveyTitle != "WJX 测试" || len(cfg.QuestionEntries) != 1 {
+	if cfg.SurveySource.Provider != ProviderWJX || cfg.SurveyDefinition.Title != "WJX 测试" || len(cfg.AnswerPlan.Strategies) != 1 {
 		t.Fatalf("cfg = %#v", cfg)
 	}
 	cfg.Target = 1
@@ -116,13 +118,10 @@ func TestRunWJXRandomUserAgent(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := New(WithHTTPClient(rewriteWJXHTTPClient(server.URL))).Run(context.Background(), &RuntimeConfig{
-		URL:             "https://www.wjx.cn/vm/demo.aspx",
-		SurveyProvider:  ProviderWJX,
-		Target:          1,
-		RandomUAEnabled: true,
-		RandomUARatios:  map[string]int{"wechat": 0, "mobile": 0, "pc": 100},
-	})
+	result, err := New(WithHTTPClient(rewriteWJXHTTPClient(server.URL))).RunWithExecutionOptions(context.Background(), &RunRequest{
+		SurveySource:  SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: ProviderWJX},
+		ExecutionPlan: ExecutionPlan{Target: 1},
+	}, nil, ExecutionOptions{UserAgent: model.UserAgentSettings{Enabled: true, Ratios: map[string]int{"wechat": 0, "mobile": 0, "pc": 100}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,10 +143,9 @@ func TestRunWJXRandomUserAgent(t *testing.T) {
 func TestRunTencentSubmitsWithEvents(t *testing.T) {
 	server := newTencentCoreTestServer(t)
 	var events []Event
-	result, err := New(WithHTTPClient(rewriteTencentHTTPClient(server.URL))).RunWithEvents(context.Background(), &RuntimeConfig{
-		URL:            "https://wj.qq.com/s2/123/hashvalue/",
-		SurveyProvider: ProviderQQ,
-		Target:         1,
+	result, err := New(WithHTTPClient(rewriteTencentHTTPClient(server.URL))).RunWithEvents(context.Background(), &RunRequest{
+		SurveySource:  SurveySource{URL: "https://wj.qq.com/s2/123/hashvalue/", Provider: ProviderQQ},
+		ExecutionPlan: ExecutionPlan{Target: 1},
 	}, func(event Event) {
 		events = append(events, event)
 	})
@@ -168,7 +166,7 @@ func TestRunWithEventsSubmitsCredamo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.Target = 1
+	cfg.ExecutionPlan.Target = 1
 
 	var events []Event
 	result, err := New().RunWithEvents(context.Background(), cfg, func(event Event) {
@@ -352,13 +350,13 @@ func TestRunErrors(t *testing.T) {
 		t.Fatalf("nil config error = %v", err)
 	}
 
-	_, err = Run(context.Background(), &RuntimeConfig{URL: "https://example.com/s/1", SurveyProvider: "unknown"})
+	_, err = Run(context.Background(), &RunRequest{SurveySource: SurveySource{URL: "https://example.com/s/1", Provider: "unknown"}})
 	if !errors.Is(err, ErrUnsupportedOperation) {
 		t.Fatalf("unsupported error = %v", err)
 	}
 
 	server := newCredamoTestServer(t, false)
-	cfg := &RuntimeConfig{URL: server.URL + "/s/demo_", SurveyProvider: ProviderCredamo, Target: 1}
+	cfg := &RunRequest{SurveySource: SurveySource{URL: server.URL + "/s/demo_", Provider: ProviderCredamo}, ExecutionPlan: ExecutionPlan{Target: 1}}
 	_, err = Run(context.Background(), cfg)
 	if !errors.Is(err, ErrRunFailed) {
 		t.Fatalf("run error = %v", err)

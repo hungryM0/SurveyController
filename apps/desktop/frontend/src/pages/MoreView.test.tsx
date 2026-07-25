@@ -1,44 +1,27 @@
 import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { buildAppModel } from '../services/stateMapper'
-import { emptyShellState } from '../services/shellFixture'
+import { buildAppModel, mapAppViewState } from '../viewModels/appModel'
+import { createTestConfig, createTestSettings } from '../test/configFactory'
 import MoreView from './MoreView'
-import type { AppSettings, RuntimeConfig } from '../types'
 
 vi.mock('@wailsio/runtime', () => ({
   Browser: { OpenURL: vi.fn() },
 }))
 
-const settings: AppSettings = {
-  configDirectory: 'D:/configs',
-  themeMode: 'system',
-  showNavigationText: true,
-  micaEnabled: true,
-  topmost: false,
-  notifications: true,
-  autosaveLogCount: 5,
-}
-
-const config: RuntimeConfig = {
-  url: 'https://www.wjx.cn/vm/demo.aspx',
-  survey_title: '示例问卷',
-  target: 3,
-  threads: 2,
-}
-
 describe('MoreView data mapping', () => {
   it('keeps more-page sections populated', () => {
-    const model = buildAppModel(emptyShellState, settings, config)
+    const model = buildAppModel(createTestSettings(), createTestConfig(), '', false, '5.0.0')
+    const view = mapAppViewState(model, { value: '', operation: 'keep' })
 
-    expect(model.shell.aboutItems.length).toBeGreaterThan(0)
-    expect(model.shell.donateItems.length).toBeGreaterThan(0)
+    expect(view.aboutItems.length).toBeGreaterThan(0)
+    expect(view.donateItems.length).toBeGreaterThan(0)
   })
 
   it('renders main about and donate sections without IP usage or bonus modules', () => {
     const html = renderToStaticMarkup(
       <MoreView
-        version="4.0.6"
-        aboutItems={[{ label: '版本', value: '4.0.6' }]}
+        version="5.0.0"
+        aboutItems={[{ label: '版本', value: '5.0.0' }]}
         donateItems={[{ label: '微信', value: '赞赏码' }]}
         autoCheckUpdate={false}
       />,

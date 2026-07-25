@@ -1,18 +1,24 @@
 import type { ChangeEvent } from 'react'
-import type { RuntimeConfig } from '../../types'
 import { InputText, RangeSliderBar, SliderBar } from '../ui'
-import { clampInt, normalizePair } from './configWizardModel'
+import { clampInt, cloneWizardDraft, normalizePair, type WizardDraft } from './configWizardModel'
 
 interface TaskStepProps {
-  draft: RuntimeConfig
+  draft: WizardDraft
   busy: boolean
-  onChange: (draft: RuntimeConfig) => void
+  onChange: (draft: WizardDraft) => void
 }
 
 function TaskStep({ draft, busy, onChange }: TaskStepProps) {
-  const target = clampInt(draft.target, 1, 999999, 1)
-  const threads = clampInt(draft.threads, 1, 128, 1)
-  const submitInterval = normalizePair(draft.submit_interval, [0, 0])
+  const execution = draft.config.execution
+  const target = clampInt(execution.target, 1, 999999, 1)
+  const threads = clampInt(execution.threads, 1, 128, 1)
+  const submitInterval = normalizePair(execution.submitInterval, [0, 0])
+
+  function updateExecution(values: Partial<typeof execution>) {
+    const next = cloneWizardDraft(draft)
+    next.config.execution = { ...next.config.execution, ...values }
+    onChange(next)
+  }
 
   return (
     <section className="config-wizard-step config-wizard-task-step" aria-labelledby="config-wizard-task-title">
@@ -35,8 +41,7 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
             type="number"
             value={target}
             width="9rem"
-            onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({
-              ...draft,
+            onChange={(event: ChangeEvent<HTMLInputElement>) => updateExecution({
               target: clampInt(event.target.value, 1, 999999, 1),
             })}
           />
@@ -56,8 +61,7 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
               value={Math.min(threads, 32)}
               thumbLabel="并发数"
               tooltip={`${threads} 路并发`}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({
-                ...draft,
+              onChange={(event: ChangeEvent<HTMLInputElement>) => updateExecution({
                 threads: clampInt(event.target.value, 1, 32, 1),
               })}
             />
@@ -77,7 +81,7 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
               min={0}
               max={1800}
               values={submitInterval}
-              onChange={(values) => onChange({ ...draft, submit_interval: values })}
+              onChange={(values) => updateExecution({ submitInterval: values })}
             />
             <output aria-live="polite">{submitInterval[0]}–{submitInterval[1]} 秒</output>
           </div>

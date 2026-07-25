@@ -32,9 +32,9 @@ func runLiveSubmit(t *testing.T, urlEnv string, provider string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.SurveyProvider = provider
-	cfg.Target = 1
-	cfg.Threads = 1
+	cfg.SurveySource.Provider = provider
+	cfg.ExecutionPlan.Target = 1
+	cfg.ExecutionPlan.Threads = 1
 	result, err := client.Run(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

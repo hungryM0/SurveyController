@@ -16,20 +16,20 @@ import (
 
 const resolution = "1920px*1080px"
 
-func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler EventHandler) (Result, error) {
-	prepared, err := r.Prepare(ctx, cfg)
+func (r Runner) Run(ctx context.Context, request *model.SubmissionRequest, handler EventHandler) (Result, error) {
+	prepared, err := r.Prepare(ctx, request)
 	if err != nil {
-		return pendingResult(cfg), err
+		return pendingResult(request), err
 	}
-	return r.RunPrepared(ctx, cfg, prepared, handler)
+	return r.RunPrepared(ctx, request, prepared, handler)
 }
 
-func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*PreparedSurvey, error) {
-	if cfg == nil || strings.TrimSpace(cfg.URL) == "" {
+func (r Runner) Prepare(ctx context.Context, request *model.SubmissionRequest) (*PreparedSurvey, error) {
+	if request == nil || strings.TrimSpace(request.Source.URL) == "" {
 		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
 	parser := Parser{HTTP: r.HTTP, UserAgent: r.UserAgent}
-	origin, shortURL, detail, err := parser.FetchDetailForRun(ctx, cfg.URL)
+	origin, shortURL, detail, err := parser.FetchDetailForRun(ctx, request.Source.URL)
 	if err != nil {
 		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
 	}
@@ -37,7 +37,9 @@ func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*Prepare
 	if len(rawQuestions) == 0 {
 		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 见数详情接口未返回可提交题目"))
 	}
+	definition := model.SurveyDefinition{Provider: model.ProviderCredamo, Title: surveyTitle(detail), Questions: normalizeSubmitQuestions(rawQuestions)}
 	return &PreparedSurvey{
+		Definition:   definition,
 		Origin:       origin,
 		ShortURL:     shortURL,
 		Title:        surveyTitle(detail),
@@ -45,34 +47,27 @@ func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*Prepare
 	}, nil
 }
 
-func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
-	result := pendingResult(cfg)
-	if cfg == nil {
+func (r Runner) RunPrepared(ctx context.Context, request *model.SubmissionRequest, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
+	result := pendingResult(request)
+	if request == nil {
 		return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
 	if prepared == nil || prepared.Origin == "" || prepared.ShortURL == "" || len(prepared.RawQuestions) == 0 {
 		return result, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 缺少已准备的问卷数据"))
 	}
 	target := result.Target
-	if cfg.SurveyProvider == "" {
-		cfg.SurveyProvider = model.ProviderCredamo
-	}
-	if cfg.SurveyTitle == "" {
-		cfg.SurveyTitle = prepared.Title
-	}
-
 	for i := 0; i < target; i++ {
 		if err := ctx.Err(); err != nil {
 			result.Status = "stopped"
 			return result, err
 		}
-		initData, err := r.initAnswer(ctx, prepared.Origin, prepared.ShortURL, cfg.ActiveProxyAddress)
+		initData, err := r.initAnswer(ctx, prepared.Origin, prepared.ShortURL, request.Context.ProxyAddress)
 		if err != nil {
 			result.Fail++
 			emit(handler, "初始化失败", false, true, result.Success+result.Fail, target)
 			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
 		}
-		answers, err := buildAnswerItems(prepared.RawQuestions, cfg)
+		answers, err := buildAnswerItems(prepared.RawQuestions, request)
 		if err != nil {
 			result.Fail++
 			emit(handler, "生成答案失败", false, true, result.Success+result.Fail, target)
@@ -81,8 +76,8 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 			}
 			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
-		durationSeconds := defaultDurationSeconds(cfg)
-		answerStartedAt := sampleAnswerStartTimeMS(cfg, initData.TimestampMS, durationSeconds)
+		durationSeconds := defaultDurationSeconds(request)
+		answerStartedAt := sampleAnswerStartTimeMS(request, initData.TimestampMS, durationSeconds)
 		body := map[string]any{
 			"answerStartTime": answerStartedAt,
 			"answerEndTime":   answerStartedAt + int64(durationSeconds)*1000,
@@ -92,7 +87,7 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 			"resolution":      resolution,
 			"sourceDetail":    1,
 		}
-		if err := r.saveAnswers(ctx, prepared.Origin, prepared.ShortURL, initData, body, cfg.ActiveProxyAddress); err != nil {
+		if err := r.saveAnswers(ctx, prepared.Origin, prepared.ShortURL, initData, body, request.Context.ProxyAddress); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
 			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
@@ -104,12 +99,8 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 	return result, nil
 }
 
-func pendingResult(cfg *model.RuntimeConfig) Result {
-	target := 1
-	if cfg != nil && cfg.Target > 0 {
-		target = cfg.Target
-	}
-	return Result{Target: target, Status: "pending"}
+func pendingResult(_ *model.SubmissionRequest) Result {
+	return Result{Target: 1, Status: "pending"}
 }
 
 func (r Runner) initAnswer(ctx context.Context, origin string, shortURL string, proxyAddress string) (answerInit, error) {
@@ -169,20 +160,20 @@ func (r Runner) httpDoer(proxyAddress string) (interface {
 	return httpjson.Client{Client: client}, nil
 }
 
-func defaultDurationSeconds(cfg *model.RuntimeConfig) int {
-	if cfg != nil {
-		if seconds := model.SampleAnswerDurationSeconds(cfg.AnswerDuration, 90); seconds > 0 {
+func defaultDurationSeconds(request *model.SubmissionRequest) int {
+	if request != nil {
+		if seconds := model.SampleAnswerDurationSeconds(request.AnswerDuration, 90); seconds > 0 {
 			return seconds
 		}
 	}
 	return 90
 }
 
-func sampleAnswerStartTimeMS(cfg *model.RuntimeConfig, fallbackMS int64, durationSeconds int) int64 {
-	if cfg == nil {
+func sampleAnswerStartTimeMS(request *model.SubmissionRequest, fallbackMS int64, durationSeconds int) int64 {
+	if request == nil {
 		return fallbackMS
 	}
-	startMS, endMS := model.AnswerDatetimeWindowToEpochMS(cfg.AnswerDatetimeWindow)
+	startMS, endMS := model.AnswerDatetimeWindowToEpochMS(request.AnswerDatetimeWindow)
 	if startMS <= 0 || endMS <= startMS {
 		return fallbackMS
 	}

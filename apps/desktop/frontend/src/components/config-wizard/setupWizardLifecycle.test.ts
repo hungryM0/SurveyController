@@ -1,21 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { AppSettings, RuntimeConfig } from '../../types'
+import { createTestConfig, createTestSettings } from '../../test/configFactory'
+import type { AICredentialDraft, AppSettings, ConfigDocument } from '../../types'
 import {
   SETUP_WIZARD_VERSION,
   persistSetupWizard,
   shouldAutoOpenSetupWizard,
 } from './setupWizardLifecycle'
 
-const settings: AppSettings = {
-  configDirectory: 'D:/configs',
-  themeMode: 'system',
-  showNavigationText: true,
-  micaEnabled: true,
-  topmost: false,
-  notifications: true,
-  autosaveLogCount: 10,
-  setupWizardVersion: 0,
-}
+const settings = createTestSettings((value) => {
+  value.configDirectory = 'D:/configs'
+  value.setupWizardVersion = 0
+})
+const credential: AICredentialDraft = { operation: 'keep', value: '' }
 
 describe('setup wizard lifecycle', () => {
   it('opens only for an unfinished first run without a saved configuration', () => {
@@ -38,17 +34,20 @@ describe('setup wizard lifecycle', () => {
 
   it('saves the configuration before marking the wizard complete', async () => {
     const calls: string[] = []
-    const config: RuntimeConfig = { url: 'https://www.wjx.cn/vm/example.aspx' }
-    const saveConfig = vi.fn(async (next: RuntimeConfig, path: string) => {
+    const config = createTestConfig((value) => {
+      value.survey.url = 'https://www.wjx.cn/vm/example.aspx'
+    })
+    const saveConfig = vi.fn(async (next: ConfigDocument, path: string) => {
       calls.push('config')
       return { path, config: next }
     })
-    const saveSettings = vi.fn(async (next: AppSettings) => {
+    const saveSettings = vi.fn(async (next: AppSettings, nextCredential: AICredentialDraft) => {
       calls.push('settings')
+      expect(nextCredential).toEqual(credential)
       return next
     })
 
-    const saved = await persistSetupWizard(config, 'D:/configs/example.json', settings, {
+    const saved = await persistSetupWizard(config, 'D:/configs/example.json', settings, credential, {
       saveConfig,
       saveSettings,
     })
@@ -60,7 +59,7 @@ describe('setup wizard lifecycle', () => {
   it('does not mark completion when saving the configuration fails', async () => {
     const saveSettings = vi.fn(async (next: AppSettings) => next)
 
-    await expect(persistSetupWizard({ url: 'https://example.com' }, '', settings, {
+    await expect(persistSetupWizard(createTestConfig(), '', settings, credential, {
       saveConfig: vi.fn(async () => { throw new Error('保存失败') }),
       saveSettings,
     })).rejects.toThrow('保存失败')

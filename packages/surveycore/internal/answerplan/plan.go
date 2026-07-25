@@ -20,12 +20,12 @@ type Action struct {
 }
 
 type EntryIndex struct {
-	byNumber map[int]model.QuestionEntry
-	byID     map[string]model.QuestionEntry
+	byNumber map[int]model.QuestionStrategy
+	byID     map[string]model.QuestionStrategy
 }
 
-func NewEntryIndex(entries []model.QuestionEntry) EntryIndex {
-	result := EntryIndex{byNumber: map[int]model.QuestionEntry{}, byID: map[string]model.QuestionEntry{}}
+func NewEntryIndex(entries []model.QuestionStrategy) EntryIndex {
+	result := EntryIndex{byNumber: map[int]model.QuestionStrategy{}, byID: map[string]model.QuestionStrategy{}}
 	for _, entry := range entries {
 		if entry.QuestionNum != nil {
 			result.byNumber[*entry.QuestionNum] = entry
@@ -37,7 +37,7 @@ func NewEntryIndex(entries []model.QuestionEntry) EntryIndex {
 	return result
 }
 
-func (idx EntryIndex) Find(question model.QuestionMeta) (model.QuestionEntry, bool) {
+func (idx EntryIndex) Find(question model.QuestionMeta) (model.QuestionStrategy, bool) {
 	if question.ProviderID != "" {
 		if entry, ok := idx.byID[question.ProviderID]; ok {
 			return entry, true
@@ -47,15 +47,15 @@ func (idx EntryIndex) Find(question model.QuestionMeta) (model.QuestionEntry, bo
 	return entry, ok
 }
 
-func BuildAction(question model.QuestionMeta, entry model.QuestionEntry) (Action, error) {
+func BuildAction(question model.QuestionMeta, entry model.QuestionStrategy) (Action, error) {
 	return BuildActionWithOptions(question, entry, BuildOptions{})
 }
 
-func BuildActionWithOptions(question model.QuestionMeta, entry model.QuestionEntry, options BuildOptions) (Action, error) {
+func BuildActionWithOptions(question model.QuestionMeta, entry model.QuestionStrategy, options BuildOptions) (Action, error) {
 	action := Action{
 		QuestionNum:     question.Num,
 		QuestionID:      question.ProviderID,
-		Kind:            entry.QuestionType,
+		Kind:            string(entry.QuestionType),
 		OptionFillTexts: map[int]string{},
 	}
 	kind := normalizeKind(question, entry)
@@ -99,7 +99,8 @@ func BuildActionWithOptions(question model.QuestionMeta, entry model.QuestionEnt
 			rowIndex := row
 			count := maxInt(1, question.Options)
 			selectionEntry, trackDistribution := selectionEntry(question, entry, &rowIndex, count, options)
-			index := SelectedMatrixIndex(selectionEntry, row, count)
+			// selectionEntry already narrows the matrix weights to this row.
+			index := SelectedIndex(selectionEntry, count)
 			action.MatrixIndices = append(action.MatrixIndices, index)
 			if trackDistribution {
 				recordPendingDistribution(options, question.Num, &rowIndex, index, count)
@@ -112,7 +113,7 @@ func BuildActionWithOptions(question model.QuestionMeta, entry model.QuestionEnt
 		}
 	case "slider":
 		action.Kind = kind
-		action.SliderValue = firstNonEmpty(stringValue(firstProbabilityValue(entry.Probabilities)), stringValue(question.SliderMin), defaultSliderValue)
+		action.SliderValue = firstNonEmpty(firstProbabilityText(entry.Probabilities), question.SliderMin, defaultSliderValue)
 	case "text":
 		action.Kind = "text"
 		count := maxInt(1, question.TextInputs)
@@ -131,8 +132,8 @@ func BuildActionWithOptions(question model.QuestionMeta, entry model.QuestionEnt
 	return action, nil
 }
 
-func normalizeKind(question model.QuestionMeta, entry model.QuestionEntry) string {
-	kind := strings.TrimSpace(entry.QuestionType)
+func normalizeKind(question model.QuestionMeta, entry model.QuestionStrategy) string {
+	kind := strings.TrimSpace(string(entry.QuestionType))
 	if kind == "" {
 		kind = strings.TrimSpace(question.ProviderType)
 	}

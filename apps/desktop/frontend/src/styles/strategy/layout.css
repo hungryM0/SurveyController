@@ -1,0 +1,107 @@
+.strategy-tab-bar {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+  background: var(--surface-strong);
+  backdrop-filter: blur(18px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.strategy-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.strategy-scroll {
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.strategy-tab-bar {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+  background: var(--surface-strong);
+  backdrop-filter: blur(18px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.strategy-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.workspace-page .content-stack,
+.strategy-scroll.workspace-page > * {
+  width: min(var(--workspace-width), 100%);
+  margin-inline: auto;
+}
+
+.strategy-scroll.workspace-page {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: clamp(0.85rem, 1.8vw, 1.4rem);
+}
+
+.strategy-scroll .strategy-tab-bar {
+  justify-content: flex-start;
+  padding: 0.4rem;
+  border-radius: 0.65rem;
+}
+
+.strategy-scroll .strategy-tab-content {
+  width: min(76rem, 100%);
+  min-height: 0;
+  margin-inline: auto;
+}
+
+.strategy-empty-state {
+  display: grid;
+  flex: 1;
+  min-height: 12rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.strategy-empty-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  margin-bottom: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  border-radius: 0.8rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.strategy-empty-state h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.strategy-empty-state p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}

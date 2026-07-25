@@ -1,22 +1,15 @@
 import { FileSpreadsheet, FolderOpen, ListChecks } from 'lucide-react'
-import type { ChangeEvent, ReactElement } from 'react'
-import type { RuntimeConfig } from '../../types'
+import type { ChangeEvent } from 'react'
 import { Button, InputText, RangeSliderBar, SelectNative, Switch } from '../ui'
-import { normalizePair } from './configWizardModel'
+import { cloneWizardDraft, normalizePair, type WizardDraft } from './configWizardModel'
+import { formatWizardSeconds } from './wizardHelpers'
 
 interface AnswersStepProps {
-  draft: RuntimeConfig
+  draft: WizardDraft
   busy: boolean
-  onChange: (draft: RuntimeConfig) => void
+  onChange: (draft: WizardDraft) => void
   onChooseReverseFill?: () => Promise<string | null>
 }
-
-const SelectControl = SelectNative as unknown as (props: {
-  data: Array<{ label: string; value: string }>
-  value?: string
-  disabled?: boolean
-  onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
-}) => ReactElement
 
 const aiModes = [
   { label: '限时免费', value: 'free' },
@@ -29,16 +22,39 @@ const aiProviders = [
 ]
 
 function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStepProps) {
-  const duration = normalizePair(draft.answer_duration, [60, 120])
-  const aiMode = draft.ai_mode === 'provider' ? 'provider' : 'free'
-  const aiProvider = draft.ai_provider === 'custom' ? 'custom' : 'deepseek'
-  const questionCount = draft.questions_info?.length || draft.question_entries?.length || 0
+  const config = draft.config
+  const duration = normalizePair(config.execution.answerDuration, [60, 120])
+  const aiMode = draft.aiProfile.mode === 'provider' ? 'provider' : 'free'
+  const aiProvider = draft.aiProfile.provider === 'custom' ? 'custom' : 'deepseek'
+  const questionCount = config.survey.definition.questions?.length || config.answers.questions?.length || 0
+
+  function updateExecution(values: Partial<typeof config.execution>) {
+    const next = cloneWizardDraft(draft)
+    next.config.execution = { ...next.config.execution, ...values }
+    onChange(next)
+  }
+
+  function updateReverseFill(values: Partial<typeof config.reverseFill>) {
+    const next = cloneWizardDraft(draft)
+    next.config.reverseFill = { ...next.config.reverseFill, ...values }
+    onChange(next)
+  }
+
+  function updateAIProfile(values: Partial<typeof draft.aiProfile>) {
+    const next = cloneWizardDraft(draft)
+    next.aiProfile = { ...next.aiProfile, ...values }
+    onChange(next)
+  }
+
+  function updateCredential(value: string) {
+    const next = cloneWizardDraft(draft)
+    next.credential = { value, operation: value.trim() ? 'replace' : 'clear' }
+    onChange(next)
+  }
 
   async function chooseReverseFill() {
     const path = await onChooseReverseFill?.()
-    if (path) {
-      onChange({ ...draft, reverse_fill_enabled: true, reverse_fill_source_path: path })
-    }
+    if (path) updateReverseFill({ enabled: true, sourcePath: path })
   }
 
   return (
@@ -69,9 +85,9 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
               min={1}
               max={3600}
               values={duration}
-              onChange={(values) => onChange({ ...draft, answer_duration: values })}
+              onChange={(values) => updateExecution({ answerDuration: values })}
             />
-            <output aria-live="polite">{formatSeconds(duration[0])}–{formatSeconds(duration[1])}</output>
+            <output aria-live="polite">{formatWizardSeconds(duration[0])}–{formatWizardSeconds(duration[1])}</output>
           </div>
         </div>
 
@@ -82,25 +98,25 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           </span>
           <Switch
             aria-label="Excel 反填"
-            checked={Boolean(draft.reverse_fill_enabled)}
+            checked={config.reverseFill.enabled}
             disabled={busy}
             label
             labelOn="开"
             labelOff="关"
-            onChange={(checked) => onChange({ ...draft, reverse_fill_enabled: checked })}
+            onChange={(checked) => updateReverseFill({ enabled: checked })}
           />
         </div>
 
-        {draft.reverse_fill_enabled ? (
+        {config.reverseFill.enabled ? (
           <div className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">反填数据文件</span>
-              <small>{draft.reverse_fill_source_path || '选择包含答案数据的 Excel 文件。'}</small>
+              <small>{config.reverseFill.sourcePath || '选择包含答案数据的 Excel 文件。'}</small>
             </span>
             <Button
-              value={draft.reverse_fill_source_path ? '更换文件' : '选择 Excel'}
+              value={config.reverseFill.sourcePath ? '更换文件' : '选择 Excel'}
               type="subtle"
-              icon={draft.reverse_fill_source_path ? <FileSpreadsheet size={16} strokeWidth={1.9} /> : <FolderOpen size={16} strokeWidth={1.9} />}
+              icon={config.reverseFill.sourcePath ? <FileSpreadsheet size={16} strokeWidth={1.9} /> : <FolderOpen size={16} strokeWidth={1.9} />}
               disabled={busy || !onChooseReverseFill}
               onClick={() => void chooseReverseFill()}
             />
@@ -112,11 +128,11 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
             <span className="config-wizard-field-label">填空题答案</span>
             <small>AI 只处理填空题。选择题仍按题目策略填写。</small>
           </span>
-          <SelectControl
+          <SelectNative
             data={aiModes}
             value={aiMode}
             disabled={busy}
-            onChange={(event) => onChange({ ...draft, ai_mode: event.target.value })}
+            onChange={(event) => updateAIProfile({ mode: event.target.value })}
           />
         </div>
 
@@ -126,11 +142,11 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
               <span className="config-wizard-field-label">AI 服务商</span>
               <small>配置只保存在本机。</small>
             </span>
-            <SelectControl
+            <SelectNative
               data={aiProviders}
               value={aiProvider}
               disabled={busy}
-              onChange={(event) => onChange({ ...draft, ai_provider: event.target.value })}
+              onChange={(event) => updateAIProfile({ provider: event.target.value })}
             />
           </div>
         ) : null}
@@ -145,9 +161,9 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
               aria-label="AI 接口地址"
               disabled={busy}
               placeholder="https://..."
-              value={draft.ai_base_url ?? ''}
+              value={draft.aiProfile.baseURL ?? ''}
               width="100%"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({ ...draft, ai_base_url: event.target.value })}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => updateAIProfile({ baseURL: event.target.value })}
             />
           </label>
         ) : null}
@@ -156,16 +172,16 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <label className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">API 密钥</span>
-              <small>密钥只写入本地配置。</small>
+              <small>{draft.aiProfile.hasAPIKey && draft.credential.operation === 'keep' ? '凭据已保存，留空保持不变。' : '凭据保存在 Windows 凭据管理器。'}</small>
             </span>
             <InputText
               aria-label="AI API 密钥"
               autoComplete="off"
               disabled={busy}
               type="password"
-              value={draft.ai_api_key ?? ''}
+              value={draft.credential.value}
               width="100%"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({ ...draft, ai_api_key: event.target.value })}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => updateCredential(event.target.value)}
             />
           </label>
         ) : null}
@@ -180,9 +196,9 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
               aria-label="AI 模型"
               disabled={busy}
               placeholder="默认模型"
-              value={draft.ai_model ?? ''}
+              value={draft.aiProfile.model ?? ''}
               width="14rem"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({ ...draft, ai_model: event.target.value })}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => updateAIProfile({ model: event.target.value })}
             />
           </label>
         ) : null}
@@ -194,12 +210,12 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           </span>
           <Switch
             aria-label="连续失败时停止"
-            checked={draft.fail_stop_enabled ?? true}
+            checked={config.execution.failStop}
             disabled={busy}
             label
             labelOn="开"
             labelOff="关"
-            onChange={(checked) => onChange({ ...draft, fail_stop_enabled: checked })}
+            onChange={(checked) => updateExecution({ failStop: checked })}
           />
         </div>
 
@@ -210,29 +226,17 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           </span>
           <Switch
             aria-label="遇到验证码时暂停"
-            checked={draft.pause_on_aliyun_captcha ?? true}
+            checked={config.execution.pauseOnAliyunCaptcha}
             disabled={busy}
             label
             labelOn="开"
             labelOff="关"
-            onChange={(checked) => onChange({ ...draft, pause_on_aliyun_captcha: checked })}
+            onChange={(checked) => updateExecution({ pauseOnAliyunCaptcha: checked })}
           />
         </div>
       </div>
     </section>
   )
-}
-
-function formatSeconds(value: number): string {
-  const minutes = Math.floor(value / 60)
-  const seconds = value % 60
-  if (!minutes) {
-    return `${seconds} 秒`
-  }
-  if (!seconds) {
-    return `${minutes} 分钟`
-  }
-  return `${minutes} 分 ${seconds} 秒`
 }
 
 export default AnswersStep

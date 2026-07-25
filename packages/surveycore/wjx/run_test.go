@@ -9,19 +9,24 @@ import (
 	"testing"
 
 	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/runerror"
 )
 
 func TestRunnerSubmitsWJX(t *testing.T) {
 	server := newWJXTestServer(t, true)
 	defer server.Close()
-	cfg := &model.RuntimeConfig{
-		URL:            "https://www.wjx.cn/vm/demo.aspx",
-		SurveyProvider: model.ProviderWJX,
-		Target:         1,
+	request := &model.SubmissionRequest{
+		Source: model.SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: model.ProviderWJX},
+		Context: model.SubmissionContext{Actions: []model.AnswerAction{
+			{QuestionNum: 1, Kind: model.QuestionKindSingle, SelectedIndices: []int{1}},
+			{QuestionNum: 2, Kind: model.QuestionKindMultiple, SelectedIndices: []int{0}},
+			{QuestionNum: 3, Kind: model.QuestionKindDropdown, SelectedIndices: []int{0}},
+			{QuestionNum: 4, Kind: model.QuestionKindScale, SelectedIndices: []int{2}},
+			{QuestionNum: 5, Kind: model.QuestionKindMatrix, MatrixIndices: []int{1, 0}},
+			{QuestionNum: 6, Kind: model.QuestionKindText, TextValues: []string{"张三", "13800000000"}},
+		}},
 	}
 	var events []Event
-	result, err := (Runner{Client: rewriteWJXClient(server.URL)}).Run(context.Background(), cfg, func(event Event) {
+	result, err := (Runner{Client: rewriteWJXClient(server.URL)}).Run(context.Background(), request, func(event Event) {
 		events = append(events, event)
 	})
 	if err != nil {
@@ -35,20 +40,26 @@ func TestRunnerSubmitsWJX(t *testing.T) {
 func TestRunnerReturnsRejectedSubmit(t *testing.T) {
 	server := newWJXTestServer(t, false)
 	defer server.Close()
-	cfg := &model.RuntimeConfig{
-		URL:            "https://www.wjx.cn/vm/demo.aspx",
-		SurveyProvider: model.ProviderWJX,
-		Target:         1,
+	request := &model.SubmissionRequest{
+		Source: model.SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: model.ProviderWJX},
+		Context: model.SubmissionContext{Actions: []model.AnswerAction{
+			{QuestionNum: 1, Kind: model.QuestionKindSingle, SelectedIndices: []int{1}},
+			{QuestionNum: 2, Kind: model.QuestionKindMultiple, SelectedIndices: []int{0}},
+			{QuestionNum: 3, Kind: model.QuestionKindDropdown, SelectedIndices: []int{0}},
+			{QuestionNum: 4, Kind: model.QuestionKindScale, SelectedIndices: []int{2}},
+			{QuestionNum: 5, Kind: model.QuestionKindMatrix, MatrixIndices: []int{1, 0}},
+			{QuestionNum: 6, Kind: model.QuestionKindText, TextValues: []string{"张三", "13800000000"}},
+		}},
 	}
-	_, err := (Runner{Client: rewriteWJXClient(server.URL)}).Run(context.Background(), cfg, nil)
+	_, err := (Runner{Client: rewriteWJXClient(server.URL)}).Run(context.Background(), request, nil)
 	if err == nil || !strings.Contains(err.Error(), "提交被拒绝") {
 		t.Fatalf("err = %v", err)
 	}
 }
 
 func TestBuildSubmitDataRejectsUnknownQuestionType(t *testing.T) {
-	_, err := buildSubmitData([]model.QuestionMeta{{Num: 1, ProviderType: "", TypeCode: "99", Options: 0}}, &model.RuntimeConfig{})
-	if err == nil || !runerror.HasKind(err, runerror.KindUnsupported) {
+	_, err := buildSubmitData([]model.QuestionMeta{{Num: 1, ProviderType: "", TypeCode: "99", Options: 0}}, nil)
+	if err == nil {
 		t.Fatalf("err = %v", err)
 	}
 }

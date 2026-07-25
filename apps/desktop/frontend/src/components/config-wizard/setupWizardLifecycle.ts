@@ -1,4 +1,4 @@
-import type { AppSettings, RuntimeConfig } from '../../types'
+import type { AICredentialDraft, AppSettings, ConfigDocument } from '../../types'
 
 export const SETUP_WIZARD_VERSION = 1
 
@@ -13,8 +13,8 @@ interface SetupWizardAutoOpenState {
 }
 
 interface SetupWizardPersistenceDeps {
-  saveConfig: (config: RuntimeConfig, path: string) => Promise<{ path: string; config: RuntimeConfig }>
-  saveSettings: (settings: AppSettings) => Promise<AppSettings>
+  saveConfig: (config: ConfigDocument, path: string) => Promise<{ path: string; config: ConfigDocument }>
+  saveSettings: (settings: AppSettings, credential: AICredentialDraft) => Promise<AppSettings>
 }
 
 export function shouldAutoOpenSetupWizard(state: SetupWizardAutoOpenState): boolean {
@@ -28,16 +28,17 @@ export function shouldAutoOpenSetupWizard(state: SetupWizardAutoOpenState): bool
 }
 
 export async function persistSetupWizard(
-  config: RuntimeConfig,
+  config: ConfigDocument,
   path: string,
   settings: AppSettings,
+  credential: AICredentialDraft,
   deps: SetupWizardPersistenceDeps,
 ) {
   const savedConfig = await deps.saveConfig(config, path)
   const savedSettings = await deps.saveSettings({
     ...settings,
     setupWizardVersion: SETUP_WIZARD_VERSION,
-  })
+  }, credential)
   return { savedConfig, savedSettings }
 }
 

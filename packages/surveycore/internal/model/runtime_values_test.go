@@ -23,9 +23,9 @@ func TestSelectUserAgentFromRatiosFallsBackOnInvalidRatios(t *testing.T) {
 }
 
 func TestRuntimeUserAgentDisabledReturnsEmpty(t *testing.T) {
-	ua := RuntimeUserAgent(&RuntimeConfig{
-		RandomUAEnabled: false,
-		RandomUARatios:  map[string]int{"wechat": 0, "mobile": 0, "pc": 100},
+	ua := RuntimeUserAgent(UserAgentSettings{
+		Enabled: false,
+		Ratios:  map[string]int{"wechat": 0, "mobile": 0, "pc": 100},
 	})
 	if ua != "" {
 		t.Fatalf("ua = %q", ua)

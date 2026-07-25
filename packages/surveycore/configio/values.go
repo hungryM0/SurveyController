@@ -101,6 +101,9 @@ func boolValue(raw any, fallback bool) bool {
 }
 
 func intPair(raw any, fallback [2]int) [2]int {
+	if pair, ok := raw.([2]int); ok {
+		return pair
+	}
 	items, ok := raw.([]any)
 	if !ok || len(items) < 2 {
 		return fallback
@@ -117,6 +120,9 @@ func intPair(raw any, fallback [2]int) [2]int {
 }
 
 func stringPair(raw any) [2]string {
+	if pair, ok := raw.([2]string); ok {
+		return pair
+	}
 	items, ok := raw.([]any)
 	if !ok || len(items) < 2 {
 		return [2]string{}

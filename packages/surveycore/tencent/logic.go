@@ -24,8 +24,8 @@ func attachLogicMetadata(rawQuestions []map[string]any, questions []model.Questi
 			maxNum = question.Num
 		}
 	}
-	inbound := map[string][]map[string]any{}
-	controls := map[string][]map[string]any{}
+	inbound := map[string][]model.DisplayCondition{}
+	controls := map[string][]model.DisplayControl{}
 	for _, raw := range rawQuestions {
 		sourceID := strings.TrimSpace(stringValue(raw["id"]))
 		idx, ok := byID[sourceID]
@@ -33,11 +33,11 @@ func attachLogicMetadata(rawQuestions []map[string]any, questions []model.Questi
 			continue
 		}
 		question := questions[idx]
-		jumpRules := make([]map[string]any, 0)
+		jumpRules := make([]model.JumpRule, 0)
 		hasJump := false
 		exact := false
 		if target, ok := resolveTarget(raw["goto"], byIDNum(questions), firstByPage, maxNum); ok {
-			jumpRules = append(jumpRules, map[string]any{"option_index": -1, "jumpto": target, "option_text": nil})
+			jumpRules = append(jumpRules, model.JumpRule{OptionIndex: -1, TargetQuestion: target})
 			hasJump = true
 			exact = true
 		} else if raw["goto"] != nil && stringValue(raw["goto"]) != "" {
@@ -45,11 +45,8 @@ func attachLogicMetadata(rawQuestions []map[string]any, questions []model.Questi
 		}
 		for optionIndex, option := range asMapList(raw["options"]) {
 			if target, ok := resolveTarget(option["goto"], byIDNum(questions), firstByPage, maxNum); ok {
-				jumpRules = append(jumpRules, map[string]any{
-					"option_index": optionIndex,
-					"jumpto":       target,
-					"option_text":  cleanOptionText(option["text"]),
-				})
+				optionText := cleanOptionText(option["text"])
+				jumpRules = append(jumpRules, model.JumpRule{OptionIndex: optionIndex, TargetQuestion: target, OptionText: &optionText})
 				hasJump = true
 				exact = true
 			} else if option["goto"] != nil && stringValue(option["goto"]) != "" {
@@ -61,16 +58,8 @@ func attachLogicMetadata(rawQuestions []map[string]any, questions []model.Questi
 					continue
 				}
 				targetNum := questions[targetIndex].Num
-				controls[sourceID] = append(controls[sourceID], map[string]any{
-					"target_question_num":      targetNum,
-					"condition_option_indices": []int{optionIndex},
-					"condition_mode":           "selected",
-				})
-				inbound[targetID] = append(inbound[targetID], map[string]any{
-					"condition_question_num":   question.Num,
-					"condition_option_indices": []int{optionIndex},
-					"condition_mode":           "selected",
-				})
+				controls[sourceID] = append(controls[sourceID], model.DisplayControl{TargetQuestionNum: targetNum, OptionIndices: []int{optionIndex}, Mode: "selected"})
+				inbound[targetID] = append(inbound[targetID], model.DisplayCondition{QuestionNum: question.Num, OptionIndices: []int{optionIndex}, Mode: "selected"})
 				exact = true
 			}
 		}

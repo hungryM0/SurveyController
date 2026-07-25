@@ -1,0 +1,120 @@
+.strategy-editor-panel,
+.strategy-table-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.strategy-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.strategy-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.strategy-field > span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.strategy-field-options {
+  grid-column: 1 / -1;
+}
+
+.strategy-option-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 12rem;
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface-soft);
+}
+
+.strategy-option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.strategy-option-item input {
+  margin: 0;
+}
+
+.strategy-inline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.strategy-multi-text-blanks {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.strategy-multi-text-blank-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface-soft);
+}
+
+.strategy-multi-text-blank-row strong {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.strategy-action-row,
+.strategy-dimension-create,
+.strategy-dimension-rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.strategy-row-actions {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.strategy-row-action,
+.strategy-question-row,
+.strategy-dimension-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface-soft);
+  padding: 0.55rem 0.65rem;
+}
+
+.strategy-row-action strong,
+.strategy-question-row strong,
+.strategy-dimension-item strong {
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.strategy-row-action span,
+.strategy-question-row span,
+.strategy-dimension-item span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+

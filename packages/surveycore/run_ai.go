@@ -4,57 +4,59 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"surveycontroller/surveycore/internal/model"
 )
 
-func (c *Client) prepareAIExecution(ctx context.Context, cfg *RuntimeConfig, options ExecutionOptions) (*RuntimeConfig, ExecutionOptions, error) {
+func (c *Client) prepareAIExecution(ctx context.Context, cfg *RunRequest, options ExecutionOptions) (*RunRequest, ExecutionOptions, error) {
 	if cfg == nil {
 		return nil, options, fmt.Errorf("%w: 配置为空", ErrInvalidConfig)
 	}
-	runCfg := cloneRuntimeConfig(cfg)
-	if runCfg.ReverseFillEnabled || !hasAIEntries(runCfg.QuestionEntries) {
+	runCfg := *cfg
+	if runCfg.ReverseFillPlan.Enabled || !hasAIEntries(runCfg.AnswerPlan.Strategies) {
 		return &runCfg, options, nil
 	}
-	if len(runCfg.QuestionsInfo) == 0 {
-		definition, err := c.Parse(ctx, runCfg.URL)
+	if len(runCfg.SurveyDefinition.Questions) == 0 {
+		definition, err := c.Parse(ctx, runCfg.SurveySource.URL)
 		if err != nil {
 			return nil, options, fmt.Errorf("%w: AI 作答需要先解析问卷: %v", ErrParseFailed, err)
 		}
 		populateConfigSurveyDefinition(&runCfg, definition)
 	}
-	configure := options.ConfigureRun
-	options.ConfigureRun = func(ctx context.Context, jobIndex int, attempt int, local *RuntimeConfig) error {
+	configure := options.ConfigureJob
+	options.ConfigureJob = func(ctx context.Context, jobIndex int, attempt int, job *JobRequest) error {
 		if configure != nil {
-			if err := configure(ctx, jobIndex, attempt, local); err != nil {
+			if err := configure(ctx, jobIndex, attempt, job); err != nil {
 				return err
 			}
 		}
-		entries, err := c.applyAITextAnswers(ctx, *local)
+		entries, err := c.applyAITextAnswers(ctx, job.Answers, job.Submission)
 		if err != nil {
 			return err
 		}
-		local.QuestionEntries = entries
+		job.Answers.Strategies = entries
 		return nil
 	}
 	return &runCfg, options, nil
 }
 
-func (c *Client) applyAITextAnswers(ctx context.Context, cfg RuntimeConfig) ([]QuestionEntry, error) {
-	entries := cloneQuestionEntries(cfg.QuestionEntries)
+func (c *Client) applyAITextAnswers(ctx context.Context, plan model.AnswerPlan, submission model.SubmissionRequest) ([]QuestionStrategy, error) {
+	entries := cloneQuestionStrategies(plan.Strategies)
 	questions := map[int]QuestionMeta{}
-	for _, question := range cfg.QuestionsInfo {
+	for _, question := range submission.Definition.Questions {
 		questions[question.Num] = question
 	}
 	for index := range entries {
 		entry := &entries[index]
 		if !entryAIEnabled(*entry) {
-			if err := c.applyAIOptionFillTexts(ctx, cfg, entry, questions, index); err != nil {
+			if err := c.applyAIOptionFillTexts(ctx, submission, entry, questions, index); err != nil {
 				return nil, err
 			}
 			continue
 		}
 		questionNum, question := resolveAIQuestion(*entry, questions, index)
 		blankCount := textBlankCount(question, *entry)
-		answers, err := c.resolveAIText(ctx, cfg, AITextRequest{
+		answers, err := c.resolveAIText(ctx, submission.Context, AITextRequest{
 			QuestionNum: questionNum,
 			Title:       firstText(question.Title, derefString(entry.QuestionTitle)),
 			Description: question.Description,
@@ -65,15 +67,15 @@ func (c *Client) applyAITextAnswers(ctx context.Context, cfg RuntimeConfig) ([]Q
 		}
 		entry.QuestionType = "text"
 		entry.Texts = answers
-		entry.Probabilities = []float64{1}
-		if err := c.applyAIOptionFillTexts(ctx, cfg, entry, questions, index); err != nil {
+		entry.Probabilities = model.OptionWeights(1)
+		if err := c.applyAIOptionFillTexts(ctx, submission, entry, questions, index); err != nil {
 			return nil, err
 		}
 	}
 	return entries, nil
 }
 
-func hasAIEntries(entries []QuestionEntry) bool {
+func hasAIEntries(entries []QuestionStrategy) bool {
 	for _, entry := range entries {
 		if entryAIEnabled(entry) || entryHasAIOptionFill(entry) {
 			return true
@@ -82,8 +84,8 @@ func hasAIEntries(entries []QuestionEntry) bool {
 	return false
 }
 
-func entryAIEnabled(entry QuestionEntry) bool {
-	kind := strings.TrimSpace(entry.QuestionType)
+func entryAIEnabled(entry QuestionStrategy) bool {
+	kind := strings.TrimSpace(string(entry.QuestionType))
 	if kind != "text" && kind != "multi_text" {
 		return false
 	}
@@ -101,7 +103,7 @@ func entryAIEnabled(entry QuestionEntry) bool {
 	return true
 }
 
-func entryHasAIOptionFill(entry QuestionEntry) bool {
+func entryHasAIOptionFill(entry QuestionStrategy) bool {
 	for _, value := range entry.OptionFillTexts {
 		if value != nil && strings.TrimSpace(*value) == optionFillAIToken {
 			return true
@@ -110,7 +112,7 @@ func entryHasAIOptionFill(entry QuestionEntry) bool {
 	return false
 }
 
-func (c *Client) applyAIOptionFillTexts(ctx context.Context, cfg RuntimeConfig, entry *QuestionEntry, questions map[int]QuestionMeta, entryIndex int) error {
+func (c *Client) applyAIOptionFillTexts(ctx context.Context, submission model.SubmissionRequest, entry *QuestionStrategy, questions map[int]QuestionMeta, entryIndex int) error {
 	if entry == nil || !entryHasAIOptionFill(*entry) {
 		return nil
 	}
@@ -125,7 +127,7 @@ func (c *Client) applyAIOptionFillTexts(ctx context.Context, cfg RuntimeConfig, 
 				title += "\n选项：" + optionText
 			}
 		}
-		answers, err := c.resolveAIText(ctx, cfg, AITextRequest{
+		answers, err := c.resolveAIText(ctx, submission.Context, AITextRequest{
 			QuestionNum: questionNum,
 			Title:       title,
 			Description: question.Description,
@@ -140,7 +142,7 @@ func (c *Client) applyAIOptionFillTexts(ctx context.Context, cfg RuntimeConfig, 
 	return nil
 }
 
-func resolveAIQuestion(entry QuestionEntry, questions map[int]QuestionMeta, entryIndex int) (int, QuestionMeta) {
+func resolveAIQuestion(entry QuestionStrategy, questions map[int]QuestionMeta, entryIndex int) (int, QuestionMeta) {
 	questionNum := entryIndex + 1
 	if entry.QuestionNum != nil && *entry.QuestionNum > 0 {
 		questionNum = *entry.QuestionNum
@@ -156,7 +158,7 @@ func resolveAIQuestion(entry QuestionEntry, questions map[int]QuestionMeta, entr
 	return questionNum, question
 }
 
-func textBlankCount(question QuestionMeta, entry QuestionEntry) int {
+func textBlankCount(question QuestionMeta, entry QuestionStrategy) int {
 	if question.TextInputs > 0 {
 		return question.TextInputs
 	}

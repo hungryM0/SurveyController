@@ -3,6 +3,8 @@ package tencent
 import (
 	"regexp"
 	"strings"
+
+	"surveycontroller/surveycore/internal/model"
 )
 
 var markdownImageRE = regexp.MustCompile(`!\[[^\]]*]\(([^)\s]+)\)(?:\{[^}]*\})?`)
@@ -74,10 +76,10 @@ func collectImageURLs(value any, depth int) []string {
 	}
 }
 
-func questionMedia(question map[string]any, providerType string) []map[string]any {
-	media := make([]map[string]any, 0)
+func questionMedia(question map[string]any, providerType string) []model.QuestionMedia {
+	media := make([]model.QuestionMedia, 0)
 	seen := map[string]bool{}
-	add := func(scope string, index any, label string, urls []string) {
+	add := func(scope string, index int, label string, urls []string) {
 		for _, rawURL := range urls {
 			url := normalizeMediaURL(rawURL)
 			if url == "" {
@@ -88,16 +90,14 @@ func questionMedia(question map[string]any, providerType string) []map[string]an
 				continue
 			}
 			seen[key] = true
-			media = append(media, map[string]any{
-				"kind":       "image",
-				"scope":      scope,
-				"index":      index,
-				"source_url": url,
-				"label":      label,
-			})
+			mediaIndex := &index
+			if index < 0 {
+				mediaIndex = nil
+			}
+			media = append(media, model.QuestionMedia{Kind: "image", Scope: scope, Index: mediaIndex, SourceURL: url, Label: label})
 		}
 	}
-	add("title", nil, "题干图", append(collectImageURLs(question["title"], 0), collectImageURLs(question["description"], 0)...))
+	add("title", -1, "题干图", append(collectImageURLs(question["title"], 0), collectImageURLs(question["description"], 0)...))
 	optionTexts := buildOptionTexts(question, providerType)
 	for index, option := range asMapList(question["options"]) {
 		label := "选项 " + stringValue(index+1)

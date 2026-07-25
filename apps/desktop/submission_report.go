@@ -66,7 +66,7 @@ func (r *httpSubmissionReporter) Report(ctx context.Context, report submissionRe
 	return response.StatusCode >= 200 && response.StatusCode < 300
 }
 
-func buildSubmissionReport(session proxycore.RandomIPSession, cfg surveycore.RuntimeConfig, result *surveycore.RunResult, runErr error) submissionReport {
+func buildSubmissionReport(session proxycore.RandomIPSession, cfg surveycore.RunRequest, proxySource string, result *surveycore.RunResult, runErr error) submissionReport {
 	resultText := "unknown"
 	if runErr != nil {
 		resultText = "failed"
@@ -79,9 +79,9 @@ func buildSubmissionReport(session proxycore.RandomIPSession, cfg surveycore.Run
 	}
 	return submissionReport{
 		UserID:        session.UserID,
-		SurveyURL:     strings.TrimSpace(cfg.URL),
+		SurveyURL:     strings.TrimSpace(cfg.SurveySource.URL),
 		Result:        resultText,
-		ProxyProvider: normalizeSubmissionProxyProvider(cfg.ProxySource),
+		ProxyProvider: normalizeSubmissionProxyProvider(proxySource),
 		ClientVersion: displayAppVersion(),
 		DeviceID:      session.DeviceID,
 	}

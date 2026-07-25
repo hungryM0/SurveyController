@@ -21,8 +21,8 @@ func TestSubmitAnswersUsesActiveProxy(t *testing.T) {
 	}))
 	defer proxy.Close()
 
-	cfg := &model.RuntimeConfig{ActiveProxyAddress: proxy.URL}
-	err := (Runner{}).submitAnswers(context.Background(), cfg, "123", "hash", "https://wj.qq.com/s2/123/hash/", "session", map[string]any{
+	request := &model.SubmissionRequest{Context: model.SubmissionContext{ProxyAddress: proxy.URL}}
+	err := (Runner{}).submitAnswers(context.Background(), request, "123", "hash", "https://wj.qq.com/s2/123/hash/", "session", map[string]any{
 		"answer_survey": map[string]any{"pages": []any{}},
 	})
 	if err == nil {

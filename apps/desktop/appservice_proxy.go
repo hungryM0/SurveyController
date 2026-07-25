@@ -6,7 +6,7 @@ import (
 )
 
 func (s *AppService) GetProxyStatus() ProxyStatus {
-	return s.proxyRuntime().statusSnapshot()
+	return s.proxy.statusSnapshot()
 }
 
 func (s *AppService) GetProxyAreaOptions(source string) ProxyAreaOptionsState {
@@ -14,11 +14,11 @@ func (s *AppService) GetProxyAreaOptions(source string) ProxyAreaOptionsState {
 }
 
 func (s *AppService) SyncProxyStatus(ctx context.Context, source string) (ProxyStatus, error) {
-	return s.proxyRuntime().SyncOfficialStatus(ctx, source)
+	return s.proxy.SyncOfficialStatus(ctx, source)
 }
 
 func (s *AppService) RedeemProxyCard(ctx context.Context, request RedeemProxyCardRequest) (ProxyRedeemState, error) {
-	return s.proxyRuntime().RedeemOfficialCard(ctx, request.Source, request.CardCode)
+	return s.proxy.RedeemOfficialCard(ctx, request.Source, request.CardCode)
 }
 
 func (s *AppService) TestCustomProxyAPI(ctx context.Context, request TestCustomProxyAPIRequest) CustomProxyAPITestState {
@@ -26,7 +26,14 @@ func (s *AppService) TestCustomProxyAPI(ctx context.Context, request TestCustomP
 }
 
 func (s *AppService) TestAIConnection(ctx context.Context, request TestAIConnectionRequest) AIConnectionTestState {
-	message, err := s.surveyClient().TestAIConnection(ctx, request.Config)
+	profile, configured, err := aiProfileForSettings(ctx, s.credentials, request.AIProfile)
+	if err != nil {
+		return AIConnectionTestState{Success: false, Message: "凭据读取失败: " + err.Error()}
+	}
+	if profile.Mode == "provider" && !configured {
+		return AIConnectionTestState{Success: false, Message: "未配置 AI API Key"}
+	}
+	message, err := s.runs.survey.TestAIConnection(ctx, profile)
 	if err != nil {
 		return AIConnectionTestState{Success: false, Message: "连接失败: " + err.Error()}
 	}

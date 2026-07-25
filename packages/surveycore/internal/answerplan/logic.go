@@ -10,7 +10,7 @@ import (
 
 var terminateJumpKeywords = []string{"结束作答", "结束答题", "结束填写", "终止作答", "停止作答"}
 
-func BuildActionsWithLogic(questions []model.QuestionMeta, entries []model.QuestionEntry, options BuildOptions) ([]Action, error) {
+func BuildActionsWithLogic(questions []model.QuestionMeta, entries []model.QuestionStrategy, options BuildOptions) ([]Action, error) {
 	ordered := orderedQuestions(questions)
 	if reason := httpLogicFallbackReason(ordered); reason != "" {
 		return nil, fmt.Errorf("%s，暂不支持纯 HTTP 提交", reason)
@@ -86,13 +86,13 @@ func questionVisible(question model.QuestionMeta, answered map[int]Action) bool 
 	if len(question.DisplayConditions) == 0 {
 		return !question.HasDisplayCondition
 	}
-	grouped := map[string][]map[string]any{}
+	grouped := map[string][]model.DisplayCondition{}
 	for _, condition := range question.DisplayConditions {
-		sourceNum := intValue(condition["condition_question_num"], 0)
+		sourceNum := condition.QuestionNum
 		if sourceNum <= 0 {
 			continue
 		}
-		mode := strings.TrimSpace(stringValue(condition["condition_mode"]))
+		mode := strings.TrimSpace(condition.Mode)
 		if mode == "" {
 			mode = conditionSelected
 		}
@@ -117,8 +117,8 @@ func questionVisible(question model.QuestionMeta, answered map[int]Action) bool 
 	return true
 }
 
-func conditionMet(answered map[int]Action, condition map[string]any) bool {
-	sourceNum := intValue(condition["condition_question_num"], 0)
+func conditionMet(answered map[int]Action, condition model.DisplayCondition) bool {
+	sourceNum := condition.QuestionNum
 	if sourceNum <= 0 {
 		return false
 	}
@@ -126,11 +126,11 @@ func conditionMet(answered map[int]Action, condition map[string]any) bool {
 	if !ok {
 		return false
 	}
-	mode := strings.TrimSpace(stringValue(condition["condition_mode"]))
+	mode := strings.TrimSpace(condition.Mode)
 	if mode == "" {
 		mode = conditionSelected
 	}
-	indices := intList(condition["condition_option_indices"])
+	indices := append([]int(nil), condition.OptionIndices...)
 	selected := actionSelectedIndices(action)
 	if len(indices) == 0 {
 		return mode == conditionSelected
@@ -150,12 +150,12 @@ func resolveJumpTarget(question model.QuestionMeta, action Action) (int, bool) {
 	unconditionalTarget := 0
 	unconditionalTerminates := false
 	for _, rule := range question.JumpRules {
-		target := intValue(rule["jumpto"], 0)
+		target := rule.TargetQuestion
 		if target <= 0 {
 			continue
 		}
 		terminates := jumpRuleTerminates(rule)
-		optionIndex := intValue(rule["option_index"], 0)
+		optionIndex := rule.OptionIndex
 		if optionIndex < 0 {
 			if unconditionalTarget == 0 {
 				unconditionalTarget = target
@@ -170,14 +170,14 @@ func resolveJumpTarget(question model.QuestionMeta, action Action) (int, bool) {
 	return unconditionalTarget, unconditionalTerminates
 }
 
-func jumpRuleTerminates(rule map[string]any) bool {
-	if rule == nil {
-		return false
-	}
-	if value, ok := rule["terminates_survey"].(bool); ok && value {
+func jumpRuleTerminates(rule model.JumpRule) bool {
+	if rule.TerminatesSurvey {
 		return true
 	}
-	optionText := strings.TrimSpace(stringValue(rule["option_text"]))
+	optionText := ""
+	if rule.OptionText != nil {
+		optionText = strings.TrimSpace(*rule.OptionText)
+	}
 	if optionText == "" {
 		return false
 	}

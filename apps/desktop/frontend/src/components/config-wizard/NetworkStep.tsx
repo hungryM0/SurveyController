@@ -1,19 +1,12 @@
-import type { ChangeEvent, ReactElement } from 'react'
-import type { RuntimeConfig } from '../../types'
+import type { ChangeEvent } from 'react'
 import { InputText, SelectNative, Switch } from '../ui'
+import { cloneWizardDraft, type WizardDraft } from './configWizardModel'
 
 interface NetworkStepProps {
-  draft: RuntimeConfig
+  draft: WizardDraft
   busy: boolean
-  onChange: (draft: RuntimeConfig) => void
+  onChange: (draft: WizardDraft) => void
 }
-
-const SelectControl = SelectNative as unknown as (props: {
-  data: Array<{ label: string; value: string }>
-  value?: string
-  disabled?: boolean
-  onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
-}) => ReactElement
 
 const proxySources = [
   { label: '默认代理', value: 'default' },
@@ -22,8 +15,15 @@ const proxySources = [
 ]
 
 function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
-  const randomIP = Boolean(draft.random_ip_enabled)
-  const proxySource = normalizeProxySource(draft.proxy_source)
+  const network = draft.config.network
+  const randomIP = Boolean(network.randomProxyEnabled)
+  const proxySource = normalizeProxySource(network.proxySource)
+
+  function updateNetwork(values: Partial<typeof network>) {
+    const next = cloneWizardDraft(draft)
+    next.config.network = { ...next.config.network, ...values }
+    onChange(next)
+  }
 
   return (
     <section className="config-wizard-step config-wizard-network-step" aria-labelledby="config-wizard-network-title">
@@ -45,7 +45,7 @@ function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
             label
             labelOn="开"
             labelOff="关"
-            onChange={(checked) => onChange({ ...draft, random_ip_enabled: checked })}
+            onChange={(checked) => updateNetwork({ randomProxyEnabled: checked })}
           />
         </div>
 
@@ -55,11 +55,11 @@ function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
               <span className="config-wizard-field-label">代理来源</span>
               <small>选择内置代理服务，或接入自己的代理 API。</small>
             </span>
-            <SelectControl
+            <SelectNative
               data={proxySources}
               value={proxySource}
               disabled={busy}
-              onChange={(event) => onChange({ ...draft, proxy_source: event.target.value })}
+              onChange={(event) => updateNetwork({ proxySource: event.target.value })}
             />
           </div>
         ) : null}
@@ -74,12 +74,9 @@ function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
               aria-label="代理 API"
               disabled={busy}
               placeholder="https://..."
-              value={draft.custom_proxy_api ?? ''}
+              value={network.customProxyApi ?? ''}
               width="100%"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({
-                ...draft,
-                custom_proxy_api: event.target.value,
-              })}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => updateNetwork({ customProxyApi: event.target.value })}
             />
           </label>
         ) : null}
@@ -96,11 +93,10 @@ function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
               inputMode="numeric"
               maxLength={6}
               placeholder="不限地区"
-              value={draft.proxy_area_code ?? ''}
+              value={network.proxyAreaCode ?? ''}
               width="10rem"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({
-                ...draft,
-                proxy_area_code: event.target.value.replace(/\D/g, '').slice(0, 6) || null,
+              onChange={(event: ChangeEvent<HTMLInputElement>) => updateNetwork({
+                proxyAreaCode: event.target.value.replace(/\D/g, '').slice(0, 6) || undefined,
               })}
             />
           </label>
@@ -113,12 +109,12 @@ function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
           </span>
           <Switch
             aria-label="随机访问身份"
-            checked={Boolean(draft.random_ua_enabled)}
+            checked={network.randomUaEnabled}
             disabled={busy}
             label
             labelOn="开"
             labelOff="关"
-            onChange={(checked) => onChange({ ...draft, random_ua_enabled: checked })}
+            onChange={(checked) => updateNetwork({ randomUaEnabled: checked })}
           />
         </div>
       </div>
@@ -126,13 +122,9 @@ function NetworkStep({ draft, busy, onChange }: NetworkStepProps) {
   )
 }
 
-function normalizeProxySource(value: string | undefined): string {
-  if (value === 'benefit' || value === '限时福利') {
-    return 'benefit'
-  }
-  if (value === 'custom' || value === '自定义') {
-    return 'custom'
-  }
+function normalizeProxySource(value: string): string {
+  if (value === 'benefit' || value === '限时福利') return 'benefit'
+  if (value === 'custom' || value === '自定义') return 'custom'
   return 'default'
 }
 

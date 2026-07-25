@@ -14,24 +14,24 @@ import (
 
 type EventHandler func(Event)
 
-func (c *Client) Run(ctx context.Context, cfg *RuntimeConfig) (*RunResult, error) {
+func (c *Client) Run(ctx context.Context, cfg *RunRequest) (*RunResult, error) {
 	return c.RunWithEvents(ctx, cfg, nil)
 }
 
-func (c *Client) RunWithEvents(ctx context.Context, cfg *RuntimeConfig, handler EventHandler) (*RunResult, error) {
+func (c *Client) RunWithEvents(ctx context.Context, cfg *RunRequest, handler EventHandler) (*RunResult, error) {
 	return c.RunWithExecutionOptions(ctx, cfg, handler, ExecutionOptionsFromConfig(cfg))
 }
 
-func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig, handler EventHandler, options ExecutionOptions) (*RunResult, error) {
+func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RunRequest, handler EventHandler, options ExecutionOptions) (*RunResult, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("%w: 配置为空", ErrInvalidConfig)
 	}
-	if strings.TrimSpace(cfg.URL) == "" {
+	if strings.TrimSpace(cfg.SurveySource.URL) == "" {
 		return nil, fmt.Errorf("%w: 必须提供问卷链接", ErrInvalidConfig)
 	}
-	provider := detectProvider(cfg.URL)
-	if cfg.SurveyProvider != "" {
-		provider = cfg.SurveyProvider
+	provider := detectProvider(cfg.SurveySource.URL)
+	if cfg.SurveySource.Provider != "" {
+		provider = cfg.SurveySource.Provider
 	}
 	runCfg, runOptions, err := c.prepareReverseFillExecution(ctx, cfg, provider, options)
 	if err != nil {
@@ -49,16 +49,30 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 	if err != nil {
 		return nil, err
 	}
+	baseRequest := model.SubmissionRequest{
+		Source:               runCfg.SurveySource,
+		Definition:           cloneSurveyDefinition(runCfg.SurveyDefinition),
+		AnswerDuration:       runCfg.AnswerDuration,
+		AnswerDatetimeWindow: runCfg.AnswerDatetimeWindow,
+		Context: model.SubmissionContext{
+			AIProfile: runOptions.AIProfile,
+			Runtime:   runOptions.AnswerRuntime,
+		},
+	}
+	userAgent := model.RuntimeUserAgent(runOptions.UserAgent)
 	if provider == model.ProviderQQ {
-		runner := tencent.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: model.RuntimeUserAgent(runCfg)}
-		prepared, prepareErr := runner.Prepare(ctx, runCfg)
+		runner := tencent.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: userAgent}
+		prepared, prepareErr := runner.Prepare(ctx, &baseRequest)
 		if prepareErr != nil {
 			return nil, wrapRunError(prepareErr)
 		}
+		if len(runCfg.SurveyDefinition.Questions) == 0 {
+			runCfg.SurveyDefinition = prepared.Definition
+		}
 		emitPrepared(handler)
-		result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *RuntimeConfig, localHandler EventHandler) (*RunResult, error) {
+		result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *model.SubmissionRequest, localHandler EventHandler) (*RunResult, error) {
 			localRunner := runner
-			localRunner.UserAgent = model.RuntimeUserAgent(local)
+			localRunner.UserAgent = local.Context.UserAgent
 			runResult, runErr := localRunner.RunPrepared(runCtx, local, prepared, func(event tencent.Event) {
 				if localHandler == nil {
 					return
@@ -81,15 +95,18 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 		return result, nil
 	}
 	if provider == model.ProviderWJX {
-		runner := wjx.Runner{Client: c.httpClient.Client, UserAgent: model.RuntimeUserAgent(runCfg)}
-		prepared, prepareErr := runner.Prepare(ctx, runCfg)
+		runner := wjx.Runner{Client: c.httpClient.Client, UserAgent: userAgent}
+		prepared, prepareErr := runner.Prepare(ctx, &baseRequest)
 		if prepareErr != nil {
 			return nil, wrapRunError(prepareErr)
 		}
+		if len(runCfg.SurveyDefinition.Questions) == 0 {
+			runCfg.SurveyDefinition = prepared.Definition
+		}
 		emitPrepared(handler)
-		result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *RuntimeConfig, localHandler EventHandler) (*RunResult, error) {
+		result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *model.SubmissionRequest, localHandler EventHandler) (*RunResult, error) {
 			localRunner := runner
-			localRunner.UserAgent = model.RuntimeUserAgent(local)
+			localRunner.UserAgent = local.Context.UserAgent
 			runResult, runErr := localRunner.RunPrepared(runCtx, local, prepared, func(event wjx.Event) {
 				if localHandler == nil {
 					return
@@ -114,15 +131,18 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 	if provider != model.ProviderCredamo {
 		return nil, fmt.Errorf("%w: unsupported provider %q", ErrUnsupportedOperation, provider)
 	}
-	runner := credamo.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: model.RuntimeUserAgent(runCfg)}
-	prepared, prepareErr := runner.Prepare(ctx, runCfg)
+	runner := credamo.Runner{HTTP: httpClientOrDefault(c.httpClient), UserAgent: userAgent}
+	prepared, prepareErr := runner.Prepare(ctx, &baseRequest)
 	if prepareErr != nil {
 		return nil, wrapRunError(prepareErr)
 	}
+	if len(runCfg.SurveyDefinition.Questions) == 0 {
+		runCfg.SurveyDefinition = prepared.Definition
+	}
 	emitPrepared(handler)
-	result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *RuntimeConfig, localHandler EventHandler) (*RunResult, error) {
+	result, err := RunExecution(ctx, runCfg, func(runCtx context.Context, local *model.SubmissionRequest, localHandler EventHandler) (*RunResult, error) {
 		localRunner := runner
-		localRunner.UserAgent = model.RuntimeUserAgent(local)
+		localRunner.UserAgent = local.Context.UserAgent
 		runResult, runErr := localRunner.RunPrepared(runCtx, local, prepared, func(event credamo.Event) {
 			if localHandler == nil {
 				return
@@ -148,111 +168,5 @@ func (c *Client) RunWithExecutionOptions(ctx context.Context, cfg *RuntimeConfig
 func emitPrepared(handler EventHandler) {
 	if handler != nil {
 		handler(Event{Message: "解析成功", Time: time.Now()})
-	}
-}
-
-func ExecutionOptionsFromConfig(cfg *RuntimeConfig) ExecutionOptions {
-	if cfg == nil {
-		return ExecutionOptions{}
-	}
-	target := cfg.Target
-	if target <= 0 {
-		target = 1
-	}
-	threads := cfg.Threads
-	if cfg.ReverseFillEnabled && cfg.ReverseFillThreads > 0 {
-		threads = cfg.ReverseFillThreads
-	}
-	if threads <= 0 {
-		threads = 1
-	}
-	maxRetries := 0
-	if cfg.ReliabilityModeEnabled {
-		maxRetries = 1
-	}
-	return ExecutionOptions{
-		Target:          target,
-		Threads:         threads,
-		MaxRetries:      maxRetries,
-		FailStop:        cfg.FailStopEnabled,
-		CooldownOnError: 30 * time.Second,
-	}
-}
-
-func resultFromTencent(result tencent.Result) *RunResult {
-	progress := ThreadProgress{
-		ThreadName:   "Worker-1",
-		ThreadIndex:  0,
-		SuccessCount: result.Success,
-		FailCount:    result.Fail,
-		StepCurrent:  result.Success + result.Fail,
-		StepTotal:    result.Target,
-		StatusText:   result.Status,
-		Running:      false,
-		LastUpdate:   time.Now(),
-	}
-	return &RunResult{
-		Success:        result.Success,
-		Fail:           result.Fail,
-		Stopped:        result.Status == "stopped",
-		ThreadProgress: []ThreadProgress{progress},
-	}
-}
-
-func resultFromWJX(result wjx.Result) *RunResult {
-	progress := ThreadProgress{
-		ThreadName:   "Worker-1",
-		ThreadIndex:  0,
-		SuccessCount: result.Success,
-		FailCount:    result.Fail,
-		StepCurrent:  result.Success + result.Fail,
-		StepTotal:    result.Target,
-		StatusText:   result.Status,
-		Running:      false,
-		LastUpdate:   time.Now(),
-	}
-	return &RunResult{
-		Success:        result.Success,
-		Fail:           result.Fail,
-		Stopped:        result.Status == "stopped",
-		ThreadProgress: []ThreadProgress{progress},
-	}
-}
-
-func resultFromCredamo(result credamo.Result) *RunResult {
-	progress := ThreadProgress{
-		ThreadName:   "Worker-1",
-		ThreadIndex:  0,
-		SuccessCount: result.Success,
-		FailCount:    result.Fail,
-		StepCurrent:  result.Success + result.Fail,
-		StepTotal:    result.Target,
-		StatusText:   result.Status,
-		Running:      false,
-		LastUpdate:   time.Now(),
-	}
-	return &RunResult{
-		Success:        result.Success,
-		Fail:           result.Fail,
-		Stopped:        false,
-		ThreadProgress: []ThreadProgress{progress},
-	}
-}
-
-func wrapRunError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch ClassifyRunError(err) {
-	case ErrorKindCanceled:
-		return err
-	case ErrorKindParse:
-		return fmt.Errorf("%w: %w", ErrParseFailed, err)
-	case ErrorKindConfig:
-		return fmt.Errorf("%w: %w", ErrPrepareConfigFailed, err)
-	case ErrorKindUnsupported:
-		return fmt.Errorf("%w: %w", ErrUnsupportedOperation, err)
-	default:
-		return fmt.Errorf("%w: %w", ErrRunFailed, err)
 	}
 }

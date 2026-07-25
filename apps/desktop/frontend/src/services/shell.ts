@@ -1,22 +1,18 @@
-import type { AIConnectionTestState, AppSettings, CustomProxyAPITestState, ProxyAreaOptionsState, ProxyRedeemState, ProxyStatus, QRCodeDecodeState, ReverseFillPreview, RunTaskState, RuntimeConfig, ShellState, SurveyCoreState } from '../types'
 import {
-  BuildDefaultConfig,
   CancelRun,
-  ConfirmClose,
+  CreateSurveyDocument,
   DecodeQRCode,
+  ExportLogLines,
+  GetAppSettings,
   GetProxyAreaOptions,
   GetProxyStatus,
   GetRunTaskState,
-  GetAppSettings,
-  GetShellState,
   LoadConfig,
   PauseRun,
   PreviewReverseFill,
   RedeemProxyCard,
-  ResumeRun,
-  RunSurvey,
-  ExportLogLines,
   ResetAppSettings,
+  ResumeRun,
   SaveAppSettings,
   SaveConfig,
   StartRun,
@@ -24,77 +20,107 @@ import {
   TestAIConnection,
   TestCustomProxyAPI,
 } from '../../bindings/github.com/hungrym0/SurveyController/apps/desktop/appservice'
-import { buildAppModel, type AppModel } from './stateMapper'
+import { ConfirmClose } from '../../bindings/github.com/hungrym0/SurveyController/apps/desktop/windowservice'
+import { AICredentialOperation } from '../../bindings/github.com/hungrym0/SurveyController/apps/desktop/models'
+import type {
+  AICredentialDraft,
+  AIConnectionTestState,
+  AIProfileSettings,
+  AppSettings,
+  ConfigDocument,
+  CustomProxyAPITestState,
+  ProxyAreaOptionsState,
+  ProxyRedeemState,
+  ProxyStatus,
+  QRCodeDecodeState,
+  ReverseFillPreview,
+  RunTaskState,
+} from '../types'
+import { createEmptyConfigDocument, normalizeConfigDocument } from './configDocument'
+import { createDefaultAppSettings } from './appSettings'
 
-export async function loadShellState(): Promise<ShellState> {
-  try {
-    return (await GetShellState()) as unknown as ShellState
-  } catch (err) {
-    if (canUsePreviewState()) {
-      return previewShellState()
-    }
-    throw err
-  }
+export interface AppBootstrap {
+  settings: AppSettings
+  config: ConfigDocument
+  configPath: string
+  configExists: boolean
 }
 
-export async function loadAppModel(): Promise<AppModel> {
+export async function loadAppBootstrap(): Promise<AppBootstrap> {
   try {
-    const [shell, settings] = await Promise.all([
-      Promise.resolve(GetShellState() as unknown as ShellState),
-      GetAppSettings() as Promise<AppSettings>,
+    const [settings, loaded] = await Promise.all([
+      GetAppSettings(),
+      LoadConfig({ path: '' }),
     ])
-    const loaded = await LoadConfig({ path: '' }) as {
-      path: string
-      exists: boolean
-      config?: RuntimeConfig | null
+    return {
+      settings,
+      config: normalizeConfigDocument(loaded.config ?? createEmptyConfigDocument()),
+      configPath: loaded.path,
+      configExists: loaded.exists,
     }
-    return buildAppModel(shell, settings, loaded.config ?? null, loaded.path, loaded.exists)
-  } catch (err) {
-    if (canUsePreviewState()) {
-      return buildAppModel(previewShellState(), previewAppSettings(), null)
+  } catch (error) {
+    if (!canUsePreviewState()) {
+      throw error
     }
-    throw err
+    return {
+      settings: createDefaultAppSettings(),
+      config: createEmptyConfigDocument(),
+      configPath: '',
+      configExists: false,
+    }
   }
 }
 
-export async function buildDefaultConfig(url: string): Promise<RuntimeConfig> {
-  const state = await BuildDefaultConfig({ url }) as SurveyCoreState
-  if (!state.config) {
-    throw new Error('自动配置没有返回运行配置')
-  }
-  return state.config
+export async function createSurveyDocument(url: string): Promise<ConfigDocument> {
+  return normalizeConfigDocument(await CreateSurveyDocument({ url }))
 }
 
 export async function decodeQRCode(path: string): Promise<QRCodeDecodeState> {
-  return await DecodeQRCode({ path, dataUrl: undefined, name: undefined }) as QRCodeDecodeState
+  return await DecodeQRCode({ path, dataUrl: undefined, name: undefined })
 }
 
 export async function decodeQRCodeDataURL(dataUrl: string, name = ''): Promise<QRCodeDecodeState> {
-  return await DecodeQRCode({ path: '', dataUrl, name }) as QRCodeDecodeState
+  return await DecodeQRCode({ path: '', dataUrl, name })
 }
 
-export async function loadRuntimeConfig(path: string): Promise<{ path: string; config: RuntimeConfig }> {
-  const state = await LoadConfig({ path }) as { path: string; exists: boolean; config?: RuntimeConfig | null }
+export async function loadConfigDocument(path: string): Promise<{ path: string; config: ConfigDocument }> {
+  const state = await LoadConfig({ path })
   if (!state.exists) {
     throw new Error('配置文件不存在')
   }
   if (!state.config) {
     throw new Error('配置文件没有运行配置')
   }
-  return { path: state.path, config: state.config }
+  return { path: state.path, config: normalizeConfigDocument(state.config) }
 }
 
-export async function saveRuntimeConfig(config: RuntimeConfig, path = ''): Promise<{ path: string; config: RuntimeConfig }> {
-  const state = await SaveConfig({ path, config: config as any }) as { path: string; config?: RuntimeConfig | null }
-  return { path: state.path, config: state.config ?? config }
+export async function saveConfigDocument(
+  config: ConfigDocument,
+  path = '',
+): Promise<{ path: string; config: ConfigDocument }> {
+  const normalized = normalizeConfigDocument(config)
+  const state = await SaveConfig({ path, config: normalized })
+  return {
+    path: state.path,
+    config: normalizeConfigDocument(state.config ?? normalized),
+  }
 }
 
-export async function saveSettings(settings: AppSettings): Promise<AppSettings> {
-  return await SaveAppSettings({ settings: settings as any }) as AppSettings
+export async function saveSettings(
+  settings: AppSettings,
+  credential: AICredentialDraft = { value: '', operation: 'keep' },
+): Promise<AppSettings> {
+  return await SaveAppSettings({
+    settings,
+    aiCredential: {
+      operation: credentialOperation(credential.operation),
+      apiKey: credential.operation === 'replace' ? credential.value : undefined,
+    },
+  })
 }
 
 export async function resetSettings(): Promise<AppSettings> {
-  return await ResetAppSettings() as AppSettings
+  return await ResetAppSettings()
 }
 
 export async function confirmClose(): Promise<void> {
@@ -102,64 +128,71 @@ export async function confirmClose(): Promise<void> {
 }
 
 export async function exportLogLines(path: string, lines: string[]): Promise<string> {
-  return await ExportLogLines(path, lines) as string
+  return await ExportLogLines(path, lines)
 }
 
-export async function previewReverseFill(config: RuntimeConfig): Promise<ReverseFillPreview> {
+export async function previewReverseFill(config: ConfigDocument): Promise<ReverseFillPreview> {
   return await PreviewReverseFill({
-    path: config.reverse_fill_source_path ?? '',
-    format: config.reverse_fill_format ?? 'auto',
-    startRow: config.reverse_fill_start_row ?? 1,
-    questions: (config.questions_info ?? []) as any,
-  }) as ReverseFillPreview
+    path: config.reverseFill.sourcePath ?? '',
+    format: config.reverseFill.format,
+    startRow: config.reverseFill.startRow,
+    questions: config.survey.definition.questions ?? [],
+  })
 }
 
-export async function runRuntimeConfig(config: RuntimeConfig): Promise<SurveyCoreState> {
-  return await RunSurvey({ config: config as any }) as SurveyCoreState
+export async function startRun(config: ConfigDocument): Promise<RunTaskState> {
+  return await StartRun({ config: normalizeConfigDocument(config) })
 }
 
-export async function startRuntimeConfig(config: RuntimeConfig): Promise<RunTaskState> {
-  return await StartRun({ config: config as any }) as RunTaskState
+export async function loadRunTaskState(runId = '', afterSequence = 0): Promise<RunTaskState> {
+  return await GetRunTaskState({ runId, afterSequence })
 }
 
-export async function loadRunTaskState(): Promise<RunTaskState> {
-  return await GetRunTaskState() as RunTaskState
+export async function cancelRun(): Promise<RunTaskState> {
+  return await CancelRun()
 }
 
-export async function cancelRuntimeConfig(): Promise<RunTaskState> {
-  return await CancelRun() as RunTaskState
+export async function pauseRun(reason = '手动暂停'): Promise<RunTaskState> {
+  return await PauseRun(reason)
 }
 
-export async function pauseRuntimeConfig(reason = '手动暂停'): Promise<RunTaskState> {
-  return await PauseRun(reason) as RunTaskState
-}
-
-export async function resumeRuntimeConfig(): Promise<RunTaskState> {
-  return await ResumeRun() as RunTaskState
+export async function resumeRun(): Promise<RunTaskState> {
+  return await ResumeRun()
 }
 
 export async function loadProxyStatus(): Promise<ProxyStatus> {
-  return await GetProxyStatus() as ProxyStatus
+  return await GetProxyStatus()
 }
 
 export async function loadProxyAreaOptions(source = 'default'): Promise<ProxyAreaOptionsState> {
-  return await GetProxyAreaOptions(source) as ProxyAreaOptionsState
+  return await GetProxyAreaOptions(source)
 }
 
 export async function syncProxyStatus(source = 'default'): Promise<ProxyStatus> {
-  return await SyncProxyStatus(source) as ProxyStatus
+  return await SyncProxyStatus(source)
 }
 
 export async function redeemProxyCard(cardCode: string, source = 'default'): Promise<ProxyRedeemState> {
-  return await RedeemProxyCard({ cardCode, source }) as ProxyRedeemState
+  return await RedeemProxyCard({ cardCode, source })
 }
 
 export async function testCustomProxyAPI(url: string): Promise<CustomProxyAPITestState> {
-  return await TestCustomProxyAPI({ url }) as CustomProxyAPITestState
+  return await TestCustomProxyAPI({ url })
 }
 
-export async function testAIConnection(config: RuntimeConfig): Promise<AIConnectionTestState> {
-  return await TestAIConnection({ config: config as any }) as AIConnectionTestState
+export async function testAIConnection(profile: AIProfileSettings): Promise<AIConnectionTestState> {
+  return await TestAIConnection({ aiProfile: profile })
+}
+
+function credentialOperation(operation: AICredentialDraft['operation']): AICredentialOperation {
+  switch (operation) {
+    case 'replace':
+      return AICredentialOperation.AICredentialReplace
+    case 'clear':
+      return AICredentialOperation.AICredentialClear
+    default:
+      return AICredentialOperation.AICredentialKeep
+  }
 }
 
 function canUsePreviewState(): boolean {
@@ -167,109 +200,14 @@ function canUsePreviewState(): boolean {
 }
 
 function hasNativeWailsBridge(): boolean {
-  const win = globalThis as typeof globalThis & {
-    chrome?: { webview?: { postMessage?: unknown } }
-    webkit?: { messageHandlers?: { external?: { postMessage?: unknown } } }
-    wails?: { invoke?: unknown }
+  const bridge = globalThis as typeof globalThis & {
+    chrome?: { webview?: { postMessage?: (...args: never[]) => void } }
+    webkit?: { messageHandlers?: { external?: { postMessage?: (...args: never[]) => void } } }
+    wails?: { invoke?: (...args: never[]) => void }
   }
   return Boolean(
-    win.chrome?.webview?.postMessage ||
-    win.webkit?.messageHandlers?.external?.postMessage ||
-    win.wails?.invoke,
+    bridge.chrome?.webview?.postMessage
+    || bridge.webkit?.messageHandlers?.external?.postMessage
+    || bridge.wails?.invoke,
   )
-}
-
-function previewAppSettings(): AppSettings {
-  return {
-    configDirectory: '',
-    themeMode: 'system',
-    showNavigationText: true,
-    micaEnabled: true,
-    topmost: false,
-    askSaveOnClose: true,
-    preventSleepDuringRun: true,
-    taskResultNotification: true,
-    submissionReportTelemetry: true,
-    setupWizardVersion: 0,
-    autoCheckUpdate: true,
-    autoSaveLogs: true,
-    notifications: true,
-    autosaveLogCount: 10,
-    runtimeDefaults: {},
-  }
-}
-
-function previewShellState(): ShellState {
-  return {
-    appTitle: 'SurveyController',
-    appVersion: 'preview',
-    themeMode: 'system',
-    currentPage: 'dashboard',
-    topNav: [
-      { id: 'dashboard', label: '概览', icon: 'home', section: 'top', selected: true },
-      { id: 'runtime', label: '运行参数', icon: 'settings', section: 'top' },
-      { id: 'strategy', label: '题目策略', icon: 'flow', section: 'top' },
-      { id: 'reverse-fill', label: '反填', icon: 'refresh', section: 'top' },
-      { id: 'logs', label: '日志', icon: 'document', section: 'top' },
-    ],
-    bottomNav: [
-      { id: 'community', label: '社区', icon: 'chat', section: 'bottom' },
-      { id: 'settings', label: '设置', icon: 'sliders', section: 'bottom' },
-      { id: 'more', label: '更多', icon: 'grid', section: 'bottom' },
-    ],
-    dashboard: {
-      surveyTitle: '未命名问卷',
-      surveyUrl: '',
-      targetCount: 1,
-      threadCount: 1,
-      randomIpEnabled: false,
-      randomIpQuota: 0,
-      randomIpQuotaLabel: '未同步',
-      randomIpStatus: '未连接代理服务',
-      randomIpStatusTone: '',
-      proxySource: '默认',
-      proxyRemainingQuota: '0',
-      proxyTotalQuota: '0',
-      proxyQuotaKnown: false,
-      proxyUserId: 0,
-      proxyUserKnown: false,
-      proxyPoolRemainingIp: 0,
-      proxyPoolRemainingKnown: false,
-      proxyAvailable: 0,
-      proxyInUse: 0,
-      questionCount: 0,
-      progressCurrent: 0,
-      progressTarget: 1,
-      progressPercent: 0,
-      statusText: '等待配置',
-      platformLabel: '问卷星',
-      metrics: [],
-      quickActions: [],
-      runtimeHint: '随机 UA 未开启',
-      proxyHint: '失败停止已开启',
-      questionRows: [],
-      sessionRows: [],
-    },
-    runtimeGroups: [],
-    strategyRules: [],
-    dimensionGroups: [],
-    reverseFillPlan: [],
-    logLines: [],
-    communityItems: [
-      'QQ 群交流',
-      '问题反馈',
-      '参与贡献',
-      '开源许可',
-    ],
-    aboutItems: [
-      { label: '版本', value: 'preview' },
-      { label: '前端栈', value: 'React + Radix UI + Wails v3' },
-      { label: '桌面壳', value: 'Wails v3' },
-    ],
-    donateItems: [
-      { label: '微信', value: '赞赏码' },
-      { label: '支付宝', value: '收款码' },
-    ],
-    settingsGroups: [],
-  }
 }

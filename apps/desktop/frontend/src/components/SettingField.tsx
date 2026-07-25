@@ -1,4 +1,4 @@
-import { useMemo, type ChangeEvent, type ReactElement } from 'react'
+import { useMemo, type ChangeEvent } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { Button, InputText, SelectNative, Switch, SliderBar, RangeSliderBar } from './ui'
 import FluentDateTimePicker from './FluentDateTimePicker'
@@ -9,12 +9,7 @@ interface SettingFieldProps {
   onChange: (id: string, value: string | boolean) => void
 }
 
-const SelectControl = SelectNative as unknown as (props: {
-  data: Array<{ label: string, value: string }>
-  value?: string
-  disabled?: boolean
-  onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
-}) => ReactElement
+const SelectControl = SelectNative
 
 function SettingField({ field, onChange }: SettingFieldProps) {
   const options = useMemo(

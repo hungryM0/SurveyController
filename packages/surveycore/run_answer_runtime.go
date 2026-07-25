@@ -113,46 +113,46 @@ func runtimeOwnerKey(owner string) string {
 	return key
 }
 
-func (c *Client) prepareAnswerRuntimeExecution(cfg *RuntimeConfig, options ExecutionOptions) (*RuntimeConfig, ExecutionOptions) {
-	runCfg := cloneRuntimeConfig(cfg)
-	runtime := runCfg.AnswerRuntime
+func (c *Client) prepareAnswerRuntimeExecution(cfg *RunRequest, options ExecutionOptions) (*RunRequest, ExecutionOptions) {
+	runCfg := *cfg
+	runtime := options.AnswerRuntime
 	if runtime == nil {
 		runtime = newAnswerRuntimeState()
-		runCfg.AnswerRuntime = runtime
+		options.AnswerRuntime = runtime
 	}
-	configure := options.ConfigureRun
-	options.ConfigureRun = func(ctx context.Context, jobIndex int, attempt int, local *RuntimeConfig) error {
+	configure := options.ConfigureJob
+	options.ConfigureJob = func(ctx context.Context, jobIndex int, attempt int, job *JobRequest) error {
 		if configure != nil {
-			if err := configure(ctx, jobIndex, attempt, local); err != nil {
+			if err := configure(ctx, jobIndex, attempt, job); err != nil {
 				return err
 			}
 		}
-		if local.AnswerRuntime == nil {
-			local.AnswerRuntime = runtime
+		if job.Submission.Context.Runtime == nil {
+			job.Submission.Context.Runtime = runtime
 		}
 		persona := generatePersona()
-		local.Persona = &persona
+		job.Submission.Context.Persona = &persona
 		return nil
 	}
 	return &runCfg, options
 }
 
-func resetPendingAnswerRuntime(cfg *RuntimeConfig) {
-	if cfg == nil || cfg.AnswerRuntime == nil {
+func resetPendingAnswerRuntime(runtime model.AnswerRuntime, owner string) {
+	if runtime == nil {
 		return
 	}
-	cfg.AnswerRuntime.ResetPendingDistribution(cfg.AnswerRuntimeOwner)
+	runtime.ResetPendingDistribution(owner)
 }
 
-func finalizeAnswerRuntime(cfg *RuntimeConfig, success bool) {
-	if cfg == nil || cfg.AnswerRuntime == nil {
+func finalizeAnswerRuntime(runtime model.AnswerRuntime, owner string, success bool) {
+	if runtime == nil {
 		return
 	}
 	if success {
-		cfg.AnswerRuntime.CommitPendingDistribution(cfg.AnswerRuntimeOwner)
+		runtime.CommitPendingDistribution(owner)
 		return
 	}
-	cfg.AnswerRuntime.ResetPendingDistribution(cfg.AnswerRuntimeOwner)
+	runtime.ResetPendingDistribution(owner)
 }
 
 func generatePersona() model.Persona {

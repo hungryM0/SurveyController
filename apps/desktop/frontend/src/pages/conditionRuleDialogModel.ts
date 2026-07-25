@@ -1,4 +1,4 @@
-import type { QuestionMeta, RuntimeConfig } from '../types'
+import type { ConfigDocument, QuestionMeta } from '../types'
 import {
   createDefaultRule,
   getEligibleQuestions,
@@ -9,9 +9,9 @@ import {
   questionRowLabels,
   type RuleDraft,
   type StrategyRuleRecord,
-} from './strategyEditor'
+} from './strategy-editor'
 
-export function createConditionRuleDraft(config: RuntimeConfig, rule?: StrategyRuleRecord | null): RuleDraft {
+export function createConditionRuleDraft(config: ConfigDocument, rule?: StrategyRuleRecord | null): RuleDraft {
   return toDraft(rule ? normalizeRule(rule) : createDefaultRule(config))
 }
 
@@ -45,7 +45,7 @@ export function validateConditionRuleDraft(draft: RuleDraft, questions: Question
   return null
 }
 
-export function buildRuleQuestionOptions(config: RuntimeConfig): Array<{ label: string, value: string }> {
+export function buildRuleQuestionOptions(config: ConfigDocument): Array<{ label: string, value: string }> {
   return getEligibleQuestions(config).map((question) => ({
     label: questionLabel(question),
     value: String(question.num),

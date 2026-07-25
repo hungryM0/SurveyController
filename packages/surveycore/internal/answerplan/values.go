@@ -1,10 +1,7 @@
 package answerplan
 
 import (
-	"encoding/json"
-	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
 	"surveycontroller/surveycore/internal/model"
@@ -17,7 +14,7 @@ func FillTextAt(values []*string, index int) string {
 	return strings.TrimSpace(*values[index])
 }
 
-func OptionFillText(entry model.QuestionEntry, question model.QuestionMeta, index int) string {
+func OptionFillText(entry model.QuestionStrategy, question model.QuestionMeta, index int) string {
 	text := FillTextAt(entry.OptionFillTexts, index)
 	if text == "__AI_FILL__" {
 		return defaultFillText
@@ -31,7 +28,7 @@ func OptionFillText(entry model.QuestionEntry, question model.QuestionMeta, inde
 	return ""
 }
 
-func optionRequiresFill(entry model.QuestionEntry, question model.QuestionMeta, index int) bool {
+func optionRequiresFill(entry model.QuestionStrategy, question model.QuestionMeta, index int) bool {
 	if index < 0 {
 		return false
 	}
@@ -55,45 +52,6 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
-}
-
-func stringValue(value any) string {
-	switch typed := value.(type) {
-	case nil:
-		return ""
-	case string:
-		return typed
-	case fmt.Stringer:
-		return typed.String()
-	case float64:
-		if math.Trunc(typed) == typed {
-			return strconv.FormatInt(int64(typed), 10)
-		}
-		return strconv.FormatFloat(typed, 'f', -1, 64)
-	case int:
-		return strconv.Itoa(typed)
-	default:
-		return fmt.Sprint(typed)
-	}
-}
-
-func floatValue(value any) float64 {
-	switch typed := value.(type) {
-	case int:
-		return float64(typed)
-	case int64:
-		return float64(typed)
-	case float64:
-		return typed
-	case json.Number:
-		number, _ := typed.Float64()
-		return number
-	case string:
-		number, _ := strconv.ParseFloat(strings.TrimSpace(typed), 64)
-		return number
-	default:
-		return 0
-	}
 }
 
 func clampFloat(value float64, minValue float64, maxValue float64) float64 {

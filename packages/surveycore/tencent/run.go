@@ -3,30 +3,25 @@ package tencent
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
-	"surveycontroller/surveycore/internal/answerplan"
-	"surveycontroller/surveycore/internal/httpjson"
 	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/proxyhttp"
 	"surveycontroller/surveycore/internal/runerror"
 )
 
-func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler EventHandler) (Result, error) {
-	prepared, err := r.Prepare(ctx, cfg)
+func (r Runner) Run(ctx context.Context, request *model.SubmissionRequest, handler EventHandler) (Result, error) {
+	prepared, err := r.Prepare(ctx, request)
 	if err != nil {
-		return pendingResult(cfg), err
+		return pendingResult(request), err
 	}
-	return r.RunPrepared(ctx, cfg, prepared, handler)
+	return r.RunPrepared(ctx, request, prepared, handler)
 }
 
-func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*PreparedSurvey, error) {
-	if cfg == nil || strings.TrimSpace(cfg.URL) == "" {
+func (r Runner) Prepare(ctx context.Context, request *model.SubmissionRequest) (*PreparedSurvey, error) {
+	if request == nil || strings.TrimSpace(request.Source.URL) == "" {
 		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
-	surveyID, hashValue, err := extractIdentifiers(cfg.URL)
+	surveyID, hashValue, err := extractIdentifiers(request.Source.URL)
 	if err != nil {
 		return nil, runerror.Wrap(runerror.KindParse, err)
 	}
@@ -60,7 +55,12 @@ func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*Prepare
 		}
 		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", lastErr))
 	}
+	definition, definitionErr := buildDefinition(rawQuestions, request.Definition.Title)
+	if definitionErr != nil {
+		return nil, runerror.Wrap(runerror.KindParse, definitionErr)
+	}
 	return &PreparedSurvey{
+		Definition:        definition,
 		SurveyID:          surveyID,
 		Hash:              hashValue,
 		PageURL:           page,
@@ -70,16 +70,20 @@ func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*Prepare
 	}, nil
 }
 
-func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
-	result := pendingResult(cfg)
-	if cfg == nil {
+func (r Runner) RunPrepared(ctx context.Context, request *model.SubmissionRequest, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
+	result := pendingResult(request)
+	if request == nil {
 		return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
 	if prepared == nil || prepared.SurveyID == "" || prepared.Hash == "" || len(prepared.RawQuestions) == 0 {
 		return result, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: 缺少已准备的问卷数据"))
 	}
 	target := result.Target
-	headers := apiHeaders(prepared.PageURL, r.UserAgent)
+	userAgent := strings.TrimSpace(request.Context.UserAgent)
+	if userAgent == "" {
+		userAgent = r.UserAgent
+	}
+	headers := apiHeaders(prepared.PageURL, userAgent)
 	for index := 0; index < target; index++ {
 		if err := ctx.Err(); err != nil {
 			result.Status = "stopped"
@@ -95,7 +99,7 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 			emit(handler, "初始化失败", false, true, result.Success+result.Fail, target)
 			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("初始化失败: %w", err))
 		}
-		body, err := buildSubmitBody(cfg, prepared.SurveyID, prepared.Hash, prepared.RawQuestions, r.UserAgent)
+		body, err := buildSubmitBody(request, prepared.SurveyID, prepared.Hash, prepared.RawQuestions, userAgent)
 		if err != nil {
 			result.Fail++
 			emit(handler, "生成答案失败", false, true, result.Success+result.Fail, target)
@@ -104,7 +108,7 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 			}
 			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
-		if err := r.submitAnswers(ctx, cfg, prepared.SurveyID, prepared.Hash, prepared.PageURL, answerSessionID, body); err != nil {
+		if err := r.submitAnswers(ctx, request, prepared.SurveyID, prepared.Hash, prepared.PageURL, answerSessionID, body); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
 			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
@@ -130,316 +134,6 @@ func (r Runner) fetchAnswerSession(ctx context.Context, surveyID string, hashVal
 	return answerSessionID, sessionData, nil
 }
 
-func pendingResult(cfg *model.RuntimeConfig) Result {
-	target := 1
-	if cfg != nil && cfg.Target > 0 {
-		target = cfg.Target
-	}
-	return Result{Target: target, Status: "pending"}
-}
-
-func buildSubmitBody(cfg *model.RuntimeConfig, surveyID string, hashValue string, rawQuestions []map[string]any, userAgent string) (map[string]any, error) {
-	questions := submitQuestions(rawQuestions)
-	actions, err := answerplan.BuildActionsWithLogic(questions, cfg.QuestionEntries, answerplan.OptionsFromRuntimeConfig(cfg))
-	if err != nil {
-		return nil, err
-	}
-	actionByID := map[string]answerplan.Action{}
-	for _, question := range questions {
-		if question.IsDescription {
-			continue
-		}
-		if label := blockedRuntimeProviderTypes[question.ProviderType]; label != "" {
-			return nil, runerror.Wrap(runerror.KindUnsupported, fmt.Errorf("腾讯问卷第%d题暂不支持：%s", question.Num, label))
-		}
-		if !supportedProviderTypes[question.ProviderType] {
-			return nil, runerror.Wrap(runerror.KindUnsupported, fmt.Errorf("腾讯问卷第%d题暂不支持：%s", question.Num, firstString(question.ProviderType, question.TypeCode, "unknown")))
-		}
-	}
-	for _, action := range actions {
-		if action.QuestionID != "" {
-			actionByID[action.QuestionID] = action
-		}
-	}
-
-	pages := make([]map[string]any, 0)
-	pageIndex := map[string]int{}
-	for _, raw := range rawQuestions {
-		questionID := strings.TrimSpace(stringValue(raw["id"]))
-		action, ok := actionByID[questionID]
-		if !ok {
-			continue
-		}
-		pageID := strings.TrimSpace(stringValue(raw["page_id"]))
-		if pageID == "" {
-			return nil, fmt.Errorf("腾讯问卷第%d题缺少 page_id", action.QuestionNum)
-		}
-		answer, err := questionAnswer(raw, action)
-		if err != nil {
-			return nil, err
-		}
-		idx, ok := pageIndex[pageID]
-		if !ok {
-			pageIndex[pageID] = len(pages)
-			pages = append(pages, map[string]any{"id": pageID, "questions": []map[string]any{}})
-			idx = len(pages) - 1
-		}
-		items := pages[idx]["questions"].([]map[string]any)
-		if list, ok := answer.([]map[string]any); ok {
-			items = append(items, list...)
-		} else {
-			items = append(items, answer.(map[string]any))
-		}
-		pages[idx]["questions"] = items
-	}
-	if len(pages) == 0 {
-		return nil, fmt.Errorf("腾讯问卷没有生成可提交答案")
-	}
-	ua := strings.TrimSpace(userAgent)
-	if ua == "" {
-		ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
-	}
-	return map[string]any{
-		"survey_id": intValue(surveyID),
-		"hash":      hashValue,
-		"answer_survey": map[string]any{
-			"duration":  defaultDurationSeconds(cfg),
-			"ua":        ua,
-			"referrer":  "",
-			"uid":       fmt.Sprintf("%d", time.Now().UnixNano()),
-			"sid":       fmt.Sprintf("%d", time.Now().UnixNano()+1),
-			"openid":    "",
-			"latitude":  nil,
-			"longitude": nil,
-			"is_update": false,
-			"locale":    "zhs",
-			"pages":     pages,
-		},
-	}, nil
-}
-
-func submitQuestions(rawQuestions []map[string]any) []model.QuestionMeta {
-	normalized := standardizeQuestions(rawQuestions)
-	result := make([]model.QuestionMeta, 0, len(normalized))
-	for _, question := range normalized {
-		if !question.IsDescription {
-			result = append(result, question)
-		}
-	}
-	return result
-}
-
-func questionAnswer(raw map[string]any, action answerplan.Action) (any, error) {
-	providerType := strings.TrimSpace(stringValue(raw["type"]))
-	switch providerType {
-	case "text", "textarea":
-		return map[string]any{
-			"id":   strings.TrimSpace(stringValue(raw["id"])),
-			"type": providerType,
-			"text": strings.Join(action.TextValues, "\n"),
-		}, nil
-	case "matrix_radio":
-		return matrixAnswer(raw, action)
-	default:
-		return choiceAnswer(raw, action)
-	}
-}
-
-func choiceAnswer(raw map[string]any, action answerplan.Action) (map[string]any, error) {
-	options := asMapList(raw["options"])
-	if len(options) == 0 {
-		return nil, fmt.Errorf("腾讯问卷第%d题缺少选项", action.QuestionNum)
-	}
-	selected := map[int]bool{}
-	for _, index := range action.SelectedIndices {
-		selected[index] = true
-	}
-	answers := make([]map[string]any, 0, len(options))
-	blanks := make([]map[string]any, 0)
-	for index, option := range options {
-		answers = append(answers, map[string]any{
-			"id":      strings.TrimSpace(stringValue(option["id"])),
-			"text":    strings.TrimSpace(stringValue(option["text"])),
-			"checked": checkedInt(selected[index]),
-		})
-		if selected[index] {
-			if fill := strings.TrimSpace(action.OptionFillTexts[index]); fill != "" {
-				blanks = append(blanks, map[string]any{"id": optionBlankID(option), "text": fill})
-			}
-		}
-	}
-	return map[string]any{
-		"id":      strings.TrimSpace(stringValue(raw["id"])),
-		"type":    strings.TrimSpace(stringValue(raw["type"])),
-		"blanks":  blanks,
-		"options": answers,
-	}, nil
-}
-
-func matrixAnswer(raw map[string]any, action answerplan.Action) ([]map[string]any, error) {
-	rows := asMapList(raw["sub_titles"])
-	options := asMapList(raw["options"])
-	if len(rows) == 0 || len(options) == 0 {
-		return nil, fmt.Errorf("腾讯问卷第%d题缺少矩阵行列", action.QuestionNum)
-	}
-	questionID := strings.TrimSpace(stringValue(raw["id"]))
-	result := make([]map[string]any, 0, len(rows))
-	for rowIndex, row := range rows {
-		optionIndex := 0
-		if rowIndex < len(action.MatrixIndices) {
-			optionIndex = action.MatrixIndices[rowIndex]
-		}
-		if optionIndex < 0 || optionIndex >= len(options) {
-			return nil, fmt.Errorf("腾讯问卷第%d题第%d行没有生成矩阵答案", action.QuestionNum, rowIndex+1)
-		}
-		rowID := strings.TrimSpace(stringValue(row["id"]))
-		optionID := strings.TrimSpace(stringValue(options[optionIndex]["id"]))
-		if optionID == "" {
-			return nil, fmt.Errorf("腾讯问卷第%d题第%d行缺少矩阵列 id", action.QuestionNum, rowIndex+1)
-		}
-		id := questionID + "_" + optionID
-		if rowID != "" {
-			id = questionID + "_" + rowID + "_" + optionID
-		}
-		result = append(result, map[string]any{"id": id, "type": "matrix_radio", "answer": "on"})
-	}
-	return result, nil
-}
-
-func (r Runner) submitAnswers(ctx context.Context, cfg *model.RuntimeConfig, surveyID string, hashValue string, pageURL string, answerSessionID string, body map[string]any) error {
-	headers := apiHeaders(pageURL, r.UserAgent)
-	headers["Accept"] = "application/json, text/plain, */*"
-	headers["Content-Type"] = "application/json;charset=UTF-8"
-	if answerSessionID != "" {
-		headers["X-Answer-Session"] = answerSessionID
-	}
-	endpoint := apiEndpoint(surveyID, "answers") + fmt.Sprintf("?pv_uid=%d&hash=%s&_=%d", time.Now().UnixNano(), hashValue, time.Now().UnixMilli())
-	var payload apiEnvelope
-	doer, err := r.httpDoer(cfg.ActiveProxyAddress)
-	if err != nil {
-		return err
-	}
-	if err := doer.DoJSON(ctx, http.MethodPost, endpoint, headers, body, &payload); err != nil {
-		return err
-	}
-	code := strings.ToUpper(strings.TrimSpace(stringValue(payload.Code)))
-	if code != "OK" && code != "0" {
-		return fmt.Errorf("腾讯问卷提交失败：%s", firstString(payload.Message, payload.Msg, payload.Code, "unknown"))
-	}
-	return nil
-}
-
-func (r Runner) confirmSubmit(ctx context.Context, surveyID string, hashValue string, headers map[string]string, answerSessionID string, initial map[string]any) error {
-	data := initial["answer_session"]
-	initialSubmittedAt := 0
-	if mapped, ok := data.(map[string]any); ok {
-		initialSubmittedAt = intValue(mapped["last_submitted_at"])
-	}
-	if answerSessionID == "" {
-		return nil
-	}
-	verifyHeaders := cloneStringMap(headers)
-	verifyHeaders["X-Answer-Session"] = answerSessionID
-	for attempt := 0; attempt < 3; attempt++ {
-		sessionData, err := r.requestAPI(ctx, surveyID, "session", hashValue, verifyHeaders, nil, "")
-		if err != nil {
-			return err
-		}
-		if mapped, ok := sessionData["answer_session"].(map[string]any); ok {
-			if intValue(mapped["last_submitted_at"]) > initialSubmittedAt || intValue(mapped["last_answer_id"]) > 0 {
-				return nil
-			}
-		}
-		if attempt < 2 {
-			time.Sleep(200 * time.Millisecond)
-		}
-	}
-	return fmt.Errorf("腾讯问卷提交后未确认到服务端已记录答案")
-}
-
-func (r Runner) requestAPI(ctx context.Context, surveyID string, endpoint string, hashValue string, headers map[string]string, extraParams map[string]string, proxyAddress string) (map[string]any, error) {
-	query := fmt.Sprintf("hash=%s&_=%d", hashValue, time.Now().UnixMilli())
-	for key, value := range extraParams {
-		query += "&" + key + "=" + value
-	}
-	url := apiEndpoint(surveyID, endpoint) + "?" + query
-	var payload apiEnvelope
-	doer, err := r.httpDoer(proxyAddress)
-	if err != nil {
-		return nil, err
-	}
-	if err := doer.DoJSON(ctx, http.MethodGet, url, headers, nil, &payload); err != nil {
-		return nil, err
-	}
-	return ensureAPIOK(payload, endpoint)
-}
-
-func (r Runner) httpDoer(proxyAddress string) (interface {
-	DoJSON(ctx context.Context, method string, url string, headers map[string]string, body any, out any) error
-}, error) {
-	if strings.TrimSpace(proxyAddress) == "" {
-		return httpDoerOrDefault(r.HTTP), nil
-	}
-	client, err := proxyhttp.Client(nil, proxyAddress)
-	if err != nil {
-		return nil, err
-	}
-	return httpjson.Client{Client: client}, nil
-}
-
-func defaultDurationSeconds(cfg *model.RuntimeConfig) int {
-	if cfg != nil {
-		if seconds := model.SampleAnswerDurationSeconds(cfg.AnswerDuration, 60); seconds > 0 {
-			return seconds
-		}
-	}
-	return 60
-}
-
-func optionBlankID(option map[string]any) string {
-	for key, value := range option {
-		if strings.Contains(strings.ToLower(key), "fillblank") {
-			if text := strings.TrimSpace(stringValue(value)); text != "" {
-				return text
-			}
-			return strings.TrimSpace(key)
-		}
-		if text := stringValue(value); fillBlankTokenRE.MatchString(text) {
-			match := fillBlankTokenRE.FindStringSubmatch(text)
-			if len(match) > 1 {
-				return match[1]
-			}
-		}
-	}
-	return strings.TrimSpace(stringValue(option["id"]))
-}
-
-func checkedInt(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
-}
-
-func cloneStringMap(src map[string]string) map[string]string {
-	dst := make(map[string]string, len(src))
-	for key, value := range src {
-		dst[key] = value
-	}
-	return dst
-}
-
-func emit(handler EventHandler, message string, success bool, fail bool, current int, total int) {
-	if handler == nil {
-		return
-	}
-	handler(Event{
-		Worker:  "Worker-1",
-		Message: message,
-		Success: success,
-		Fail:    fail,
-		Current: current,
-		Total:   total,
-		Time:    time.Now(),
-	})
+func pendingResult(_ *model.SubmissionRequest) Result {
+	return Result{Target: 1, Status: "pending"}
 }

@@ -1,0 +1,147 @@
+.dashboard-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-left-column,
+.dashboard-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr !important;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: start;
+}
+
+.dashboard-right-column .quota-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  text-align: left;
+}
+
+.dashboard-quota-card {
+  padding: 0.85rem 0.9rem;
+}
+
+.quota-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.quota-panel-body {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.quota-panel-summary {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.quota-panel-summary strong {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.quota-panel-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.quota-panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.quota-panel-row strong {
+  color: var(--text);
+}
+
+.quota-panel-actions {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.thread-switch-card {
+  padding: 0.75rem 0.9rem;
+}
+
+.thread-switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.thread-table-panel {
+  overflow: hidden;
+}
+
+.thread-table-panel .table-wrapper-scroll {
+  max-height: 24rem;
+}
+
+.question-table-scroll {
+  max-height: 28rem !important;
+  overflow-y: auto;
+}
+
+.dashboard-metrics-grid-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  align-items: start; /* Prevent other card in the same row from stretching when Random IP card expands */
+}
+
+.metric-random-ip-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch !important; /* Enable column stretch for drawing the sub-panel details */
+  height: auto;
+  transition: all 0.35s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.metric-ip-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.metric-random-ip-card.expanded .ip-details-drawer {
+  max-height: 9rem;
+  opacity: 1;
+  margin-top: 0.55rem;
+  pointer-events: auto;
+}
+
+.ip-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.ip-metric-row strong {
+  color: var(--text);
+}
+
+.ip-metric-row span strong {
+  color: var(--text);
+  font-weight: 600;
+}
+

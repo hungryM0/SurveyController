@@ -1,0 +1,62 @@
+.condition-rule-dialog-body {
+  display: grid;
+  gap: 0.85rem;
+  overflow: auto;
+}
+
+.condition-rule-section {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--surface-soft);
+  padding: 0.75rem;
+}
+
+.condition-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.condition-rule-option-block {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.condition-rule-option-block > span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.condition-rule-option-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 10rem;
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface);
+}
+
+.condition-rule-option-item {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.condition-rule-option-item input {
+  margin: 0;
+}
+
+.condition-rule-dialog-error {
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+  border: 1px solid rgba(180, 35, 24, 0.18);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+}

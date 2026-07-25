@@ -1,3 +1,68 @@
+import type {
+  ConfigDocument as BoundConfigDocument,
+  NetworkSettings as BoundNetworkSettings,
+  SurveyDocument as BoundSurveyDocument,
+} from '../bindings/surveycontroller/surveycore/configio/models'
+import type {
+  AnswerPlan as BoundAnswerPlan,
+  AttachedOptionSelect as BoundAttachedOptionSelect,
+  ConsistencyRule as BoundConsistencyRule,
+  Event as BoundRunEvent,
+  ExecutionPlan as BoundExecutionPlan,
+  PsychometricPolicy as BoundPsychometricPolicy,
+  QuestionMedia as BoundQuestionMedia,
+  QuestionMeta as BoundQuestionMeta,
+  QuestionStrategy as BoundQuestionStrategy,
+  ReverseFillPlan as BoundReverseFillPlan,
+  RunResult as BoundRunResult,
+  SurveyDefinition as BoundSurveyDefinition,
+  ThreadProgress as BoundThreadProgress,
+  WeightTable as BoundWeightTable,
+} from '../bindings/surveycontroller/surveycore/internal/model/models'
+import type { Preview as BoundReverseFillPreview } from '../bindings/surveycontroller/surveycore/reversefill/models'
+import type {
+  AIConnectionTestState as BoundAIConnectionTestState,
+  AIProfileSettings as BoundAIProfileSettings,
+  AppSettings as BoundAppSettings,
+  CustomProxyAPITestState as BoundCustomProxyAPITestState,
+  ProxyAreaOptionsState as BoundProxyAreaOptionsState,
+  ProxyRedeemState as BoundProxyRedeemState,
+  ProxyStatus as BoundProxyStatus,
+  QRCodeDecodeState as BoundQRCodeDecodeState,
+  RunTaskEvent as BoundRunTaskEvent,
+  RunTaskState as BoundRunTaskState,
+} from '../bindings/github.com/hungrym0/SurveyController/apps/desktop/models'
+
+export type ConfigDocument = BoundConfigDocument
+export type NetworkSettings = BoundNetworkSettings
+export type SurveyDocument = BoundSurveyDocument
+export type AnswerPlan = BoundAnswerPlan
+export type AttachedOptionSelect = BoundAttachedOptionSelect
+export type ConsistencyRule = BoundConsistencyRule
+export type ExecutionPlan = BoundExecutionPlan
+export type PsychometricPolicy = BoundPsychometricPolicy
+export type QuestionEntry = BoundQuestionStrategy
+export type QuestionMediaItem = BoundQuestionMedia
+export type QuestionMeta = BoundQuestionMeta
+export type ReverseFillPlan = BoundReverseFillPlan
+export type SurveyDefinition = BoundSurveyDefinition
+export type WeightTable = BoundWeightTable
+export type RunEvent = BoundRunEvent
+export type RunResult = BoundRunResult
+export type ThreadProgress = BoundThreadProgress
+export type ReverseFillPreview = BoundReverseFillPreview
+export type AIConnectionTestState = BoundAIConnectionTestState
+export type AIProfileSettings = BoundAIProfileSettings
+export type AppSettings = BoundAppSettings
+export type CustomProxyAPITestState = BoundCustomProxyAPITestState
+export type ProxyAreaOptionsState = BoundProxyAreaOptionsState
+export type ProxyRedeemState = BoundProxyRedeemState
+export type ProxyStatus = BoundProxyStatus
+export type QRCodeDecodeState = BoundQRCodeDecodeState
+export type RunTaskEvent = BoundRunTaskEvent
+export type RunTaskState = BoundRunTaskState
+export type RunTaskStatus = BoundRunTaskState['status']
+
 export type Tone = string
 
 export interface NavItem {
@@ -95,7 +160,7 @@ export interface ReverseFillRow {
   state: string
 }
 
-export interface ShellState {
+export interface AppViewState {
   appTitle: string
   appVersion: string
   themeMode: string
@@ -114,266 +179,7 @@ export interface ShellState {
   settingsGroups: SettingsGroup[]
 }
 
-export interface RuntimeConfig {
-  url: string
-  survey_title?: string
-  survey_provider?: string
-  target?: number
-  threads?: number
-  submit_interval?: number[]
-  answer_duration?: number[]
-  answer_datetime_window?: string[]
-  random_ip_enabled?: boolean
-  proxy_source?: string
-  custom_proxy_api?: string
-  proxy_area_code?: string | null
-  random_ua_enabled?: boolean
-  random_ua_ratios?: Record<string, number>
-  random_ua_preset?: string
-  fail_stop_enabled?: boolean
-  pause_on_aliyun_captcha?: boolean
-  reliability_mode_enabled?: boolean
-  psycho_target_alpha?: number
-  ai_mode?: string
-  ai_provider?: string
-  ai_api_key?: string
-  ai_base_url?: string
-  ai_api_protocol?: string
-  ai_model?: string
-  ai_system_prompt?: string
-  reverse_fill_enabled?: boolean
-  reverse_fill_source_path?: string
-  reverse_fill_format?: string
-  reverse_fill_start_row?: number
-  reverse_fill_threads?: number
-  answer_rules?: Record<string, unknown>[]
-  dimension_groups?: string[]
-  question_entries?: QuestionEntry[]
-  questions_info?: QuestionMeta[]
-}
-
-export interface QuestionEntry {
-  question_type: string
-  probabilities: unknown
-  texts?: string[] | null
-  rows?: number
-  option_count?: number
-  distribution_mode?: string
-  custom_weights?: unknown
-  question_num?: number | null
-  question_title?: string | null
-  survey_provider?: string
-  provider_question_id?: string | null
-  provider_page_id?: string | null
-  ai_enabled?: boolean
-  option_fill_texts?: Array<string | null> | null
-  fillable_option_indices?: number[] | null
-  attached_option_selects?: Array<Record<string, unknown> | null> | null
-  has_attached_option_select?: boolean
-  is_location?: boolean
-  location_parts?: string[] | null
-  multi_text_blank_modes?: string[] | null
-  multi_text_blank_ai_flags?: boolean[] | null
-  multi_text_blank_int_ranges?: Array<number[] | null> | null
-  text_random_mode?: string
-  text_random_int_range?: number[] | null
-  dimension?: string
-  psycho_bias?: string
-}
-
-export interface QuestionMeta {
-  num: number
-  title: string
-  display_num?: number | null
-  description: string
-  type_code: string
-  options: number
-  rows: number
-  row_texts: string[]
-  page?: number
-  option_texts: string[]
-  provider: string
-  provider_question_id?: string
-  provider_page_id?: string
-  provider_type: string
-  provider_page_raw?: unknown
-  required?: boolean
-  is_description: boolean
-  is_location?: boolean
-  is_rating?: boolean
-  rating_max?: number
-  text_input_labels?: string[] | null
-  is_text_like: boolean
-  is_multi_text?: boolean
-  is_slider_matrix?: boolean
-  text_inputs: number
-  logic_parse_status?: string
-  has_jump?: boolean
-  jump_rules?: Array<Record<string, unknown> | null> | null
-  has_display_condition?: boolean
-  display_conditions?: Array<Record<string, unknown> | null> | null
-  has_dependent_display_logic?: boolean
-  controls_display_targets?: Array<Record<string, unknown> | null> | null
-  question_media?: Array<Record<string, unknown> | null> | null
-  slider_min?: unknown
-  slider_max?: unknown
-  slider_step?: unknown
-  multi_min_limit?: number | null
-  multi_max_limit?: number | null
-  forced_option_index?: number | null
-  forced_option_text?: string
-  forced_texts?: string[] | null
-  fillable_options?: number[] | null
-  attached_option_selects?: Array<Record<string, unknown> | null> | null
-  has_attached_option_select?: boolean
-  unsupported?: boolean
-  unsupported_reason?: string
-}
-
-export interface QuestionMediaItem {
-  kind?: string
-  scope?: string
-  index?: number | null
-  source_url?: string
-  label?: string
-  [key: string]: unknown
-}
-
-export interface SurveyDefinition {
-  provider: string
-  title: string
-  questions: QuestionMeta[]
-}
-
-export interface AppSettings {
-  configDirectory: string
-  themeMode: string
-  showNavigationText: boolean
-  micaEnabled: boolean
-  topmost: boolean
-  askSaveOnClose?: boolean
-  preventSleepDuringRun?: boolean
-  taskResultNotification?: boolean
-  submissionReportTelemetry?: boolean
-  setupWizardVersion?: number
-  autoCheckUpdate?: boolean
-  autoSaveLogs?: boolean
-  notifications: boolean
-  autosaveLogCount: number
-  runtimeDefaults?: Record<string, string>
-}
-
-export interface ProxyStatus {
-  available: number
-  inUse: number
-  userId: number
-  userKnown: boolean
-  poolRemainingIp: number
-  poolRemainingKnown: boolean
-  remainingQuota: string
-  totalQuota: string
-  quotaKnown: boolean
-  randomIpEnabled: boolean
-  source: string
-  message?: string
-}
-
-export interface ProxyAreaCity {
-  code: string
-  name: string
-}
-
-export interface ProxyAreaProvince {
-  code: string
-  name: string
-  cities: ProxyAreaCity[]
-}
-
-export interface ProxyAreaOptionsState {
-  source: string
-  hasAll: boolean
-  provinces: ProxyAreaProvince[]
-}
-
-export interface CustomProxyAPITestState {
-  success: boolean
-  message: string
-  proxies: string[]
-}
-
-export interface AIConnectionTestState {
-  success: boolean
-  message: string
-}
-
-export interface ProxyRedeemState {
-  redeemed: boolean
-  cardQuota: number
-  cardQuotaLabel: string
-  detail?: string
-  status: ProxyStatus
-}
-
-export interface QRCodeDecodeState {
-  path: string
-  text: string
-}
-
-export interface RunEvent {
-  worker: string
-  message: string
-  success: boolean
-  fail: boolean
-  current: number
-  total: number
-  time?: string
-}
-
-export interface ThreadProgress {
-  thread_name: string
-  thread_index: number
-  success_count: number
-  fail_count: number
-  step_current: number
-  step_total: number
-  status_text: string
-  running: boolean
-  last_update?: string
-}
-
-export interface RunResult {
-  success: number
-  fail: number
-  stopped: boolean
-  thread_progress?: ThreadProgress[]
-}
-
-export interface SurveyCoreState {
-  definition?: SurveyDefinition | null
-  config?: RuntimeConfig | null
-  result?: RunResult | null
-  events?: RunEvent[]
-}
-
-export interface RunTaskState {
-  running: boolean
-  canceling: boolean
-  paused: boolean
-  pauseReason?: string
-  result?: RunResult | null
-  events?: RunEvent[]
-  error?: string
-  startedAt?: string
-  endedAt?: string
-  config?: RuntimeConfig | null
-}
-
-export interface ReverseFillPreview {
-  source_path: string
-  selected_format: string
-  detected_format: string
-  total_data_rows: number
-  question_columns: Record<string, Array<{ column_index: number; header: string; question_num: number }>>
-  sample_rows: Array<{ data_row_number: number; worksheet_row_number: number; answers: Record<string, unknown> }>
-  unsupported_fields?: string[]
+export interface AICredentialDraft {
+  value: string
+  operation: 'keep' | 'replace' | 'clear'
 }

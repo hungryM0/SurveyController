@@ -1,24 +1,23 @@
 import type { ComponentProps } from 'react'
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { applyConfigToShell, normalizeRuntimeConfig } from '../services/stateMapper'
-import { emptyShellState } from '../services/shellFixture'
-import type { AppSettings } from '../types'
+import { buildAppModel, mapAppViewState } from '../viewModels/appModel'
+import { createTestConfig, createTestQuestion, createTestQuestionEntry, createTestSettings } from '../test/configFactory'
+import type { ProxyStatus } from '../types'
 import { firstSupportedQRImageFile, isSupportedQRImage } from './DashboardView'
 import DashboardView from './DashboardView'
 
-const settings: AppSettings = {
-  configDirectory: 'D:/configs',
-  themeMode: 'system',
-  showNavigationText: true,
-  micaEnabled: true,
-  topmost: false,
-  notifications: true,
-  autosaveLogCount: 5,
-}
+const config = createTestConfig()
+const settings = createTestSettings((value) => {
+  value.configDirectory = 'D:/configs'
+})
+const dashboard = mapAppViewState(
+  buildAppModel(settings, config),
+  { value: '', operation: 'keep' },
+).dashboard
 
 const dashboardProps: ComponentProps<typeof DashboardView> = {
-  dashboard: emptyShellState.dashboard,
+  dashboard,
   customProxyAPI: '',
   onUpdateUrl: () => undefined,
   onAutoConfig: () => undefined,
@@ -46,55 +45,41 @@ function renderDashboard(props: Partial<ComponentProps<typeof DashboardView>> = 
 }
 
 describe('DashboardView', () => {
-  it('keeps question and session data on the dashboard model', () => {
-    const shell = applyConfigToShell(
-      emptyShellState,
-      settings,
-      normalizeRuntimeConfig({
-        url: 'https://www.wjx.cn/vm/demo.aspx',
-        target: 5,
-        threads: 2,
-        random_ip_enabled: true,
-        questions_info: [
-          {
-            num: 1,
-            title: '单选',
-            description: '',
-            type_code: '3',
-            options: 2,
-            rows: 0,
-            row_texts: [],
-            option_texts: ['A', 'B'],
-            provider: 'wjx',
-            provider_type: 'single',
-            is_description: false,
-            is_text_like: false,
-            text_inputs: 0,
-          },
-        ],
-      }),
+  it('keeps question and proxy data on the dashboard model', () => {
+    const nextConfig = createTestConfig((value) => {
+      value.survey.url = 'https://www.wjx.cn/vm/demo.aspx'
+      value.survey.definition.questions = [createTestQuestion()]
+      value.answers.questions = [createTestQuestionEntry()]
+      value.execution.target = 5
+      value.execution.threads = 2
+      value.network.randomProxyEnabled = true
+    })
+    const proxy: ProxyStatus = {
+      available: 1,
+      inUse: 1,
+      userId: 73952,
+      userKnown: true,
+      poolRemainingIp: 75772,
+      poolRemainingKnown: true,
+      remainingQuota: '3',
+      totalQuota: '5',
+      quotaKnown: true,
+      randomIpEnabled: true,
+      source: 'default',
+      message: '额度已同步',
+      quota: { RemainingQuota: 3, TotalQuota: 5, UsedQuota: 2, QuotaKnown: true },
+    }
+    const mapped = mapAppViewState(
+      buildAppModel(settings, nextConfig),
+      { value: '', operation: 'keep' },
       null,
-      null,
-      {
-        available: 1,
-        inUse: 1,
-        userId: 73952,
-        userKnown: true,
-        poolRemainingIp: 75772,
-        poolRemainingKnown: true,
-        remainingQuota: '3',
-        totalQuota: '5',
-        quotaKnown: true,
-        randomIpEnabled: true,
-        source: 'default',
-        message: '额度已同步',
-      },
-    )
+      proxy,
+    ).dashboard
 
-    expect(shell.dashboard.questionRows).toHaveLength(1)
-    expect(shell.dashboard.sessionRows).toEqual([])
-    expect(shell.dashboard.randomIpStatus).toBe('额度已同步')
-    expect(shell.dashboard.quickActions.map((item) => item.id)).toEqual(['parse', 'load-config', 'save-config', 'open-runtime'])
+    expect(mapped.questionRows).toHaveLength(1)
+    expect(mapped.sessionRows).toEqual([])
+    expect(mapped.randomIpStatus).toBe('额度已同步')
+    expect(mapped.quickActions.map((item) => item.id)).toEqual(['parse', 'load-config', 'save-config', 'open-runtime'])
   })
 
   it('detects pasted and dropped QR image files', () => {
@@ -111,7 +96,7 @@ describe('DashboardView', () => {
 
   it('reveals the custom proxy API field and health action', () => {
     const html = renderDashboard({
-      dashboard: { ...emptyShellState.dashboard, proxySource: '自定义' },
+      dashboard: { ...dashboard, proxySource: '自定义' },
       customProxyAPI: 'https://proxy.example/api',
     })
 
@@ -124,7 +109,7 @@ describe('DashboardView', () => {
   it('keeps setup as the primary entry and uses consistent action labels', () => {
     const emptyHtml = renderDashboard()
     const configuredHtml = renderDashboard({
-      dashboard: { ...emptyShellState.dashboard, surveyUrl: 'https://www.wjx.cn/vm/demo.aspx' },
+      dashboard: { ...dashboard, surveyUrl: 'https://www.wjx.cn/vm/demo.aspx' },
     })
 
     expect(emptyHtml).toContain('配置问卷')
@@ -138,7 +123,7 @@ describe('DashboardView', () => {
 
   it('keeps start disabled until the full configuration is ready', () => {
     const html = renderDashboard({
-      dashboard: { ...emptyShellState.dashboard, surveyUrl: 'https://www.wjx.cn/vm/demo.aspx' },
+      dashboard: { ...dashboard, surveyUrl: 'https://www.wjx.cn/vm/demo.aspx' },
       canRun: false,
       runBlockedReason: '请先解析问卷。',
     })

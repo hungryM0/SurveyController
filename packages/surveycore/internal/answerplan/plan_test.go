@@ -14,6 +14,8 @@ type fakeAnswerRuntime struct {
 	counts []int
 }
 
+func intPtr(value int) *int { return &value }
+
 func (f fakeAnswerRuntime) SnapshotDistributionStats(_ string, optionCount int) (int, []int) {
 	counts := make([]int, optionCount)
 	copy(counts, f.counts)
@@ -31,9 +33,9 @@ func TestBuildActionUsesMatrixRowProbabilities(t *testing.T) {
 		TypeCode:     "6",
 		Rows:         2,
 		Options:      2,
-	}, model.QuestionEntry{
+	}, model.QuestionStrategy{
 		QuestionType:  "matrix",
-		Probabilities: [][]float64{{0, 1}, {1, 0}},
+		Probabilities: model.RowWeights([]float64{0, 1}, []float64{1, 0}),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +50,7 @@ func TestBuildActionRejectsUnknownQuestionType(t *testing.T) {
 		Num:          9,
 		ProviderType: "new_platform_widget",
 		TypeCode:     "99",
-	}, model.QuestionEntry{})
+	}, model.QuestionStrategy{})
 	if err == nil {
 		t.Fatal("expected unsupported question error")
 	}
@@ -67,7 +69,7 @@ func TestBuildActionKeepsExplicitTextQuestion(t *testing.T) {
 		ProviderType: "text",
 		TypeCode:     "1",
 		TextInputs:   1,
-	}, model.QuestionEntry{QuestionType: "text", Texts: []string{"正常文本"}})
+	}, model.QuestionStrategy{QuestionType: "text", Texts: []string{"正常文本"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,16 +84,12 @@ func TestBuildActionsAppliesAnswerRuleToLaterQuestion(t *testing.T) {
 	actions, err := BuildActions([]model.QuestionMeta{
 		{Num: 1, ProviderType: "single", TypeCode: "3", Options: 2},
 		{Num: 2, ProviderType: "single", TypeCode: "3", Options: 3},
-	}, []model.QuestionEntry{
-		{QuestionType: "single", QuestionNum: &q1, Probabilities: []float64{0, 1}},
-		{QuestionType: "single", QuestionNum: &q2, Probabilities: []float64{1, 1, 1}},
-	}, BuildOptions{AnswerRules: []map[string]any{{
-		"condition_question_num":   1,
-		"condition_mode":           "selected",
-		"condition_option_indices": []any{1},
-		"target_question_num":      2,
-		"action_mode":              "must_select",
-		"target_option_indices":    []any{2},
+	}, []model.QuestionStrategy{
+		{QuestionType: "single", QuestionNum: &q1, Probabilities: model.OptionWeights(0, 1)},
+		{QuestionType: "single", QuestionNum: &q2, Probabilities: model.OptionWeights(1, 1, 1)},
+	}, BuildOptions{AnswerRules: []model.ConsistencyRule{{
+		ConditionQuestionNum: 1, ConditionMode: "selected", ConditionOptionIndices: []int{1},
+		TargetQuestionNum: 2, ActionMode: "must_select", TargetOptionIndices: []int{2},
 	}}})
 	if err != nil {
 		t.Fatal(err)
@@ -107,18 +105,12 @@ func TestBuildActionsAppliesMatrixRowAnswerRule(t *testing.T) {
 	actions, err := BuildActions([]model.QuestionMeta{
 		{Num: 1, ProviderType: "matrix", TypeCode: "6", Options: 2, Rows: 2},
 		{Num: 2, ProviderType: "matrix", TypeCode: "6", Options: 2, Rows: 2},
-	}, []model.QuestionEntry{
-		{QuestionType: "matrix", QuestionNum: &q1, Probabilities: [][]float64{{1, 0}, {0, 1}}},
-		{QuestionType: "matrix", QuestionNum: &q2, Probabilities: [][]float64{{1, 1}, {1, 1}}},
-	}, BuildOptions{AnswerRules: []map[string]any{{
-		"condition_question_num":   1,
-		"condition_mode":           "selected",
-		"condition_option_indices": []any{1},
-		"condition_row_index":      1,
-		"target_question_num":      2,
-		"action_mode":              "must_not_select",
-		"target_option_indices":    []any{0},
-		"target_row_index":         0,
+	}, []model.QuestionStrategy{
+		{QuestionType: "matrix", QuestionNum: &q1, Probabilities: model.RowWeights([]float64{1, 0}, []float64{0, 1})},
+		{QuestionType: "matrix", QuestionNum: &q2, Probabilities: model.RowWeights([]float64{1, 1}, []float64{1, 1})},
+	}, BuildOptions{AnswerRules: []model.ConsistencyRule{{
+		ConditionQuestionNum: 1, ConditionMode: "selected", ConditionOptionIndices: []int{1}, ConditionRowIndex: intPtr(1),
+		TargetQuestionNum: 2, ActionMode: "must_not_select", TargetOptionIndices: []int{0}, TargetRowIndex: intPtr(0),
 	}}})
 	if err != nil {
 		t.Fatal(err)
@@ -129,16 +121,16 @@ func TestBuildActionsAppliesMatrixRowAnswerRule(t *testing.T) {
 }
 
 func TestSelectedIndicesUsesPercentProbabilities(t *testing.T) {
-	selected := SelectedIndices(model.QuestionEntry{Probabilities: []float64{100, 0, 0}}, 3, 1, 3)
+	selected := SelectedIndices(model.QuestionStrategy{Probabilities: model.OptionWeights(100, 0, 0)}, 3, 1, 3)
 	if len(selected) != 1 || selected[0] != 0 {
 		t.Fatalf("selected = %#v", selected)
 	}
-	selected = SelectedIndices(model.QuestionEntry{Probabilities: []float64{0, 0, 100}}, 3, 1, 3)
+	selected = SelectedIndices(model.QuestionStrategy{Probabilities: model.OptionWeights(0, 0, 100)}, 3, 1, 3)
 	if len(selected) != 1 || selected[0] != 2 {
 		t.Fatalf("selected = %#v", selected)
 	}
 	for index := 0; index < 20; index++ {
-		selected = SelectedIndices(model.QuestionEntry{Probabilities: []float64{100, 100, 100}}, 3, 1, 2)
+		selected = SelectedIndices(model.QuestionStrategy{Probabilities: model.OptionWeights(100, 100, 100)}, 3, 1, 2)
 		if len(selected) > 2 || len(selected) == 0 {
 			t.Fatalf("selected = %#v", selected)
 		}
@@ -173,14 +165,14 @@ func TestApplyDimensionTendencyReusesDimensionBase(t *testing.T) {
 
 func TestOptionFillTextFallsBackForFillableOption(t *testing.T) {
 	question := model.QuestionMeta{FillableOptions: []int{1}}
-	entry := model.QuestionEntry{}
+	entry := model.QuestionStrategy{}
 	if got := OptionFillText(entry, question, 1); got != defaultFillText {
 		t.Fatalf("fill text = %q", got)
 	}
 }
 
 func TestResolveTextValuesUsesPersonaForIDCardGender(t *testing.T) {
-	values := ResolveTextValuesWithPersona(model.QuestionEntry{
+	values := ResolveTextValuesWithPersona(model.QuestionStrategy{
 		QuestionType: "text",
 		Texts:        []string{randomIDCardToken},
 	}, model.QuestionMeta{Num: 1, ProviderType: "text", TextInputs: 1}, 1, &model.Persona{Gender: "女", AgeGroup: "26-35"})
@@ -199,16 +191,12 @@ func TestBuildActionsMultipleRuleMustSelectOverridesZeroWeight(t *testing.T) {
 	actions, err := BuildActions([]model.QuestionMeta{
 		{Num: 1, ProviderType: "single", TypeCode: "3", Options: 2},
 		{Num: 2, ProviderType: "multiple", TypeCode: "4", Options: 3},
-	}, []model.QuestionEntry{
-		{QuestionType: "single", QuestionNum: &q1, Probabilities: []float64{0, 1}},
-		{QuestionType: "multiple", QuestionNum: &q2, Probabilities: []float64{0, 0, 0}},
-	}, BuildOptions{AnswerRules: []map[string]any{{
-		"condition_question_num":   1,
-		"condition_mode":           "selected",
-		"condition_option_indices": []any{1},
-		"target_question_num":      2,
-		"action_mode":              "must_select",
-		"target_option_indices":    []any{2},
+	}, []model.QuestionStrategy{
+		{QuestionType: "single", QuestionNum: &q1, Probabilities: model.OptionWeights(0, 1)},
+		{QuestionType: "multiple", QuestionNum: &q2, Probabilities: model.OptionWeights(0, 0, 0)},
+	}, BuildOptions{AnswerRules: []model.ConsistencyRule{{
+		ConditionQuestionNum: 1, ConditionMode: "selected", ConditionOptionIndices: []int{1},
+		TargetQuestionNum: 2, ActionMode: "must_select", TargetOptionIndices: []int{2},
 	}}})
 	if err != nil {
 		t.Fatal(err)
@@ -224,9 +212,9 @@ func TestBuildActionResolvesTextCandidatesAndBlankModes(t *testing.T) {
 		ProviderType: "multi_text",
 		TypeCode:     "9",
 		TextInputs:   3,
-	}, model.QuestionEntry{
+	}, model.QuestionStrategy{
 		QuestionType:            "multi_text",
-		Probabilities:           []float64{0, 1},
+		Probabilities:           model.OptionWeights(0, 1),
 		Texts:                   []string{"甲||乙||丙", "A||B||C"},
 		MultiTextBlankModes:     []string{"none", "mobile", "integer"},
 		MultiTextBlankIntRanges: [][]int{{}, {}, {7, 7}},
@@ -246,9 +234,9 @@ func TestBuildActionResolvesTextRandomMode(t *testing.T) {
 		ProviderType: "text",
 		TypeCode:     "1",
 		TextInputs:   1,
-	}, model.QuestionEntry{
+	}, model.QuestionStrategy{
 		QuestionType:       "text",
-		Probabilities:      []float64{1},
+		Probabilities:      model.OptionWeights(1),
 		Texts:              []string{"普通文本"},
 		TextRandomMode:     "integer",
 		TextRandomIntRange: []int{42, 42},
@@ -266,25 +254,19 @@ func TestBuildActionsWithLogicSkipsHiddenQuestion(t *testing.T) {
 	q2 := 2
 	q3 := 3
 	actions, err := BuildActionsWithLogic([]model.QuestionMeta{
-		{Num: 1, ProviderType: "single", TypeCode: "3", Options: 2, LogicStatus: model.LogicParseStatusNone},
+		{Num: 1, ProviderType: "single", TypeCode: "3", Options: 2, QuestionLogic: model.QuestionLogic{LogicStatus: model.LogicParseStatusNone}},
 		{
-			Num:                 2,
-			ProviderType:        "single",
-			TypeCode:            "3",
-			Options:             2,
-			HasDisplayCondition: true,
-			DisplayConditions: []map[string]any{{
-				"condition_question_num":   1,
-				"condition_mode":           "not_selected",
-				"condition_option_indices": []any{0},
-			}},
-			LogicStatus: model.LogicParseStatusComplete,
+			Num:           2,
+			ProviderType:  "single",
+			TypeCode:      "3",
+			Options:       2,
+			QuestionLogic: model.QuestionLogic{HasDisplayCondition: true, DisplayConditions: []model.DisplayCondition{{QuestionNum: 1, Mode: "not_selected", OptionIndices: []int{0}}}, LogicStatus: model.LogicParseStatusComplete},
 		},
-		{Num: 3, ProviderType: "single", TypeCode: "3", Options: 2, LogicStatus: model.LogicParseStatusNone},
-	}, []model.QuestionEntry{
-		{QuestionType: "single", QuestionNum: &q1, Probabilities: []float64{1, 0}},
-		{QuestionType: "single", QuestionNum: &q2, Probabilities: []float64{1, 0}},
-		{QuestionType: "single", QuestionNum: &q3, Probabilities: []float64{1, 0}},
+		{Num: 3, ProviderType: "single", TypeCode: "3", Options: 2, QuestionLogic: model.QuestionLogic{LogicStatus: model.LogicParseStatusNone}},
+	}, []model.QuestionStrategy{
+		{QuestionType: "single", QuestionNum: &q1, Probabilities: model.OptionWeights(1, 0)},
+		{QuestionType: "single", QuestionNum: &q2, Probabilities: model.OptionWeights(1, 0)},
+		{QuestionType: "single", QuestionNum: &q3, Probabilities: model.OptionWeights(1, 0)},
 	}, BuildOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -299,21 +281,16 @@ func TestBuildActionsWithLogicJumpTerminatesEarly(t *testing.T) {
 	q2 := 2
 	actions, err := BuildActionsWithLogic([]model.QuestionMeta{
 		{
-			Num:          1,
-			ProviderType: "single",
-			TypeCode:     "3",
-			Options:      2,
-			HasJump:      true,
-			JumpRules: []map[string]any{{
-				"option_index": 0,
-				"jumpto":       3,
-			}},
-			LogicStatus: model.LogicParseStatusComplete,
+			Num:           1,
+			ProviderType:  "single",
+			TypeCode:      "3",
+			Options:       2,
+			QuestionLogic: model.QuestionLogic{HasJump: true, JumpRules: []model.JumpRule{{OptionIndex: 0, TargetQuestion: 3}}, LogicStatus: model.LogicParseStatusComplete},
 		},
-		{Num: 2, ProviderType: "single", TypeCode: "3", Options: 2, LogicStatus: model.LogicParseStatusNone},
-	}, []model.QuestionEntry{
-		{QuestionType: "single", QuestionNum: &q1, Probabilities: []float64{1, 0}},
-		{QuestionType: "single", QuestionNum: &q2, Probabilities: []float64{1, 0}},
+		{Num: 2, ProviderType: "single", TypeCode: "3", Options: 2, QuestionLogic: model.QuestionLogic{LogicStatus: model.LogicParseStatusNone}},
+	}, []model.QuestionStrategy{
+		{QuestionType: "single", QuestionNum: &q1, Probabilities: model.OptionWeights(1, 0)},
+		{QuestionType: "single", QuestionNum: &q2, Probabilities: model.OptionWeights(1, 0)},
 	}, BuildOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -325,9 +302,8 @@ func TestBuildActionsWithLogicJumpTerminatesEarly(t *testing.T) {
 
 func TestBuildActionsWithLogicRejectsUnknownJump(t *testing.T) {
 	_, err := BuildActionsWithLogic([]model.QuestionMeta{{
-		Num:         1,
-		HasJump:     true,
-		LogicStatus: model.LogicParseStatusUnknown,
+		Num:           1,
+		QuestionLogic: model.QuestionLogic{HasJump: true, LogicStatus: model.LogicParseStatusUnknown},
 	}}, nil, BuildOptions{})
 	if err == nil || !strings.Contains(err.Error(), "逻辑规则未完整解析") {
 		t.Fatalf("err = %v", err)

@@ -7,7 +7,7 @@ import (
 	"surveycontroller/surveycore/internal/model"
 )
 
-func prepareAnswerDatetimeWindowExecution(cfg *RuntimeConfig, provider string) error {
+func prepareAnswerDatetimeWindowExecution(cfg *RunRequest, provider string) error {
 	if cfg == nil {
 		return fmt.Errorf("%w: 配置为空", ErrInvalidConfig)
 	}

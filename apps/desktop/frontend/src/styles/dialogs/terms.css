@@ -1,0 +1,59 @@
+.terms-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(8, 12, 18, 0.52);
+  backdrop-filter: blur(14px);
+}
+
+.terms-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 66;
+  width: min(1000px, calc(100vw - 2rem));
+  max-height: min(700px, calc(100vh - 2rem));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 1rem;
+  transform: translate(-50%, -50%);
+}
+
+.terms-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.terms-dialog-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.terms-dialog-head span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.terms-dialog-body {
+  display: grid;
+  gap: 0.55rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  color: var(--text);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.86rem;
+  line-height: 1.7;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--surface-soft);
+  padding: 0.75rem;
+}
+

@@ -1,0 +1,223 @@
+.dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  align-content: stretch;
+  padding-bottom: 1rem;
+}
+
+.dashboard-shell > .dashboard-command {
+  flex: 0 0 auto;
+}
+
+.dashboard-shell > .dashboard-task-grid {
+  flex: 0 0 auto;
+}
+
+.dashboard-shell > .dashboard-question-panel {
+  flex: 0 0 auto;
+}
+
+.dashboard-task-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(20rem, 3fr);
+  grid-template-areas: "settings side";
+  gap: 0.85rem;
+  align-items: stretch;
+  min-width: 0;
+  min-height: max-content;
+}
+
+.dashboard-task-grid .control-panel,
+.dashboard-quota-stack .quota-side-panel,
+.dashboard-question-panel {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface-strong);
+}
+
+.dashboard-task-grid .control-panel {
+  grid-area: settings;
+}
+
+.dashboard-quota-stack {
+  grid-area: side;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  align-content: stretch;
+}
+
+.quota-side-panel {
+  align-content: start;
+  width: min(100%, 34rem);
+  min-height: 100%;
+}
+
+.quota-panel-head {
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quota-panel-head .panel-title-group {
+  min-width: 0;
+}
+
+.quota-panel-head .panel-title-group h4 {
+  white-space: nowrap;
+}
+
+.quota-readout strong,
+.quota-readout span {
+  overflow-wrap: anywhere;
+}
+
+.quota-vertical-body {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  padding: 0.55rem 0 0.4rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.quota-progress-ring {
+  position: relative;
+  display: grid;
+  width: 8.2rem;
+  aspect-ratio: 1;
+  color: var(--accent);
+  place-items: center;
+}
+
+.quota-progress-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.quota-ring-track,
+.quota-ring-value {
+  fill: none;
+  stroke-width: 12;
+}
+
+.quota-ring-track {
+  stroke: var(--surface-soft);
+}
+
+.quota-ring-value {
+  stroke: currentColor;
+  stroke-linecap: round;
+}
+
+.quota-ring-value.is-empty {
+  opacity: 0;
+}
+
+.quota-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.12rem;
+}
+
+.quota-ring-center strong {
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.quota-ring-center span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.quota-status-block {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.quota-status-block strong {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--accent);
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quota-status-block span {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.quota-count-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.quota-count-grid div {
+  display: grid;
+  gap: 0.16rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface-soft);
+  padding: 0.45rem 0.55rem;
+}
+
+.quota-count-grid span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.quota-count-grid strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quota-side-actions .sc-button,
+.quota-redeem-form .sc-button {
+  min-width: max-content;
+}
+
+.quota-side-actions {
+  justify-content: stretch;
+}
+
+.quota-subpage {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+
+.quota-subpage-summary {
+  animation-name: quota-slide-from-left;
+}
+
+.quota-subpage-redeem {
+  animation-name: quota-slide-from-right;
+}
+
+@keyframes quota-slide-from-right {
+  from { opacity: 0; transform: translateX(1.5rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes quota-slide-from-left {
+  from { opacity: 0; transform: translateX(-1.5rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+

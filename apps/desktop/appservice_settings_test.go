@@ -6,13 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"surveycontroller/surveycore"
 )
 
 func TestAppServiceSetupWizardVersionDefaultsAndRoundTrips(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
+	service := newTestAppService()
 
 	settings, err := service.GetAppSettings()
 	if err != nil {
@@ -38,19 +36,16 @@ func TestAppServiceSetupWizardVersionDefaultsAndRoundTrips(t *testing.T) {
 
 func TestAppServiceSaveConfigPreservesSetupWizardVersion(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
+	service := newTestAppService()
 	settings := defaultAppSettings()
 	settings.SetupWizardVersion = 1
 	if _, err := service.SaveAppSettings(context.Background(), SaveSettingsRequest{Settings: settings}); err != nil {
 		t.Fatal(err)
 	}
 
-	saved, err := service.SaveConfig(context.Background(), SaveConfigRequest{
-		Config: surveycore.RuntimeConfig{
-			URL:         "https://www.wjx.cn/vm/demo.aspx",
-			SurveyTitle: "向导配置",
-		},
-	})
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", "")
+	document.Survey.Title = "向导配置"
+	saved, err := service.SaveConfig(context.Background(), SaveConfigRequest{Config: document})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +69,7 @@ func TestAppServiceLoadLegacySettingsDefaultsSetupWizardVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	settings, err := NewAppService().GetAppSettings()
+	settings, err := newTestAppService().GetAppSettings()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,14 +81,14 @@ func TestAppServiceLoadLegacySettingsDefaultsSetupWizardVersion(t *testing.T) {
 func TestAppServiceLoadConfigDistinguishesMissingAndExistingFiles(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", root)
-	service := NewAppService()
+	service := newTestAppService()
 
 	missingCases := []struct {
 		name    string
 		request LoadConfigRequest
 		path    string
 	}{
-		{name: "default path", request: LoadConfigRequest{}, path: defaultRuntimeConfigPath()},
+		{name: "default path", request: LoadConfigRequest{}, path: defaultConfigDocumentPath()},
 		{name: "explicit path", request: LoadConfigRequest{Path: filepath.Join(root, "missing.json")}, path: filepath.Join(root, "missing.json")},
 	}
 	for _, testCase := range missingCases {
@@ -116,7 +111,7 @@ func TestAppServiceLoadConfigDistinguishesMissingAndExistingFiles(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !existing.Exists || existing.Config == nil || existing.Config.Target != 2 {
+	if !existing.Exists || existing.Config == nil || existing.Config.Execution.Target != 2 {
 		t.Fatalf("existing state = %#v", existing)
 	}
 }
@@ -129,7 +124,7 @@ func TestAppServiceLoadConfigReturnsCorruptFileError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	state, err := NewAppService().LoadConfig(context.Background(), LoadConfigRequest{Path: path})
+	state, err := newTestAppService().LoadConfig(context.Background(), LoadConfigRequest{Path: path})
 	if err == nil {
 		t.Fatalf("state = %#v", state)
 	}

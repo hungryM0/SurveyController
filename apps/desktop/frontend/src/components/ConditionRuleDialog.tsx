@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Button, SelectNative } from './ui'
-import type { RuntimeConfig } from '../types'
+import type { ConfigDocument } from '../types'
 import {
   buildRuleOptionLabels,
   buildRuleQuestionOptions,
@@ -14,24 +14,18 @@ import {
   questionLabel,
   type RuleDraft,
   type StrategyRuleRecord,
-} from '../pages/strategyEditor'
+} from '../pages/strategy-editor'
 
 interface ConditionRuleDialogProps {
   open: boolean
-  config: RuntimeConfig
+  config: ConfigDocument
   initialRule?: StrategyRuleRecord | null
   onCancel: () => void
   onConfirm: (nextRule: StrategyRuleRecord) => void
 }
 
-const SelectControl = SelectNative as unknown as (props: {
-  data: Array<{ label: string, value: string }>
-  value?: string
-  onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
-}) => ReactElement
-
 function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }: ConditionRuleDialogProps) {
-  const questions = useMemo(() => config.questions_info ?? [], [config.questions_info])
+  const questions = useMemo(() => config.survey.definition.questions ?? [], [config.survey.definition.questions])
   const questionOptions = useMemo(() => buildRuleQuestionOptions(config), [config])
   const [draft, setDraft] = useState<RuleDraft>(() => createConditionRuleDraft(config, initialRule))
   const [error, setError] = useState('')
@@ -127,7 +121,7 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
             <div className="condition-rule-grid">
               <label className="strategy-field">
                 <span>条件题目</span>
-                <SelectControl
+                <SelectNative
                   data={questionOptions}
                   value={String(draft.condition_question_num || '')}
                   onChange={(event) => updateDraftField('condition_question_num', Number(event.target.value))}
@@ -135,7 +129,7 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
               </label>
               <label className="strategy-field">
                 <span>条件模式</span>
-                <SelectControl
+                <SelectNative
                   data={[
                     { label: '选择了以下选项', value: 'selected' },
                     { label: '未选择以下选项', value: 'not_selected' },
@@ -147,7 +141,7 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
               {isMatrixQuestion(conditionQuestion) ? (
                 <label className="strategy-field">
                   <span>条件行</span>
-                  <SelectControl
+                  <SelectNative
                     data={[{ label: '请选择行', value: '' }, ...buildRuleRowOptions(conditionQuestion)]}
                     value={String(draft.condition_row_index ?? '')}
                     onChange={(event) => updateDraftField('condition_row_index', event.target.value === '' ? undefined : Number(event.target.value))}
@@ -166,7 +160,7 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
             <div className="condition-rule-grid">
               <label className="strategy-field">
                 <span>目标题目</span>
-                <SelectControl
+                <SelectNative
                   data={questionOptions}
                   value={String(draft.target_question_num || '')}
                   onChange={(event) => updateDraftField('target_question_num', Number(event.target.value))}
@@ -174,7 +168,7 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
               </label>
               <label className="strategy-field">
                 <span>动作模式</span>
-                <SelectControl
+                <SelectNative
                   data={[
                     { label: '一定选择以下选项', value: 'must_select' },
                     { label: '一定不选择以下选项', value: 'must_not_select' },
@@ -186,7 +180,7 @@ function ConditionRuleDialog({ open, config, initialRule, onCancel, onConfirm }:
               {isMatrixQuestion(targetQuestion) ? (
                 <label className="strategy-field">
                   <span>目标行</span>
-                  <SelectControl
+                  <SelectNative
                     data={[{ label: '请选择行', value: '' }, ...buildRuleRowOptions(targetQuestion)]}
                     value={String(draft.target_row_index ?? '')}
                     onChange={(event) => updateDraftField('target_row_index', event.target.value === '' ? undefined : Number(event.target.value))}

@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { applyConfigToShell, normalizeRuntimeConfig } from '../services/stateMapper'
-import { emptyShellState } from '../services/shellFixture'
+import { createTestConfig, createTestSettings } from '../test/configFactory'
+import { mapRuntimeGroups } from '../viewModels/runtime'
 import RuntimeView from './RuntimeView'
-import type { AppSettings } from '../types'
 
 vi.mock('../services/shell', () => ({
   loadProxyAreaOptions: vi.fn(async () => ({
@@ -11,66 +10,49 @@ vi.mock('../services/shell', () => ({
     hasAll: true,
     provinces: [{ code: '110000', name: '北京市', cities: [{ code: '110100', name: '市辖区' }] }],
   })),
-  testAIConnection: vi.fn(async () => ({ success: true, message: '连接成功' })),
   testCustomProxyAPI: vi.fn(async () => ({ success: true, message: '检测通过', proxies: ['1.2.3.4:9000'] })),
 }))
 
-const settings: AppSettings = {
-  configDirectory: 'D:/configs',
-  themeMode: 'system',
-  showNavigationText: true,
-  micaEnabled: true,
-  topmost: false,
-  notifications: true,
-  autosaveLogCount: 5,
+const credential = { value: '', operation: 'keep' as const }
+
+function runtimeGroups(configure?: Parameters<typeof createTestConfig>[0], configureSettings?: Parameters<typeof createTestSettings>[0]) {
+  return mapRuntimeGroups(createTestConfig(configure), createTestSettings(configureSettings), credential)
+}
+
+function renderRuntime(groups: ReturnType<typeof runtimeGroups>) {
+  return renderToStaticMarkup(
+    <RuntimeView
+      groups={groups}
+      onFieldChange={() => undefined}
+      onTestAIConnection={async () => ({ success: true, message: '连接成功' })}
+    />,
+  )
 }
 
 describe('RuntimeView data mapping', () => {
   it('exposes answer datetime window field', () => {
-    const shell = applyConfigToShell(
-      emptyShellState,
-      settings,
-      normalizeRuntimeConfig({
-        url: 'https://www.wjx.cn/vm/demo.aspx',
-        answer_datetime_window: ['2024-03-10 09:00:00', '2024-03-10 10:00:00'],
-      }),
-      null,
-    )
-    const field = shell.runtimeGroups.flatMap((group) => group.fields).find((item) => item.id === 'answer-datetime-window')
+    const groups = runtimeGroups((config) => {
+      config.execution.answerDatetimeWindow = ['2024-03-10 09:00:00', '2024-03-10 10:00:00']
+    })
+    const field = groups.flatMap((group) => group.fields).find((item) => item.id === 'answer-datetime-window')
     expect(field?.kind).toBe('datetime-window')
     expect(field?.value).toBe('2024-03-10 09:00:00 | 2024-03-10 10:00:00')
   })
 
   it('renders proxy area as province and city selectors', () => {
-    const shell = applyConfigToShell(
-      emptyShellState,
-      settings,
-      normalizeRuntimeConfig({
-        url: 'https://www.wjx.cn/vm/demo.aspx',
-        random_ip_enabled: true,
-        proxy_area_code: '110100',
-      }),
-      null,
-    )
-
-    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} onFieldChange={() => undefined} />)
+    const html = renderRuntime(runtimeGroups((config) => {
+      config.network.randomProxyEnabled = true
+      config.network.proxyAreaCode = '110100'
+    }))
 
     expect(html).toContain('指定地区')
     expect(html).toContain('选择省份或城市')
   })
 
   it('renders Fluent datetime triggers without the native disclosure control', () => {
-    const shell = applyConfigToShell(
-      emptyShellState,
-      settings,
-      normalizeRuntimeConfig({
-        url: 'https://www.wjx.cn/vm/demo.aspx',
-        answer_datetime_window: ['2024-03-10 09:00:00', '2024-03-10 10:00:00'],
-      }),
-      null,
-    )
-
-    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} onFieldChange={() => undefined} />)
+    const html = renderRuntime(runtimeGroups((config) => {
+      config.execution.answerDatetimeWindow = ['2024-03-10 09:00:00', '2024-03-10 10:00:00']
+    }))
 
     expect(html).toContain('开始时间')
     expect(html).toContain('结束时间')
@@ -80,18 +62,10 @@ describe('RuntimeView data mapping', () => {
   })
 
   it('renders custom proxy API detector', () => {
-    const shell = applyConfigToShell(
-      emptyShellState,
-      settings,
-      normalizeRuntimeConfig({
-        url: 'https://www.wjx.cn/vm/demo.aspx',
-        proxy_source: 'custom',
-        custom_proxy_api: 'https://proxy.example/api',
-      }),
-      null,
-    )
-
-    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} onFieldChange={() => undefined} />)
+    const html = renderRuntime(runtimeGroups((config) => {
+      config.network.proxySource = 'custom'
+      config.network.customProxyApi = 'https://proxy.example/api'
+    }))
 
     expect(html).toContain('自定义代理 API')
     expect(html).toContain('检测')
@@ -99,13 +73,10 @@ describe('RuntimeView data mapping', () => {
   })
 
   it('keeps reverse fill controls on the reverse fill page', () => {
-    const config = normalizeRuntimeConfig({
-      url: 'https://www.wjx.cn/vm/demo.aspx',
-      reverse_fill_enabled: true,
-      reverse_fill_source_path: 'D:/answers.xlsx',
-    })
-    const shell = applyConfigToShell(emptyShellState, settings, config, null)
-    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} config={config} onFieldChange={() => undefined} />)
+    const html = renderRuntime(runtimeGroups((config) => {
+      config.reverseFill.enabled = true
+      config.reverseFill.sourcePath = 'D:/answers.xlsx'
+    }))
 
     expect(html).not.toContain('Excel 反填')
     expect(html).not.toContain('反填文件')
@@ -113,18 +84,14 @@ describe('RuntimeView data mapping', () => {
   })
 
   it('renders provider AI controls with test action and prompt editor', () => {
-    const config = normalizeRuntimeConfig({
-      url: 'https://www.wjx.cn/vm/demo.aspx',
-      ai_mode: 'provider',
-      ai_provider: 'custom',
-      ai_api_key: 'sk-test',
-      ai_base_url: 'https://ai.example/v1',
-      ai_api_protocol: 'responses',
-      ai_model: 'demo-model',
-    })
-    const shell = applyConfigToShell(emptyShellState, settings, config, null)
-
-    const html = renderToStaticMarkup(<RuntimeView groups={shell.runtimeGroups} config={config} onFieldChange={() => undefined} />)
+    const html = renderRuntime(runtimeGroups(undefined, (settings) => {
+      settings.aiProfile.mode = 'provider'
+      settings.aiProfile.provider = 'custom'
+      settings.aiProfile.baseURL = 'https://ai.example/v1'
+      settings.aiProfile.apiProtocol = 'responses'
+      settings.aiProfile.model = 'demo-model'
+      settings.aiProfile.hasAPIKey = true
+    }))
 
     expect(html).toContain('隐私声明')
     expect(html).toContain('OpenAI 兼容')

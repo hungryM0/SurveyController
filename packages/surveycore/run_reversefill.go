@@ -9,25 +9,25 @@ import (
 	"surveycontroller/surveycore/reversefill"
 )
 
-func (c *Client) prepareReverseFillExecution(ctx context.Context, cfg *RuntimeConfig, provider string, options ExecutionOptions) (*RuntimeConfig, ExecutionOptions, error) {
+func (c *Client) prepareReverseFillExecution(ctx context.Context, cfg *RunRequest, provider string, options ExecutionOptions) (*RunRequest, ExecutionOptions, error) {
 	if cfg == nil {
 		return nil, options, fmt.Errorf("%w: 配置为空", ErrInvalidConfig)
 	}
-	runCfg := cloneRuntimeConfig(cfg)
-	if !runCfg.ReverseFillEnabled || strings.TrimSpace(runCfg.ReverseFillSourcePath) == "" {
+	runCfg := cloneRunRequest(cfg)
+	if !runCfg.ReverseFillPlan.Enabled || strings.TrimSpace(runCfg.ReverseFillPlan.SourcePath) == "" {
 		return &runCfg, options, nil
 	}
 	if provider != model.ProviderWJX {
 		return nil, options, fmt.Errorf("%w: 反填 V1 目前只支持问卷星", ErrUnsupportedOperation)
 	}
-	if len(runCfg.QuestionsInfo) == 0 {
-		definition, err := c.Parse(ctx, runCfg.URL)
+	if len(runCfg.SurveyDefinition.Questions) == 0 {
+		definition, err := c.Parse(ctx, runCfg.SurveySource.URL)
 		if err != nil {
 			return nil, options, fmt.Errorf("%w: 反填需要先解析问卷: %v", ErrParseFailed, err)
 		}
 		populateConfigSurveyDefinition(&runCfg, definition)
 	}
-	ensureQuestionEntries(&runCfg)
+	ensureQuestionStrategies(&runCfg)
 
 	target := options.Target
 	if target <= 0 {
@@ -37,10 +37,10 @@ func (c *Client) prepareReverseFillExecution(ctx context.Context, cfg *RuntimeCo
 		target = 1
 	}
 	preview, err := reversefill.PreviewExcel(reversefill.PreviewOptions{
-		Path:          runCfg.ReverseFillSourcePath,
-		Format:        runCfg.ReverseFillFormat,
-		StartRow:      runCfg.ReverseFillStartRow,
-		Questions:     runCfg.QuestionsInfo,
+		Path:          runCfg.ReverseFillPlan.SourcePath,
+		Format:        runCfg.ReverseFillPlan.Format,
+		StartRow:      runCfg.ReverseFillPlan.StartRow,
+		Questions:     runCfg.SurveyDefinition.Questions,
 		MaxSampleRows: target,
 	})
 	if err != nil {
@@ -60,35 +60,34 @@ func (c *Client) prepareReverseFillExecution(ctx context.Context, cfg *RuntimeCo
 	}
 
 	samples := append([]reversefill.SampleRow(nil), preview.SampleRows...)
-	if runCfg.ReverseFillThreads > 0 {
-		options.Threads = runCfg.ReverseFillThreads
-		runCfg.Threads = runCfg.ReverseFillThreads
+	if runCfg.ReverseFillPlan.Threads > 0 {
+		options.Threads = runCfg.ReverseFillPlan.Threads
 	}
 	options.Target = target
 	runCfg.Target = target
 
-	configure := options.ConfigureRun
-	options.ConfigureRun = func(ctx context.Context, jobIndex int, attempt int, local *RuntimeConfig) error {
+	configure := options.ConfigureJob
+	options.ConfigureJob = func(ctx context.Context, jobIndex int, attempt int, job *JobRequest) error {
 		if configure != nil {
-			if err := configure(ctx, jobIndex, attempt, local); err != nil {
+			if err := configure(ctx, jobIndex, attempt, job); err != nil {
 				return err
 			}
 		}
 		if jobIndex < 0 || jobIndex >= len(samples) {
 			return fmt.Errorf("%w: 反填任务序号超出样本范围", ErrPrepareConfigFailed)
 		}
-		entries, err := applyReverseFillSample(local.QuestionEntries, local.QuestionsInfo, samples[jobIndex])
+		entries, err := applyReverseFillSample(job.Answers.Strategies, job.Submission.Definition.Questions, samples[jobIndex])
 		if err != nil {
 			return err
 		}
-		local.QuestionEntries = entries
+		job.Answers.Strategies = entries
 		return nil
 	}
 	return &runCfg, options, nil
 }
 
-func applyReverseFillSample(entries []QuestionEntry, questions []QuestionMeta, sample reversefill.SampleRow) ([]QuestionEntry, error) {
-	cloned := cloneQuestionEntries(entries)
+func applyReverseFillSample(entries []QuestionStrategy, questions []QuestionMeta, sample reversefill.SampleRow) ([]QuestionStrategy, error) {
+	cloned := cloneQuestionStrategies(entries)
 	questionByNum := map[int]QuestionMeta{}
 	for _, question := range questions {
 		questionByNum[question.Num] = question
@@ -106,7 +105,7 @@ func applyReverseFillSample(entries []QuestionEntry, questions []QuestionMeta, s
 		}
 		index, ok := entryIndex[questionNum]
 		if !ok {
-			defaults := buildDefaultQuestionEntries([]QuestionMeta{question})
+			defaults := buildDefaultQuestionStrategies([]QuestionMeta{question})
 			if len(defaults) == 0 {
 				continue
 			}
@@ -123,7 +122,7 @@ func applyReverseFillSample(entries []QuestionEntry, questions []QuestionMeta, s
 	return cloned, nil
 }
 
-func applyReverseFillAnswer(entry *QuestionEntry, question QuestionMeta, answer reversefill.Answer) error {
+func applyReverseFillAnswer(entry *QuestionStrategy, question QuestionMeta, answer reversefill.Answer) error {
 	if entry.QuestionNum == nil {
 		num := question.Num
 		entry.QuestionNum = &num
@@ -144,17 +143,17 @@ func applyReverseFillAnswer(entry *QuestionEntry, question QuestionMeta, answer 
 		if err != nil {
 			return err
 		}
-		entry.QuestionType = questionTypeName(question)
+		entry.QuestionType = model.QuestionKind(questionTypeName(question))
 		entry.OptionCount = len(values)
-		entry.Probabilities = values
+		entry.Probabilities = model.OptionWeights(values...)
 	case reversefill.KindText:
 		entry.QuestionType = "text"
 		entry.Texts = []string{strings.TrimSpace(answer.TextValue)}
-		entry.Probabilities = []float64{1}
+		entry.Probabilities = model.OptionWeights(1)
 	case reversefill.KindMultiText:
 		entry.QuestionType = "text"
 		entry.Texts = append([]string(nil), answer.TextValues...)
-		entry.Probabilities = []float64{1}
+		entry.Probabilities = model.OptionWeights(1)
 	case reversefill.KindMatrix:
 		values, err := matrixProbabilities(question, *entry, answer.MatrixChoiceIndexes)
 		if err != nil {
@@ -165,14 +164,14 @@ func applyReverseFillAnswer(entry *QuestionEntry, question QuestionMeta, answer 
 		if len(values) > 0 {
 			entry.OptionCount = len(values[0])
 		}
-		entry.Probabilities = values
+		entry.Probabilities = model.RowWeights(values...)
 	default:
 		return fmt.Errorf("%w: 第%d题反填类型不支持：%s", ErrPrepareConfigFailed, question.Num, answer.Kind)
 	}
 	return nil
 }
 
-func optionCountForReverseFill(question QuestionMeta, entry QuestionEntry) int {
+func optionCountForReverseFill(question QuestionMeta, entry QuestionStrategy) int {
 	if question.Options > 0 {
 		return question.Options
 	}
@@ -185,7 +184,7 @@ func optionCountForReverseFill(question QuestionMeta, entry QuestionEntry) int {
 	return 1
 }
 
-func matrixProbabilities(question QuestionMeta, entry QuestionEntry, indexes []int) ([][]float64, error) {
+func matrixProbabilities(question QuestionMeta, entry QuestionStrategy, indexes []int) ([][]float64, error) {
 	rows := question.Rows
 	if rows <= 0 {
 		rows = entry.Rows
@@ -223,17 +222,6 @@ func oneHotProbabilities(questionNum int, count int, index int) ([]float64, erro
 	return values, nil
 }
 
-func probabilityValues(raw any) []float64 {
-	switch values := raw.(type) {
-	case []float64:
-		return append([]float64(nil), values...)
-	case []int:
-		result := make([]float64, 0, len(values))
-		for _, value := range values {
-			result = append(result, float64(value))
-		}
-		return result
-	default:
-		return nil
-	}
+func probabilityValues(raw model.WeightTable) []float64 {
+	return raw.Values()
 }

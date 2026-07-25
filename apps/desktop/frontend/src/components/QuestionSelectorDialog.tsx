@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Button, InputText } from './ui'
-import type { DimensionQuestionRow } from '../pages/strategyEditor'
+import type { DimensionQuestionRow } from '../pages/strategy-editor'
 
 interface QuestionSelectorDialogProps {
   open: boolean

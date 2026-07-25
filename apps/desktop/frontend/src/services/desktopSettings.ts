@@ -11,8 +11,8 @@ export async function applyTopmostSetting(
   await windowApi.SetAlwaysOnTop(Boolean(settings?.topmost))
 }
 
-export function shouldNotifyTaskResult(settings: Pick<AppSettings, 'taskResultNotification' | 'notifications'> | null | undefined): boolean {
-  return settings?.taskResultNotification ?? settings?.notifications ?? true
+export function shouldNotifyTaskResult(settings: Pick<AppSettings, 'taskResultNotification'> | null | undefined): boolean {
+  return settings?.taskResultNotification ?? true
 }
 
 export function buildTaskResultNotification(

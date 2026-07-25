@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -17,39 +18,18 @@ import (
 )
 
 func TestAppServiceRejectsEmptySurveyURL(t *testing.T) {
-	service := NewAppService()
-	_, err := service.ParseSurvey(context.Background(), ParseSurveyRequest{})
-	if err == nil || !strings.Contains(err.Error(), "问卷链接不能为空") {
-		t.Fatalf("err = %v", err)
-	}
-
-	_, err = service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{})
+	service := newTestAppService()
+	_, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{})
 	if err == nil || !strings.Contains(err.Error(), "问卷链接不能为空") {
 		t.Fatalf("err = %v", err)
 	}
 }
 
 func TestAppServiceProxyStatusUsesCoreTypes(t *testing.T) {
-	service := NewAppService()
+	service := newTestAppService()
 	status := service.GetProxyStatus()
 	if status.Available != 0 || status.InUse != 0 || status.RemainingQuota != "0" {
 		t.Fatalf("status = %#v", status)
-	}
-}
-
-func TestAppServiceShellStateStartsFromRealEmptyState(t *testing.T) {
-	service := NewAppService()
-	state := service.GetShellState()
-	if state.Dashboard.SurveyURL != "" || state.Dashboard.QuestionCount != 0 || state.Dashboard.ProgressCurrent != 0 {
-		t.Fatalf("dashboard = %#v", state.Dashboard)
-	}
-	if state.Dashboard.SurveyTitle == "大学生消费观问卷" {
-		t.Fatalf("shell state still contains demo survey: %#v", state.Dashboard)
-	}
-	for _, line := range state.LogLines {
-		if strings.Contains(line, "假数据") || strings.Contains(line, "未接入") {
-			t.Fatalf("shell state contains mock log line: %q", line)
-		}
 	}
 }
 
@@ -72,13 +52,13 @@ func TestAppServiceProxyRuntimeUsesCustomAPI(t *testing.T) {
 	}))
 	defer server.Close()
 
-	service := NewAppService()
-	options, err := service.proxyRuntime().executionOptions(context.Background(), surveycore.RuntimeConfig{
-		RandomIPEnabled: true,
-		ProxySource:     "custom",
-		CustomProxyAPI:  server.URL,
-		Threads:         2,
-	})
+	service := newTestAppService()
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document.Execution.Threads = 2
+	document.Network.RandomProxyEnabled = true
+	document.Network.ProxySource = "custom"
+	document.Network.CustomProxyAPI = server.URL
+	options, err := service.proxy.executionOptions(context.Background(), document)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,11 +128,11 @@ func TestAppServiceProxyRuntimeUsesOfficialSource(t *testing.T) {
 		ExtractEndpoint: server.URL + "/extract",
 		SessionManager:  manager,
 	})}}
-	options, err := service.proxyRuntime().executionOptions(context.Background(), surveycore.RuntimeConfig{
-		RandomIPEnabled: true,
-		ProxySource:     "default",
-		Threads:         2,
-	})
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document.Execution.Threads = 2
+	document.Network.RandomProxyEnabled = true
+	document.Network.ProxySource = "default"
+	options, err := service.proxy.executionOptions(context.Background(), document)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +251,7 @@ func TestAppServiceRedeemProxyCardUpdatesQuota(t *testing.T) {
 }
 
 func TestAppServiceRedeemProxyCardRejectsBlankCardCode(t *testing.T) {
-	service := NewAppService()
+	service := newTestAppService()
 	state, err := service.RedeemProxyCard(context.Background(), RedeemProxyCardRequest{CardCode: " "})
 	if err == nil || !strings.Contains(err.Error(), "卡密不能为空") {
 		t.Fatalf("err = %v", err)
@@ -346,11 +326,10 @@ func TestAppServiceProxyRuntimeUsesOfficialBenefitSource(t *testing.T) {
 		ExtractEndpoint: server.URL + "/extract",
 		SessionManager:  manager,
 	})}}
-	options, err := service.proxyRuntime().executionOptions(context.Background(), surveycore.RuntimeConfig{
-		RandomIPEnabled: true,
-		ProxySource:     "benefit",
-		Threads:         1,
-	})
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document.Network.RandomProxyEnabled = true
+	document.Network.ProxySource = "benefit"
+	options, err := service.proxy.executionOptions(context.Background(), document)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,11 +377,10 @@ func TestAppServiceProxyRuntimeStopsWhenOfficialQuotaExhaustedAfterSync(t *testi
 		ExtractEndpoint: server.URL + "/extract",
 		SessionManager:  manager,
 	})}}
-	_, err := service.proxyRuntime().executionOptions(context.Background(), surveycore.RuntimeConfig{
-		RandomIPEnabled: true,
-		ProxySource:     "default",
-		Threads:         1,
-	})
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document.Network.RandomProxyEnabled = true
+	document.Network.ProxySource = "default"
+	_, err := service.proxy.executionOptions(context.Background(), document)
 	if err == nil || !strings.Contains(err.Error(), "额度已用完") {
 		t.Fatalf("err = %v", err)
 	}
@@ -418,103 +396,98 @@ func TestAppServiceProxyRuntimeStopsWhenOfficialQuotaExhaustedAfterSync(t *testi
 func TestAppServiceParsesTencentViaCoreClient(t *testing.T) {
 	server := newAppTencentServer(t)
 	defer server.Close()
-	service := &AppService{survey: surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))}
+	service := newTestAppService()
+	service.runs.survey = surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))
 
-	state, err := service.ParseSurvey(context.Background(), ParseSurveyRequest{URL: "https://wj.qq.com/s2/123/hashvalue/"})
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: "https://wj.qq.com/s2/123/hashvalue/"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.Definition == nil || state.Definition.Provider != surveycore.ProviderQQ || len(state.Definition.Questions) != 2 {
-		t.Fatalf("state = %#v", state)
+	if document.Survey.Definition.Provider != surveycore.ProviderQQ || len(document.Survey.Definition.Questions) != 2 {
+		t.Fatalf("document = %#v", document)
 	}
-
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: "https://wj.qq.com/s2/123/hashvalue/"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if configState.Config == nil || configState.Config.SurveyProvider != surveycore.ProviderQQ || len(configState.Config.QuestionsInfo) != 2 {
-		t.Fatalf("configState = %#v", configState)
+	if document.Survey.Provider != surveycore.ProviderQQ || len(document.Answers.Strategies) != 2 {
+		t.Fatalf("document = %#v", document)
 	}
 }
 
 func TestAppServiceParsesCredamoViaCoreClient(t *testing.T) {
 	server := newAppCredamoServer(t)
 	defer server.Close()
-	service := NewAppService()
+	service := newTestAppService()
 
-	state, err := service.ParseSurvey(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.Definition == nil || state.Definition.Provider != surveycore.ProviderCredamo || len(state.Definition.Questions) != 2 {
-		t.Fatalf("state = %#v", state)
+	if document.Survey.Definition.Provider != surveycore.ProviderCredamo || len(document.Survey.Definition.Questions) != 2 {
+		t.Fatalf("document = %#v", document)
 	}
-
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if configState.Config == nil || configState.Config.SurveyProvider != surveycore.ProviderCredamo || len(configState.Config.QuestionEntries) != 2 {
-		t.Fatalf("configState = %#v", configState)
+	if document.Survey.Provider != surveycore.ProviderCredamo || len(document.Answers.Strategies) != 2 {
+		t.Fatalf("document = %#v", document)
 	}
 }
 
-func TestAppServiceRunSurveySubmitsTencentAndEvents(t *testing.T) {
+func TestAppServiceStartRunSubmitsTencentAndEmitsEvents(t *testing.T) {
 	server := newAppTencentServer(t)
 	defer server.Close()
-	service := &AppService{survey: surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))}
-	state, err := service.RunSurvey(context.Background(), RunSurveyRequest{
-		Config: surveycore.RuntimeConfig{
-			URL:            "https://wj.qq.com/s2/123/hashvalue/",
-			SurveyProvider: surveycore.ProviderQQ,
-			Target:         1,
-		},
-	})
+	service := newTestAppService()
+	service.runs.survey = surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))
+	document := testConfigDocument("https://wj.qq.com/s2/123/hashvalue/", surveycore.ProviderQQ)
+	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
-	if state.Result == nil || state.Result.Success != 1 || len(state.Events) == 0 {
-		t.Fatalf("state = %#v", state)
+	if state.Status != RunTaskStatusRunning {
+		t.Fatalf("initial state = %#v", state)
+	}
+	final := waitAppRun(t, service)
+	if final.Result == nil || final.Result.Success != 1 || len(final.Events) == 0 {
+		t.Fatalf("final state = %#v", final)
 	}
 }
 
 func TestAppServiceStartRunStoresTaskState(t *testing.T) {
 	server := newAppCredamoRunServer(t)
 	defer server.Close()
-	service := NewAppService()
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
+	service := newTestAppService()
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	configState.Config.Target = 1
+	document.Execution.Target = 1
 
-	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: *configState.Config})
+	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !state.Running || state.StartedAt.IsZero() {
+	if state.Status != RunTaskStatusRunning || state.StartedAt.IsZero() || state.RunID == "" {
 		t.Fatalf("initial state = %#v", state)
 	}
 	final := waitAppRun(t, service)
-	if final.Running || final.Result == nil || final.Result.Success != 1 || len(final.Events) == 0 {
+	if final.Status != RunTaskStatusSucceeded || final.Result == nil || final.Result.Success != 1 || len(final.Events) == 0 {
 		t.Fatalf("final state = %#v", final)
 	}
 }
 
 func TestAppServiceRunStateCapsEventsSnapshot(t *testing.T) {
-	service := NewAppService()
-	service.runMu.Lock()
-	for i := 0; i < maxRunTaskStateEvents+5; i++ {
-		service.run.Events = append(service.run.Events, surveycore.Event{Current: i + 1})
+	service := newTestAppService()
+	manager := service.runs
+	_, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if _, err := manager.start("test-run", time.Now(), cancel, newRunPauseController(), nil); err != nil {
+		t.Fatal(err)
 	}
-	service.runMu.Unlock()
+	for i := 0; i < maxRunTaskStateEvents+5; i++ {
+		manager.append(surveycore.Event{Current: i + 1})
+	}
 
-	state := service.GetRunTaskState()
+	state := service.GetRunTaskState(RunTaskStateRequest{})
 	if len(state.Events) != maxRunTaskStateEvents {
 		t.Fatalf("events len = %d", len(state.Events))
 	}
-	if state.Events[0].Current != 6 || state.Events[len(state.Events)-1].Current != maxRunTaskStateEvents+5 {
-		t.Fatalf("events window = first %d last %d", state.Events[0].Current, state.Events[len(state.Events)-1].Current)
+	if state.Events[0].Event.Current != 6 || state.Events[len(state.Events)-1].Event.Current != maxRunTaskStateEvents+5 {
+		t.Fatalf("events window = first %d last %d", state.Events[0].Event.Current, state.Events[len(state.Events)-1].Event.Current)
 	}
 }
 
@@ -522,17 +495,17 @@ func TestAppServiceStartRunBlocksSleepWhenEnabled(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
 	server := newAppCredamoRunServer(t)
 	defer server.Close()
-	service := NewAppService()
+	service := newTestAppService()
 	blocker := &fakeSleepBlocker{acquireResult: true}
-	service.sleep = blocker
+	service.runs.sleep = blocker
 
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	configState.Config.Target = 1
+	document.Execution.Target = 1
 
-	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: *configState.Config}); err != nil {
+	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document}); err != nil {
 		t.Fatal(err)
 	}
 	waitAppRun(t, service)
@@ -545,9 +518,9 @@ func TestAppServiceStartRunSkipsSleepBlockerWhenDisabled(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
 	server := newAppCredamoRunServer(t)
 	defer server.Close()
-	service := NewAppService()
+	service := newTestAppService()
 	blocker := &fakeSleepBlocker{acquireResult: true}
-	service.sleep = blocker
+	service.runs.sleep = blocker
 
 	settings, err := service.GetAppSettings()
 	if err != nil {
@@ -558,13 +531,13 @@ func TestAppServiceStartRunSkipsSleepBlockerWhenDisabled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	configState.Config.Target = 1
+	document.Execution.Target = 1
 
-	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: *configState.Config}); err != nil {
+	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document}); err != nil {
 		t.Fatal(err)
 	}
 	waitAppRun(t, service)
@@ -581,21 +554,20 @@ func TestAppServiceStartRunReportsSubmissionWhenEnabled(t *testing.T) {
 	manager := proxycore.NewOfficialSessionManager(proxycore.OfficialSessionManagerOptions{
 		InitialSession: proxycore.RandomIPSession{DeviceID: "device-1", UserID: 73952},
 	})
-	service := &AppService{
-		survey:   surveycore.New(),
-		proxy:    &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{SessionManager: manager})},
-		sleep:    noopSleepBlocker{},
-		reporter: reporter,
-	}
+	service := newTestAppService()
+	service.proxy = &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{SessionManager: manager})}
+	service.runs.survey = surveycore.New()
+	service.runs.sleep = noopSleepBlocker{}
+	service.runs.reporter = reporter
 
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	configState.Config.Target = 1
-	configState.Config.ProxySource = "benefit"
+	document.Execution.Target = 1
+	document.Network.ProxySource = "benefit"
 
-	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: *configState.Config}); err != nil {
+	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document}); err != nil {
 		t.Fatal(err)
 	}
 	waitAppRun(t, service)
@@ -616,12 +588,11 @@ func TestAppServiceStartRunSkipsSubmissionReportWhenDisabled(t *testing.T) {
 	manager := proxycore.NewOfficialSessionManager(proxycore.OfficialSessionManagerOptions{
 		InitialSession: proxycore.RandomIPSession{DeviceID: "device-1", UserID: 73952},
 	})
-	service := &AppService{
-		survey:   surveycore.New(),
-		proxy:    &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{SessionManager: manager})},
-		sleep:    noopSleepBlocker{},
-		reporter: reporter,
-	}
+	service := newTestAppService()
+	service.proxy = &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{SessionManager: manager})}
+	service.runs.survey = surveycore.New()
+	service.runs.sleep = noopSleepBlocker{}
+	service.runs.reporter = reporter
 	settings, err := service.GetAppSettings()
 	if err != nil {
 		t.Fatal(err)
@@ -631,13 +602,13 @@ func TestAppServiceStartRunSkipsSubmissionReportWhenDisabled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	configState, err := service.BuildDefaultConfig(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: server.URL + "/s/demo_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	configState.Config.Target = 1
+	document.Execution.Target = 1
 
-	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: *configState.Config}); err != nil {
+	if _, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document}); err != nil {
 		t.Fatal(err)
 	}
 	waitAppRun(t, service)
@@ -645,40 +616,42 @@ func TestAppServiceStartRunSkipsSubmissionReportWhenDisabled(t *testing.T) {
 }
 
 func TestAppServiceCancelRunMarksCanceling(t *testing.T) {
-	service := NewAppService()
-	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: surveycore.RuntimeConfig{
-		URL:            "https://wj.qq.com/s2/123/hashvalue/",
-		SurveyProvider: surveycore.ProviderQQ,
-		Target:         1,
-	}})
+	service := newTestAppService()
+	document := testConfigDocument("https://wj.qq.com/s2/123/hashvalue/", surveycore.ProviderQQ)
+	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !state.Running {
+	if state.Status != RunTaskStatusRunning {
 		t.Fatalf("initial state = %#v", state)
 	}
 	state, err = service.CancelRun(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !state.Canceling && state.Running {
+	if state.Status != RunTaskStatusCanceling && state.Status != RunTaskStatusStopped {
 		t.Fatalf("cancel state = %#v", state)
 	}
 }
 
 func TestAppServicePauseAndResumeRunState(t *testing.T) {
-	service := &AppService{
-		run:   RunTaskState{Running: true},
-		pause: newRunPauseController(),
+	pause := newRunPauseController()
+	manager := newRunManager()
+	_, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if _, err := manager.start("test-run", time.Now(), cancel, pause, nil); err != nil {
+		t.Fatal(err)
 	}
+	service := newTestAppService()
+	service.runs = manager
 	state, err := service.PauseRun(context.Background(), "风控")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !state.Paused || state.PauseReason != "风控" {
+	if state.Status != RunTaskStatusPaused || state.PauseReason != "风控" {
 		t.Fatalf("pause state = %#v", state)
 	}
-	paused, reason := service.pause.Snapshot()
+	paused, reason := pause.Snapshot()
 	if !paused || reason != "风控" {
 		t.Fatalf("controller paused=%v reason=%q", paused, reason)
 	}
@@ -687,29 +660,29 @@ func TestAppServicePauseAndResumeRunState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.Paused || state.PauseReason != "" {
+	if state.Status != RunTaskStatusRunning || state.PauseReason != "" {
 		t.Fatalf("resume state = %#v", state)
 	}
-	paused, _ = service.pause.Snapshot()
+	paused, _ = pause.Snapshot()
 	if paused {
 		t.Fatal("controller is still paused")
 	}
 }
 
 func TestAppServicePauseRunRejectsIdleState(t *testing.T) {
-	service := NewAppService()
+	service := newTestAppService()
 	state, err := service.PauseRun(context.Background(), "")
 	if err == nil || !strings.Contains(err.Error(), "没有正在运行的任务") {
 		t.Fatalf("err = %v", err)
 	}
-	if state.Paused {
+	if state.Status != RunTaskStatusIdle {
 		t.Fatalf("state = %#v", state)
 	}
 }
 
 func TestAppServiceSettingsRoundTripUsesConfigHome(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
+	service := newTestAppService()
 
 	settings, err := service.GetAppSettings()
 	if err != nil {
@@ -736,14 +709,14 @@ func TestAppServiceSettingsRoundTripUsesConfigHome(t *testing.T) {
 	if loaded.ThemeMode != "dark" || loaded.ShowNavigationText || saved.AutosaveLogCount != 10 {
 		t.Fatalf("settings = %#v saved = %#v", loaded, saved)
 	}
-	if loaded.AskSaveOnClose || loaded.PreventSleepDuringRun || loaded.TaskResultNotification || loaded.SubmissionReportTelemetry || loaded.AutoCheckUpdate || loaded.AutoSaveLogs || loaded.Notifications {
+	if loaded.AskSaveOnClose || loaded.PreventSleepDuringRun || loaded.TaskResultNotification || loaded.SubmissionReportTelemetry || loaded.AutoCheckUpdate || loaded.AutoSaveLogs {
 		t.Fatalf("settings = %#v saved = %#v", loaded, saved)
 	}
 }
 
 func TestAppServiceResetAppSettingsRestoresDefaults(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
+	service := newTestAppService()
 
 	saved, err := service.SaveAppSettings(context.Background(), SaveSettingsRequest{Settings: AppSettings{
 		ConfigDirectory:    "D:/custom",
@@ -769,7 +742,7 @@ func TestAppServiceResetAppSettingsRestoresDefaults(t *testing.T) {
 	if reset.ThemeMode != "system" || !reset.ShowNavigationText || !reset.MicaEnabled || reset.Topmost || reset.AutosaveLogCount != 10 {
 		t.Fatalf("reset = %#v", reset)
 	}
-	if !reset.AskSaveOnClose || !reset.PreventSleepDuringRun || !reset.TaskResultNotification || !reset.SubmissionReportTelemetry || !reset.AutoCheckUpdate || !reset.AutoSaveLogs || !reset.Notifications {
+	if !reset.AskSaveOnClose || !reset.PreventSleepDuringRun || !reset.TaskResultNotification || !reset.SubmissionReportTelemetry || !reset.AutoCheckUpdate || !reset.AutoSaveLogs {
 		t.Fatalf("reset = %#v", reset)
 	}
 
@@ -804,14 +777,17 @@ func TestAppServiceTestAIConnection(t *testing.T) {
 	}))
 	defer server.Close()
 
-	state := NewAppService().TestAIConnection(context.Background(), TestAIConnectionRequest{
-		Config: surveycore.RuntimeConfig{
-			AIMode:        "provider",
-			AIProvider:    "custom",
-			AIAPIKey:      "sk-test",
-			AIBaseURL:     server.URL + "/v1",
-			AIAPIProtocol: "chat_completions",
-			AIModel:       "demo-model",
+	service := newTestAppService()
+	if err := service.credentials.Write(context.Background(), aiCredentialTarget, "sk-test"); err != nil {
+		t.Fatal(err)
+	}
+	state := service.TestAIConnection(context.Background(), TestAIConnectionRequest{
+		AIProfile: AIProfileSettings{
+			Mode:        "provider",
+			Provider:    "custom",
+			BaseURL:     server.URL + "/v1",
+			APIProtocol: "chat_completions",
+			Model:       "demo-model",
 		},
 	})
 	if !state.Success || !strings.Contains(state.Message, "连接成功") {
@@ -821,8 +797,8 @@ func TestAppServiceTestAIConnection(t *testing.T) {
 		t.Fatalf("requests = %d", requests)
 	}
 
-	failed := NewAppService().TestAIConnection(context.Background(), TestAIConnectionRequest{
-		Config: surveycore.RuntimeConfig{AIMode: "provider", AIProvider: "custom"},
+	failed := newTestAppService().TestAIConnection(context.Background(), TestAIConnectionRequest{
+		AIProfile: AIProfileSettings{Mode: "provider", Provider: "custom"},
 	})
 	if failed.Success || !strings.Contains(failed.Message, "API Key") {
 		t.Fatalf("failed = %#v", failed)
@@ -836,7 +812,7 @@ func TestAppServiceLoadLegacySettingsAppliesNewDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service := NewAppService()
+	service := newTestAppService()
 	settings, err := service.GetAppSettings()
 	if err != nil {
 		t.Fatal(err)
@@ -844,7 +820,7 @@ func TestAppServiceLoadLegacySettingsAppliesNewDefaults(t *testing.T) {
 	if settings.ThemeMode != "dark" || settings.AutosaveLogCount != 5 {
 		t.Fatalf("settings = %#v", settings)
 	}
-	if settings.TaskResultNotification || settings.Notifications {
+	if settings.TaskResultNotification {
 		t.Fatalf("legacy notification value was not preserved: %#v", settings)
 	}
 	if !settings.AskSaveOnClose || !settings.PreventSleepDuringRun || !settings.SubmissionReportTelemetry || !settings.AutoCheckUpdate || !settings.AutoSaveLogs {
@@ -852,12 +828,8 @@ func TestAppServiceLoadLegacySettingsAppliesNewDefaults(t *testing.T) {
 	}
 }
 
-func TestAppServiceCloseConfirmationState(t *testing.T) {
-	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
-	if !service.ShouldConfirmClose() {
-		t.Fatal("close should ask by default")
-	}
+func TestWindowServiceCloseConfirmationIsOneShot(t *testing.T) {
+	service := &WindowService{}
 	if service.consumeCloseConfirmed() {
 		t.Fatal("close confirmation should not be pre-confirmed")
 	}
@@ -868,22 +840,33 @@ func TestAppServiceCloseConfirmationState(t *testing.T) {
 	if service.consumeCloseConfirmed() {
 		t.Fatal("close confirmation should be one-shot")
 	}
+}
 
+func TestAppSettingsCloseConfirmationRoundTrip(t *testing.T) {
+	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
+	service := newTestAppService()
 	settings, err := service.GetAppSettings()
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !settings.AskSaveOnClose {
+		t.Fatal("close should ask by default")
 	}
 	settings.AskSaveOnClose = false
 	if _, err := service.SaveAppSettings(context.Background(), SaveSettingsRequest{Settings: settings}); err != nil {
 		t.Fatal(err)
 	}
-	if service.ShouldConfirmClose() {
+	loaded, err := service.GetAppSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.AskSaveOnClose {
 		t.Fatal("close should not ask when disabled")
 	}
 }
 
 func TestAppServiceExportLogLinesWritesFile(t *testing.T) {
-	service := NewAppService()
+	service := newTestAppService()
 	path := filepath.Join(t.TempDir(), "runtime.log")
 
 	saved, err := service.ExportLogLines(path, []string{"[core] start", "[core] done"})
@@ -902,76 +885,18 @@ func TestAppServiceExportLogLinesWritesFile(t *testing.T) {
 	}
 }
 
-func TestAutoSaveRunLogWritesLastSessionAndPrunes(t *testing.T) {
-	localRoot := t.TempDir()
-	t.Setenv("SURVEYCONTROLLER_LOCAL_DATA_HOME", localRoot)
-	logsDir := filepath.Join(localRoot, "logs")
-	if err := os.MkdirAll(logsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	oldPath := filepath.Join(logsDir, "session_20000101_000000.log")
-	if err := os.WriteFile(oldPath, []byte("old\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	saved, err := autoSaveRunLog(AppSettings{AutoSaveLogs: true, AutosaveLogCount: 1}, []surveycore.Event{
-		{Worker: "worker-1", Message: "start"},
-		{Worker: "worker-1", Message: "done"},
-	}, time.Date(2026, 6, 30, 14, 45, 0, 0, time.Local))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.HasSuffix(filepath.Base(saved), ".log") {
-		t.Fatalf("saved = %q", saved)
-	}
-	last, err := os.ReadFile(filepath.Join(logsDir, "last_session.log"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(last) != "[worker-1] start\n[worker-1] done\n" {
-		t.Fatalf("last = %q", string(last))
-	}
-	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
-		t.Fatalf("old log was not pruned: %v", err)
-	}
-}
-
-func TestAutoSaveRunLogDisabledRemovesLastSession(t *testing.T) {
-	localRoot := t.TempDir()
-	t.Setenv("SURVEYCONTROLLER_LOCAL_DATA_HOME", localRoot)
-	logsDir := filepath.Join(localRoot, "logs")
-	if err := os.MkdirAll(logsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	lastPath := filepath.Join(logsDir, "last_session.log")
-	if err := os.WriteFile(lastPath, []byte("old\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := autoSaveRunLog(AppSettings{AutoSaveLogs: false, AutosaveLogCount: 10}, []surveycore.Event{{Message: "ignored"}}, time.Now()); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(lastPath); !os.IsNotExist(err) {
-		t.Fatalf("last_session.log was not removed: %v", err)
-	}
-}
-
 func TestAppServiceConfigRoundTrip(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
+	service := newTestAppService()
 
-	state, err := service.SaveConfig(context.Background(), SaveConfigRequest{
-		Config: surveycore.RuntimeConfig{
-			URL:                   "https://wj.qq.com/s2/123/hash/",
-			SurveyTitle:           "腾讯配置",
-			SurveyProvider:        surveycore.ProviderQQ,
-			Target:                6,
-			Threads:               2,
-			RandomIPEnabled:       true,
-			ReverseFillEnabled:    true,
-			ReverseFillSourcePath: "D:/demo.xlsx",
-		},
-	})
+	document := testConfigDocument("https://wj.qq.com/s2/123/hash/", surveycore.ProviderQQ)
+	document.Survey.Title = "腾讯配置"
+	document.Execution.Target = 6
+	document.Execution.Threads = 2
+	document.Network.RandomProxyEnabled = true
+	document.ReverseFill.Enabled = true
+	document.ReverseFill.SourcePath = "D:/demo.xlsx"
+	state, err := service.SaveConfig(context.Background(), SaveConfigRequest{Config: document})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -983,92 +908,91 @@ func TestAppServiceConfigRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Config == nil || loaded.Config.Target != 6 || !loaded.Config.RandomIPEnabled || !loaded.Config.ReverseFillEnabled {
+	if loaded.Config == nil || loaded.Config.Execution.Target != 6 || !loaded.Config.Network.RandomProxyEnabled || !loaded.Config.ReverseFill.Enabled {
 		t.Fatalf("loaded = %#v", loaded)
 	}
 }
 
-func TestAppServiceLoadConfigAppliesAIRuntimeDefaults(t *testing.T) {
+func TestAppServiceMigratesLegacySettingsAIProfileAndCredential(t *testing.T) {
 	configRoot := t.TempDir()
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", configRoot)
-	settings := defaultAppSettings()
-	settings.RuntimeDefaults = map[string]string{
-		"ai_mode":         "provider",
-		"ai_provider":     "custom",
-		"ai_api_key":      "sk-local",
-		"ai_base_url":     "https://ai.example/v1",
-		"ai_api_protocol": "responses",
-		"ai_model":        "demo-model",
-	}
-	if _, err := saveAppSettings(settings); err != nil {
+	legacy := `{"themeMode":"dark","runtimeDefaults":{"ai_mode":"provider","ai_provider":"custom","ai_api_key":"sk-local","ai_base_url":"https://ai.example/v1","ai_api_protocol":"responses","ai_model":"demo-model"}}`
+	path := filepath.Join(configRoot, "settings.json")
+	if err := os.WriteFile(path, []byte(legacy), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(configRoot, "no-ai.json")
-	if err := os.WriteFile(path, []byte(`{"url":"https://www.wjx.cn/vm/demo.aspx","target":2}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	state, err := NewAppService().LoadConfig(context.Background(), LoadConfigRequest{Path: path})
+	service := newTestAppService()
+	settings, err := service.GetAppSettings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.Config == nil || state.Config.AIAPIKey != "sk-local" || state.Config.AIProvider != "custom" || state.Config.AIAPIProtocol != "responses" {
-		t.Fatalf("config = %#v", state.Config)
+	if settings.AIProfile.Mode != "provider" || settings.AIProfile.Provider != "custom" || settings.AIProfile.APIProtocol != "responses" || !settings.AIProfile.HasAPIKey {
+		t.Fatalf("settings = %#v", settings)
+	}
+	store := service.credentials.(*memoryCredentialStore)
+	if store.secret(aiCredentialTarget) != "sk-local" {
+		t.Fatalf("credential = %q", store.secret(aiCredentialTarget))
+	}
+	rewritten, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(rewritten, []byte("sk-local")) || bytes.Contains(rewritten, []byte("runtimeDefaults")) {
+		t.Fatalf("legacy secret remained in settings: %s", rewritten)
 	}
 }
 
-func TestAppServiceLoadConfigKeepsFileAISettings(t *testing.T) {
+func TestAppServiceMigratesLegacyConfigCredentialAndNetwork(t *testing.T) {
 	configRoot := t.TempDir()
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", configRoot)
-	settings := defaultAppSettings()
-	settings.RuntimeDefaults = map[string]string{"ai_api_key": "sk-local"}
-	if _, err := saveAppSettings(settings); err != nil {
-		t.Fatal(err)
-	}
 	path := filepath.Join(configRoot, "with-ai.json")
-	if err := os.WriteFile(path, []byte(`{"url":"https://www.wjx.cn/vm/demo.aspx","ai_mode":"provider","ai_provider":"deepseek","ai_api_key":"sk-file"}`), 0o644); err != nil {
+	legacy := `{"url":"https://www.wjx.cn/vm/demo.aspx","target":7,"threads":3,"random_ip_enabled":true,"proxy_source":"custom","custom_proxy_api":"https://proxy.example/api","random_ua_enabled":true,"random_ua_ratios":{"wechat":50,"mobile":25,"pc":25},"ai_api_key":"sk-file"}`
+	if err := os.WriteFile(path, []byte(legacy), 0o644); err != nil {
 		t.Fatal(err)
 	}
-
-	state, err := NewAppService().LoadConfig(context.Background(), LoadConfigRequest{Path: path})
+	service := newTestAppService()
+	state, err := service.LoadConfig(context.Background(), LoadConfigRequest{Path: path})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.Config == nil || state.Config.AIAPIKey != "sk-file" {
-		t.Fatalf("config = %#v", state.Config)
+	if state.Config == nil || state.Config.Execution.Target != 7 || state.Config.Execution.Threads != 3 || !state.Config.Network.RandomProxyEnabled || state.Config.Network.CustomProxyAPI != "https://proxy.example/api" {
+		t.Fatalf("document = %#v", state.Config)
+	}
+	store := service.credentials.(*memoryCredentialStore)
+	if store.secret(aiCredentialTarget) != "sk-file" {
+		t.Fatalf("credential = %q", store.secret(aiCredentialTarget))
+	}
+	rewritten, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(rewritten, []byte("sk-file")) || !bytes.Contains(rewritten, []byte(`"schemaVersion": 2`)) {
+		t.Fatalf("legacy config was not cleaned: %s", rewritten)
 	}
 }
 
-func TestAppServiceSaveConfigPersistsAIRuntimeDefaults(t *testing.T) {
+func TestAppServiceSaveConfigDoesNotPersistAICredential(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
-
-	_, err := service.SaveConfig(context.Background(), SaveConfigRequest{
-		Config: surveycore.RuntimeConfig{
-			URL:           "https://www.wjx.cn/vm/demo.aspx",
-			AIMode:        "provider",
-			AIProvider:    "custom",
-			AIAPIKey:      "sk-save",
-			AIBaseURL:     "https://ai.example/v1",
-			AIAPIProtocol: "responses",
-			AIModel:       "demo-model",
-		},
-	})
+	service := newTestAppService()
+	if err := service.credentials.Write(context.Background(), aiCredentialTarget, "sk-save"); err != nil {
+		t.Fatal(err)
+	}
+	state, err := service.SaveConfig(context.Background(), SaveConfigRequest{Config: testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	settings, err := loadAppSettings()
+	raw, err := os.ReadFile(state.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if settings.RuntimeDefaults["ai_api_key"] != "sk-save" || settings.RuntimeDefaults["ai_provider"] != "custom" {
-		t.Fatalf("runtime defaults = %#v", settings.RuntimeDefaults)
+	if bytes.Contains(raw, []byte("sk-save")) || bytes.Contains(bytes.ToLower(raw), []byte("apikey")) {
+		t.Fatalf("credential leaked into config: %s", raw)
 	}
 }
 
 func TestAppServiceLoadDefaultConfigMissingReturnsEmpty(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
-	service := NewAppService()
+	service := newTestAppService()
 
 	state, err := service.LoadConfig(context.Background(), LoadConfigRequest{})
 	if err != nil {
@@ -1092,7 +1016,7 @@ func TestAppServicePreviewReverseFill(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service := NewAppService()
+	service := newTestAppService()
 	preview, err := service.PreviewReverseFill(context.Background(), ReverseFillPreviewRequest{
 		Path:     path,
 		Format:   "wjx_text",
@@ -1199,8 +1123,8 @@ func waitAppRun(t *testing.T, service *AppService) RunTaskState {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		state := service.GetRunTaskState()
-		if !state.Running {
+		state := service.GetRunTaskState(RunTaskStateRequest{})
+		if !isActiveRunStatus(state.Status) {
 			return state
 		}
 		time.Sleep(10 * time.Millisecond)

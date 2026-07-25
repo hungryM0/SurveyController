@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"surveycontroller/surveycore/internal/model"
 	"surveycontroller/surveycore/internal/runerror"
 )
 
@@ -40,15 +41,24 @@ type ExecutionOptions struct {
 	Threads         int
 	MaxRetries      int
 	FailStop        bool
+	UseRandomIP     bool
 	RetryDelay      time.Duration
 	CooldownOnError time.Duration
 	LeaseManager    LeaseManager
 	PauseController PauseController
 	Now             func() time.Time
-	ConfigureRun    func(ctx context.Context, jobIndex int, attempt int, cfg *RuntimeConfig) error
+	UserAgent       model.UserAgentSettings
+	AIProfile       model.AIProfile
+	AnswerRuntime   model.AnswerRuntime
+	ConfigureJob    func(ctx context.Context, jobIndex int, attempt int, job *JobRequest) error
 }
 
-type SubmitFunc func(ctx context.Context, cfg *RuntimeConfig, handler EventHandler) (*RunResult, error)
+type JobRequest struct {
+	Answers    model.AnswerPlan
+	Submission model.SubmissionRequest
+}
+
+type SubmitFunc func(ctx context.Context, request *model.SubmissionRequest, handler EventHandler) (*RunResult, error)
 
 func ClassifyRunError(err error) ErrorKind {
 	if err == nil {

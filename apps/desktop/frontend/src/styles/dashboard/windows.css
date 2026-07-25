@@ -1,0 +1,130 @@
+.platform-windows .app-root,
+.platform-windows .workspace,
+.platform-windows .app-titlebar,
+.platform-windows .run-footer-modern {
+  backdrop-filter: none !important;
+}
+
+.platform-windows[data-theme="dark"] .run-footer-modern {
+  background: rgba(30, 30, 30, 0.1) !important;
+}
+
+.dashboard-shell {
+  gap: 0.6rem;
+  padding: 0.7rem;
+}
+
+.dashboard-command {
+  grid-template-columns: minmax(10rem, auto) minmax(26rem, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.4rem;
+  box-shadow: none;
+}
+
+.command-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.command-meta span,
+.command-meta strong {
+  overflow: hidden;
+  max-width: 7.5rem;
+  text-overflow: ellipsis;
+}
+
+.command-meta strong {
+  color: var(--accent);
+  font-size: 0.82rem;
+}
+
+.command-row {
+  gap: 0.45rem;
+}
+
+.command-actions {
+  gap: 0.35rem;
+}
+
+.dashboard-metrics-row {
+  gap: 0.45rem;
+}
+
+.dashboard-metrics-row .metric-stat-card {
+  min-height: 3.2rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.35rem;
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+
+.dashboard-metrics-row .metric-stat-card::before {
+  width: 0;
+  content: none;
+}
+
+.dashboard-metrics-row .stat-content {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.dashboard-metrics-row .stat-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-metrics-row .stat-value {
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.dashboard-work-grid {
+  grid-template-columns:
+    minmax(17rem, 0.7fr)
+    minmax(34rem, 1.55fr)
+    minmax(18rem, 0.75fr);
+  gap: 0.6rem;
+}
+
+.dashboard-work-grid .control-panel,
+.thread-table-panel,
+.dashboard-side-stack .quota-panel,
+.terminal-logs-card {
+  border-radius: 0.4rem;
+  box-shadow: none;
+}
+
+.dashboard-work-grid .control-panel,
+.thread-table-panel,
+.dashboard-side-stack .quota-panel {
+  padding: 0.75rem;
+}
+
+.dashboard-work-grid .panel-header {
+  min-height: 1.8rem;
+  padding-bottom: 0.5rem;
+}
+
+.dashboard-work-grid .control-item {
+  min-height: 2.35rem;
+  padding: 0.35rem 0;
+}
+
+.panel-title-group svg,
+.item-label-group svg {
+  color: var(--muted);
+  opacity: 0.8;
+}
+

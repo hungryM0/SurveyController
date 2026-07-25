@@ -25,7 +25,7 @@ func TestRunWJXPreparesSurveyOnce(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := &RuntimeConfig{URL: "https://www.wjx.cn/vm/demo.aspx", SurveyProvider: ProviderWJX, Target: 3, Threads: 3}
+	cfg := &RunRequest{SurveySource: SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: ProviderWJX}, ExecutionPlan: ExecutionPlan{Target: 3, Threads: 3}}
 	result, err := New(WithHTTPClient(rewriteWJXHTTPClient(server.URL))).Run(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +59,7 @@ func TestRunCredamoPreparesSurveyOnce(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := &RuntimeConfig{URL: server.URL + "/s/demo_", SurveyProvider: ProviderCredamo, Target: 3, Threads: 3}
+	cfg := &RunRequest{SurveySource: SurveySource{URL: server.URL + "/s/demo_", Provider: ProviderCredamo}, ExecutionPlan: ExecutionPlan{Target: 3, Threads: 3}}
 	result, err := New().Run(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func TestRunTencentPreparesQuestionsOnceAndKeepsSessionPerSubmission(t *testing.
 	}))
 	defer server.Close()
 
-	cfg := &RuntimeConfig{URL: "https://wj.qq.com/s2/123/hashvalue/", SurveyProvider: ProviderQQ, Target: 3, Threads: 3}
+	cfg := &RunRequest{SurveySource: SurveySource{URL: "https://wj.qq.com/s2/123/hashvalue/", Provider: ProviderQQ}, ExecutionPlan: ExecutionPlan{Target: 3, Threads: 3}}
 	result, err := New(WithHTTPClient(rewriteTencentHTTPClient(server.URL))).Run(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)

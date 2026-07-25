@@ -1,180 +1,173 @@
 import { describe, expect, it } from 'vitest'
-import type { RuntimeConfig } from '../../types'
+import { createTestConfig, createTestQuestion, createTestQuestionEntry, createTestSettings } from '../../test/configFactory'
 import {
   cloneWizardDraft,
   createWizardDraft,
   isParsedConfig,
   mergeParsedConfig,
   updateWizardURL,
+  type WizardDraft,
 } from './configWizardModel'
 import { buildWizardReviewItems } from './wizardReview'
 import { validateWizardStep } from './wizardValidation'
 
-const parsedConfig: RuntimeConfig = {
-  url: 'https://www.wjx.cn/vm/example.aspx',
-  survey_title: '产品体验问卷',
-  survey_provider: 'wjx',
-  target: 20,
-  threads: 3,
-  submit_interval: [2, 5],
-  answer_duration: [60, 120],
-  random_ip_enabled: false,
-  proxy_source: 'default',
-  questions_info: [{
-    num: 1,
-    title: '满意度',
-    description: '',
-    type_code: 'single',
-    options: 5,
-    rows: 0,
-    row_texts: [],
-    option_texts: [],
-    provider: 'wjx',
-    provider_type: 'single',
-    is_description: false,
-    is_text_like: false,
-    text_inputs: 0,
-  }],
-  question_entries: [{ question_type: 'single', probabilities: [20, 20, 20, 20, 20] }],
+function parsedDraft(): WizardDraft {
+  return createWizardDraft(createTestConfig((config) => {
+    config.survey.url = 'https://www.wjx.cn/vm/example.aspx'
+    config.survey.title = '产品体验问卷'
+    config.survey.definition.title = '产品体验问卷'
+    config.survey.definition.questions = [createTestQuestion((question) => {
+      question.title = '满意度'
+      question.options = 5
+    })]
+    config.answers.questions = [createTestQuestionEntry((entry) => {
+      entry.probabilities = { options: [20, 20, 20, 20, 20] }
+    })]
+    config.execution.target = 20
+    config.execution.threads = 3
+    config.execution.submitInterval = [2, 5]
+    config.execution.answerDuration = [60, 120]
+  }), createTestSettings())
 }
 
 describe('configWizardModel', () => {
   it('creates an isolated draft with wizard defaults', () => {
-    const source: RuntimeConfig = {
-      ...parsedConfig,
-      random_ua_ratios: { wechat: 20, mobile: 30, pc: 50 },
-    }
-    const draft = createWizardDraft(source)
+    const source = parsedDraft()
+    source.config.network.randomUaRatios = { wechat: 20, mobile: 30, pc: 50 }
+    const draft = createWizardDraft(source.config, createTestSettings())
 
-    draft.random_ua_ratios!.wechat = 99
-    draft.questions_info![0].title = '已修改'
+    draft.config.network.randomUaRatios!.wechat = 99
+    draft.config.survey.definition.questions![0].title = '已修改'
 
-    expect(source.random_ua_ratios?.wechat).toBe(20)
-    expect(source.questions_info?.[0].title).toBe('满意度')
-    expect(draft.fail_stop_enabled).toBe(true)
-    expect(draft.ai_mode).toBe('free')
+    expect(source.config.network.randomUaRatios?.wechat).toBe(20)
+    expect(source.config.survey.definition.questions?.[0].title).toBe('满意度')
+    expect(draft.config.execution.failStop).toBe(true)
+    expect(draft.aiProfile.mode).toBe('free')
   })
 
   it('invalidates parser-owned data when URL changes', () => {
-    const next = updateWizardURL(parsedConfig, 'https://wj.qq.com/s/example')
+    const current = parsedDraft()
+    const next = updateWizardURL(current, 'https://wj.qq.com/s/example')
 
-    expect(next.url).toBe('https://wj.qq.com/s/example')
-    expect(next.survey_title).toBeUndefined()
-    expect(next.survey_provider).toBeUndefined()
-    expect(next.questions_info).toBeUndefined()
-    expect(next.question_entries).toBeUndefined()
-    expect(next.target).toBe(20)
-    expect(next.threads).toBe(3)
+    expect(next.config.survey.url).toBe('https://wj.qq.com/s/example')
+    expect(next.config.survey.title).toBe('')
+    expect(next.config.survey.provider).toBe('qq')
+    expect(next.config.survey.definition.questions).toEqual([])
+    expect(next.config.answers.questions).toEqual([])
+    expect(next.config.execution.target).toBe(20)
+    expect(next.config.execution.threads).toBe(3)
   })
 
   it('keeps parser-owned data when URL does not change', () => {
-    const next = updateWizardURL(parsedConfig, parsedConfig.url)
+    const current = parsedDraft()
+    const next = updateWizardURL(current, current.config.survey.url)
 
-    expect(next.survey_title).toBe('产品体验问卷')
-    expect(next.questions_info).toHaveLength(1)
+    expect(next.config.survey.title).toBe('产品体验问卷')
+    expect(next.config.survey.definition.questions).toHaveLength(1)
   })
 
-  it('merges parser output without overwriting wizard settings', () => {
-    const current: RuntimeConfig = {
-      ...parsedConfig,
-      target: 300,
-      threads: 12,
-      submit_interval: [8, 15],
-      answer_duration: [90, 180],
-      random_ip_enabled: true,
-      proxy_source: 'custom',
-      custom_proxy_api: 'https://proxy.example/api',
-      ai_mode: 'provider',
-      ai_provider: 'custom',
-      ai_api_key: 'secret',
-    }
-    const parserOutput: RuntimeConfig = {
-      ...parsedConfig,
-      survey_title: '最新标题',
-      target: 1,
-      threads: 1,
-      submit_interval: [0, 0],
-      answer_duration: [60, 120],
-      random_ip_enabled: false,
-      questions_info: [
-        ...parsedConfig.questions_info!,
-        {
-          num: 2,
-          title: '建议',
-          description: '',
-          type_code: 'text',
-          options: 0,
-          rows: 1,
-          row_texts: [],
-          option_texts: [],
-          provider: 'wjx',
-          provider_type: 'text',
-          is_description: false,
-          is_text_like: true,
-          text_inputs: 1,
-        },
-      ],
-    }
+  it('merges parser output without overwriting wizard settings or credentials', () => {
+    const current = parsedDraft()
+    current.config.execution.target = 300
+    current.config.execution.threads = 12
+    current.config.execution.submitInterval = [8, 15]
+    current.config.execution.answerDuration = [90, 180]
+    current.config.network.randomProxyEnabled = true
+    current.config.network.proxySource = 'custom'
+    current.config.network.customProxyApi = 'https://proxy.example/api'
+    current.aiProfile.mode = 'provider'
+    current.aiProfile.provider = 'custom'
+    current.credential = { operation: 'replace', value: 'secret' }
+
+    const parserOutput = createTestConfig((config) => {
+      config.survey.url = current.config.survey.url
+      config.survey.title = '最新标题'
+      config.survey.definition.title = '最新标题'
+      config.survey.definition.questions = [
+        createTestQuestion(),
+        createTestQuestion((question) => {
+          question.num = 2
+          question.title = '建议'
+          question.type_code = 'text'
+          question.provider_type = 'text'
+          question.options = 0
+          question.rows = 1
+          question.is_text_like = true
+          question.text_inputs = 1
+        }),
+      ]
+    })
 
     const next = mergeParsedConfig(current, parserOutput)
 
-    expect(next.survey_title).toBe('最新标题')
-    expect(next.questions_info).toHaveLength(2)
-    expect(next.target).toBe(300)
-    expect(next.threads).toBe(12)
-    expect(next.submit_interval).toEqual([8, 15])
-    expect(next.answer_duration).toEqual([90, 180])
-    expect(next.random_ip_enabled).toBe(true)
-    expect(next.custom_proxy_api).toBe('https://proxy.example/api')
-    expect(next.ai_api_key).toBe('secret')
+    expect(next.config.survey.title).toBe('最新标题')
+    expect(next.config.survey.definition.questions).toHaveLength(2)
+    expect(next.config.execution.target).toBe(300)
+    expect(next.config.execution.threads).toBe(12)
+    expect(next.config.execution.submitInterval).toEqual([8, 15])
+    expect(next.config.execution.answerDuration).toEqual([90, 180])
+    expect(next.config.network.randomProxyEnabled).toBe(true)
+    expect(next.config.network.customProxyApi).toBe('https://proxy.example/api')
+    expect(next.credential.value).toBe('secret')
   })
 
   it('validates each step and reports actionable messages', () => {
-    expect(validateWizardStep('survey', { url: '' }, false)).toEqual({
-      valid: false,
-      message: '请先输入问卷链接。',
-    })
-    expect(validateWizardStep('survey', { url: 'not-a-url' }, false).message).toContain('http://')
-    expect(validateWizardStep('survey', parsedConfig, true).valid).toBe(true)
-    expect(validateWizardStep('task', { ...parsedConfig, threads: 0 }, true).message).toContain('并发数')
-    expect(validateWizardStep('network', {
-      ...parsedConfig,
-      random_ip_enabled: true,
-      proxy_source: 'custom',
-      custom_proxy_api: '',
-    }, true).message).toContain('代理 API')
-    expect(validateWizardStep('answers', { ...parsedConfig, answer_duration: [0, 60] }, true).message).toContain('作答时长')
-    expect(validateWizardStep('answers', {
-      ...parsedConfig,
-      ai_mode: 'provider',
-      ai_provider: 'custom',
-      ai_api_key: '',
-    }, true).message).toContain('API 密钥')
-    expect(validateWizardStep('answers', {
-      ...parsedConfig,
-      reverse_fill_enabled: true,
-      reverse_fill_source_path: '',
-    }, true).message).toContain('数据文件')
+    const empty = createWizardDraft(createTestConfig(), createTestSettings())
+    expect(validateWizardStep('survey', empty)).toEqual({ valid: false, message: '请先输入问卷链接。' })
+
+    const malformed = createWizardDraft(createTestConfig((config) => {
+      config.survey.url = 'not-a-url'
+    }), createTestSettings())
+    expect(validateWizardStep('survey', malformed).message).toContain('http://')
+    expect(validateWizardStep('survey', parsedDraft()).valid).toBe(true)
+
+    const invalidTask = parsedDraft()
+    invalidTask.config.execution.threads = 0
+    expect(validateWizardStep('task', invalidTask).message).toContain('并发数')
+
+    const invalidNetwork = parsedDraft()
+    invalidNetwork.config.network.randomProxyEnabled = true
+    invalidNetwork.config.network.proxySource = 'custom'
+    invalidNetwork.config.network.customProxyApi = ''
+    expect(validateWizardStep('network', invalidNetwork).message).toContain('代理 API')
+
+    const invalidDuration = parsedDraft()
+    invalidDuration.config.execution.answerDuration = [0, 60]
+    expect(validateWizardStep('answers', invalidDuration).message).toContain('作答时长')
+
+    const invalidCredential = parsedDraft()
+    invalidCredential.aiProfile.mode = 'provider'
+    invalidCredential.aiProfile.provider = 'custom'
+    invalidCredential.aiProfile.baseURL = 'https://ai.example/v1'
+    invalidCredential.aiProfile.hasAPIKey = false
+    expect(validateWizardStep('answers', invalidCredential).message).toContain('API 密钥')
+
+    const invalidReverseFill = parsedDraft()
+    invalidReverseFill.config.reverseFill.enabled = true
+    invalidReverseFill.config.reverseFill.sourcePath = ''
+    expect(validateWizardStep('answers', invalidReverseFill).message).toContain('数据文件')
   })
 
   it('recognizes parsed data and builds a compact review', () => {
-    expect(isParsedConfig({ url: parsedConfig.url })).toBe(false)
-    expect(isParsedConfig(parsedConfig)).toBe(true)
+    const draft = parsedDraft()
+    expect(isParsedConfig(createWizardDraft(createTestConfig((config) => {
+      config.survey.url = draft.config.survey.url
+    }), createTestSettings()))).toBe(false)
+    expect(isParsedConfig(draft)).toBe(true)
 
-    const review = buildWizardReviewItems(parsedConfig)
+    const review = buildWizardReviewItems(draft)
     expect(review).toContainEqual({ label: '问卷', value: '产品体验问卷' })
     expect(review).toContainEqual({ label: '题目', value: '1 题' })
     expect(review).toContainEqual({ label: '网络', value: '直连' })
-    expect(buildWizardReviewItems({ ...parsedConfig, reverse_fill_enabled: true })).toContainEqual({
-      label: '答案来源',
-      value: 'Excel 反填',
-    })
+    draft.config.reverseFill.enabled = true
+    expect(buildWizardReviewItems(draft)).toContainEqual({ label: '答案来源', value: 'Excel 反填' })
   })
 
   it('clones imported configuration before handing it to the wizard', () => {
-    const cloned = cloneWizardDraft(parsedConfig)
-    expect(cloned).toEqual(parsedConfig)
-    expect(cloned).not.toBe(parsedConfig)
-    expect(cloned.questions_info).not.toBe(parsedConfig.questions_info)
+    const source = parsedDraft()
+    const cloned = cloneWizardDraft(source)
+    expect(cloned).toEqual(source)
+    expect(cloned).not.toBe(source)
+    expect(cloned.config.survey.definition.questions).not.toBe(source.config.survey.definition.questions)
   })
 })

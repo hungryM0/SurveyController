@@ -1,28 +1,31 @@
 import { Dialogs } from '@wailsio/runtime'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  buildDefaultConfig,
+  createSurveyDocument,
   decodeQRCode,
-  loadRuntimeConfig,
-  saveRuntimeConfig,
+  loadConfigDocument,
+  saveConfigDocument,
   saveSettings,
 } from '../../services/shell'
-import type { AppSettings, RuntimeConfig } from '../../types'
+import type { AICredentialDraft, AppSettings, ConfigDocument } from '../../types'
+import { createWizardDraft, type WizardDraft } from './configWizardModel'
 import { persistSetupWizard, shouldAutoOpenSetupWizard } from './setupWizardLifecycle'
 import type { ConfigurationWizardProps } from './wizardTypes'
 
 interface PersistedSetupWizardState {
-  config: RuntimeConfig
+  config: ConfigDocument
   configPath: string
   settings: AppSettings
+  credential: AICredentialDraft
 }
 
 interface UseConfigurationWizardOptions {
   loading: boolean
-  config: RuntimeConfig | null
+  config: ConfigDocument | null
   configExists: boolean
   configPath: string
   settings: AppSettings | null
+  credential: AICredentialDraft
   onPersisted: (state: PersistedSetupWizardState) => void
   onNotice: (message: string) => void
   onComplete: () => void
@@ -34,6 +37,7 @@ export function useConfigurationWizard({
   configExists,
   configPath,
   settings,
+  credential,
   onPersisted,
   onNotice,
   onComplete,
@@ -42,6 +46,10 @@ export function useConfigurationWizard({
   const autoShown = useRef(false)
   const deferred = useRef(false)
   const importPath = useRef('')
+  const initialDraft = useMemo(
+    () => createWizardDraft(config, settings, credential),
+    [config, credential, settings],
+  )
 
   useEffect(() => {
     if (!shouldAutoOpenSetupWizard({
@@ -51,7 +59,7 @@ export function useConfigurationWizard({
       deferred: deferred.current,
       completedVersion: settings?.setupWizardVersion ?? 0,
       configExists,
-      surveyURL: config?.url ?? '',
+      surveyURL: config?.survey.url ?? '',
     })) {
       return
     }
@@ -76,9 +84,7 @@ export function useConfigurationWizard({
       CanChooseFiles: true,
       Filters: [{ DisplayName: '图片文件', Pattern: '*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.webp' }],
     })
-    if (!path || Array.isArray(path)) {
-      return null
-    }
+    if (!path || Array.isArray(path)) return null
     return await decodeQRCode(path)
   }
 
@@ -88,10 +94,8 @@ export function useConfigurationWizard({
       CanChooseFiles: true,
       Filters: [{ DisplayName: 'JSON 配置', Pattern: '*.json' }],
     })
-    if (!path || Array.isArray(path)) {
-      return null
-    }
-    const loaded = await loadRuntimeConfig(path)
+    if (!path || Array.isArray(path)) return null
+    const loaded = await loadConfigDocument(path)
     importPath.current = loaded.path
     return loaded
   }
@@ -102,42 +106,41 @@ export function useConfigurationWizard({
       CanChooseFiles: true,
       Filters: [{ DisplayName: 'Excel 文件', Pattern: '*.xlsx;*.xlsm' }],
     })
-    if (!path || Array.isArray(path)) {
-      return null
-    }
-    return path
+    return !path || Array.isArray(path) ? null : path
   }
 
-  async function saveWizardConfig(nextConfig: RuntimeConfig) {
-    if (!settings) {
-      throw new Error('应用设置尚未载入')
-    }
+  async function saveWizardDraft(nextDraft: WizardDraft): Promise<WizardDraft> {
+    if (!settings) throw new Error('应用设置尚未载入')
     const savePath = importPath.current || configPath
+    const nextSettings = { ...settings, aiProfile: nextDraft.aiProfile }
     const { savedConfig, savedSettings } = await persistSetupWizard(
-      nextConfig,
+      nextDraft.config,
       savePath,
-      settings,
-      { saveConfig: saveRuntimeConfig, saveSettings },
+      nextSettings,
+      nextDraft.credential,
+      { saveConfig: saveConfigDocument, saveSettings },
     )
+    const savedCredential: AICredentialDraft = { value: '', operation: 'keep' }
     importPath.current = ''
     onPersisted({
       config: savedConfig.config,
       configPath: savedConfig.path,
       settings: savedSettings,
+      credential: savedCredential,
     })
     onNotice('配置已保存')
-    return savedConfig
+    return createWizardDraft(savedConfig.config, savedSettings, savedCredential)
   }
 
   const wizardProps: ConfigurationWizardProps = {
     open,
-    initialConfig: config,
+    initialDraft,
     onDismiss: dismissWizard,
-    onParseSurvey: buildDefaultConfig,
+    onParseSurvey: createSurveyDocument,
     onDecodeQRCode: decodeWizardQRCode,
     onImportConfig: importWizardConfig,
     onChooseReverseFill: chooseWizardReverseFill,
-    onSave: saveWizardConfig,
+    onSave: saveWizardDraft,
     onComplete,
   }
 

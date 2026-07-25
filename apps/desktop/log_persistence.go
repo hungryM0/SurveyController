@@ -11,48 +11,16 @@ import (
 	"surveycontroller/surveycore"
 )
 
-func autoSaveRunLog(settings AppSettings, events []surveycore.Event, endedAt time.Time) (string, error) {
-	logsDir := userLogsDirectory()
-	lastPath := filepath.Join(logsDir, "last_session.log")
-	if !settings.AutoSaveLogs {
-		_ = os.Remove(lastPath)
-		return "", nil
+func runEventLogLine(event surveycore.Event) string {
+	worker := strings.TrimSpace(event.Worker)
+	if worker == "" {
+		worker = "core"
 	}
-	if err := os.MkdirAll(logsDir, 0o755); err != nil {
-		return "", err
+	message := strings.TrimSpace(event.Message)
+	if message == "" {
+		return ""
 	}
-	if endedAt.IsZero() {
-		endedAt = time.Now()
-	}
-	content := strings.Join(runEventLogLines(events), "\n")
-	if content != "" {
-		content += "\n"
-	}
-	sessionPath := filepath.Join(logsDir, fmt.Sprintf("session_%s.log", endedAt.Format("20060102_150405")))
-	if err := os.WriteFile(sessionPath, []byte(content), 0o644); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(lastPath, []byte(content), 0o644); err != nil {
-		return "", err
-	}
-	_, _ = pruneSessionLogFiles(logsDir, settings.AutosaveLogCount)
-	return sessionPath, nil
-}
-
-func runEventLogLines(events []surveycore.Event) []string {
-	lines := make([]string, 0, len(events))
-	for _, event := range events {
-		worker := strings.TrimSpace(event.Worker)
-		if worker == "" {
-			worker = "core"
-		}
-		message := strings.TrimSpace(event.Message)
-		if message == "" {
-			continue
-		}
-		lines = append(lines, fmt.Sprintf("[%s] %s", worker, message))
-	}
-	return lines
+	return fmt.Sprintf("[%s] %s", worker, message)
 }
 
 func pruneSessionLogFiles(logsDir string, keepCount int) (int, error) {

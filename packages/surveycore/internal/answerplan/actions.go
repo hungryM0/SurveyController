@@ -6,27 +6,31 @@ import (
 )
 
 type BuildOptions struct {
-	AnswerRules    []map[string]any
+	AnswerRules    []model.ConsistencyRule
 	Runtime        model.AnswerRuntime
 	RuntimeOwner   string
 	Persona        *model.Persona
 	DimensionBases map[string]float64
 }
 
-func OptionsFromRuntimeConfig(cfg *model.RuntimeConfig) BuildOptions {
+func OptionsFromRunRequest(cfg *model.RunRequest) BuildOptions {
 	if cfg == nil {
 		return BuildOptions{}
 	}
+	return BuildOptions{AnswerRules: cfg.AnswerPlan.Rules, DimensionBases: map[string]float64{}}
+}
+
+func OptionsFromAnswerPlan(plan model.AnswerPlan, context model.SubmissionContext) BuildOptions {
 	return BuildOptions{
-		AnswerRules:    cfg.AnswerRules,
-		Runtime:        cfg.AnswerRuntime,
-		RuntimeOwner:   cfg.AnswerRuntimeOwner,
-		Persona:        cfg.Persona,
+		AnswerRules:    plan.Rules,
+		Runtime:        context.Runtime,
+		RuntimeOwner:   context.RuntimeOwner,
+		Persona:        context.Persona,
 		DimensionBases: map[string]float64{},
 	}
 }
 
-func BuildActions(questions []model.QuestionMeta, entries []model.QuestionEntry, options BuildOptions) ([]Action, error) {
+func BuildActions(questions []model.QuestionMeta, entries []model.QuestionStrategy, options BuildOptions) ([]Action, error) {
 	index := NewEntryIndex(entries)
 	consistency := newConsistencyPlan(options.AnswerRules)
 	actions := make([]Action, 0, len(questions))
@@ -49,12 +53,12 @@ func BuildActions(questions []model.QuestionMeta, entries []model.QuestionEntry,
 	return actions, nil
 }
 
-func DefaultEntry(question model.QuestionMeta) model.QuestionEntry {
+func DefaultEntry(question model.QuestionMeta) model.QuestionStrategy {
 	num := question.Num
 	providerID := question.ProviderID
-	return model.QuestionEntry{
-		QuestionType:       defaultQuestionType(question),
-		Probabilities:      defaults.QuestionProbabilities(question),
+	return model.QuestionStrategy{
+		QuestionType:       model.QuestionKind(defaultQuestionType(question)),
+		Probabilities:      model.OptionWeights(defaults.QuestionProbabilities(question)...),
 		Rows:               question.Rows,
 		OptionCount:        maxInt(1, question.Options),
 		QuestionNum:        &num,

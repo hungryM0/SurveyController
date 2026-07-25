@@ -7,45 +7,78 @@ import (
 	"os"
 	"strings"
 
-	"surveycontroller/surveycore"
 	"surveycontroller/surveycore/configio"
 	"surveycontroller/surveycore/reversefill"
 )
 
 func (s *AppService) GetAppSettings() (AppSettings, error) {
-	return loadAppSettings()
+	return s.loadAppSettings(context.Background())
 }
 
-func (s *AppService) SaveAppSettings(_ context.Context, request SaveSettingsRequest) (AppSettings, error) {
-	return saveAppSettings(request.Settings)
+func (s *AppService) SaveAppSettings(ctx context.Context, request SaveSettingsRequest) (AppSettings, error) {
+	settings := normalizeAppSettings(request.Settings)
+	configured, err := s.applyAICredentialUpdate(ctx, request.AICredential)
+	if err != nil {
+		return AppSettings{}, err
+	}
+	settings.AIProfile.HasAPIKey = configured
+	return s.configs.SaveSettings(settings)
 }
 
 func (s *AppService) ResetAppSettings() (AppSettings, error) {
-	return saveAppSettings(defaultAppSettings())
+	if err := s.credentials.Delete(context.Background(), aiCredentialTarget); err != nil {
+		return AppSettings{}, err
+	}
+	return s.configs.SaveSettings(defaultAppSettings())
 }
 
-func (s *AppService) ShouldConfirmClose() bool {
-	settings, err := loadAppSettings()
+func (s *AppService) loadAppSettings(ctx context.Context) (AppSettings, error) {
+	settings, legacyKey, err := s.configs.LoadSettings()
 	if err != nil {
-		return true
+		return AppSettings{}, err
 	}
-	return settings.AskSaveOnClose
+	store := s.credentials
+	if strings.TrimSpace(legacyKey) != "" {
+		if err := store.Write(ctx, aiCredentialTarget, legacyKey); err != nil {
+			return AppSettings{}, fmt.Errorf("迁移 AI 凭据: %w", err)
+		}
+		settings.AIProfile.HasAPIKey = true
+		if _, err := s.configs.SaveSettings(settings); err != nil {
+			return AppSettings{}, fmt.Errorf("清理旧 AI 明文配置: %w", err)
+		}
+		return settings, nil
+	}
+	_, configured, err := readAICredential(ctx, store)
+	if err != nil {
+		return AppSettings{}, err
+	}
+	settings.AIProfile.HasAPIKey = configured
+	return settings, nil
 }
 
-func (s *AppService) ConfirmClose() {
-	s.closeMu.Lock()
-	defer s.closeMu.Unlock()
-	s.closeConfirmed = true
-}
-
-func (s *AppService) consumeCloseConfirmed() bool {
-	s.closeMu.Lock()
-	defer s.closeMu.Unlock()
-	if !s.closeConfirmed {
-		return false
+func (s *AppService) applyAICredentialUpdate(ctx context.Context, update AICredentialUpdate) (bool, error) {
+	store := s.credentials
+	switch update.Operation {
+	case "", AICredentialKeep:
+		_, configured, err := readAICredential(ctx, store)
+		return configured, err
+	case AICredentialReplace:
+		key := strings.TrimSpace(update.APIKey)
+		if key == "" {
+			return false, fmt.Errorf("替换 AI 凭据时 API Key 不能为空")
+		}
+		if err := store.Write(ctx, aiCredentialTarget, key); err != nil {
+			return false, err
+		}
+		return true, nil
+	case AICredentialClear:
+		if err := store.Delete(ctx, aiCredentialTarget); err != nil {
+			return false, err
+		}
+		return false, nil
+	default:
+		return false, fmt.Errorf("未知 AI 凭据操作：%s", update.Operation)
 	}
-	s.closeConfirmed = false
-	return true
 }
 
 func (s *AppService) ExportLogLines(path string, lines []string) (string, error) {
@@ -63,31 +96,34 @@ func (s *AppService) ExportLogLines(path string, lines []string) (string, error)
 	return cleanPath, nil
 }
 
-func (s *AppService) LoadConfig(_ context.Context, request LoadConfigRequest) (ConfigFileState, error) {
-	settings, err := loadAppSettings()
+func (s *AppService) LoadConfig(ctx context.Context, request LoadConfigRequest) (ConfigFileState, error) {
+	settings, err := s.loadAppSettings(ctx)
 	if err != nil {
 		return ConfigFileState{}, err
 	}
 	path := configPathFromRequest(request.Path, settings)
-	cfg, err := configio.Load(path, true)
+	cfg, err := s.configs.LoadDocument(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			empty := surveycore.RuntimeConfig{}
-			empty = applyAIRuntimeDefaults(empty, settings, false)
+			empty := configio.ConfigDocument{SchemaVersion: configio.ConfigSchemaVersion, Network: defaultNetworkSettings()}
 			return ConfigFileState{Path: path, Exists: false, Config: &empty}, nil
 		}
 		return ConfigFileState{}, err
 	}
-	hasAISettings, err := runtimeConfigFileHasAISettings(path)
-	if err != nil {
+	if cfg.Network.RandomUARatios == nil {
+		cfg.Network.RandomUARatios = defaultNetworkSettings().RandomUARatios
+	}
+	if strings.TrimSpace(cfg.Network.ProxySource) == "" {
+		cfg.Network.ProxySource = defaultNetworkSettings().ProxySource
+	}
+	if err := s.migrateLegacyConfigCredential(ctx, path, cfg); err != nil {
 		return ConfigFileState{}, err
 	}
-	cfg = applyAIRuntimeDefaults(cfg, settings, hasAISettings)
 	return ConfigFileState{Path: path, Exists: true, Config: &cfg}, nil
 }
 
-func (s *AppService) SaveConfig(_ context.Context, request SaveConfigRequest) (ConfigFileState, error) {
-	settings, err := loadAppSettings()
+func (s *AppService) SaveConfig(ctx context.Context, request SaveConfigRequest) (ConfigFileState, error) {
+	settings, err := s.loadAppSettings(ctx)
 	if err != nil {
 		return ConfigFileState{}, err
 	}
@@ -95,11 +131,8 @@ func (s *AppService) SaveConfig(_ context.Context, request SaveConfigRequest) (C
 	if path == "" {
 		path = defaultSavePath(request.Config, settings)
 	}
-	savedPath, err := configio.Save(request.Config, path)
+	savedPath, err := s.configs.SaveDocument(request.Config, path)
 	if err != nil {
-		return ConfigFileState{}, err
-	}
-	if _, err := saveAppSettings(settingsWithAIRuntimeDefaults(settings, request.Config)); err != nil {
 		return ConfigFileState{}, err
 	}
 	cfg := request.Config

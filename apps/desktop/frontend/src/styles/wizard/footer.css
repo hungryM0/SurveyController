@@ -1,0 +1,72 @@
+.config-wizard-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.config-wizard-footer-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.config-wizard-discard-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--line));
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-soft));
+  padding: 0.65rem 0.75rem;
+}
+
+.config-wizard-discard-confirm > div:first-child {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.config-wizard-discard-confirm strong {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.config-wizard-discard-confirm span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.config-wizard-discard-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+}
+
+.config-wizard-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@keyframes config-wizard-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes config-wizard-dialog-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 0.6rem)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes config-wizard-step-in {
+  from { opacity: 0; transform: translateY(0.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes config-wizard-reveal-in {
+  from { opacity: 0; transform: translateY(-0.2rem); }
+  to { opacity: 1; transform: translateY(0); }
+}

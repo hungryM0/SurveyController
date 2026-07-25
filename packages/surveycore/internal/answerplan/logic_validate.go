@@ -17,8 +17,8 @@ func httpLogicFallbackReason(questions []model.QuestionMeta) string {
 			return fmt.Sprintf("第%d题逻辑规则未完整解析", question.Num)
 		}
 		for _, condition := range question.DisplayConditions {
-			sourceNum := intValue(condition["condition_question_num"], 0)
-			mode := strings.TrimSpace(stringValue(condition["condition_mode"]))
+			sourceNum := condition.QuestionNum
+			mode := strings.TrimSpace(condition.Mode)
 			if mode == "" {
 				mode = conditionSelected
 			}
@@ -33,8 +33,8 @@ func httpLogicFallbackReason(questions []model.QuestionMeta) string {
 			}
 		}
 		for _, target := range question.ControlsDisplayTargets {
-			targetNum := intValue(target["target_question_num"], 0)
-			mode := strings.TrimSpace(stringValue(target["condition_mode"]))
+			targetNum := target.TargetQuestionNum
+			mode := strings.TrimSpace(target.Mode)
 			if mode == "" {
 				mode = conditionSelected
 			}
@@ -46,7 +46,7 @@ func httpLogicFallbackReason(questions []model.QuestionMeta) string {
 			}
 		}
 		for _, rule := range question.JumpRules {
-			jumpTarget := intValue(rule["jumpto"], 0)
+			jumpTarget := rule.TargetQuestion
 			if jumpRuleTerminates(rule) {
 				continue
 			}

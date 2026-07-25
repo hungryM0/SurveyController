@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"surveycontroller/surveycore/internal/answerplan"
 	"surveycontroller/surveycore/internal/model"
 )
 
@@ -20,10 +19,10 @@ type answerAction struct {
 	OptionFills map[int]string
 }
 
-func toWJXAction(action answerplan.Action) answerAction {
+func toWJXAction(action model.AnswerAction) answerAction {
 	return answerAction{
 		QuestionNum: action.QuestionNum,
-		Kind:        action.Kind,
+		Kind:        string(action.Kind),
 		Indices:     append([]int(nil), action.SelectedIndices...),
 		Matrix:      append([]int(nil), action.MatrixIndices...),
 		Texts:       append([]string(nil), action.TextValues...),
@@ -40,12 +39,8 @@ func cloneOptionFills(src map[int]string) map[int]string {
 	return dst
 }
 
-func buildSubmitData(questions []model.QuestionMeta, cfg *model.RuntimeConfig) (string, error) {
-	planned, err := answerplan.BuildActionsWithLogic(questions, cfg.QuestionEntries, answerplan.OptionsFromRuntimeConfig(cfg))
-	if err != nil {
-		return "", err
-	}
-	actions := make([]answerAction, 0, len(questions))
+func buildSubmitData(questions []model.QuestionMeta, planned []model.AnswerAction) (string, error) {
+	actions := make([]answerAction, 0, len(planned))
 	for _, action := range planned {
 		wjxAction := toWJXAction(action)
 		if wjxAction.QuestionNum > 0 && actionAnswer(wjxAction) != "" {

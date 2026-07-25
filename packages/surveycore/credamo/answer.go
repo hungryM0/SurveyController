@@ -4,20 +4,17 @@ import (
 	"fmt"
 	"sort"
 
-	"surveycontroller/surveycore/internal/answerplan"
 	"surveycontroller/surveycore/internal/model"
 	"surveycontroller/surveycore/internal/runerror"
 )
 
-func buildAnswerItems(rawQuestions []map[string]any, cfg *model.RuntimeConfig) ([]map[string]any, error) {
-	questions := normalizeSubmitQuestions(rawQuestions)
-	actions, err := answerplan.BuildActionsWithLogic(questions, cfg.QuestionEntries, answerplan.OptionsFromRuntimeConfig(cfg))
-	if err != nil {
-		return nil, err
+func buildAnswerItems(rawQuestions []map[string]any, request *model.SubmissionRequest) ([]map[string]any, error) {
+	actionsByNum := map[int]model.AnswerAction{}
+	actionsByID := map[string]model.AnswerAction{}
+	if request == nil {
+		return nil, fmt.Errorf("提交请求为空")
 	}
-	actionsByNum := map[int]answerplan.Action{}
-	actionsByID := map[string]answerplan.Action{}
-	for _, action := range actions {
+	for _, action := range request.Context.Actions {
 		actionsByNum[action.QuestionNum] = action
 		if action.QuestionID != "" {
 			actionsByID[action.QuestionID] = action
@@ -55,7 +52,7 @@ func normalizeSubmitQuestions(rawQuestions []map[string]any) []model.QuestionMet
 	return questions
 }
 
-func findActionForRawQuestion(actionsByNum map[int]answerplan.Action, actionsByID map[string]answerplan.Action, raw map[string]any, questionNum int) (answerplan.Action, bool) {
+func findActionForRawQuestion(actionsByNum map[int]model.AnswerAction, actionsByID map[string]model.AnswerAction, raw map[string]any, questionNum int) (model.AnswerAction, bool) {
 	if id := stringValue(idFromMapping(raw, "qstId", "questionId", "id")); id != "" {
 		if action, ok := actionsByID[id]; ok {
 			return action, true
@@ -66,14 +63,14 @@ func findActionForRawQuestion(actionsByNum map[int]answerplan.Action, actionsByI
 }
 
 type questionEntryIndex struct {
-	byNumber map[int]model.QuestionEntry
-	byID     map[string]model.QuestionEntry
+	byNumber map[int]model.QuestionStrategy
+	byID     map[string]model.QuestionStrategy
 }
 
-func indexQuestionEntries(entries []model.QuestionEntry) questionEntryIndex {
+func indexQuestionEntries(entries []model.QuestionStrategy) questionEntryIndex {
 	result := questionEntryIndex{
-		byNumber: map[int]model.QuestionEntry{},
-		byID:     map[string]model.QuestionEntry{},
+		byNumber: map[int]model.QuestionStrategy{},
+		byID:     map[string]model.QuestionStrategy{},
 	}
 	for _, entry := range entries {
 		if entry.QuestionNum != nil {
@@ -86,7 +83,7 @@ func indexQuestionEntries(entries []model.QuestionEntry) questionEntryIndex {
 	return result
 }
 
-func (idx questionEntryIndex) find(raw map[string]any, questionNum int) (model.QuestionEntry, bool) {
+func (idx questionEntryIndex) find(raw map[string]any, questionNum int) (model.QuestionStrategy, bool) {
 	if id := stringValue(idFromMapping(raw, "qstId", "questionId", "id")); id != "" {
 		if entry, ok := idx.byID[id]; ok {
 			return entry, true
@@ -96,7 +93,7 @@ func (idx questionEntryIndex) find(raw map[string]any, questionNum int) (model.Q
 	return entry, ok
 }
 
-func buildAnswerItem(raw map[string]any, action answerplan.Action, questionNum int) (map[string]any, error) {
+func buildAnswerItem(raw map[string]any, action model.AnswerAction, questionNum int) (map[string]any, error) {
 	switch rawQuestionType(raw) {
 	case 1:
 		return textAnswer(raw, action), nil
@@ -113,12 +110,12 @@ func buildAnswerItem(raw map[string]any, action answerplan.Action, questionNum i
 	}
 }
 
-func defaultEntryForRawQuestion(raw map[string]any, questionNum int) model.QuestionEntry {
+func defaultEntryForRawQuestion(raw map[string]any, questionNum int) model.QuestionStrategy {
 	providerType := rawProviderType(raw)
 	optionCount := rawOptionCount(raw)
-	return model.QuestionEntry{
-		QuestionType:     questionTypeFromProvider(providerType),
-		Probabilities:    defaultRawProbabilities(providerType, optionCount),
+	return model.QuestionStrategy{
+		QuestionType:     model.QuestionKind(questionTypeFromProvider(providerType)),
+		Probabilities:    model.OptionWeights(defaultRawProbabilities(providerType, optionCount)...),
 		OptionCount:      optionCount,
 		Rows:             rawRowCount(raw),
 		QuestionNum:      &questionNum,
@@ -127,7 +124,7 @@ func defaultEntryForRawQuestion(raw map[string]any, questionNum int) model.Quest
 	}
 }
 
-func defaultRawProbabilities(providerType string, optionCount int) any {
+func defaultRawProbabilities(providerType string, optionCount int) []float64 {
 	if providerType == "text" || optionCount <= 0 {
 		return []float64{1}
 	}
@@ -165,7 +162,7 @@ func baseAnswer(raw map[string]any) map[string]any {
 	}
 }
 
-func choiceAnswer(raw map[string]any, action answerplan.Action, questionNum int) (map[string]any, error) {
+func choiceAnswer(raw map[string]any, action model.AnswerAction, questionNum int) (map[string]any, error) {
 	choices := asMapList(raw["choices"])
 	if len(choices) == 0 {
 		return nil, fmt.Errorf("见数第%d题缺少选项", questionNum)
@@ -185,7 +182,7 @@ func choiceAnswer(raw map[string]any, action answerplan.Action, questionNum int)
 	return item, nil
 }
 
-func textAnswer(raw map[string]any, action answerplan.Action) map[string]any {
+func textAnswer(raw map[string]any, action model.AnswerAction) map[string]any {
 	item := baseAnswer(raw)
 	text := "无"
 	if len(action.TextValues) > 0 && action.TextValues[0] != "" {
@@ -195,7 +192,7 @@ func textAnswer(raw map[string]any, action answerplan.Action) map[string]any {
 	return item
 }
 
-func matrixAnswer(raw map[string]any, action answerplan.Action, questionNum int) (map[string]any, error) {
+func matrixAnswer(raw map[string]any, action model.AnswerAction, questionNum int) (map[string]any, error) {
 	rows := asMapList(raw["choices"])
 	columns := asMapList(raw["answers"])
 	if len(rows) == 0 || len(columns) == 0 {
@@ -216,7 +213,7 @@ func matrixAnswer(raw map[string]any, action answerplan.Action, questionNum int)
 	return item, nil
 }
 
-func orderAnswer(raw map[string]any, action answerplan.Action, questionNum int) (map[string]any, error) {
+func orderAnswer(raw map[string]any, action model.AnswerAction, questionNum int) (map[string]any, error) {
 	choices := asMapList(raw["choices"])
 	if len(choices) == 0 {
 		return nil, fmt.Errorf("见数第%d题缺少排序选项", questionNum)

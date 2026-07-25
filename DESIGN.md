@@ -4,7 +4,7 @@ purpose: Windows 问卷自动化桌面端的统一设计契约
 product: 工具型桌面端应用
 platform: Windows desktop
 stack: React + TypeScript + Wails v3 + Radix UI
-source_of_truth: apps/desktop/frontend/src/style.css
+source_of_truth: apps/desktop/frontend/src/style.css and apps/desktop/frontend/src/styles/
 breakpoints:
   compact: '< 720px'
   desktop: '>= 720px'
@@ -94,7 +94,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 ### 4. 单一来源
 
-颜色、字体、圆角、阴影、动效和控件状态必须来自本文件和 `src/style.css`。业务组件不能另造一套相近 CSS。
+颜色、字体、圆角、阴影、动效和控件状态必须来自本文件、`src/style.css` 和 `src/styles/`。业务组件不能另造一套相近 CSS。
 
 ### 5. 原生语义，统一表面
 
@@ -148,7 +148,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 - 标题栏、侧边导航和工作区保持固定层级。
 - 页面内容放在 `apps/desktop/frontend/src/pages/`。
-- 导航宽度、标题栏高度和工作区间距使用 `src/style.css` 中的变量。
+- 导航宽度、标题栏高度和工作区间距使用 `src/styles/base.css` 中的变量。
 - 卡片只承担一个清晰分组，不把互不相关的设置塞进同一张卡片。
 
 ### 表单页
@@ -248,7 +248,9 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 - 可复用组件放在 `apps/desktop/frontend/src/components/`。
 - Radix 控件封装放在 `apps/desktop/frontend/src/components/ui/`。
 - 基础控件样式放在 `apps/desktop/frontend/src/components/ui/styles/`。
-- 页面主题变量放在 `apps/desktop/frontend/src/style.css`。
+- `apps/desktop/frontend/src/style.css` 只维护样式导入顺序。
+- 主题变量和全局基础放在 `apps/desktop/frontend/src/styles/base.css`。
+- 页面、窗口壳、向导、弹窗和日期控件样式按职责放在 `apps/desktop/frontend/src/styles/`。
 - Wails 调用走 `apps/desktop/frontend/src/services/shell.ts`。
 - UI 只负责展示、交互和编排。网络、文件 IO、代理验活和问卷运行走服务层。
 - 业务组件不得直接写十六进制颜色、新字体、新圆角或新阴影体系。

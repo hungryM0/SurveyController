@@ -5,27 +5,83 @@ import (
 
 	"surveycontroller/proxycore"
 	"surveycontroller/surveycore"
+	"surveycontroller/surveycore/configio"
 )
 
 type ParseSurveyRequest struct {
 	URL string `json:"url"`
 }
 
+type LoadConfigRequest struct {
+	Path string `json:"path"`
+}
+
+type SaveConfigRequest struct {
+	Path   string                  `json:"path"`
+	Config configio.ConfigDocument `json:"config"`
+}
+
+type AICredentialOperation string
+
+const (
+	AICredentialKeep    AICredentialOperation = "keep"
+	AICredentialReplace AICredentialOperation = "replace"
+	AICredentialClear   AICredentialOperation = "clear"
+)
+
+type AICredentialUpdate struct {
+	Operation AICredentialOperation `json:"operation"`
+	APIKey    string                `json:"apiKey,omitempty"`
+}
+
+type SaveSettingsRequest struct {
+	Settings     AppSettings        `json:"settings"`
+	AICredential AICredentialUpdate `json:"aiCredential"`
+}
+
+type ConfigFileState struct {
+	Path   string                   `json:"path"`
+	Exists bool                     `json:"exists"`
+	Config *configio.ConfigDocument `json:"config,omitempty"`
+}
+
 type RunSurveyRequest struct {
-	Config surveycore.RuntimeConfig `json:"config"`
+	Config configio.ConfigDocument `json:"config"`
+}
+
+type RunTaskStatus string
+
+const (
+	RunTaskStatusIdle      RunTaskStatus = "idle"
+	RunTaskStatusRunning   RunTaskStatus = "running"
+	RunTaskStatusPaused    RunTaskStatus = "paused"
+	RunTaskStatusCanceling RunTaskStatus = "canceling"
+	RunTaskStatusSucceeded RunTaskStatus = "succeeded"
+	RunTaskStatusFailed    RunTaskStatus = "failed"
+	RunTaskStatusStopped   RunTaskStatus = "stopped"
+)
+
+type RunTaskStateRequest struct {
+	RunID         string `json:"runId,omitempty"`
+	AfterSequence uint64 `json:"afterSequence,omitempty"`
+}
+
+type RunTaskEvent struct {
+	Sequence uint64           `json:"sequence"`
+	Event    surveycore.Event `json:"event"`
 }
 
 type RunTaskState struct {
-	Running     bool                      `json:"running"`
-	Canceling   bool                      `json:"canceling"`
-	Paused      bool                      `json:"paused"`
-	PauseReason string                    `json:"pauseReason,omitempty"`
-	Result      *surveycore.RunResult     `json:"result,omitempty"`
-	Events      []surveycore.Event        `json:"events,omitempty"`
-	Error       string                    `json:"error,omitempty"`
-	StartedAt   time.Time                 `json:"startedAt,omitempty"`
-	EndedAt     time.Time                 `json:"endedAt,omitempty"`
-	Config      *surveycore.RuntimeConfig `json:"config,omitempty"`
+	RunID         string                `json:"runId,omitempty"`
+	Status        RunTaskStatus         `json:"status"`
+	PauseReason   string                `json:"pauseReason,omitempty"`
+	Result        *surveycore.RunResult `json:"result,omitempty"`
+	Events        []RunTaskEvent        `json:"events,omitempty"`
+	NextSequence  uint64                `json:"nextSequence"`
+	DroppedEvents uint64                `json:"droppedEvents"`
+	Error         string                `json:"error,omitempty"`
+	StartedAt     time.Time             `json:"startedAt,omitempty"`
+	EndedAt       time.Time             `json:"endedAt,omitempty"`
 }
 
 type ReverseFillPreviewRequest struct {
@@ -45,7 +101,7 @@ type TestCustomProxyAPIRequest struct {
 }
 
 type TestAIConnectionRequest struct {
-	Config surveycore.RuntimeConfig `json:"config"`
+	AIProfile AIProfileSettings `json:"aiProfile"`
 }
 
 type CustomProxyAPITestState struct {
@@ -76,13 +132,6 @@ type ProxyRedeemState struct {
 	CardQuotaLabel string      `json:"cardQuotaLabel"`
 	Detail         string      `json:"detail,omitempty"`
 	Status         ProxyStatus `json:"status"`
-}
-
-type SurveyCoreState struct {
-	Definition *surveycore.SurveyDefinition `json:"definition,omitempty"`
-	Config     *surveycore.RuntimeConfig    `json:"config,omitempty"`
-	Result     *surveycore.RunResult        `json:"result,omitempty"`
-	Events     []surveycore.Event           `json:"events,omitempty"`
 }
 
 type ProxyStatus struct {

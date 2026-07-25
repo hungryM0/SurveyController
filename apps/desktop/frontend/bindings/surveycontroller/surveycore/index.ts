@@ -4,7 +4,5 @@
 export type {
     Event,
     QuestionMeta,
-    RunResult,
-    RuntimeConfig,
-    SurveyDefinition
+    RunResult
 } from "./models.js";

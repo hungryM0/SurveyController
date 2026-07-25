@@ -41,14 +41,10 @@ func TestRunWJXReverseFillSubmitsExcelAnswers(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := New(WithHTTPClient(rewriteWJXHTTPClient(server.URL))).Run(context.Background(), &RuntimeConfig{
-		URL:                   "https://www.wjx.cn/vm/demo.aspx",
-		SurveyProvider:        ProviderWJX,
-		Target:                1,
-		ReverseFillEnabled:    true,
-		ReverseFillSourcePath: sourcePath,
-		ReverseFillFormat:     "wjx_text",
-		ReverseFillStartRow:   1,
+	result, err := New(WithHTTPClient(rewriteWJXHTTPClient(server.URL))).Run(context.Background(), &RunRequest{
+		SurveySource:    SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: ProviderWJX},
+		ExecutionPlan:   ExecutionPlan{Target: 1},
+		ReverseFillPlan: ReverseFillPlan{Enabled: true, SourcePath: sourcePath, Format: "wjx_text", StartRow: 1},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -64,12 +60,10 @@ func TestRunWJXReverseFillSubmitsExcelAnswers(t *testing.T) {
 }
 
 func TestPrepareReverseFillRejectsUnsupportedProvider(t *testing.T) {
-	_, _, err := New().prepareReverseFillExecution(context.Background(), &RuntimeConfig{
-		URL:                   "https://www.wjx.cn/vm/demo.aspx",
-		SurveyProvider:        ProviderCredamo,
-		Target:                1,
-		ReverseFillEnabled:    true,
-		ReverseFillSourcePath: "demo.xlsx",
+	_, _, err := New().prepareReverseFillExecution(context.Background(), &RunRequest{
+		SurveySource:    SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: ProviderCredamo},
+		ExecutionPlan:   ExecutionPlan{Target: 1},
+		ReverseFillPlan: ReverseFillPlan{Enabled: true, SourcePath: "demo.xlsx"},
 	}, ProviderCredamo, ExecutionOptions{})
 	if err == nil || !strings.Contains(err.Error(), "只支持问卷星") {
 		t.Fatalf("err = %v", err)

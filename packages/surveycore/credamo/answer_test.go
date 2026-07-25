@@ -8,8 +8,6 @@ import (
 )
 
 func TestBuildAnswerItemsMatchesEntryByProviderQuestionID(t *testing.T) {
-	questionNum := 99
-	providerID := "102"
 	raw := []map[string]any{
 		{
 			"qstNo":        "Q2",
@@ -20,18 +18,11 @@ func TestBuildAnswerItemsMatchesEntryByProviderQuestionID(t *testing.T) {
 			"choices":      []any{map[string]any{"choiceId": 1}, map[string]any{"choiceId": 2}},
 		},
 	}
-	cfg := &model.RuntimeConfig{
-		QuestionEntries: []model.QuestionEntry{
-			{
-				QuestionType:       "single",
-				QuestionNum:        &questionNum,
-				ProviderQuestionID: &providerID,
-				Probabilities:      []float64{0, 1},
-			},
-		},
-	}
+	request := &model.SubmissionRequest{Context: model.SubmissionContext{Actions: []model.AnswerAction{
+		{QuestionNum: 99, QuestionID: "102", Kind: model.QuestionKindSingle, SelectedIndices: []int{1}},
+	}}}
 
-	items, err := buildAnswerItems(raw, cfg)
+	items, err := buildAnswerItems(raw, request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,8 +33,8 @@ func TestBuildAnswerItemsMatchesEntryByProviderQuestionID(t *testing.T) {
 }
 
 func TestBuildAnswerItemsUsesJSONProbabilityValues(t *testing.T) {
-	var entry model.QuestionEntry
-	if err := json.Unmarshal([]byte(`{"question_type":"multiple","probabilities":[100,0,100]}`), &entry); err != nil {
+	var entry model.QuestionStrategy
+	if err := json.Unmarshal([]byte(`{"question_type":"multiple","probabilities":{"options":[100,0,100]}}`), &entry); err != nil {
 		t.Fatal(err)
 	}
 	questionNum := 1
@@ -61,9 +52,9 @@ func TestBuildAnswerItemsUsesJSONProbabilityValues(t *testing.T) {
 			},
 		},
 	}
-	cfg := &model.RuntimeConfig{QuestionEntries: []model.QuestionEntry{entry}}
+	request := &model.SubmissionRequest{Context: model.SubmissionContext{Actions: []model.AnswerAction{{QuestionNum: 1, Kind: model.QuestionKindMultiple, SelectedIndices: []int{0, 2}}}}}
 
-	items, err := buildAnswerItems(raw, cfg)
+	items, err := buildAnswerItems(raw, request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +65,10 @@ func TestBuildAnswerItemsUsesJSONProbabilityValues(t *testing.T) {
 }
 
 func TestBuildAnswerItemsCoversOrderAndMatrixDefaults(t *testing.T) {
-	cfg := &model.RuntimeConfig{}
+	request := &model.SubmissionRequest{Context: model.SubmissionContext{Actions: []model.AnswerAction{
+		{QuestionNum: 1, Kind: model.QuestionKindOrder, SelectedIndices: []int{0, 1}},
+		{QuestionNum: 2, Kind: model.QuestionKindMatrix, MatrixIndices: []int{0, 1}},
+	}}}
 	items, err := buildAnswerItems([]map[string]any{
 		{
 			"qstNo":        "Q1",
@@ -94,7 +88,7 @@ func TestBuildAnswerItemsCoversOrderAndMatrixDefaults(t *testing.T) {
 			"choices":      []any{map[string]any{"choiceId": 3}, map[string]any{"choiceId": 4}},
 			"answers":      []any{map[string]any{"answerId": 5}, map[string]any{"answerId": 6}},
 		},
-	}, cfg)
+	}, request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,11 +107,7 @@ func TestBuildAnswerItemsCoversOrderAndMatrixDefaults(t *testing.T) {
 
 func TestBuildAnswerItemsUsesMatrixRowProbabilities(t *testing.T) {
 	questionNum := 1
-	cfg := &model.RuntimeConfig{QuestionEntries: []model.QuestionEntry{{
-		QuestionType:  "matrix",
-		QuestionNum:   &questionNum,
-		Probabilities: [][]float64{{0, 1}, {1, 0}},
-	}}}
+	request := &model.SubmissionRequest{Context: model.SubmissionContext{Actions: []model.AnswerAction{{QuestionNum: questionNum, Kind: model.QuestionKindMatrix, MatrixIndices: []int{1, 0}}}}}
 	items, err := buildAnswerItems([]map[string]any{
 		{
 			"qstNo":        "Q1",
@@ -126,7 +116,7 @@ func TestBuildAnswerItemsUsesMatrixRowProbabilities(t *testing.T) {
 			"choices":      []any{map[string]any{"choiceId": 3}, map[string]any{"choiceId": 4}},
 			"answers":      []any{map[string]any{"answerId": 5}, map[string]any{"answerId": 6}},
 		},
-	}, cfg)
+	}, request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,22 +129,10 @@ func TestBuildAnswerItemsUsesMatrixRowProbabilities(t *testing.T) {
 }
 
 func TestBuildAnswerItemsAppliesAnswerRules(t *testing.T) {
-	q1 := 1
-	q2 := 2
-	cfg := &model.RuntimeConfig{
-		QuestionEntries: []model.QuestionEntry{
-			{QuestionType: "single", QuestionNum: &q1, Probabilities: []float64{0, 1}},
-			{QuestionType: "single", QuestionNum: &q2, Probabilities: []float64{1, 1, 1}},
-		},
-		AnswerRules: []map[string]any{{
-			"condition_question_num":   1,
-			"condition_mode":           "selected",
-			"condition_option_indices": []any{1},
-			"target_question_num":      2,
-			"action_mode":              "must_select",
-			"target_option_indices":    []any{2},
-		}},
-	}
+	request := &model.SubmissionRequest{Context: model.SubmissionContext{Actions: []model.AnswerAction{
+		{QuestionNum: 1, Kind: model.QuestionKindSingle, SelectedIndices: []int{1}},
+		{QuestionNum: 2, Kind: model.QuestionKindSingle, SelectedIndices: []int{2}},
+	}}}
 	items, err := buildAnswerItems([]map[string]any{
 		{
 			"qstNo":        "Q1",
@@ -172,7 +150,7 @@ func TestBuildAnswerItemsAppliesAnswerRules(t *testing.T) {
 			"selector":     1,
 			"choices":      []any{map[string]any{"choiceId": 3}, map[string]any{"choiceId": 4}, map[string]any{"choiceId": 5}},
 		},
-	}, cfg)
+	}, request)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,13 +7,43 @@ import * as proxycore$0 from "../../../../../surveycontroller/proxycore/models.j
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as surveycore$0 from "../../../../../surveycontroller/surveycore/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as configio$0 from "../../../../../surveycontroller/surveycore/configio/models.js";
 
 export interface AIConnectionTestState {
     "success": boolean;
     "message": string;
 }
 
+export enum AICredentialOperation {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    AICredentialKeep = "keep",
+    AICredentialReplace = "replace",
+    AICredentialClear = "clear",
+};
+
+export interface AICredentialUpdate {
+    "operation": AICredentialOperation;
+    "apiKey"?: string;
+}
+
+export interface AIProfileSettings {
+    "mode": string;
+    "provider": string;
+    "baseURL"?: string;
+    "apiProtocol": string;
+    "model"?: string;
+    "systemPrompt"?: string;
+    "hasAPIKey": boolean;
+}
+
 export interface AppSettings {
+    "schemaVersion": number;
     "configDirectory": string;
     "themeMode": string;
     "showNavigationText": boolean;
@@ -26,44 +56,20 @@ export interface AppSettings {
     "setupWizardVersion": number;
     "autoCheckUpdate": boolean;
     "autoSaveLogs": boolean;
-    "notifications": boolean;
     "autosaveLogCount": number;
-    "runtimeDefaults"?: { [_ in string]?: string } | null;
+    "aiProfile": AIProfileSettings;
 }
 
 export interface ConfigFileState {
     "path": string;
     "exists": boolean;
-    "config"?: surveycore$0.RuntimeConfig | null;
+    "config"?: configio$0.ConfigDocument | null;
 }
 
 export interface CustomProxyAPITestState {
     "success": boolean;
     "message": string;
     "proxies": string[] | null;
-}
-
-export interface DashboardState {
-    "surveyTitle": string;
-    "surveyUrl": string;
-    "targetCount": number;
-    "threadCount": number;
-    "randomIpEnabled": boolean;
-    "randomIpQuota": number;
-    "randomIpQuotaLabel": string;
-    "randomIpStatus": string;
-    "randomIpStatusTone": string;
-    "proxySource": string;
-    "questionCount": number;
-    "progressCurrent": number;
-    "progressTarget": number;
-    "progressPercent": number;
-    "statusText": string;
-    "platformLabel": string;
-    "metrics": PageMetric[] | null;
-    "quickActions": QuickAction[] | null;
-    "questionRows": QuestionRow[] | null;
-    "sessionRows": SessionRow[] | null;
 }
 
 export interface DecodeQRCodeRequest {
@@ -74,21 +80,6 @@ export interface DecodeQRCodeRequest {
 
 export interface LoadConfigRequest {
     "path": string;
-}
-
-export interface NavItem {
-    "id": string;
-    "label": string;
-    "icon": string;
-    "section": string;
-    "badge"?: string;
-    "selected"?: boolean;
-}
-
-export interface PageMetric {
-    "label": string;
-    "value": string;
-    "tone"?: string;
 }
 
 export interface ParseSurveyRequest {
@@ -141,20 +132,6 @@ export interface QRCodeDecodeState {
     "text": string;
 }
 
-export interface QuestionRow {
-    "index": number;
-    "type": string;
-    "dimension": string;
-    "strategy": string;
-}
-
-export interface QuickAction {
-    "id": string;
-    "label": string;
-    "icon": string;
-    "emphasis"?: string;
-}
-
 export interface RedeemProxyCardRequest {
     "cardCode": string;
     "source"?: string;
@@ -167,92 +144,60 @@ export interface ReverseFillPreviewRequest {
     "questions": surveycore$0.QuestionMeta[] | null;
 }
 
-export interface ReverseFillRow {
-    "question": string;
-    "column": string;
-    "state": string;
+export interface RunSurveyRequest {
+    "config": configio$0.ConfigDocument;
 }
 
-export interface RunSurveyRequest {
-    "config": surveycore$0.RuntimeConfig;
+export interface RunTaskEvent {
+    "sequence": number;
+    "event": surveycore$0.Event;
 }
 
 export interface RunTaskState {
-    "running": boolean;
-    "canceling": boolean;
-    "paused": boolean;
+    "runId"?: string;
+    "status": RunTaskStatus;
     "pauseReason"?: string;
     "result"?: surveycore$0.RunResult | null;
-    "events"?: surveycore$0.Event[] | null;
+    "events"?: RunTaskEvent[] | null;
+    "nextSequence": number;
+    "droppedEvents": number;
     "error"?: string;
     "startedAt"?: string;
     "endedAt"?: string;
-    "config"?: surveycore$0.RuntimeConfig | null;
 }
+
+export interface RunTaskStateRequest {
+    "runId"?: string;
+    "afterSequence"?: number;
+}
+
+export enum RunTaskStatus {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    RunTaskStatusIdle = "idle",
+    RunTaskStatusRunning = "running",
+    RunTaskStatusPaused = "paused",
+    RunTaskStatusCanceling = "canceling",
+    RunTaskStatusSucceeded = "succeeded",
+    RunTaskStatusFailed = "failed",
+    RunTaskStatusStopped = "stopped",
+};
 
 export interface SaveConfigRequest {
     "path": string;
-    "config": surveycore$0.RuntimeConfig;
+    "config": configio$0.ConfigDocument;
 }
 
 export interface SaveSettingsRequest {
     "settings": AppSettings;
-}
-
-export interface SessionRow {
-    "thread": string;
-    "status": string;
-    "progress": number;
-}
-
-export interface SettingField {
-    "id": string;
-    "label": string;
-    "description": string;
-    "kind": string;
-    "value": string;
-    "options"?: string[] | null;
-}
-
-export interface SettingsGroup {
-    "title": string;
-    "fields": SettingField[] | null;
-}
-
-export interface ShellState {
-    "appTitle": string;
-    "appVersion": string;
-    "themeMode": string;
-    "currentPage": string;
-    "topNav": NavItem[] | null;
-    "bottomNav": NavItem[] | null;
-    "dashboard": DashboardState;
-    "runtimeGroups": SettingsGroup[] | null;
-    "strategyRules": StrategyRule[] | null;
-    "dimensionGroups": string[] | null;
-    "reverseFillPlan": ReverseFillRow[] | null;
-    "logLines": string[] | null;
-    "communityItems": string[] | null;
-    "aboutItems": PageMetric[] | null;
-    "donateItems": PageMetric[] | null;
-    "settingsGroups": SettingsGroup[] | null;
-}
-
-export interface StrategyRule {
-    "condition": string;
-    "action": string;
-    "target": string;
-}
-
-export interface SurveyCoreState {
-    "definition"?: surveycore$0.SurveyDefinition | null;
-    "config"?: surveycore$0.RuntimeConfig | null;
-    "result"?: surveycore$0.RunResult | null;
-    "events"?: surveycore$0.Event[] | null;
+    "aiCredential": AICredentialUpdate;
 }
 
 export interface TestAIConnectionRequest {
-    "config": surveycore$0.RuntimeConfig;
+    "aiProfile": AIProfileSettings;
 }
 
 export interface TestCustomProxyAPIRequest {

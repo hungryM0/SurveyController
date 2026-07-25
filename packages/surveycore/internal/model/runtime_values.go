@@ -77,11 +77,11 @@ func SelectUserAgentFromRatios(ratios map[string]int) (UserAgentProfile, bool) {
 	return UserAgentProfile{}, false
 }
 
-func RuntimeUserAgent(cfg *RuntimeConfig) string {
-	if cfg == nil || !cfg.RandomUAEnabled {
+func RuntimeUserAgent(settings UserAgentSettings) string {
+	if !settings.Enabled {
 		return ""
 	}
-	profile, ok := SelectUserAgentFromRatios(cfg.RandomUARatios)
+	profile, ok := SelectUserAgentFromRatios(settings.Ratios)
 	if !ok {
 		return ""
 	}

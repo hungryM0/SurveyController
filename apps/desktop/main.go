@@ -18,12 +18,14 @@ var appIcon []byte
 
 func main() {
 	service := NewAppService()
+	windowService := &WindowService{}
 	app := application.New(application.Options{
 		Name:        "SurveyController",
 		Description: "SurveyController Desktop UI",
 		Icon:        appIcon,
 		Services: []application.Service{
 			application.NewService(service),
+			application.NewService(windowService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -46,10 +48,11 @@ func main() {
 		},
 	})
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
-		if service.consumeCloseConfirmed() {
+		if windowService.consumeCloseConfirmed() {
 			return
 		}
-		if !service.ShouldConfirmClose() {
+		settings, err := service.GetAppSettings()
+		if err == nil && !settings.AskSaveOnClose {
 			return
 		}
 		event.Cancel()

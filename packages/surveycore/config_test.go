@@ -10,7 +10,7 @@ func TestDefaultQuestionEntriesAlignParserTypes(t *testing.T) {
 		{Num: 4, Title: "文本", Provider: ProviderCredamo, ProviderID: "104", ProviderType: "text", TypeCode: "1", TextInputs: 1, ForcedTexts: []string{"hello"}},
 	}
 
-	entries := buildDefaultQuestionEntries(questions)
+	entries := buildDefaultQuestionStrategies(questions)
 	if len(entries) != 4 {
 		t.Fatalf("entry count = %d", len(entries))
 	}
@@ -24,13 +24,13 @@ func TestDefaultQuestionEntriesAlignParserTypes(t *testing.T) {
 	}
 }
 
-func assertEntry(t *testing.T, entry QuestionEntry, questionType string, probabilities int, providerID string) {
+func assertEntry(t *testing.T, entry QuestionStrategy, questionType string, probabilities int, providerID string) {
 	t.Helper()
-	if entry.QuestionType != questionType {
+	if string(entry.QuestionType) != questionType {
 		t.Fatalf("type = %s, want %s", entry.QuestionType, questionType)
 	}
-	values, ok := entry.Probabilities.([]float64)
-	if !ok || len(values) != probabilities {
+	values := entry.Probabilities.Values()
+	if len(values) != probabilities {
 		t.Fatalf("probabilities = %#v, want %d values", entry.Probabilities, probabilities)
 	}
 	if entry.ProviderQuestionID == nil || *entry.ProviderQuestionID != providerID {

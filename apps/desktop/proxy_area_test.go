@@ -7,28 +7,24 @@ import (
 )
 
 func TestResolveDesktopProxyArea(t *testing.T) {
-	defaultCode := "110100"
-	if got := resolveDesktopProxyArea(proxycore.OfficialSourceDefault, &defaultCode); got != "110100" {
+	if got := resolveDesktopProxyArea(proxycore.OfficialSourceDefault, "110100"); got != "110100" {
 		t.Fatalf("default area = %q", got)
 	}
 
-	benefitCode := "110100"
-	if got := resolveDesktopProxyArea(proxycore.OfficialSourceBenefit, &benefitCode); got != "北京" {
+	if got := resolveDesktopProxyArea(proxycore.OfficialSourceBenefit, "110100"); got != "北京" {
 		t.Fatalf("benefit area = %q", got)
 	}
 
-	unknownBenefitCode := "999999"
-	if got := resolveDesktopProxyArea(proxycore.OfficialSourceBenefit, &unknownBenefitCode); got != "" {
+	if got := resolveDesktopProxyArea(proxycore.OfficialSourceBenefit, "999999"); got != "" {
 		t.Fatalf("unknown benefit area = %q", got)
 	}
 
-	invalidCode := "11010x"
-	if got := resolveDesktopProxyArea(proxycore.OfficialSourceDefault, &invalidCode); got != "" {
+	if got := resolveDesktopProxyArea(proxycore.OfficialSourceDefault, "11010x"); got != "" {
 		t.Fatalf("invalid area = %q", got)
 	}
 
-	if got := resolveDesktopProxyArea(proxycore.OfficialSourceDefault, nil); got != "" {
-		t.Fatalf("nil area = %q", got)
+	if got := resolveDesktopProxyArea(proxycore.OfficialSourceDefault, ""); got != "" {
+		t.Fatalf("empty area = %q", got)
 	}
 }
 

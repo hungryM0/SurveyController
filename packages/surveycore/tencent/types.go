@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"surveycontroller/surveycore/internal/httpjson"
+	"surveycontroller/surveycore/internal/model"
 )
 
 type ParseError struct {
@@ -57,6 +58,7 @@ type Runner struct {
 }
 
 type PreparedSurvey struct {
+	Definition        model.SurveyDefinition
 	SurveyID          string
 	Hash              string
 	PageURL           string

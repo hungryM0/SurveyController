@@ -1,13 +1,13 @@
 import { Eye, FileSpreadsheet, FolderOpen } from 'lucide-react'
 import { Button } from '../components/ui'
 import SettingField from '../components/SettingField'
-import type { ReverseFillRow, RuntimeConfig, SettingField as SettingFieldType } from '../types'
+import type { ConfigDocument, ReverseFillRow, SettingField as SettingFieldType } from '../types'
 import PageHeader from '../components/PageHeader'
 
 interface ReverseFillViewProps {
   reverseFill: ReverseFillRow[]
   reverseFillPath?: string
-  config?: RuntimeConfig | null
+  config?: ConfigDocument | null
   busy?: boolean
   onFieldChange?: (id: string, value: string | boolean) => void
   onChooseReverseFill: () => void
@@ -25,10 +25,10 @@ function ReverseFillView({
 }: ReverseFillViewProps) {
   const matchedCount = reverseFill.filter((row) => row.state.startsWith('已匹配')).length
   const settings: SettingFieldType[] = [
-    { id: 'reverse-fill-enabled', label: '启用反填', description: '使用 Excel 回放答案', kind: 'toggle', value: String(Boolean(config?.reverse_fill_enabled)) },
-    { id: 'reverse-fill-format', label: '反填格式', description: '问卷星导出格式', kind: 'select', value: config?.reverse_fill_format ?? 'auto', options: ['auto', 'wjx_text', 'wjx_score', 'wjx_sequence'] },
-    { id: 'reverse-fill-start-row', label: '起始行', description: 'Excel 数据起始行', kind: 'number', value: String(config?.reverse_fill_start_row ?? 1) },
-    { id: 'reverse-fill-threads', label: '反填并发', description: '反填任务并发数', kind: 'number', value: String(config?.reverse_fill_threads ?? config?.threads ?? 1) },
+    { id: 'reverse-fill-enabled', label: '启用反填', description: '使用 Excel 回放答案', kind: 'toggle', value: String(Boolean(config?.reverseFill.enabled)) },
+    { id: 'reverse-fill-format', label: '反填格式', description: '问卷星导出格式', kind: 'select', value: config?.reverseFill.format ?? 'auto', options: ['auto', 'wjx_text', 'wjx_score', 'wjx_sequence'] },
+    { id: 'reverse-fill-start-row', label: '起始行', description: 'Excel 数据起始行', kind: 'number', value: String(config?.reverseFill.startRow ?? 1) },
+    { id: 'reverse-fill-threads', label: '反填并发', description: '反填任务并发数', kind: 'number', value: String(config?.reverseFill.threads ?? config?.execution.threads ?? 1) },
   ]
 
   return (

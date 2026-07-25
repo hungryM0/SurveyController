@@ -1,0 +1,123 @@
+.settings-panel,
+.info-panel,
+.log-panel,
+.dimension-panel {
+  padding: 0.75rem;
+}
+
+.strategy-page {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  gap: 0.75rem;
+  overflow: hidden;
+  padding: 0.75rem;
+}
+
+.strategy-question-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.75rem;
+}
+
+.strategy-search-row {
+  display: grid;
+  margin-bottom: 0.75rem;
+}
+
+.question-search-panel {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.question-search-hit {
+  display: grid;
+  gap: 0.15rem;
+  text-align: left;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface-soft);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.question-search-hit:hover {
+  border-color: rgba(0, 103, 192, 0.3);
+  background: var(--surface-strong);
+}
+
+.question-search-hit strong {
+  font-size: 0.84rem;
+}
+
+.question-search-hit span {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.strategy-question-detail {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface-soft);
+}
+
+.strategy-question-detail-body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.strategy-summary-pill {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+}
+
+.strategy-location-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.strategy-question-list .strategy-question-row {
+  cursor: pointer;
+}
+
+.strategy-question-list .strategy-question-row.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.strategy-inline-tabs {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.question-logic-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.question-logic-item {
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.strategy-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+

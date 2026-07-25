@@ -1,0 +1,155 @@
+.stat-icon-wrapper {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: var(--control);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 0.1rem;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.widget-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pulse-icon {
+  color: var(--accent);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.widget-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.circle-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.circle-dot.success { background: var(--success); }
+
+.circle-dot.warning { background: var(--warn); }
+
+.dots-group {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot.red { background: #ff5f56; }
+
+.dot.yellow { background: #ffbd2e; }
+
+.dot.green { background: #27c93f; }
+
+@keyframes blink-cursor {
+  from, to { color: transparent }
+  50% { color: #61afef }
+}
+
+.table-wrapper-scroll {
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.status-indicator-ping {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+
+.status-text-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-text-block .label {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.status-desc {
+  font-size: 0.84rem;
+  color: var(--text);
+  font-weight: 600;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-label-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.progress-label-bar strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.run-btn {
+  padding: 0 1.25rem !important;
+  font-weight: 600 !important;
+}
+
+.stop-btn {
+  background-color: transparent !important;
+}
+

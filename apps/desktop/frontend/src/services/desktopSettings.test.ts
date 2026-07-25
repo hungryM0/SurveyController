@@ -32,8 +32,8 @@ describe('desktop settings helpers', () => {
 
   it('builds task result notifications from run state', () => {
     expect(shouldNotifyTaskResult(null)).toBe(true)
-    expect(shouldNotifyTaskResult({ notifications: false })).toBe(false)
-    expect(shouldNotifyTaskResult({ notifications: true, taskResultNotification: false })).toBe(false)
+    expect(shouldNotifyTaskResult({ taskResultNotification: false })).toBe(false)
+    expect(shouldNotifyTaskResult({ taskResultNotification: true })).toBe(true)
     expect(buildTaskResultNotification({ result: { success: 3, fail: 1 } })).toEqual({
       title: '任务执行完成',
       body: '成功 3 份，失败 1 份',

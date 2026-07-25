@@ -1,0 +1,154 @@
+.config-wizard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(8, 12, 18, 0.58);
+  backdrop-filter: blur(12px);
+  animation: config-wizard-fade-in 200ms ease-out both;
+}
+
+.config-wizard-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 81;
+  width: min(860px, calc(100vw - 2rem));
+  max-height: min(720px, calc(100vh - 2rem));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(135%);
+  animation: config-wizard-dialog-in 240ms cubic-bezier(0.1, 0.9, 0.2, 1) both;
+}
+
+.config-wizard-header,
+.config-wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.05rem 1.2rem;
+}
+
+.config-wizard-header { border-bottom: 1px solid var(--line); }
+
+.config-wizard-title {
+  display: block;
+  margin: 0;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.config-wizard-description {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.config-wizard-step-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.config-wizard-layout {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 14.5rem minmax(0, 1fr);
+}
+
+.config-wizard-progress {
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  padding: 1rem 0.65rem;
+}
+
+.config-wizard-progress ol {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-wizard-progress button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.85rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.55rem 0.45rem;
+  text-align: left;
+  transition: background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+}
+
+.config-wizard-progress button:not(:disabled):hover {
+  border-color: var(--line);
+  background: var(--control-hover);
+  color: var(--text);
+}
+
+.config-wizard-progress li.is-active button {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.config-wizard-progress li.is-complete button { color: var(--text); }
+
+.config-wizard-progress-index {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: inherit;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.config-wizard-progress li.is-active .config-wizard-progress-index,
+.config-wizard-progress li.is-complete .config-wizard-progress-index {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #fff);
+}
+
+.config-wizard-progress-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.config-wizard-progress-copy strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.83rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-wizard-progress-copy small {
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.7rem;
+  opacity: 0.8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

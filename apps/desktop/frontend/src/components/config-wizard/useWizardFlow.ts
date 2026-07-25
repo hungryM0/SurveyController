@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RuntimeConfig } from '../../types'
 import {
   WIZARD_STEPS,
   cloneWizardDraft,
-  createWizardDraft,
   isParsedConfig,
   mergeParsedConfig,
+  updateWizardConfig,
   updateWizardURL,
   type WizardStepId,
 } from './configWizardModel'
 import type { WizardFrameProps } from './WizardFrame'
 import type { ConfigurationWizardProps } from './wizardTypes'
 import { validateWizardStep } from './wizardValidation'
+import { wizardErrorMessage, wizardStepIndex } from './wizardHelpers'
 
 export function useWizardFlow({
   open,
-  initialConfig,
+  initialDraft,
   onDismiss,
   onParseSurvey,
   onDecodeQRCode,
@@ -24,9 +24,9 @@ export function useWizardFlow({
   onSave,
   onComplete,
 }: ConfigurationWizardProps) {
-  const [draft, setDraft] = useState(() => createWizardDraft(initialConfig))
+  const [draft, setDraft] = useState(() => cloneWizardDraft(initialDraft))
   const [step, setStep] = useState<WizardStepId>('survey')
-  const [parsed, setParsed] = useState(() => isParsedConfig(initialConfig))
+  const [parsed, setParsed] = useState(() => isParsedConfig(initialDraft))
   const [highestStepIndex, setHighestStepIndex] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -37,9 +37,9 @@ export function useWizardFlow({
 
   useEffect(() => {
     if (open && !wasOpen.current) {
-      setDraft(createWizardDraft(initialConfig))
+      setDraft(cloneWizardDraft(initialDraft))
       setStep('survey')
-      setParsed(isParsedConfig(initialConfig))
+      setParsed(isParsedConfig(initialDraft))
       setHighestStepIndex(0)
       setBusy(false)
       setError('')
@@ -48,11 +48,11 @@ export function useWizardFlow({
       setConfirmDismiss(false)
     }
     wasOpen.current = open
-  }, [initialConfig, open])
+  }, [initialDraft, open])
 
-  const stepIndex = indexOfStep(step)
+  const stepIndex = wizardStepIndex(step)
 
-  function updateDraft(next: RuntimeConfig) {
+  function updateDraft(next: typeof draft) {
     setDraft(cloneWizardDraft(next))
     setDraftTouched(true)
     setConfirmDismiss(false)
@@ -60,7 +60,7 @@ export function useWizardFlow({
   }
 
   function updateURL(value: string) {
-    if (value !== draft.url) {
+    if (value !== draft.config.survey.url) {
       setParsed(false)
       setStatusMessage(value.trim() ? '链接已修改，需要重新解析。' : '')
       setDraftTouched(true)
@@ -76,7 +76,7 @@ export function useWizardFlow({
     try {
       await action()
     } catch (cause) {
-      setError(errorMessage(cause))
+      setError(wizardErrorMessage(cause))
     } finally {
       setBusy(false)
     }
@@ -90,7 +90,7 @@ export function useWizardFlow({
     }
 
     await runAction(async () => {
-      const url = draft.url.trim()
+      const url = draft.config.survey.url.trim()
       const next = mergeParsedConfig(draft, await onParseSurvey(url), url)
       setDraft(next)
       setDraftTouched(true)
@@ -129,7 +129,7 @@ export function useWizardFlow({
       if (!imported) {
         return
       }
-      const next = createWizardDraft(imported)
+      const next = updateWizardConfig(draft, imported)
       const validation = validateWizardStep('review', next, true)
       if (!validation.valid) {
         throw new Error(validation.message ?? '导入的配置不完整。')
@@ -155,12 +155,8 @@ export function useWizardFlow({
       if (result === null) {
         return
       }
-      const savedConfig = result && typeof result === 'object' && 'config' in result
-        ? result.config
-        : result && typeof result === 'object' && 'url' in result
-          ? result as RuntimeConfig
-          : draft
-      await onComplete?.(cloneWizardDraft(savedConfig))
+      const savedDraft = result ?? draft
+      await onComplete?.(cloneWizardDraft(savedDraft))
       onDismiss()
     })
   }
@@ -188,7 +184,7 @@ export function useWizardFlow({
   }
 
   function moveToStep(nextStep: WizardStepId) {
-    const nextIndex = indexOfStep(nextStep)
+    const nextIndex = wizardStepIndex(nextStep)
     setStep(nextStep)
     setHighestStepIndex((current) => Math.max(current, nextIndex))
     setError('')
@@ -234,7 +230,7 @@ export function useWizardFlow({
       try {
         return await onChooseReverseFill()
       } catch (cause) {
-        setError(errorMessage(cause))
+        setError(wizardErrorMessage(cause))
         return null
       }
     } : undefined,
@@ -247,13 +243,4 @@ export function useWizardFlow({
   }
 
   return { frameProps, requestDismiss }
-}
-
-function indexOfStep(step: WizardStepId): number {
-  const index = WIZARD_STEPS.findIndex((item) => item.id === step)
-  return index < 0 ? 0 : index
-}
-
-function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause)
 }

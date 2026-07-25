@@ -22,7 +22,8 @@ function CustomProxyAPIField({ value, onChange, actionLabel = '检测', width = 
     setMessage('')
     try {
       const state = await testCustomProxyAPI(value)
-      const suffix = state.success && state.proxies.length ? `，示例：${state.proxies[0]}` : ''
+      const proxies = state.proxies ?? []
+      const suffix = state.success && proxies.length ? `，示例：${proxies[0]}` : ''
       setMessage(`${state.message || (state.success ? '检测通过' : '检测失败')}${suffix}`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error))

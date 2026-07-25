@@ -1,57 +1,44 @@
-import type { RuntimeConfig } from '../../types'
-import { normalizePair } from './configWizardModel'
+import { normalizePair, type WizardDraft } from './configWizardModel'
 
 export interface WizardReviewItem {
   label: string
   value: string
 }
 
-export function buildWizardReviewItems(draft: RuntimeConfig): WizardReviewItem[] {
-  const questions = draft.questions_info?.length || draft.question_entries?.length || 0
-  const [intervalStart, intervalEnd] = normalizePair(draft.submit_interval, [0, 0])
-  const [durationStart, durationEnd] = normalizePair(draft.answer_duration, [60, 120])
+export function buildWizardReviewItems(draft: WizardDraft): WizardReviewItem[] {
+  const config = draft.config
+  const questions = config.survey.definition.questions?.length || config.answers.questions?.length || 0
+  const [intervalStart, intervalEnd] = normalizePair(config.execution.submitInterval, [0, 0])
+  const [durationStart, durationEnd] = normalizePair(config.execution.answerDuration, [60, 120])
   return [
-    { label: '问卷', value: draft.survey_title?.trim() || '未命名问卷' },
-    { label: '平台', value: resolveProviderLabel(draft.survey_provider) },
+    { label: '问卷', value: config.survey.title.trim() || '未命名问卷' },
+    { label: '平台', value: resolveProviderLabel(config.survey.provider) },
     { label: '题目', value: `${questions} 题` },
-    { label: '目标份数', value: `${draft.target ?? 1} 份` },
-    { label: '并发数', value: `${draft.threads ?? 1} 路` },
+    { label: '目标份数', value: `${config.execution.target} 份` },
+    { label: '并发数', value: `${config.execution.threads} 路` },
     { label: '提交间隔', value: `${intervalStart}–${intervalEnd} 秒` },
     { label: '作答时长', value: `${durationStart}–${durationEnd} 秒` },
     {
       label: '网络',
-      value: draft.random_ip_enabled ? `随机 IP · ${resolveProxyLabel(draft.proxy_source)}` : '直连',
+      value: config.network.randomProxyEnabled ? `随机 IP · ${resolveProxyLabel(config.network.proxySource)}` : '直连',
     },
     {
       label: '答案来源',
-      value: draft.reverse_fill_enabled
+      value: config.reverseFill.enabled
         ? 'Excel 反填'
-        : draft.ai_mode === 'provider' ? '自定义 AI 服务' : '限时免费 AI',
+        : draft.aiProfile.mode === 'provider' ? '自定义 AI 服务' : '限时免费 AI',
     },
   ]
 }
 
-function resolveProviderLabel(value: string | undefined): string {
-  switch (value) {
-    case 'qq':
-    case 'tencent':
-      return '腾讯问卷'
-    case 'credamo':
-      return '见数'
-    default:
-      return '问卷星'
-  }
+function resolveProviderLabel(value: string): string {
+  if (value === 'qq' || value === 'tencent') return '腾讯问卷'
+  if (value === 'credamo') return '见数'
+  return '问卷星'
 }
 
-function resolveProxyLabel(value: string | undefined): string {
-  switch (value) {
-    case 'benefit':
-    case '限时福利':
-      return '限时福利'
-    case 'custom':
-    case '自定义':
-      return '自定义'
-    default:
-      return '默认'
-  }
+function resolveProxyLabel(value: string): string {
+  if (value === 'benefit' || value === '限时福利') return '限时福利'
+  if (value === 'custom' || value === '自定义') return '自定义'
+  return '默认'
 }

@@ -1,0 +1,146 @@
+.workspace-page {
+  --workspace-width: 76rem;
+}
+
+.workspace-page.scroll-page {
+  padding: clamp(0.85rem, 1.8vw, 1.4rem);
+}
+
+.workspace-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "copy meta"
+    "copy actions";
+  align-items: end;
+  gap: 0.65rem 1.25rem;
+  min-width: 0;
+  padding: 0.35rem 0.15rem 0.5rem;
+}
+
+.workspace-header-copy {
+  display: grid;
+  grid-area: copy;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.workspace-header-copy h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.workspace-header-copy p {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.workspace-header-meta {
+  grid-area: meta;
+  justify-self: end;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.workspace-header-meta > span {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  padding: 0.3rem 0.65rem;
+}
+
+.workspace-header-actions {
+  grid-area: actions;
+  justify-self: end;
+}
+
+.form-workspace {
+  --workspace-width: 66rem;
+  gap: 1rem;
+}
+
+.settings-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.settings-section-grid > .settings-panel {
+  min-width: 0;
+  padding: 1rem;
+}
+
+.settings-section-grid > .settings-panel:only-child,
+.settings-section-grid > .settings-panel:nth-last-child(1):nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.settings-section-grid .setting-row {
+  grid-template-columns: minmax(10rem, 1fr) minmax(11rem, auto);
+}
+
+.number-button-field {
+  display: inline-grid;
+  grid-template-columns: 2.2rem 4.5rem 2.2rem;
+  align-items: stretch;
+  justify-self: end;
+  min-height: 2.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
+}
+
+.number-button-field output { display: grid; place-items: center; color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; border-inline: 1px solid var(--border); }
+
+.number-step-button { min-width: 0 !important; width: 100% !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: var(--text) !important; }
+
+.number-step-button:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 12%, transparent) !important; }
+
+.number-step-button:disabled { opacity: 0.35; }
+
+.fluent-time-section { display: flex; align-items: center; justify-content: space-between; gap: .55rem; margin-top: .65rem; padding-top: .6rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .78rem; }
+
+.fluent-time-section label { display: inline-flex; align-items: center; gap: .35rem; }
+
+.fluent-time-section select { min-width: 6.2rem; padding: .4rem .5rem; border: 1px solid var(--border); border-radius: .4rem; background: var(--surface); color: var(--text); }
+
+.fluent-time-section select:focus-visible { border-color: var(--accent); outline: 2px solid color-mix(in srgb, var(--accent) 22%, transparent); outline-offset: 1px; }
+
+.fluent-text-button { display: inline-flex; align-items: center; gap: .3rem; min-height: 2rem; padding: .3rem .45rem; border: 0; border-radius: .35rem; background: transparent; color: var(--accent); cursor: pointer; font-size: .78rem; }
+
+.fluent-text-button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+.line-number {
+  color: var(--muted);
+  opacity: 0.7;
+  text-align: right;
+  user-select: none;
+}
+
+.line-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+.side-nav .sc-navbar-list-item a span {
+  font-size: 0.66rem;
+  line-height: 1.1;
+}
+
+.side-nav .sc-navbar-list-item a::before {
+  left: 0.1rem;
+  width: 2px;
+  top: 31%;
+  height: 38%;
+}

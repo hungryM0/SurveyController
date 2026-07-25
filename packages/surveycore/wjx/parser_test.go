@@ -69,7 +69,7 @@ func TestParseDefinitionMetadataFields(t *testing.T) {
 	if first.DisplayNum == nil || *first.DisplayNum != 1 || !first.HasJump || len(first.JumpRules) != 1 || len(first.QuestionMedia) != 1 {
 		t.Fatalf("first = %#v", first)
 	}
-	if !first.HasAttachedOptionSelect || len(first.AttachedOptionSelects) != 1 || first.AttachedOptionSelects[0]["option_index"] != 0 {
+	if !first.HasAttachedOptionSelect || len(first.AttachedOptionSelects) != 1 || first.AttachedOptionSelects[0].OptionIndex != 0 {
 		t.Fatalf("attached selects = %#v", first.AttachedOptionSelects)
 	}
 	second := definition.Questions[1]

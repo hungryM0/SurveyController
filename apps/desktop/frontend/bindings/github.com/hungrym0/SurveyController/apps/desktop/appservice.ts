@@ -7,22 +7,21 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as configio$0 from "../../../../../surveycontroller/surveycore/configio/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as reversefill$0 from "../../../../../surveycontroller/surveycore/reversefill/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
-export function BuildDefaultConfig(request: $models.ParseSurveyRequest): $CancellablePromise<$models.SurveyCoreState> {
-    return $Call.ByID(1281628077, request);
-}
-
 export function CancelRun(): $CancellablePromise<$models.RunTaskState> {
     return $Call.ByID(56584525);
 }
 
-export function ConfirmClose(): $CancellablePromise<void> {
-    return $Call.ByID(4006498174);
+export function CreateSurveyDocument(request: $models.ParseSurveyRequest): $CancellablePromise<configio$0.ConfigDocument> {
+    return $Call.ByID(3276327169, request);
 }
 
 export function DecodeQRCode(request: $models.DecodeQRCodeRequest): $CancellablePromise<$models.QRCodeDecodeState> {
@@ -45,20 +44,12 @@ export function GetProxyStatus(): $CancellablePromise<$models.ProxyStatus> {
     return $Call.ByID(3425455756);
 }
 
-export function GetRunTaskState(): $CancellablePromise<$models.RunTaskState> {
-    return $Call.ByID(2123585291);
-}
-
-export function GetShellState(): $CancellablePromise<$models.ShellState> {
-    return $Call.ByID(4132789757);
+export function GetRunTaskState(request: $models.RunTaskStateRequest): $CancellablePromise<$models.RunTaskState> {
+    return $Call.ByID(2123585291, request);
 }
 
 export function LoadConfig(request: $models.LoadConfigRequest): $CancellablePromise<$models.ConfigFileState> {
     return $Call.ByID(1600851788, request);
-}
-
-export function ParseSurvey(request: $models.ParseSurveyRequest): $CancellablePromise<$models.SurveyCoreState> {
-    return $Call.ByID(2302332847, request);
 }
 
 export function PauseRun(reason: string): $CancellablePromise<$models.RunTaskState> {
@@ -81,20 +72,12 @@ export function ResumeRun(): $CancellablePromise<$models.RunTaskState> {
     return $Call.ByID(1615000490);
 }
 
-export function RunSurvey(request: $models.RunSurveyRequest): $CancellablePromise<$models.SurveyCoreState> {
-    return $Call.ByID(816852985, request);
-}
-
 export function SaveAppSettings(request: $models.SaveSettingsRequest): $CancellablePromise<$models.AppSettings> {
     return $Call.ByID(236977175, request);
 }
 
 export function SaveConfig(request: $models.SaveConfigRequest): $CancellablePromise<$models.ConfigFileState> {
     return $Call.ByID(2775748437, request);
-}
-
-export function ShouldConfirmClose(): $CancellablePromise<boolean> {
-    return $Call.ByID(3723452269);
 }
 
 export function StartRun(request: $models.RunSurveyRequest): $CancellablePromise<$models.RunTaskState> {

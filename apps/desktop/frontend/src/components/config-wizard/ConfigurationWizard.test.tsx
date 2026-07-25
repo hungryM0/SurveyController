@@ -1,41 +1,34 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { RuntimeConfig } from '../../types'
+import { createTestConfig, createTestQuestion, createTestQuestionEntry, createTestSettings } from '../../test/configFactory'
+import { createWizardDraft } from './configWizardModel'
 import ConfigurationWizard from './ConfigurationWizard'
 
-const initialConfig: RuntimeConfig = {
-  url: 'https://www.wjx.cn/vm/example.aspx',
-  survey_title: '产品体验问卷',
-  survey_provider: 'wjx',
-  target: 20,
-  threads: 2,
-  questions_info: [{
-    num: 1,
-    title: '满意度',
-    description: '',
-    type_code: 'single',
-    options: 5,
-    rows: 0,
-    row_texts: [],
-    option_texts: [],
-    provider: 'wjx',
-    provider_type: 'single',
-    is_description: false,
-    is_text_like: false,
-    text_inputs: 0,
-  }],
-}
+const initialConfig = createTestConfig((config) => {
+  config.survey.url = 'https://www.wjx.cn/vm/example.aspx'
+  config.survey.title = '产品体验问卷'
+  config.survey.definition.title = '产品体验问卷'
+  config.survey.definition.questions = [createTestQuestion((question) => {
+    question.title = '满意度'
+    question.options = 5
+  })]
+  config.answers.questions = [createTestQuestionEntry((entry) => {
+    entry.probabilities = { options: [20, 20, 20, 20, 20] }
+  })]
+  config.execution.target = 20
+  config.execution.threads = 2
+})
 
 function renderWizard(open: boolean) {
   return renderToStaticMarkup(
     <ConfigurationWizard
       open={open}
-      initialConfig={initialConfig}
+      initialDraft={createWizardDraft(initialConfig, createTestSettings())}
       onDismiss={vi.fn()}
       onParseSurvey={vi.fn(async () => initialConfig)}
       onDecodeQRCode={vi.fn(async () => null)}
       onImportConfig={vi.fn(async () => null)}
-      onSave={vi.fn(async (config) => config)}
+      onSave={vi.fn(async (draft) => draft)}
     />,
   )
 }

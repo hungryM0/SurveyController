@@ -63,11 +63,11 @@ func Parse(ctx context.Context, surveyURL string) (*SurveyDefinition, error) {
 	return New().Parse(ctx, surveyURL)
 }
 
-func DefaultConfig(ctx context.Context, surveyURL string) (*RuntimeConfig, error) {
+func DefaultConfig(ctx context.Context, surveyURL string) (*RunRequest, error) {
 	return New().DefaultConfig(ctx, surveyURL)
 }
 
-func Run(ctx context.Context, cfg *RuntimeConfig) (*RunResult, error) {
+func Run(ctx context.Context, cfg *RunRequest) (*RunResult, error) {
 	return New().Run(ctx, cfg)
 }
 

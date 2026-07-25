@@ -6,7 +6,7 @@ import (
 	"surveycontroller/surveycore/internal/model"
 )
 
-func SelectedIndex(entry model.QuestionEntry, count int) int {
+func SelectedIndex(entry model.QuestionStrategy, count int) int {
 	if count <= 0 {
 		return 0
 	}
@@ -38,17 +38,17 @@ func SelectedIndex(entry model.QuestionEntry, count int) int {
 	return 0
 }
 
-func SelectedMatrixIndex(entry model.QuestionEntry, row int, count int) int {
+func SelectedMatrixIndex(entry model.QuestionStrategy, row int, count int) int {
 	rowValues := ProbabilityRowValues(entry.Probabilities, row)
 	if len(rowValues) == 0 {
 		return SelectedIndex(entry, count)
 	}
 	rowEntry := entry
-	rowEntry.Probabilities = rowValues
+	rowEntry.Probabilities = model.OptionWeights(rowValues...)
 	return SelectedIndex(rowEntry, count)
 }
 
-func SelectedIndices(entry model.QuestionEntry, count int, minRequired int, maxAllowed int) []int {
+func SelectedIndices(entry model.QuestionStrategy, count int, minRequired int, maxAllowed int) []int {
 	if count <= 0 {
 		return nil
 	}
@@ -87,10 +87,10 @@ func SelectedIndices(entry model.QuestionEntry, count int, minRequired int, maxA
 			selected = append(selected, positive[index])
 		}
 	}
-	any := shuffledRange(count)
-	for index := 0; index < len(any) && len(selected) < minRequired; index++ {
-		if !containsIndex(selected, any[index]) {
-			selected = append(selected, any[index])
+	candidates := shuffledRange(count)
+	for index := 0; index < len(candidates) && len(selected) < minRequired; index++ {
+		if !containsIndex(selected, candidates[index]) {
+			selected = append(selected, candidates[index])
 		}
 	}
 	selected = uniqueInts(selected)
@@ -100,7 +100,7 @@ func SelectedIndices(entry model.QuestionEntry, count int, minRequired int, maxA
 	return selected
 }
 
-func SelectedTextIndex(candidates []string, raw any) int {
+func SelectedTextIndex(candidates []string, raw model.WeightTable) int {
 	if len(candidates) <= 1 {
 		return 0
 	}
@@ -111,7 +111,7 @@ func SelectedTextIndex(candidates []string, raw any) int {
 			values[index] = 1
 		}
 	}
-	entry := model.QuestionEntry{Probabilities: values}
+	entry := model.QuestionStrategy{Probabilities: model.OptionWeights(values...)}
 	return SelectedIndex(entry, len(candidates))
 }
 

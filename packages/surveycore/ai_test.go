@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"surveycontroller/surveycore/internal/model"
 )
 
 func TestResolveAIEndpointHandlesExplicitAndLegacyURLs(t *testing.T) {
@@ -55,14 +57,9 @@ func TestProviderAIReadsChatCompletionContentParts(t *testing.T) {
 	defer server.Close()
 
 	client := New()
-	answers, err := client.callProviderAI(context.Background(), RuntimeConfig{
-		AIMode:        "provider",
-		AIProvider:    "custom",
-		AIAPIKey:      "test-key",
-		AIBaseURL:     server.URL + "/v1/chat/completions",
-		AIModel:       "demo-model",
-		AIAPIProtocol: "auto",
-	}, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
+	answers, err := client.callProviderAI(context.Background(), model.AIProfile{
+		Mode: "provider", Provider: "custom", APIKey: "test-key", BaseURL: server.URL + "/v1/chat/completions", Model: "demo-model", APIProtocol: "auto",
+	}, nil, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,14 +84,9 @@ func TestProviderAIAutoFallsBackToResponsesOnEndpointMismatch(t *testing.T) {
 	defer server.Close()
 
 	client := New()
-	answers, err := client.callProviderAI(context.Background(), RuntimeConfig{
-		AIMode:        "provider",
-		AIProvider:    "custom",
-		AIAPIKey:      "test-key",
-		AIBaseURL:     server.URL + "/v1",
-		AIModel:       "demo-model",
-		AIAPIProtocol: "auto",
-	}, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
+	answers, err := client.callProviderAI(context.Background(), model.AIProfile{
+		Mode: "provider", Provider: "custom", APIKey: "test-key", BaseURL: server.URL + "/v1", Model: "demo-model", APIProtocol: "auto",
+	}, nil, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,21 +100,15 @@ func TestProviderAIAutoFallsBackToResponsesOnEndpointMismatch(t *testing.T) {
 
 func TestProviderAICustomRequiresBaseURLAndModel(t *testing.T) {
 	client := New()
-	_, err := client.callProviderAI(context.Background(), RuntimeConfig{
-		AIMode:     "provider",
-		AIProvider: "custom",
-		AIAPIKey:   "test-key",
-		AIModel:    "demo-model",
-	}, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
+	_, err := client.callProviderAI(context.Background(), model.AIProfile{
+		Mode: "provider", Provider: "custom", APIKey: "test-key", Model: "demo-model",
+	}, nil, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
 	if err == nil || !strings.Contains(err.Error(), "Base URL") {
 		t.Fatalf("err = %v", err)
 	}
-	_, err = client.callProviderAI(context.Background(), RuntimeConfig{
-		AIMode:     "provider",
-		AIProvider: "custom",
-		AIAPIKey:   "test-key",
-		AIBaseURL:  "https://example.com/v1",
-	}, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
+	_, err = client.callProviderAI(context.Background(), model.AIProfile{
+		Mode: "provider", Provider: "custom", APIKey: "test-key", BaseURL: "https://example.com/v1",
+	}, nil, AITextRequest{QuestionNum: 1, Title: "问题", BlankCount: 1})
 	if err == nil || !strings.Contains(err.Error(), "模型") {
 		t.Fatalf("err = %v", err)
 	}
@@ -140,14 +126,14 @@ func TestDefaultAISystemPromptMatchesModes(t *testing.T) {
 }
 
 func TestTestAIConnectionReturnsPreview(t *testing.T) {
-	client := New(WithAITextResolver(AITextResolverFunc(func(_ context.Context, _ RuntimeConfig, request AITextRequest) ([]string, error) {
+	client := New(WithAITextResolver(AITextResolverFunc(func(_ context.Context, _ model.AIProfile, _ *model.Persona, request AITextRequest) ([]string, error) {
 		if request.BlankCount != 1 || !strings.Contains(request.Title, "连接成功") {
 			t.Fatalf("request = %#v", request)
 		}
 		return []string{"连接成功"}, nil
 	})))
 
-	message, err := client.TestAIConnection(context.Background(), RuntimeConfig{AIMode: "provider"})
+	message, err := client.TestAIConnection(context.Background(), model.AIProfile{Mode: "provider"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,10 +1,10 @@
 import { CheckCircle2, QrCode, Upload } from 'lucide-react'
 import type { ChangeEvent } from 'react'
-import type { RuntimeConfig } from '../../types'
 import { Button, InputText } from '../ui'
+import type { WizardDraft } from './configWizardModel'
 
 interface SurveyStepProps {
-  draft: RuntimeConfig
+  draft: WizardDraft
   parsed: boolean
   busy: boolean
   statusMessage?: string
@@ -22,7 +22,8 @@ function SurveyStep({
   onDecodeQRCode,
   onImport,
 }: SurveyStepProps) {
-  const questionCount = draft.questions_info?.length || draft.question_entries?.length || 0
+  const config = draft.config
+  const questionCount = config.survey.definition.questions?.length || config.answers.questions?.length || 0
 
   return (
     <section className="config-wizard-step config-wizard-survey-step" aria-labelledby="config-wizard-survey-title">
@@ -40,7 +41,7 @@ function SurveyStep({
           disabled={busy}
           placeholder="https://..."
           setStatus={parsed ? 'success' : 'default'}
-          value={draft.url}
+          value={config.survey.url}
           width="100%"
           onChange={(event: ChangeEvent<HTMLInputElement>) => onURLChange(event.target.value)}
           onClearButtonClick={() => onURLChange('')}
@@ -68,7 +69,7 @@ function SurveyStep({
         <div className="config-wizard-parse-result is-success" role="status">
           <CheckCircle2 size={18} strokeWidth={1.9} aria-hidden="true" />
           <div>
-            <strong>{draft.survey_title?.trim() || '问卷已解析'}</strong>
+            <strong>{config.survey.title.trim() || '问卷已解析'}</strong>
             <span>{questionCount} 道题，可以继续设置任务。</span>
           </div>
         </div>

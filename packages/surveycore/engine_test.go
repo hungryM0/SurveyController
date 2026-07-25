@@ -8,16 +8,24 @@ import (
 	"testing"
 	"time"
 
+	"surveycontroller/surveycore/internal/model"
 	"surveycontroller/surveycore/internal/runerror"
 )
+
+func executionTestConfig(target, threads int) *RunRequest {
+	return &RunRequest{
+		SurveySource:  SurveySource{URL: "https://example.test"},
+		ExecutionPlan: ExecutionPlan{Target: target, Threads: threads},
+	}
+}
 
 func TestRunExecutionRunsTargetWithConcurrency(t *testing.T) {
 	var mu sync.Mutex
 	active := 0
 	maxActive := 0
-	result, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 5, Threads: 3}, func(ctx context.Context, cfg *RuntimeConfig, _ EventHandler) (*RunResult, error) {
-		if cfg.Target != 1 {
-			t.Fatalf("cfg.Target = %d, want 1", cfg.Target)
+	result, err := RunExecution(context.Background(), executionTestConfig(5, 3), func(ctx context.Context, request *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
+		if request.Source.URL == "" {
+			t.Fatal("missing source URL")
 		}
 		mu.Lock()
 		active++
@@ -45,7 +53,7 @@ func TestRunExecutionRunsTargetWithConcurrency(t *testing.T) {
 func TestRunExecutionRetriesRunError(t *testing.T) {
 	var attempts int
 	var events []Event
-	result, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+	result, err := RunExecution(context.Background(), executionTestConfig(1, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
 		attempts++
 		if attempts == 1 {
 			return &RunResult{Fail: 1}, errors.New("temporary network failure")
@@ -67,7 +75,7 @@ func TestRunExecutionRetriesRunError(t *testing.T) {
 
 func TestRunExecutionDoesNotClassifyChineseErrorText(t *testing.T) {
 	var attempts int
-	_, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+	_, err := RunExecution(context.Background(), executionTestConfig(1, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
 		attempts++
 		if attempts == 1 {
 			return &RunResult{Fail: 1}, errors.New("临时网络错误：解析配置答案服务不可用")
@@ -96,7 +104,7 @@ func TestRunExecutionUsesStructuredErrorKind(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			attempts := 0
-			_, _ = RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+			_, _ = RunExecution(context.Background(), executionTestConfig(1, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
 				attempts++
 				return &RunResult{Fail: 1}, runerror.Wrap(tt.kind, errors.New("同一段错误文案"))
 			}, nil, ExecutionOptions{MaxRetries: 1})
@@ -111,7 +119,7 @@ func TestRunExecutionCancelsAndStopsWorkers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var started sync.WaitGroup
 	started.Add(1)
-	result, err := RunExecution(ctx, &RuntimeConfig{URL: "https://example.test", Target: 3, Threads: 1}, func(ctx context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+	result, err := RunExecution(ctx, executionTestConfig(3, 1), func(ctx context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
 		started.Done()
 		cancel()
 		<-ctx.Done()
@@ -128,17 +136,12 @@ func TestRunExecutionCancelsAndStopsWorkers(t *testing.T) {
 
 func TestRunExecutionLeaseLifecycle(t *testing.T) {
 	leases := &fakeLeaseManager{}
-	result, err := RunExecution(context.Background(), &RuntimeConfig{
-		URL:             "https://example.test",
-		Target:          2,
-		Threads:         1,
-		RandomIPEnabled: true,
-	}, func(_ context.Context, cfg *RuntimeConfig, _ EventHandler) (*RunResult, error) {
-		if cfg.ActiveProxyAddress == "" {
+	result, err := RunExecution(context.Background(), executionTestConfig(2, 1), func(_ context.Context, request *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
+		if request.Context.ProxyAddress == "" {
 			t.Fatal("missing active proxy address")
 		}
 		return &RunResult{Success: 1}, nil
-	}, nil, ExecutionOptions{LeaseManager: leases})
+	}, nil, ExecutionOptions{LeaseManager: leases, UseRandomIP: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,14 +155,14 @@ func TestRunExecutionLeaseLifecycle(t *testing.T) {
 
 func TestRunExecutionCommitsAnswerRuntimeOnlyOnSuccess(t *testing.T) {
 	runtime := newAnswerRuntimeState()
-	cfg := &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1, AnswerRuntime: runtime}
-	result, err := RunExecution(context.Background(), cfg, func(_ context.Context, local *RuntimeConfig, _ EventHandler) (*RunResult, error) {
-		if local.AnswerRuntimeOwner == "" {
+	cfg := executionTestConfig(1, 1)
+	result, err := RunExecution(context.Background(), cfg, func(_ context.Context, local *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
+		if local.Context.RuntimeOwner == "" {
 			t.Fatal("missing answer runtime owner")
 		}
-		local.AnswerRuntime.AppendPendingDistributionChoice(local.AnswerRuntimeOwner, "q:1", 1, 2)
+		local.Context.Runtime.AppendPendingDistributionChoice(local.Context.RuntimeOwner, "q:1", 1, 2)
 		return &RunResult{Success: 1}, nil
-	}, nil, ExecutionOptions{})
+	}, nil, ExecutionOptions{AnswerRuntime: runtime})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,11 +175,11 @@ func TestRunExecutionCommitsAnswerRuntimeOnlyOnSuccess(t *testing.T) {
 	}
 
 	runtime = newAnswerRuntimeState()
-	cfg = &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1, AnswerRuntime: runtime}
-	_, _ = RunExecution(context.Background(), cfg, func(_ context.Context, local *RuntimeConfig, _ EventHandler) (*RunResult, error) {
-		local.AnswerRuntime.AppendPendingDistributionChoice(local.AnswerRuntimeOwner, "q:1", 1, 2)
+	cfg = executionTestConfig(1, 1)
+	_, _ = RunExecution(context.Background(), cfg, func(_ context.Context, local *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
+		local.Context.Runtime.AppendPendingDistributionChoice(local.Context.RuntimeOwner, "q:1", 1, 2)
 		return &RunResult{Fail: 1}, errors.New("temporary network failure")
-	}, nil, ExecutionOptions{})
+	}, nil, ExecutionOptions{AnswerRuntime: runtime})
 	total, counts = runtime.SnapshotDistributionStats("q:1", 2)
 	if total != 0 || counts[1] != 0 {
 		t.Fatalf("failed submit polluted stats: total=%d counts=%#v", total, counts)
@@ -185,7 +188,7 @@ func TestRunExecutionCommitsAnswerRuntimeOnlyOnSuccess(t *testing.T) {
 
 func TestRunExecutionClassifiesUnsupportedWithoutRetry(t *testing.T) {
 	var attempts int
-	result, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+	result, err := RunExecution(context.Background(), executionTestConfig(1, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
 		attempts++
 		return &RunResult{}, fmt.Errorf("%w: no runner", ErrUnsupportedOperation)
 	}, nil, ExecutionOptions{MaxRetries: 3})
@@ -208,7 +211,7 @@ func TestRunExecutionWaitsWhilePaused(t *testing.T) {
 	}, 1)
 	var attempts int
 	go func() {
-		result, err := RunExecution(context.Background(), &RuntimeConfig{URL: "https://example.test", Target: 1, Threads: 1}, func(_ context.Context, _ *RuntimeConfig, _ EventHandler) (*RunResult, error) {
+		result, err := RunExecution(context.Background(), executionTestConfig(1, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
 			attempts++
 			return &RunResult{Success: 1}, nil
 		}, nil, ExecutionOptions{PauseController: controller})

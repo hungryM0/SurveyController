@@ -1,17 +1,16 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { ArrowLeft, ArrowRight, Save, Search } from 'lucide-react'
-import type { RuntimeConfig } from '../../types'
 import { Button } from '../ui'
 import AnswersStep from './AnswersStep'
 import NetworkStep from './NetworkStep'
 import ReviewStep from './ReviewStep'
 import SurveyStep from './SurveyStep'
 import TaskStep from './TaskStep'
-import { WIZARD_STEPS, type WizardStepId } from './configWizardModel'
+import { WIZARD_STEPS, type WizardDraft, type WizardStepId } from './configWizardModel'
 import WizardProgress from './WizardProgress'
 
 interface WizardFrameProps {
-  draft: RuntimeConfig
+  draft: WizardDraft
   step: WizardStepId
   parsed: boolean
   highestStepIndex: number
@@ -23,7 +22,7 @@ interface WizardFrameProps {
   onDecodeQRCode: () => void
   onImport: () => void
   onChooseReverseFill?: () => Promise<string | null>
-  onChange: (draft: RuntimeConfig) => void
+  onChange: (draft: WizardDraft) => void
   onStepSelect: (step: WizardStepId) => void
   onBack: () => void
   onPrimary: () => void

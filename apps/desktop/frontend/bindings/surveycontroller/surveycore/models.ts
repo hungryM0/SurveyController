@@ -10,7 +10,3 @@ export type Event = model$0.Event;
 export type QuestionMeta = model$0.QuestionMeta;
 
 export type RunResult = model$0.RunResult;
-
-export type RuntimeConfig = model$0.RuntimeConfig;
-
-export type SurveyDefinition = model$0.SurveyDefinition;

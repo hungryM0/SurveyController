@@ -1,9 +1,9 @@
 import { CheckCircle2 } from 'lucide-react'
-import type { RuntimeConfig } from '../../types'
 import { buildWizardReviewItems } from './wizardReview'
+import type { WizardDraft } from './configWizardModel'
 
 interface ReviewStepProps {
-  draft: RuntimeConfig
+  draft: WizardDraft
 }
 
 function ReviewStep({ draft }: ReviewStepProps) {
@@ -35,7 +35,7 @@ function ReviewStep({ draft }: ReviewStepProps) {
 
       <div className="config-wizard-review-url">
         <span>问卷链接</span>
-        <code>{draft.url}</code>
+        <code>{draft.config.survey.url}</code>
       </div>
     </section>
   )

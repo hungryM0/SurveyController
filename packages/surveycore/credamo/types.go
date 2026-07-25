@@ -50,6 +50,7 @@ type Runner struct {
 }
 
 type PreparedSurvey struct {
+	Definition   model.SurveyDefinition
 	Origin       string
 	ShortURL     string
 	Title        string
@@ -65,7 +66,7 @@ type submitContext struct {
 	ShortURL     string
 	Detail       map[string]any
 	RawQuestions []map[string]any
-	Config       *model.RuntimeConfig
+	Config       *model.SubmissionRequest
 }
 
 type answerInit struct {

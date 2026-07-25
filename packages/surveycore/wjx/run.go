@@ -13,32 +13,35 @@ import (
 	"surveycontroller/surveycore/internal/runerror"
 )
 
-func (r Runner) Run(ctx context.Context, cfg *model.RuntimeConfig, handler EventHandler) (Result, error) {
-	prepared, err := r.Prepare(ctx, cfg)
+func (r Runner) Run(ctx context.Context, request *model.SubmissionRequest, handler EventHandler) (Result, error) {
+	prepared, err := r.Prepare(ctx, request)
 	if err != nil {
-		return pendingResult(cfg), err
+		return pendingResult(request), err
 	}
-	return r.RunPrepared(ctx, cfg, prepared, handler)
+	return r.RunPrepared(ctx, request, prepared, handler)
 }
 
-func (r Runner) Prepare(ctx context.Context, cfg *model.RuntimeConfig) (*PreparedSurvey, error) {
-	if cfg == nil {
+func (r Runner) Prepare(ctx context.Context, request *model.SubmissionRequest) (*PreparedSurvey, error) {
+	if request == nil {
 		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
-	if strings.TrimSpace(cfg.URL) == "" {
+	if strings.TrimSpace(request.Source.URL) == "" {
 		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
+	}
+	if len(request.Definition.Questions) > 0 {
+		return &PreparedSurvey{Definition: request.Definition}, nil
 	}
 	parser := Parser{Client: r.Client, UserAgent: r.UserAgent}
-	definition, err := parser.Parse(ctx, cfg.URL)
+	definition, err := parser.Parse(ctx, request.Source.URL)
 	if err != nil {
 		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
 	}
 	return &PreparedSurvey{Definition: definition}, nil
 }
 
-func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
-	result := pendingResult(cfg)
-	if cfg == nil {
+func (r Runner) RunPrepared(ctx context.Context, request *model.SubmissionRequest, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
+	result := pendingResult(request)
+	if request == nil {
 		return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
 	if prepared == nil || len(prepared.Definition.Questions) == 0 {
@@ -46,21 +49,15 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 	}
 	target := result.Target
 	definition := prepared.Definition
-	if cfg.SurveyProvider == "" {
-		cfg.SurveyProvider = model.ProviderWJX
-	}
-	if cfg.SurveyTitle == "" {
-		cfg.SurveyTitle = definition.Title
-	}
-	if len(cfg.QuestionsInfo) == 0 {
-		cfg.QuestionsInfo = definition.Questions
+	if len(request.Definition.Questions) > 0 {
+		definition = request.Definition
 	}
 	for i := 0; i < target; i++ {
 		if err := ctx.Err(); err != nil {
 			result.Status = "stopped"
 			return result, err
 		}
-		submitData, err := buildSubmitData(definition.Questions, cfg)
+		submitData, err := buildSubmitData(definition.Questions, request.Context.Actions)
 		if err != nil {
 			result.Fail++
 			emit(handler, "生成答案失败", false, true, result.Success+result.Fail, target)
@@ -69,7 +66,7 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 			}
 			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
-		if err := r.submit(ctx, cfg, submitData); err != nil {
+		if err := r.submit(ctx, request, submitData); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
 			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
@@ -81,21 +78,17 @@ func (r Runner) RunPrepared(ctx context.Context, cfg *model.RuntimeConfig, prepa
 	return result, nil
 }
 
-func pendingResult(cfg *model.RuntimeConfig) Result {
-	target := 1
-	if cfg != nil && cfg.Target > 0 {
-		target = cfg.Target
-	}
-	return Result{Target: target, Status: "pending"}
+func pendingResult(_ *model.SubmissionRequest) Result {
+	return Result{Target: 1, Status: "pending"}
 }
 
-func (r Runner) submit(ctx context.Context, cfg *model.RuntimeConfig, submitData string) error {
-	shortID, err := shortIDFromURL(cfg.URL)
+func (r Runner) submit(ctx context.Context, request *model.SubmissionRequest, submitData string) error {
+	shortID, err := shortIDFromURL(request.Source.URL)
 	if err != nil {
 		return err
 	}
 	nowMS := time.Now().UnixMilli()
-	ktimes := sampleKTimes(cfg)
+	ktimes := sampleKTimes(request)
 	startSeconds := nowMS/1000 - int64(ktimes)
 	jqnonce := fmt.Sprintf("%d-%d", nowMS, rand.Int63())
 	query := url.Values{}
@@ -124,16 +117,16 @@ func (r Runner) submit(ctx context.Context, cfg *model.RuntimeConfig, submitData
 	form := url.Values{}
 	form.Set("submitdata", submitData)
 	form.Set("sceneId", "q0hcfsca")
-	responseText, err := r.postForm(ctx, submitEndpoint(cfg.URL), cfg.URL, query, form, cfg.ActiveProxyAddress)
+	responseText, err := r.postForm(ctx, submitEndpoint(request.Source.URL), request.Source.URL, query, form, request.Context.ProxyAddress)
 	if err != nil {
 		return err
 	}
-	return ensureSubmitOK(cfg, responseText)
+	return ensureSubmitOK(responseText)
 }
 
-func sampleKTimes(cfg *model.RuntimeConfig) int {
-	if cfg != nil {
-		if seconds := model.SampleAnswerDurationSeconds(cfg.AnswerDuration, 0); seconds > 0 {
+func sampleKTimes(request *model.SubmissionRequest) int {
+	if request != nil {
+		if seconds := model.SampleAnswerDurationSeconds(request.AnswerDuration, 0); seconds > 0 {
 			return maxInt(1, seconds)
 		}
 	}
@@ -157,7 +150,7 @@ func buildJQSign(jqnonce string, ktimes int) string {
 	return string(out)
 }
 
-func ensureSubmitOK(cfg *model.RuntimeConfig, responseText string) error {
+func ensureSubmitOK(responseText string) error {
 	text := strings.TrimSpace(responseText)
 	lowered := strings.ToLower(text)
 	success := strings.Contains(lowered, "complete.aspx") || strings.Contains(lowered, "success") || strings.HasPrefix(lowered, "10") || lowered == "1" || lowered == "ok"
@@ -165,10 +158,10 @@ func ensureSubmitOK(cfg *model.RuntimeConfig, responseText string) error {
 	if success && !failure {
 		return nil
 	}
-	return submitRejectedError(cfg, text)
+	return submitRejectedError(text)
 }
 
-func submitRejectedError(_ *model.RuntimeConfig, responseText string) error {
+func submitRejectedError(responseText string) error {
 	match := regexp.MustCompile(`^\s*(\d+)〒(\d+)〒(.+)$`).FindStringSubmatch(responseText)
 	if len(match) >= 4 {
 		return fmt.Errorf("问卷星提交被拒绝：第%s题，%s", match[2], strings.TrimSpace(match[3]))

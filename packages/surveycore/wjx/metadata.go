@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	nethtml "golang.org/x/net/html"
+	"surveycontroller/surveycore/internal/model"
 )
 
 func textInputLabels(div *nethtml.Node) []string {
@@ -26,11 +27,11 @@ func textInputLabels(div *nethtml.Node) []string {
 	return labels
 }
 
-func attachedOptionSelects(div *nethtml.Node, optionTexts []string) []map[string]any {
+func attachedOptionSelects(div *nethtml.Node, optionTexts []string) []model.AttachedOptionSelect {
 	selects := findAll(div, func(node *nethtml.Node) bool {
 		return isElement(node, "select")
 	})
-	result := make([]map[string]any, 0)
+	result := make([]model.AttachedOptionSelect, 0)
 	seen := map[int]bool{}
 	for _, selectNode := range selects {
 		optionNode := selectNode.Parent
@@ -49,11 +50,7 @@ func attachedOptionSelects(div *nethtml.Node, optionTexts []string) []map[string
 		if len(choices) == 0 {
 			continue
 		}
-		result = append(result, map[string]any{
-			"option_index": index,
-			"option_text":  optionTexts[index],
-			"select_texts": choices,
-		})
+		result = append(result, model.AttachedOptionSelect{OptionIndex: index, OptionText: optionTexts[index], SelectTexts: choices})
 	}
 	return result
 }
@@ -71,14 +68,14 @@ func selectOptionTexts(selectNode *nethtml.Node) []string {
 	return dedupeTexts(texts)
 }
 
-func questionMedia(div *nethtml.Node, rowTexts []string, optionTexts []string) []map[string]any {
-	media := make([]map[string]any, 0)
+func questionMedia(div *nethtml.Node, rowTexts []string, optionTexts []string) []model.QuestionMedia {
+	media := make([]model.QuestionMedia, 0)
 	for _, image := range findAll(div, func(node *nethtml.Node) bool { return isElement(node, "img") }) {
 		source := firstNonEmpty(attr(image, "src"), attr(image, "data-src"), attr(image, "data-original"))
 		if source == "" {
 			continue
 		}
-		scope, index, label := "title", any(nil), "题干图"
+		scope, index, label := "title", -1, "题干图"
 		for parent := image.Parent; parent != nil && parent != div; parent = parent.Parent {
 			if rowIndex := rowIndexForNode(parent, rowTexts); rowIndex >= 0 {
 				scope, index, label = "row", rowIndex, rowTexts[rowIndex]
@@ -89,13 +86,12 @@ func questionMedia(div *nethtml.Node, rowTexts []string, optionTexts []string) [
 				break
 			}
 		}
-		media = append(media, map[string]any{
-			"kind":       "image",
-			"scope":      scope,
-			"index":      index,
-			"source_url": normalizeMediaURL(source),
-			"label":      label,
-		})
+		var mediaIndex *int
+		if index >= 0 {
+			value := index
+			mediaIndex = &value
+		}
+		media = append(media, model.QuestionMedia{Kind: "image", Scope: scope, Index: mediaIndex, SourceURL: normalizeMediaURL(source), Label: label})
 	}
 	return media
 }
@@ -128,18 +124,22 @@ func normalizeMediaURL(raw string) string {
 	return text
 }
 
-func sliderRange(div *nethtml.Node) (any, any, any) {
+func sliderRange(div *nethtml.Node) model.SliderRange {
 	input := findFirst(div, func(node *nethtml.Node) bool {
 		return isElement(node, "input") && (attr(node, "type") == "range" || classContains(node, "ui-slider-input"))
 	})
 	if input == nil {
-		return nil, nil, nil
+		return model.SliderRange{}
 	}
-	return firstNonEmpty(attr(input, "min"), "0"), firstNonEmpty(attr(input, "max"), "100"), firstNonEmpty(attr(input, "step"), "1")
+	return model.SliderRange{
+		SliderMin:  firstNonEmpty(attr(input, "min"), "0"),
+		SliderMax:  firstNonEmpty(attr(input, "max"), "100"),
+		SliderStep: firstNonEmpty(attr(input, "step"), "1"),
+	}
 }
 
-func logicMetadata(div *nethtml.Node, questionNum int, optionTexts []string) (bool, []map[string]any, bool, []map[string]any, bool, []map[string]any, string) {
-	jumpRules := make([]map[string]any, 0)
+func logicMetadata(div *nethtml.Node, questionNum int, optionTexts []string) (bool, []model.JumpRule, bool, []model.DisplayCondition, bool, []model.DisplayControl, string) {
+	jumpRules := make([]model.JumpRule, 0)
 	for _, node := range findAll(div, func(node *nethtml.Node) bool {
 		return attr(node, "jumpto") != "" || attr(node, "jump") != "" || attr(node, "data-jumpto") != ""
 	}) {
@@ -148,20 +148,12 @@ func logicMetadata(div *nethtml.Node, questionNum int, optionTexts []string) (bo
 			continue
 		}
 		optionIndex := optionIndexForNode(node, optionTexts)
-		jumpRules = append(jumpRules, map[string]any{
-			"option_index": optionIndex,
-			"jumpto":       target,
-			"option_text":  optionTextAt(optionTexts, optionIndex),
-		})
+		jumpRules = append(jumpRules, model.JumpRule{OptionIndex: optionIndex, TargetQuestion: target, OptionText: optionTextAt(optionTexts, optionIndex)})
 	}
 	hasDisplay := isHidden(div) || strings.TrimSpace(attr(div, "relation")) != ""
-	displayConditions := make([]map[string]any, 0)
+	displayConditions := make([]model.DisplayCondition, 0)
 	if relation := strings.TrimSpace(attr(div, "relation")); relation != "" && relation != "-1" {
-		displayConditions = append(displayConditions, map[string]any{
-			"condition_question_num":   intValue(relation),
-			"condition_mode":           "selected",
-			"condition_option_indices": []int{},
-		})
+		displayConditions = append(displayConditions, model.DisplayCondition{QuestionNum: intValue(relation), Mode: "selected", OptionIndices: []int{}})
 	}
 	hasLogic := len(jumpRules) > 0 || hasDisplay
 	status := "none"
@@ -172,9 +164,10 @@ func logicMetadata(div *nethtml.Node, questionNum int, optionTexts []string) (bo
 	return len(jumpRules) > 0, jumpRules, hasDisplay, displayConditions, false, nil, status
 }
 
-func optionTextAt(values []string, index int) any {
+func optionTextAt(values []string, index int) *string {
 	if index < 0 || index >= len(values) {
 		return nil
 	}
-	return values[index]
+	value := values[index]
+	return &value
 }

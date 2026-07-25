@@ -1,9 +1,9 @@
-import type { QuestionTreePage } from '../pages/strategyEditor'
+import type { QuestionTreePage } from '../pages/strategy-editor'
 
 interface QuestionTreePreviewProps {
   pages: QuestionTreePage[]
   emptyText?: string
-  onNodeSelect?: (index: number) => void
+  onNodeSelect?: (questionNum: number) => void
 }
 
 function QuestionTreePreview({ pages, emptyText = '没有题目树。', onNodeSelect }: QuestionTreePreviewProps) {
@@ -25,7 +25,7 @@ function QuestionTreePreview({ pages, emptyText = '没有题目树。', onNodeSe
                 key={`${page.page}-${node.question.num}`}
                 type="button"
                 className="question-tree-node question-tree-node-button"
-                onClick={() => onNodeSelect?.(node.index)}
+                onClick={() => onNodeSelect?.(node.question.num)}
               >
                 <div className="question-tree-node-main">
                   <strong>{node.label}</strong>
