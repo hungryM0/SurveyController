@@ -7,13 +7,14 @@ import (
 )
 
 type executionState struct {
-	mu       sync.Mutex
-	target   int
-	success  int
-	fail     int
-	progress []ThreadProgress
-	handler  EventHandler
-	now      func() time.Time
+	mu                  sync.Mutex
+	target              int
+	success             int
+	fail                int
+	consecutiveFailures int
+	progress            []ThreadProgress
+	handler             EventHandler
+	now                 func() time.Time
 }
 
 func newExecutionState(target int, threads int, handler EventHandler, now func() time.Time) *executionState {
@@ -66,6 +67,7 @@ func (s *executionState) forward(index int, worker string, event Event) {
 func (s *executionState) addSuccess(index int, worker string, status string) {
 	s.mu.Lock()
 	s.success++
+	s.consecutiveFailures = 0
 	current := s.success + s.fail
 	now := s.now()
 	if index >= 0 && index < len(s.progress) {
@@ -80,9 +82,11 @@ func (s *executionState) addSuccess(index int, worker string, status string) {
 	s.callHandler(Event{Worker: worker, Message: status, Success: true, Current: current, Total: s.target, Time: now})
 }
 
-func (s *executionState) addFail(index int, worker string, status string) {
+func (s *executionState) addFail(index int, worker string, status string) int {
 	s.mu.Lock()
 	s.fail++
+	s.consecutiveFailures++
+	consecutiveFailures := s.consecutiveFailures
 	current := s.success + s.fail
 	now := s.now()
 	if index >= 0 && index < len(s.progress) {
@@ -95,6 +99,7 @@ func (s *executionState) addFail(index int, worker string, status string) {
 	}
 	s.mu.Unlock()
 	s.callHandler(Event{Worker: worker, Message: status, Fail: true, Current: current, Total: s.target, Time: now})
+	return consecutiveFailures
 }
 
 func (s *executionState) emit(worker string, message string, success bool, fail bool) {

@@ -64,6 +64,42 @@ func TestBuildSubmitDataRejectsUnknownQuestionType(t *testing.T) {
 	}
 }
 
+func TestPrepareFetchesSceneIDWhenDefinitionProvided(t *testing.T) {
+	server := newWJXTestServer(t, true)
+	defer server.Close()
+	request := &model.SubmissionRequest{
+		Source: model.SurveySource{URL: "https://www.wjx.cn/vm/demo.aspx", Provider: model.ProviderWJX},
+		Definition: model.SurveyDefinition{Questions: []model.QuestionMeta{
+			{Num: 1, Provider: model.ProviderWJX, ProviderType: "single", TypeCode: "3", Options: 2},
+		}},
+	}
+
+	prepared, err := (Runner{Client: rewriteWJXClient(server.URL)}).Prepare(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prepared.SceneID != "scene-from-page" {
+		t.Fatalf("scene ID = %q", prepared.SceneID)
+	}
+}
+
+func TestExtractSceneID(t *testing.T) {
+	tests := []struct {
+		html string
+		want string
+	}{
+		{html: `<script>sceneId: "colon-value"</script>`, want: "colon-value"},
+		{html: `<script>SCENE_ID = 'underscore-value'</script>`, want: "underscore-value"},
+		{html: `<div DATA-SCENE-ID="attribute-value"></div>`, want: "attribute-value"},
+		{html: `<script>sceneId: &quot;escaped-value&quot;</script>`, want: "escaped-value"},
+	}
+	for _, tt := range tests {
+		if got := extractSceneID(tt.html); got != tt.want {
+			t.Fatalf("extractSceneID(%q) = %q, want %q", tt.html, got, tt.want)
+		}
+	}
+}
+
 func newWJXTestServer(t *testing.T, submitOK bool) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +114,9 @@ func newWJXTestServer(t *testing.T, submitOK bool) *httptest.Server {
 			submitData := r.Form.Get("submitdata")
 			if !strings.Contains(submitData, "1$") || !strings.Contains(submitData, "2$") || !strings.Contains(submitData, "5$") {
 				t.Fatalf("submitdata = %q", submitData)
+			}
+			if sceneID := r.Form.Get("sceneId"); sceneID != "scene-from-page" {
+				t.Fatalf("sceneId = %q", sceneID)
 			}
 			if submitOK {
 				_, _ = io.WriteString(w, "10")
@@ -114,7 +153,7 @@ func (t rewriteWJXTransport) RoundTrip(req *http.Request) (*http.Response, error
 func sampleHTML() string {
 	return `
 <html>
-  <head><title>消费测试 - 问卷星</title></head>
+  <head><title>消费测试 - 问卷星</title><script>window.sceneId = 'scene-from-page';</script></head>
   <body>
     <div id="divTitle"><h1>消费测试 - 问卷星</h1></div>
     <div id="divQuestion">

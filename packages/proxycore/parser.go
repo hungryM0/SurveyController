@@ -146,7 +146,7 @@ func firstStringValue(value map[string]any, keys ...string) string {
 				return cleaned
 			}
 		case float64:
-			return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.0f", item), "0"), ".")
+			return fmt.Sprintf("%.0f", item)
 		case int:
 			return fmt.Sprintf("%d", item)
 		}

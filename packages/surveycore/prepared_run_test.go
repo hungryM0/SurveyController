@@ -85,7 +85,7 @@ func TestRunTencentPreparesQuestionsOnceAndKeepsSessionPerSubmission(t *testing.
 			writeTestJSON(t, w, map[string]any{"code": "OK", "data": map[string]any{}})
 		case "/api/v2/respondent/surveys/123/answers":
 			submitCalls.Add(1)
-			writeTestJSON(t, w, map[string]any{"code": "OK", "data": map[string]any{"ok": true}})
+			writeTestJSON(t, w, map[string]any{"code": "OK", "data": map[string]any{"answer_hash": "hash-ok"}})
 		default:
 			http.NotFound(w, r)
 		}

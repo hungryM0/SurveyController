@@ -2,6 +2,8 @@ package surveycore
 
 import "time"
 
+const defaultFailStopThreshold = 5
+
 func ExecutionOptionsFromConfig(cfg *RunRequest) ExecutionOptions {
 	if cfg == nil {
 		return ExecutionOptions{}
@@ -22,10 +24,18 @@ func ExecutionOptionsFromConfig(cfg *RunRequest) ExecutionOptions {
 		maxRetries = 1
 	}
 	return ExecutionOptions{
-		Target:          target,
-		Threads:         threads,
-		MaxRetries:      maxRetries,
-		FailStop:        cfg.FailStop,
-		CooldownOnError: 30 * time.Second,
+		Target:            target,
+		Threads:           threads,
+		MaxRetries:        maxRetries,
+		FailStop:          cfg.FailStop,
+		FailStopThreshold: defaultFailStopThreshold,
+		CooldownOnError:   30 * time.Second,
 	}
+}
+
+func failStopThreshold(options ExecutionOptions) int {
+	if options.FailStopThreshold > 0 {
+		return options.FailStopThreshold
+	}
+	return defaultFailStopThreshold
 }

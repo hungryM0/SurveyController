@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 const closeRequestedEvent = "surveycontroller:close-requested"
+
+const closeShutdownTimeout = 5 * time.Second
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -48,11 +52,17 @@ func main() {
 		},
 	})
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
-		if windowService.consumeCloseConfirmed() {
-			return
+		allowClose := windowService.consumeCloseConfirmed()
+		if !allowClose {
+			settings, err := service.GetAppSettings()
+			allowClose = err == nil && !settings.AskSaveOnClose
 		}
-		settings, err := service.GetAppSettings()
-		if err == nil && !settings.AskSaveOnClose {
+		if allowClose {
+			ctx, cancel := context.WithTimeout(context.Background(), closeShutdownTimeout)
+			defer cancel()
+			if err := service.runs.shutdown(ctx); err != nil {
+				log.Printf("等待运行任务结束失败: %v", err)
+			}
 			return
 		}
 		event.Cancel()

@@ -33,9 +33,10 @@ func runExecutionWorker(
 		if waitIfExecutionPaused(ctx, options, state, workerIndex, workerName) || ctx.Err() != nil {
 			return
 		}
-		if err := runOneJob(ctx, config, submit, options, state, workerIndex, workerName, jobIndex); err != nil {
+		consecutiveFailures, err := runOneJob(ctx, config, submit, options, state, workerIndex, workerName, jobIndex)
+		if err != nil {
 			recordError(err)
-			if options.FailStop || !isRetryableRunError(err) {
+			if !isRetryableRunError(err) || (options.FailStop && consecutiveFailures >= failStopThreshold(options)) {
 				cancel()
 			}
 		} else {
@@ -47,7 +48,7 @@ func runExecutionWorker(
 	}
 }
 
-func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options ExecutionOptions, state *executionState, workerIndex int, workerName string, jobIndex int) error {
+func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options ExecutionOptions, state *executionState, workerIndex int, workerName string, jobIndex int) (int, error) {
 	attempts := options.MaxRetries + 1
 	if attempts <= 0 {
 		attempts = 1
@@ -55,7 +56,7 @@ func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options 
 	for attempt := 1; attempt <= attempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			state.setProgress(workerIndex, workerName, "已停止", false)
-			return err
+			return 0, err
 		}
 		owner := fmt.Sprintf("%s-%d-%d", workerName, jobIndex+1, attempt)
 		lease, leased, leaseErr := acquireExecutionLease(ctx, options, state, workerIndex, workerName, owner)
@@ -65,8 +66,7 @@ func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options 
 				sleepRetry(ctx, options.RetryDelay)
 				continue
 			}
-			state.addFail(workerIndex, workerName, "代理不可用")
-			return leaseErr
+			return state.addFail(workerIndex, workerName, "代理不可用"), leaseErr
 		}
 
 		job := JobRequest{
@@ -92,8 +92,7 @@ func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options 
 			if err := options.ConfigureJob(ctx, jobIndex, attempt, &job); err != nil {
 				releaseExecutionLease(options, owner, lease, leased, err)
 				resetPendingAnswerRuntime(job.Submission.Context.Runtime, owner)
-				state.addFail(workerIndex, workerName, "配置失败")
-				return err
+				return state.addFail(workerIndex, workerName, "配置失败"), err
 			}
 		}
 		actions, err := answerplan.BuildActionsWithLogic(
@@ -104,8 +103,7 @@ func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options 
 		if err != nil {
 			releaseExecutionLease(options, owner, lease, leased, err)
 			resetPendingAnswerRuntime(job.Submission.Context.Runtime, owner)
-			state.addFail(workerIndex, workerName, "生成答案失败")
-			return err
+			return state.addFail(workerIndex, workerName, "生成答案失败"), err
 		}
 		job.Submission.Context.Actions = convertActions(actions)
 		state.setProgress(workerIndex, workerName, "提交中", true)
@@ -117,7 +115,7 @@ func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options 
 
 		if err == nil {
 			state.addSuccess(workerIndex, workerName, "提交成功")
-			return nil
+			return 0, nil
 		}
 		statusText := statusFromRunResult(result, err)
 		if shouldRetry(err, attempt, attempts) {
@@ -126,8 +124,7 @@ func runOneJob(ctx context.Context, cfg *RunRequest, submit SubmitFunc, options 
 			sleepRetry(ctx, options.RetryDelay)
 			continue
 		}
-		state.addFail(workerIndex, workerName, statusText)
-		return err
+		return state.addFail(workerIndex, workerName, statusText), err
 	}
-	return ErrRunFailed
+	return state.addFail(workerIndex, workerName, "failed"), ErrRunFailed
 }

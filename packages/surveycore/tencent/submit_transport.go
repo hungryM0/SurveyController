@@ -40,15 +40,15 @@ func (r Runner) submitAnswers(ctx context.Context, request *model.SubmissionRequ
 	if code != "OK" && code != "0" {
 		return fmt.Errorf("腾讯问卷提交失败：%s", firstString(payload.Message, payload.Msg, payload.Code, "unknown"))
 	}
+	data, ok := payload.Data.(map[string]any)
+	if !ok || strings.TrimSpace(stringValue(data["answer_hash"])) == "" {
+		return fmt.Errorf("腾讯问卷提交返回缺少 answer_hash，无法确认服务端是否已收录")
+	}
 	return nil
 }
 
 func (r Runner) confirmSubmit(ctx context.Context, surveyID string, hashValue string, headers map[string]string, answerSessionID string, initial map[string]any) error {
-	data := initial["answer_session"]
-	initialSubmittedAt := 0
-	if mapped, ok := data.(map[string]any); ok {
-		initialSubmittedAt = intValue(mapped["last_submitted_at"])
-	}
+	initialSubmittedAt, initialAnswerID := answerSessionState(initial)
 	if answerSessionID == "" {
 		return nil
 	}
@@ -59,16 +59,23 @@ func (r Runner) confirmSubmit(ctx context.Context, surveyID string, hashValue st
 		if err != nil {
 			return err
 		}
-		if mapped, ok := sessionData["answer_session"].(map[string]any); ok {
-			if intValue(mapped["last_submitted_at"]) > initialSubmittedAt || intValue(mapped["last_answer_id"]) > 0 {
-				return nil
-			}
+		lastSubmittedAt, lastAnswerID := answerSessionState(sessionData)
+		if lastSubmittedAt > initialSubmittedAt || (lastAnswerID > 0 && lastAnswerID != initialAnswerID) {
+			return nil
 		}
 		if attempt < 2 {
 			time.Sleep(200 * time.Millisecond)
 		}
 	}
 	return fmt.Errorf("腾讯问卷提交后未确认到服务端已记录答案")
+}
+
+func answerSessionState(sessionData map[string]any) (int, int) {
+	answerSession, ok := sessionData["answer_session"].(map[string]any)
+	if !ok {
+		return 0, 0
+	}
+	return intValue(answerSession["last_submitted_at"]), intValue(answerSession["last_answer_id"])
 }
 
 func (r Runner) requestAPI(ctx context.Context, surveyID string, endpoint string, hashValue string, headers map[string]string, extraParams map[string]string, proxyAddress string) (map[string]any, error) {

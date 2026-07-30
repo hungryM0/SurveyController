@@ -28,6 +28,23 @@ func TestParseProxyPayloadNestedAndDeduplicates(t *testing.T) {
 	}
 }
 
+func TestParseProxyPayloadPreservesNumericPorts(t *testing.T) {
+	payload := []byte(`{"items":[{"ip":"1.1.1.1","port":8000},{"ip":"2.2.2.2","port":8080}]}`)
+	proxies, err := ParseProxyPayload(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"1.1.1.1:8000", "2.2.2.2:8080"}
+	if len(proxies) != len(want) {
+		t.Fatalf("proxies = %#v", proxies)
+	}
+	for index := range want {
+		if proxies[index] != want[index] {
+			t.Fatalf("proxies[%d] = %q, want %q", index, proxies[index], want[index])
+		}
+	}
+}
+
 func TestParseProxyPayloadErrors(t *testing.T) {
 	if _, err := ParseProxyPayload([]byte(`{`)); err == nil {
 		t.Fatal("bad JSON should fail")

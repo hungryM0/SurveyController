@@ -1063,7 +1063,7 @@ func newAppTencentServer(t *testing.T) *httptest.Server {
 			if _, ok := body["answer_survey"].(map[string]any); !ok {
 				t.Fatalf("answer_survey = %#v", body["answer_survey"])
 			}
-			writeAppJSON(t, w, map[string]any{"code": "OK", "data": map[string]any{"ok": true}})
+			writeAppJSON(t, w, map[string]any{"code": "OK", "data": map[string]any{"answer_hash": "hash-ok"}})
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}

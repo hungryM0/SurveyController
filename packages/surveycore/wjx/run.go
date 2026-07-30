@@ -28,15 +28,22 @@ func (r Runner) Prepare(ctx context.Context, request *model.SubmissionRequest) (
 	if strings.TrimSpace(request.Source.URL) == "" {
 		return nil, runerror.Wrap(runerror.KindConfig, fmt.Errorf("配置为空"))
 	}
-	if len(request.Definition.Questions) > 0 {
-		return &PreparedSurvey{Definition: request.Definition}, nil
-	}
 	parser := Parser{Client: r.Client, UserAgent: r.UserAgent}
-	definition, err := parser.Parse(ctx, request.Source.URL)
+	htmlText, err := parser.getHTML(ctx, request.Source.URL)
 	if err != nil {
 		return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
 	}
-	return &PreparedSurvey{Definition: definition}, nil
+	definition := request.Definition
+	if len(definition.Questions) == 0 {
+		definition, err = ParseDefinitionFromHTML(htmlText)
+		if err != nil {
+			return nil, runerror.Wrap(runerror.KindParse, fmt.Errorf("解析问卷失败: %w", err))
+		}
+		if len(definition.Questions) == 0 {
+			return nil, runerror.Wrap(runerror.KindParse, ParseError{Message: "问卷星 HTTP 页面未返回可解析题目"})
+		}
+	}
+	return &PreparedSurvey{Definition: definition, SceneID: extractSceneID(htmlText)}, nil
 }
 
 func (r Runner) RunPrepared(ctx context.Context, request *model.SubmissionRequest, prepared *PreparedSurvey, handler EventHandler) (Result, error) {
@@ -66,7 +73,7 @@ func (r Runner) RunPrepared(ctx context.Context, request *model.SubmissionReques
 			}
 			return result, runerror.Wrap(runerror.KindConfig, fmt.Errorf("生成答案失败: %w", err))
 		}
-		if err := r.submit(ctx, request, submitData); err != nil {
+		if err := r.submit(ctx, request, submitData, prepared.SceneID); err != nil {
 			result.Fail++
 			emit(handler, "提交失败", false, true, result.Success+result.Fail, target)
 			return result, runerror.Wrap(runerror.KindRun, fmt.Errorf("提交失败: %w", err))
@@ -82,7 +89,7 @@ func pendingResult(_ *model.SubmissionRequest) Result {
 	return Result{Target: 1, Status: "pending"}
 }
 
-func (r Runner) submit(ctx context.Context, request *model.SubmissionRequest, submitData string) error {
+func (r Runner) submit(ctx context.Context, request *model.SubmissionRequest, submitData string, sceneID string) error {
 	shortID, err := shortIDFromURL(request.Source.URL)
 	if err != nil {
 		return err
@@ -116,7 +123,10 @@ func (r Runner) submit(ctx context.Context, request *model.SubmissionRequest, su
 
 	form := url.Values{}
 	form.Set("submitdata", submitData)
-	form.Set("sceneId", "q0hcfsca")
+	if strings.TrimSpace(sceneID) == "" {
+		sceneID = defaultSceneID
+	}
+	form.Set("sceneId", sceneID)
 	responseText, err := r.postForm(ctx, submitEndpoint(request.Source.URL), request.Source.URL, query, form, request.Context.ProxyAddress)
 	if err != nil {
 		return err

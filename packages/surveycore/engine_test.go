@@ -203,6 +203,37 @@ func TestRunExecutionClassifiesUnsupportedWithoutRetry(t *testing.T) {
 	}
 }
 
+func TestRunExecutionFailStopWaitsForFifthConsecutiveFailure(t *testing.T) {
+	attempts := 0
+	result, err := RunExecution(context.Background(), executionTestConfig(6, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
+		attempts++
+		return &RunResult{Fail: 1}, errors.New("temporary failure")
+	}, nil, ExecutionOptions{FailStop: true})
+	if err == nil {
+		t.Fatal("expected run error")
+	}
+	if attempts != 5 || result == nil || result.Fail != 5 {
+		t.Fatalf("attempts=%d result=%#v", attempts, result)
+	}
+}
+
+func TestRunExecutionSuccessResetsConsecutiveFailures(t *testing.T) {
+	attempts := 0
+	result, err := RunExecution(context.Background(), executionTestConfig(9, 1), func(_ context.Context, _ *model.SubmissionRequest, _ EventHandler) (*RunResult, error) {
+		attempts++
+		if attempts == 5 {
+			return &RunResult{Success: 1}, nil
+		}
+		return &RunResult{Fail: 1}, errors.New("temporary failure")
+	}, nil, ExecutionOptions{FailStop: true})
+	if err == nil {
+		t.Fatal("expected accumulated run error")
+	}
+	if attempts != 9 || result == nil || result.Success != 1 || result.Fail != 8 {
+		t.Fatalf("attempts=%d result=%#v", attempts, result)
+	}
+}
+
 func TestRunExecutionWaitsWhilePaused(t *testing.T) {
 	controller := newFakePauseController(true)
 	done := make(chan struct {

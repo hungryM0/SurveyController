@@ -37,20 +37,21 @@ type PauseController interface {
 }
 
 type ExecutionOptions struct {
-	Target          int
-	Threads         int
-	MaxRetries      int
-	FailStop        bool
-	UseRandomIP     bool
-	RetryDelay      time.Duration
-	CooldownOnError time.Duration
-	LeaseManager    LeaseManager
-	PauseController PauseController
-	Now             func() time.Time
-	UserAgent       model.UserAgentSettings
-	AIProfile       model.AIProfile
-	AnswerRuntime   model.AnswerRuntime
-	ConfigureJob    func(ctx context.Context, jobIndex int, attempt int, job *JobRequest) error
+	Target            int
+	Threads           int
+	MaxRetries        int
+	FailStop          bool
+	FailStopThreshold int
+	UseRandomIP       bool
+	RetryDelay        time.Duration
+	CooldownOnError   time.Duration
+	LeaseManager      LeaseManager
+	PauseController   PauseController
+	Now               func() time.Time
+	UserAgent         model.UserAgentSettings
+	AIProfile         model.AIProfile
+	AnswerRuntime     model.AnswerRuntime
+	ConfigureJob      func(ctx context.Context, jobIndex int, attempt int, job *JobRequest) error
 }
 
 type JobRequest struct {

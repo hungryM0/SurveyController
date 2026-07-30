@@ -98,6 +98,64 @@ func TestRunManagerLogFailureFailsTask(t *testing.T) {
 	}
 }
 
+func TestRunManagerShutdownCancelsAndWaitsForFinish(t *testing.T) {
+	sink := &trackingRunEventSink{}
+	manager := newRunManager()
+	runCtx, cancel := context.WithCancel(context.Background())
+	if _, err := manager.start("run-shutdown", time.Now(), cancel, newRunPauseController(), sink); err != nil {
+		t.Fatal(err)
+	}
+
+	shutdownDone := make(chan error, 1)
+	go func() {
+		shutdownDone <- manager.shutdown(context.Background())
+	}()
+	select {
+	case <-runCtx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("shutdown did not cancel the run")
+	}
+	select {
+	case err := <-shutdownDone:
+		t.Fatalf("shutdown returned before finish: %v", err)
+	default:
+	}
+
+	state := manager.finish("run-shutdown", nil, context.Canceled, time.Now())
+	if state.Status != RunTaskStatusStopped {
+		t.Fatalf("state = %#v", state)
+	}
+	select {
+	case err := <-shutdownDone:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("shutdown did not return after finish")
+	}
+	if sink.closedCount() != 1 {
+		t.Fatalf("sink close calls = %d", sink.closedCount())
+	}
+}
+
+func TestRunManagerShutdownHonorsTimeout(t *testing.T) {
+	manager := newRunManager()
+	_, cancel := context.WithCancel(context.Background())
+	if _, err := manager.start("run-timeout", time.Now(), cancel, newRunPauseController(), nil); err != nil {
+		t.Fatal(err)
+	}
+	shutdownCtx, stopWaiting := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer stopWaiting()
+	if err := manager.shutdown(shutdownCtx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v", err)
+	}
+	state := manager.snapshot(RunTaskStateRequest{})
+	if state.Status != RunTaskStatusCanceling {
+		t.Fatalf("state = %#v", state)
+	}
+	manager.finish("run-timeout", nil, context.Canceled, time.Now())
+}
+
 func TestRunManagerAppliesLogBackpressureWithoutGrowingEventWindow(t *testing.T) {
 	sink := &blockingRunEventSink{entered: make(chan struct{}), release: make(chan struct{})}
 	manager := newRunManager()
@@ -176,6 +234,28 @@ type blockingRunEventSink struct {
 	once    sync.Once
 	entered chan struct{}
 	release chan struct{}
+}
+
+type trackingRunEventSink struct {
+	mu         sync.Mutex
+	closeCalls int
+}
+
+func (*trackingRunEventSink) write(surveycore.Event) error {
+	return nil
+}
+
+func (s *trackingRunEventSink) close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closeCalls++
+	return nil
+}
+
+func (s *trackingRunEventSink) closedCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.closeCalls
 }
 
 func (s *blockingRunEventSink) write(surveycore.Event) error {

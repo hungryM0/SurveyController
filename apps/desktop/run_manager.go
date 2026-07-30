@@ -19,6 +19,7 @@ type runManager struct {
 	state         RunTaskState
 	events        runEventWindow
 	cancel        context.CancelFunc
+	done          chan struct{}
 	pause         *runPauseController
 	logSink       runEventSink
 	logErr        error
@@ -60,6 +61,7 @@ func (m *runManager) start(runID string, startedAt time.Time, cancel context.Can
 	}
 	m.events = newRunEventWindow()
 	m.cancel = cancel
+	m.done = make(chan struct{})
 	m.pause = pause
 	m.logSink = sink
 	m.logErr = nil
@@ -79,6 +81,7 @@ func (m *runManager) failStart(runID string, startedAt time.Time, err error) Run
 	}
 	m.events = newRunEventWindow()
 	m.cancel = nil
+	m.done = nil
 	m.pause = nil
 	m.logSink = nil
 	m.logErr = nil
@@ -111,9 +114,10 @@ func (m *runManager) append(event surveycore.Event) {
 func (m *runManager) finish(runID string, result *surveycore.RunResult, runErr error, endedAt time.Time) RunTaskState {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if runID != m.state.RunID {
+	if runID != m.state.RunID || !isActiveRunStatus(m.state.Status) {
 		return m.snapshotLocked(RunTaskStateRequest{})
 	}
+	done := m.done
 	if m.logSink != nil {
 		if err := m.logSink.close(); err != nil && m.logErr == nil {
 			m.logErr = err
@@ -137,11 +141,16 @@ func (m *runManager) finish(runID string, result *surveycore.RunResult, runErr e
 		m.state.Error = ""
 	}
 	m.cancel = nil
+	m.done = nil
 	m.pause = nil
 	m.logSink = nil
 	m.logErr = nil
 	m.stopRequested = false
-	return m.snapshotLocked(RunTaskStateRequest{})
+	state := m.snapshotLocked(RunTaskStateRequest{})
+	if done != nil {
+		close(done)
+	}
+	return state
 }
 
 func (m *runManager) cancelRun() RunTaskState {
