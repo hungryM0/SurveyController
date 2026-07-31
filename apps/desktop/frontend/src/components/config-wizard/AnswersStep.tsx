@@ -27,7 +27,12 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
   const duration = normalizePair(config.execution.answerDuration, [60, 120])
   const aiMode = draft.aiProfile.mode === 'provider' ? 'provider' : 'free'
   const aiProvider = draft.aiProfile.provider === 'custom' ? 'custom' : 'deepseek'
-  const questionCount = config.survey.definition.questions?.length || config.answers.questions?.length || 0
+  const questions = config.survey.definition.questions?.filter((question) => !question.is_description) ?? []
+  const questionCount = questions.length
+  const strategies = config.answers.questions ?? []
+  const strategyQuestionNumbers = new Set(strategies.map((strategy) => strategy.question_num).filter((num): num is number => typeof num === 'number'))
+  const strategyCount = questions.filter((question) => strategyQuestionNumbers.has(question.num)).length
+  const strategyReady = questionCount > 0 && strategyCount === questionCount
 
   function updateExecution(values: Partial<typeof config.execution>) {
     const next = cloneWizardDraft(draft)
@@ -69,8 +74,8 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-ready-card" role="status">
           <ListChecks size={19} strokeWidth={1.9} aria-hidden="true" />
           <div>
-            <strong>已生成 {questionCount} 道题的初始策略</strong>
-            <span>需要时可以在本步骤逐题调整。</span>
+            <strong>{strategyReady ? `已生成 ${strategyCount} 道题的初始策略` : '初始策略尚未完整生成'}</strong>
+            <span>{questionCount ? `当前已有 ${strategyCount} / ${questionCount} 道题的策略，可在本步骤逐题调整。` : '解析问卷后会显示真实题目策略。'}</span>
           </div>
         </div>
 

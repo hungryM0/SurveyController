@@ -26,6 +26,8 @@ type SurveyDocument struct {
 
 type NetworkSettings struct {
 	RandomProxyEnabled bool           `json:"randomProxyEnabled"`
+	ProxyMode          string         `json:"proxyMode,omitempty"`
+	FixedProxyAddress  string         `json:"fixedProxyAddress,omitempty"`
 	ProxySource        string         `json:"proxySource"`
 	CustomProxyAPI     string         `json:"customProxyApi,omitempty"`
 	ProxyAreaCode      string         `json:"proxyAreaCode,omitempty"`

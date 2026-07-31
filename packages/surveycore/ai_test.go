@@ -3,6 +3,7 @@ package surveycore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -28,6 +29,73 @@ func TestResolveAIEndpointHandlesExplicitAndLegacyURLs(t *testing.T) {
 	}
 	if _, _, _, err := resolveAIEndpoint("https://example.com/v1/completions", "auto"); err == nil || !strings.Contains(err.Error(), "/completions") {
 		t.Fatalf("legacy err = %v", err)
+	}
+}
+
+func TestDoAIJSONSanitizesNon2xxResponse(t *testing.T) {
+	const apiKey = "test-ai-key-7f3c"
+	const responseToken = "response-token-4b8d"
+	responseBody := `{"message":"upstream rejected request","authorization":"Bearer ` + apiKey + `","api_key":"` + apiKey + `","token":"` + responseToken + `"}`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(responseBody))
+	}))
+	defer server.Close()
+
+	client := New(WithHTTPClient(server.Client()))
+	err := client.doAIJSON(
+		context.Background(),
+		http.MethodPost,
+		server.URL+"/v1/responses?api_key="+apiKey,
+		map[string]string{"Authorization": "Bearer " + apiKey},
+		map[string]string{"prompt": "test"},
+		&map[string]any{},
+	)
+	if err == nil {
+		t.Fatal("expected non-2xx error")
+	}
+	message := err.Error()
+	if !strings.Contains(message, "http 401") || !strings.Contains(message, "upstream rejected request") {
+		t.Fatal("status code or safe response message was lost")
+	}
+	for _, secret := range []string{apiKey, responseToken, "Bearer " + apiKey} {
+		if strings.Contains(message, secret) {
+			t.Fatal("AI error exposed a credential")
+		}
+	}
+}
+
+type aiRoundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (fn aiRoundTripperFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return fn(request)
+}
+
+func TestDoAIJSONSanitizesTransportError(t *testing.T) {
+	const apiKey = "test-transport-key-9a2e"
+	client := New(WithHTTPClient(&http.Client{
+		Transport: aiRoundTripperFunc(func(_ *http.Request) (*http.Response, error) {
+			return nil, errors.New("upstream unavailable; Authorization: Bearer " + apiKey + "; api_key=" + apiKey)
+		}),
+	}))
+
+	err := client.doAIJSON(
+		context.Background(),
+		http.MethodPost,
+		"https://example.invalid/v1/responses?api_key="+apiKey,
+		map[string]string{"Authorization": "Bearer " + apiKey},
+		map[string]string{"prompt": "test"},
+		&map[string]any{},
+	)
+	if err == nil {
+		t.Fatal("expected transport error")
+	}
+	message := err.Error()
+	if !strings.Contains(message, "upstream unavailable") {
+		t.Fatal("safe transport message was lost")
+	}
+	if strings.Contains(message, apiKey) || strings.Contains(message, "Bearer "+apiKey) {
+		t.Fatal("transport error exposed a credential")
 	}
 }
 

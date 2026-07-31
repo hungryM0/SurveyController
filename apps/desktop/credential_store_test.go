@@ -188,9 +188,17 @@ func TestStartRunFailsWhenAIPlanNeedsMissingCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", "")
-	document.Answers.Strategies = []surveycore.QuestionStrategy{{AIEnabled: true}}
+	document.Survey.Definition.Questions = []surveycore.QuestionMeta{{
+		Num:          1,
+		Title:        "满意度",
+		Provider:     surveycore.ProviderWJX,
+		ProviderType: "single",
+		Options:      2,
+	}}
+	questionNum := 1
+	document.Answers.Strategies = []surveycore.QuestionStrategy{{QuestionNum: &questionNum, AIEnabled: true}}
 	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
-	if err == nil || !strings.Contains(err.Error(), "缺少 API Key") {
+	if err == nil || !strings.Contains(err.Error(), "未配置 API Key") {
 		t.Fatalf("state=%#v err=%v", state, err)
 	}
 	if state.Status != RunTaskStatusFailed {

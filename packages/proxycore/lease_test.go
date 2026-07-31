@@ -25,6 +25,34 @@ func TestNormalizeProxyAddressAndMask(t *testing.T) {
 	}
 }
 
+func TestNormalizeProxyAddressRejectsUnsupportedAndInvalidAddresses(t *testing.T) {
+	for _, address := range []string{
+		"ftp://proxy.example:8080",
+		"http://:8080",
+		"http://proxy.example:0",
+		"http://proxy.example:65536",
+		"http://proxy.example:bad",
+		"http://proxy.example/path",
+		"http://proxy..example:8080",
+		"http://[2001:db8::1:8080",
+	} {
+		if normalized, ok := NormalizeProxyAddress(address); ok {
+			t.Errorf("NormalizeProxyAddress(%q) = %q, want rejection", address, normalized)
+		}
+	}
+
+	for _, address := range []string{
+		"proxy.example",
+		"proxy.example:8080",
+		"http://user:pass@proxy.example:8080",
+		"https://[2001:db8::1]:8080",
+	} {
+		if normalized, ok := NormalizeProxyAddress(address); !ok || normalized == "" {
+			t.Errorf("NormalizeProxyAddress(%q) = %q, %v, want valid address", address, normalized, ok)
+		}
+	}
+}
+
 func TestBuildProxyLeaseAndTTL(t *testing.T) {
 	lease, ok := BuildProxyLease("1.1.1.1:8000", "2099-01-01T00:00:00+00:00", true, "")
 	if !ok {
@@ -45,5 +73,13 @@ func TestBuildProxyLeaseAndTTL(t *testing.T) {
 	}
 	if ProxyLeaseHasSufficientTTL(ProxyLease{}, 0, now) {
 		t.Fatal("empty lease should be unusable")
+	}
+}
+
+func TestBuildProxyLeaseRejectsInvalidAddresses(t *testing.T) {
+	for _, address := range []string{"ftp://proxy.example:8080", "http://:8080", "http://proxy.example:65536"} {
+		if lease, ok := BuildProxyLease(address, "", true, "custom"); ok {
+			t.Errorf("BuildProxyLease(%q) = %#v, want rejection", address, lease)
+		}
 	}
 }

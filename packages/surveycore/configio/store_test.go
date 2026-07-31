@@ -40,6 +40,24 @@ func TestConfigDocumentV2RoundTrip(t *testing.T) {
 	}
 }
 
+func TestConfigDocumentRoundTripPreservesFixedProxyAddress(t *testing.T) {
+	document := ConfigDocument{
+		SchemaVersion: ConfigSchemaVersion,
+		Network:       NetworkSettings{FixedProxyAddress: "http://user:pass@127.0.0.1:8080"},
+	}
+	payload, err := SerializeConfigDocument(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := DeserializeConfigDocument(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restored.Network.FixedProxyAddress != document.Network.FixedProxyAddress {
+		t.Fatalf("fixed proxy address = %q", restored.Network.FixedProxyAddress)
+	}
+}
+
 func TestDeserializeLegacyPayloadMigratesToV2Model(t *testing.T) {
 	cfg, err := DeserializeRunRequest(map[string]any{
 		"url": "https://www.wjx.cn/vm/demo.aspx", "target": "12", "threads": "4",

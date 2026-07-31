@@ -94,6 +94,28 @@
 
 .config-wizard-url-field .sc-input-container { width: 100%; }
 
+.config-wizard-custom-proxy-controls {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.config-wizard-custom-proxy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.config-wizard-custom-proxy-input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.config-wizard-custom-proxy-input .sc-input-container,
+.config-wizard-custom-proxy-input .sc-input { width: 100%; }
+
 .config-wizard-strategy-section {
   display: grid;
   gap: 0.65rem;

@@ -79,3 +79,26 @@
   white-space: nowrap;
 }
 
+.config-wizard-check-problems {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-wizard-check-problems li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, var(--line));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--warning) 7%, var(--surface-soft));
+  color: var(--text);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.config-wizard-ready-card.is-warning { border-color: color-mix(in srgb, var(--warning) 35%, var(--line)); color: var(--warning); }
+.config-wizard-ready-card.is-blocked { border-color: color-mix(in srgb, var(--danger) 38%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, var(--surface-soft)); color: var(--danger); }

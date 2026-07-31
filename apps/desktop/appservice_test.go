@@ -433,7 +433,10 @@ func TestAppServiceStartRunSubmitsTencentAndEmitsEvents(t *testing.T) {
 	defer server.Close()
 	service := newTestAppService()
 	service.runs.survey = surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))
-	document := testConfigDocument("https://wj.qq.com/s2/123/hashvalue/", surveycore.ProviderQQ)
+	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: "https://wj.qq.com/s2/123/hashvalue/"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
 	if err != nil {
 		t.Fatalf("err = %v", err)
@@ -618,6 +621,15 @@ func TestAppServiceStartRunSkipsSubmissionReportWhenDisabled(t *testing.T) {
 func TestAppServiceCancelRunMarksCanceling(t *testing.T) {
 	service := newTestAppService()
 	document := testConfigDocument("https://wj.qq.com/s2/123/hashvalue/", surveycore.ProviderQQ)
+	document.Survey.Definition.Questions = []surveycore.QuestionMeta{{
+		Num:          1,
+		Title:        "满意度",
+		Provider:     surveycore.ProviderQQ,
+		ProviderType: "single",
+		Options:      2,
+	}}
+	questionNum := 1
+	document.Answers.Strategies = []surveycore.QuestionStrategy{{QuestionNum: &questionNum}}
 	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
 	if err != nil {
 		t.Fatal(err)

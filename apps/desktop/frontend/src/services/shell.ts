@@ -1,5 +1,6 @@
 import {
   CancelRun,
+  CheckTask,
   CreateSurveyDocument,
   DecodeQRCode,
   ExportLogLines,
@@ -19,6 +20,7 @@ import {
   SyncProxyStatus,
   TestAIConnection,
   TestCustomProxyAPI,
+  TestFixedProxy,
 } from '../../bindings/github.com/hungrym0/SurveyController/apps/desktop/appservice'
 import { ConfirmClose } from '../../bindings/github.com/hungrym0/SurveyController/apps/desktop/windowservice'
 import { AICredentialOperation } from '../../bindings/github.com/hungrym0/SurveyController/apps/desktop/models'
@@ -29,12 +31,14 @@ import type {
   AppSettings,
   ConfigDocument,
   CustomProxyAPITestState,
+  FixedProxyTestState,
   ProxyAreaOptionsState,
   ProxyRedeemState,
   ProxyStatus,
   QRCodeDecodeState,
   ReverseFillPreview,
   RunTaskState,
+  TaskCheckState,
 } from '../types'
 import { createEmptyConfigDocument, normalizeConfigDocument } from './configDocument'
 import { createDefaultAppSettings } from './appSettings'
@@ -73,6 +77,25 @@ export async function loadAppBootstrap(): Promise<AppBootstrap> {
 
 export async function createSurveyDocument(url: string): Promise<ConfigDocument> {
   return normalizeConfigDocument(await CreateSurveyDocument({ url }))
+}
+
+export async function checkTask(
+  config: ConfigDocument,
+  aiProfile?: AIProfileSettings,
+  credential?: AICredentialDraft,
+): Promise<TaskCheckState> {
+  const effectiveAIProfile = aiProfile
+    ? {
+        ...aiProfile,
+        hasAPIKey: aiProfile.hasAPIKey
+          || (credential?.operation === 'replace' && Boolean(credential.value.trim())),
+      }
+    : undefined
+  const state = await CheckTask({
+    config: normalizeConfigDocument(config),
+    aiProfile: effectiveAIProfile,
+  })
+  return { ...state, problems: state.problems ?? [] }
 }
 
 export async function decodeQRCode(path: string): Promise<QRCodeDecodeState> {
@@ -178,6 +201,10 @@ export async function redeemProxyCard(cardCode: string, source = 'default'): Pro
 
 export async function testCustomProxyAPI(url: string): Promise<CustomProxyAPITestState> {
   return await TestCustomProxyAPI({ url })
+}
+
+export async function testFixedProxy(address: string): Promise<FixedProxyTestState> {
+  return await TestFixedProxy({ address, targetUrl: undefined })
 }
 
 export async function testAIConnection(profile: AIProfileSettings): Promise<AIConnectionTestState> {

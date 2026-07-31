@@ -45,8 +45,11 @@ export function useAppBootstrap({
           bootstrap.configExists,
         )
         setModel(loaded)
+        const proxyRequest = loaded.config.network.randomProxyEnabled && loaded.config.network.proxySource !== 'custom'
+          ? syncProxyStatus(loaded.config.network.proxySource).catch(loadProxyStatus)
+          : loadProxyStatus()
         const [proxy, run] = await Promise.allSettled([
-          syncProxyStatus(loaded.config.network.proxySource).catch(loadProxyStatus),
+          proxyRequest,
           loadRunTaskState(),
         ])
         if (ignore) return

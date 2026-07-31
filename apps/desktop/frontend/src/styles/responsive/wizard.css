@@ -5,21 +5,24 @@
 }
 
 @media (max-width: 720px) {
-  .config-wizard-layout { grid-template-columns: 1fr; }
+  .config-wizard-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 0.9rem 1rem;
+  }
+  .config-wizard-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+  .config-wizard-header .config-wizard-lifecycle-status {
+    margin-left: auto;
+  }
+  .config-wizard-layout { display: block; }
   .config-wizard-progress {
     border-right: 0;
     border-bottom: 1px solid var(--line);
     padding: 0.55rem 0.7rem;
   }
-  .config-wizard-progress ol { display: flex; gap: 0.35rem; overflow-x: auto; }
-  .config-wizard-progress li { flex: 1 0 2rem; }
-  .config-wizard-progress button {
-    width: auto;
-    grid-template-columns: 1.75rem;
-    justify-items: center;
-    padding: 0.35rem;
-  }
-  .config-wizard-progress-copy { display: none; }
   .config-wizard-main { padding: 1rem; }
   .config-wizard-field,
   .config-wizard-field > .sc-input-container,

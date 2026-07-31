@@ -60,3 +60,29 @@
   from { opacity: 0; transform: translateY(-0.2rem); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@media (max-width: 720px) {
+  .config-wizard-header { padding: 0.85rem 0.9rem; }
+  .config-wizard-title { font-size: 1.05rem; }
+  .config-wizard-description { display: none; }
+  .config-wizard-step-count { display: none; }
+  .config-wizard-main { padding: 1rem 0.9rem; }
+  .config-wizard-field { grid-template-columns: 1fr; gap: 0.55rem; }
+  .config-wizard-field > .sc-input-container,
+  .config-wizard-field > .sc-select-trigger,
+  .config-wizard-field > .sc-switch-container,
+  .config-wizard-field > .config-wizard-slider-field { justify-self: stretch; }
+  .config-wizard-footer { padding: 0.85rem 0.9rem; }
+  .config-wizard-footer-main { align-items: stretch; flex-direction: column; gap: 0.6rem; }
+  .config-wizard-footer-actions { justify-content: stretch; }
+  .config-wizard-footer-actions > * { flex: 1; }
+  .config-wizard-discard-confirm { align-items: stretch; flex-direction: column; }
+  .config-wizard-discard-actions > * { flex: 1; }
+  .config-wizard-review-grid { grid-template-columns: 1fr; }
+  .config-wizard-check-problems li { align-items: flex-start; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config-wizard-step,
+  .config-wizard-reveal { animation: none; }
+}

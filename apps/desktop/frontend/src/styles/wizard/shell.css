@@ -31,43 +31,70 @@
   font-variant-numeric: tabular-nums;
 }
 
+.config-wizard-lifecycle-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.config-wizard-lifecycle-status strong { font-weight: 650; }
+.config-wizard-lifecycle-status.is-active { color: var(--accent); }
+.config-wizard-lifecycle-status.is-warning { color: var(--warning); }
+.config-wizard-lifecycle-status.is-success { color: var(--success); }
+.config-wizard-lifecycle-status.is-danger { color: var(--danger); }
+
 .config-wizard-layout {
-  display: grid;
+  display: block;
   min-height: 0;
-  grid-template-columns: 14.5rem minmax(0, 1fr);
 }
 
 .config-wizard-progress {
   min-height: 0;
   overflow: auto;
-  border-right: 1px solid var(--line);
-  padding: 1rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.7rem 1.2rem 0.6rem;
 }
 
+.config-wizard-progress-compact { display: none; }
+
 .config-wizard-progress ol {
-  display: grid;
-  gap: 0.3rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+  justify-content: space-between;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.config-wizard-progress button {
+.config-wizard-progress-steps li {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.config-wizard-progress-steps button {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1.85rem minmax(0, 1fr);
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.55rem;
   border: 1px solid transparent;
   border-radius: 0.55rem;
   background: transparent;
   color: var(--muted);
   padding: 0.55rem 0.45rem;
-  text-align: left;
+  text-align: center;
   transition: background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
 }
 
-.config-wizard-progress button:not(:disabled):hover {
+.config-wizard-progress-steps button:not(:disabled):hover {
   border-color: var(--line);
   background: var(--control-hover);
   color: var(--text);
@@ -122,4 +149,143 @@
   opacity: 0.8;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.config-wizard-progress-compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.config-wizard-progress-compact-current {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-wizard-progress-compact-menu {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.config-wizard-progress-compact-menu > .sc-select-trigger {
+  min-height: 2rem;
+  min-width: 0;
+  width: 6.5rem;
+  max-width: 32vw;
+  padding: 0.3rem 1.65rem 0.3rem 0.55rem;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+}
+
+.config-wizard-progress-compact-menu > .sc-select-trigger:hover:not(:disabled) {
+  border-color: var(--accent);
+  background-color: var(--control-hover);
+}
+
+.config-wizard-progress-compact-menu > .sc-select-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.config-wizard-progress-compact-menu > .sc-select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.config-wizard-progress-compact-line {
+  display: block;
+  width: 100%;
+  height: 0.35rem;
+  margin-top: 0.7rem;
+  appearance: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.config-wizard-progress-compact-line::-webkit-progress-bar {
+  border-radius: inherit;
+  background: var(--surface-soft);
+}
+
+.config-wizard-progress-compact-line::-webkit-progress-value {
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 180ms ease-out;
+}
+
+.config-wizard-progress-compact-line::-moz-progress-bar {
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 180ms ease-out;
+}
+
+.config-wizard-progress-steps button:focus-visible,
+.config-wizard-run-actions button:focus-visible,
+.config-wizard-check-problems button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.config-wizard-run-status,
+.config-wizard-run-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface-soft);
+  color: var(--text);
+  padding: 0.8rem;
+}
+
+.config-wizard-run-status > div { display: grid; gap: 0.18rem; }
+.config-wizard-run-status strong { font-size: 0.9rem; }
+.config-wizard-run-status span { color: var(--muted); font-size: 0.78rem; }
+.config-wizard-run-status.is-succeeded { border-color: color-mix(in srgb, var(--success) 35%, var(--line)); color: var(--success); }
+.config-wizard-run-status.is-failed { border-color: color-mix(in srgb, var(--danger) 38%, var(--line)); color: var(--danger); }
+.config-wizard-run-status.is-running,
+.config-wizard-run-status.is-paused { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); color: var(--accent); }
+.config-wizard-run-status span,
+.config-wizard-run-status strong { color: inherit; }
+.config-wizard-run-status span { opacity: 0.82; }
+
+.config-wizard-run-progress { display: grid; gap: 0.45rem; }
+.config-wizard-run-progress-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.78rem; }
+.config-wizard-run-progress-label strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.config-wizard-run-progress progress { width: 100%; height: 0.45rem; accent-color: var(--accent); }
+.config-wizard-run-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.config-wizard-run-result { display: grid; gap: 0.65rem; }
+.config-wizard-run-result strong { color: var(--text); font-size: 0.9rem; }
+.config-wizard-run-result dl { display: flex; flex-wrap: wrap; gap: 1.2rem; margin: 0; }
+.config-wizard-run-result dl div { display: grid; gap: 0.15rem; }
+.config-wizard-run-result dt { color: var(--muted); font-size: 0.72rem; }
+.config-wizard-run-result dd { margin: 0; color: var(--text); font-size: 0.92rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.config-wizard-run-logs { display: grid; gap: 0.45rem; min-width: 0; }
+.config-wizard-run-logs h3 { margin: 0; color: var(--text); font-size: 0.88rem; }
+.config-wizard-run-logs ol { display: grid; gap: 0.3rem; max-height: 14rem; overflow: auto; margin: 0; padding: 0.65rem 0.8rem 0.65rem 2rem; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--surface-soft); color: var(--muted); font: 0.75rem/1.45 Consolas, 'Courier New', monospace; }
+
+@media (max-width: 720px) {
+  .config-wizard-layout { display: block; }
+  .config-wizard-progress { border-right: 0; border-bottom: 1px solid var(--line); padding: 0.55rem 0.75rem; }
+  .config-wizard-progress .config-wizard-progress-steps { display: none; }
+  .config-wizard-progress .config-wizard-progress-compact { display: grid; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config-wizard-progress-steps button,
+  .config-wizard-progress-compact-menu > .sc-select-trigger,
+  .config-wizard-progress-compact-line::-webkit-progress-value,
+  .config-wizard-progress-compact-line::-moz-progress-bar { transition: none; }
 }

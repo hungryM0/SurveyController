@@ -36,6 +36,28 @@ func TestHTTPFetcherFetchesAndParsesCustomAPI(t *testing.T) {
 	}
 }
 
+func TestHTTPFetcherSupportsEndpointPathAndQuery(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/proxy/api" || r.URL.RawQuery != "token=test" {
+			t.Fatalf("request URL = %s", r.URL.String())
+		}
+		_, _ = w.Write([]byte(`{"data":["3.3.3.3:7000"]}`))
+	}))
+	defer server.Close()
+
+	fetcher, err := NewHTTPFetcher(HTTPFetcherOptions{Endpoint: server.URL + "/proxy/api?token=test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	leases, err := fetcher.Fetch(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(leases) != 1 || leases[0].Address != "http://3.3.3.3:7000" {
+		t.Fatalf("leases = %#v", leases)
+	}
+}
+
 func TestHTTPFetcherParsesPlainTextPayload(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("1.1.1.1:8000\n1.1.1.1:8000\nhttp://2.2.2.2:9000"))

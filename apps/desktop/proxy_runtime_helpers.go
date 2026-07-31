@@ -5,7 +5,22 @@ import (
 	"strings"
 
 	"surveycontroller/proxycore"
+	"surveycontroller/surveycore/configio"
 )
+
+func normalizeDesktopNetworkMode(network configio.NetworkSettings) string {
+	switch strings.ToLower(strings.TrimSpace(network.ProxyMode)) {
+	case "direct", "fixed", "random":
+		return strings.ToLower(strings.TrimSpace(network.ProxyMode))
+	}
+	if strings.TrimSpace(network.FixedProxyAddress) != "" {
+		return "fixed"
+	}
+	if network.RandomProxyEnabled {
+		return "random"
+	}
+	return "direct"
+}
 
 func normalizeDesktopProxySource(source string) string {
 	switch strings.ToLower(strings.TrimSpace(source)) {

@@ -1,7 +1,7 @@
 import { useMemo, type ChangeEvent } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { Button, InputText, SelectNative, Switch, SliderBar, RangeSliderBar } from './ui'
-import FluentDateTimePicker from './FluentDateTimePicker'
+import DateTimeWindowField from './DateTimeWindowField'
 import type { SettingField as SettingFieldType } from '../types'
 
 interface SettingFieldProps {
@@ -136,21 +136,6 @@ function formatDuration(seconds: number): string {
   if (!minutes) return `${remainder}秒`
   if (!remainder) return `${minutes}分`
   return `${minutes}分${remainder}秒`
-}
-
-function DateTimeWindowField({ start, end, onChange }: { start: string; end: string; onChange: (value: string) => void }) {
-  return (
-    <div className="datetime-window-field">
-      <label>
-        <span>开始时间</span>
-        <FluentDateTimePicker value={start} onChange={(value) => onChange(`${value} | ${end}`)} />
-      </label>
-      <label>
-        <span>结束时间</span>
-        <FluentDateTimePicker value={end} onChange={(value) => onChange(`${start} | ${value}`)} />
-      </label>
-    </div>
-  )
 }
 
 function NumberButtonField({ value, onChange }: { value: string; onChange: (value: string) => void }) {

@@ -49,6 +49,31 @@ type RunSurveyRequest struct {
 	Config configio.ConfigDocument `json:"config"`
 }
 
+type CheckTaskRequest struct {
+	Config    configio.ConfigDocument `json:"config"`
+	AIProfile *AIProfileSettings      `json:"aiProfile,omitempty"`
+}
+
+type TaskCheckStatus string
+
+const (
+	TaskCheckReady   TaskCheckStatus = "ready"
+	TaskCheckWarning TaskCheckStatus = "warning"
+	TaskCheckBlocked TaskCheckStatus = "blocked"
+)
+
+type TaskCheckProblem struct {
+	Code     string `json:"code"`
+	Message  string `json:"message"`
+	Step     string `json:"step"`
+	Severity string `json:"severity"`
+}
+
+type TaskCheckState struct {
+	Status   TaskCheckStatus    `json:"status"`
+	Problems []TaskCheckProblem `json:"problems"`
+}
+
 type RunTaskStatus string
 
 const (
@@ -100,6 +125,11 @@ type TestCustomProxyAPIRequest struct {
 	URL string `json:"url"`
 }
 
+type TestFixedProxyRequest struct {
+	Address   string `json:"address"`
+	TargetURL string `json:"targetUrl,omitempty"`
+}
+
 type TestAIConnectionRequest struct {
 	AIProfile AIProfileSettings `json:"aiProfile"`
 }
@@ -108,6 +138,14 @@ type CustomProxyAPITestState struct {
 	Success bool     `json:"success"`
 	Message string   `json:"message"`
 	Proxies []string `json:"proxies"`
+}
+
+type FixedProxyTestState struct {
+	Success    bool   `json:"success"`
+	Message    string `json:"message"`
+	Address    string `json:"address,omitempty"`
+	StatusCode int    `json:"statusCode,omitempty"`
+	DurationMS int64  `json:"durationMs,omitempty"`
 }
 
 type AIConnectionTestState struct {

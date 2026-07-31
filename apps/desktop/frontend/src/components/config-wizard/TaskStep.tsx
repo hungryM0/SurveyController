@@ -1,6 +1,9 @@
 import type { ChangeEvent } from 'react'
+import DateTimeWindowField from '../DateTimeWindowField'
 import { InputText, RangeSliderBar, SliderBar } from '../ui'
-import { clampInt, cloneWizardDraft, normalizePair, type WizardDraft } from './configWizardModel'
+import { parseDateTimeWindowPair } from '../../services/configDocumentValues'
+import { cloneWizardDraft, normalizePair, type WizardDraft } from './configWizardModel'
+import { getTaskValidationErrors } from './wizardValidation'
 
 interface TaskStepProps {
   draft: WizardDraft
@@ -10,9 +13,14 @@ interface TaskStepProps {
 
 function TaskStep({ draft, busy, onChange }: TaskStepProps) {
   const execution = draft.config.execution
-  const target = clampInt(execution.target, 1, 999999, 1)
-  const threads = clampInt(execution.threads, 1, 128, 1)
+  const errors = getTaskValidationErrors(draft.config)
+  const target = Number.isFinite(execution.target) ? execution.target : ''
+  const threads = Number.isFinite(execution.threads) ? execution.threads : ''
+  const displayThreads = Number.isFinite(execution.threads)
+    ? Math.min(128, Math.max(1, execution.threads))
+    : 1
   const submitInterval = normalizePair(execution.submitInterval, [0, 0])
+  const answerDatetimeWindow = execution.answerDatetimeWindow ?? ['', '']
 
   function updateExecution(values: Partial<typeof execution>) {
     const next = cloneWizardDraft(draft)
@@ -41,10 +49,13 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
             type="number"
             value={target}
             width="9rem"
+            aria-describedby={errors.target ? 'config-wizard-task-target-error' : undefined}
+            aria-invalid={Boolean(errors.target)}
             onChange={(event: ChangeEvent<HTMLInputElement>) => updateExecution({
-              target: clampInt(event.target.value, 1, 999999, 1),
+              target: parseNumberInput(event.target.value),
             })}
           />
+          <FieldError id="config-wizard-task-target-error" message={errors.target} />
         </label>
 
         <div className="config-wizard-field">
@@ -55,18 +66,21 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
           <div className="config-wizard-slider-field">
             <SliderBar
               aria-label="并发数"
+              aria-describedby={errors.threads ? 'config-wizard-task-threads-error' : undefined}
+              aria-invalid={Boolean(errors.threads)}
               disabled={busy}
               min={1}
-              max={32}
-              value={Math.min(threads, 32)}
+              max={128}
+              value={displayThreads}
               thumbLabel="并发数"
-              tooltip={`${threads} 路并发`}
+              tooltip={`${execution.threads} 路并发`}
               onChange={(event: ChangeEvent<HTMLInputElement>) => updateExecution({
-                threads: clampInt(event.target.value, 1, 32, 1),
+                threads: parseNumberInput(event.target.value),
               })}
             />
-            <output aria-live="polite">{threads} 路</output>
+            <output aria-live="polite">{execution.threads} 路</output>
           </div>
+          <FieldError id="config-wizard-task-threads-error" message={errors.threads} />
         </div>
 
         <div className="config-wizard-field">
@@ -77,6 +91,8 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
           <div className="config-wizard-slider-field">
             <RangeSliderBar
               aria-label="提交间隔"
+              aria-describedby={errors.submitInterval ? 'config-wizard-task-interval-error' : undefined}
+              aria-invalid={Boolean(errors.submitInterval)}
               disabled={busy}
               min={0}
               max={1800}
@@ -85,10 +101,33 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
             />
             <output aria-live="polite">{submitInterval[0]}–{submitInterval[1]} 秒</output>
           </div>
+          <FieldError id="config-wizard-task-interval-error" message={errors.submitInterval} />
+        </div>
+
+        <div className="config-wizard-field config-wizard-task-time-window">
+          <span className="config-wizard-field-copy">
+            <span className="config-wizard-field-label">时间窗口</span>
+            <small>限制任务允许提交的日期和时间，留空表示不限制。</small>
+          </span>
+          <DateTimeWindowField
+            disabled={busy}
+            start={answerDatetimeWindow[0] ?? ''}
+            end={answerDatetimeWindow[1] ?? ''}
+            onChange={(value) => updateExecution({ answerDatetimeWindow: parseDateTimeWindowPair(value) })}
+          />
+          <FieldError id="config-wizard-task-time-window-error" message={errors.answerDatetimeWindow} />
         </div>
       </div>
     </section>
   )
+}
+
+function parseNumberInput(value: string): number {
+  return value.trim() === '' ? 0 : Number(value)
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  return message ? <div className="config-wizard-error" id={id} role="alert">{message}</div> : null
 }
 
 export default TaskStep

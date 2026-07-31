@@ -9,6 +9,6 @@ describe('createBaseAppViewState', () => {
     expect(view.topNav).toEqual([
       { id: 'task', label: '任务', icon: 'home', section: 'top', selected: true },
     ])
-    expect(view.bottomNav.map((item) => item.id)).toEqual(['community', 'settings', 'more'])
+    expect(view.bottomNav.map((item) => item.id)).toEqual(['settings', 'community', 'more'])
   })
 })

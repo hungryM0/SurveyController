@@ -24,6 +24,19 @@ describe('configDocument', () => {
     expect(normalized.network.proxySource).toBe('default')
   })
 
+  it('clears a fixed proxy when the explicit mode is direct', () => {
+    const config = createEmptyConfigDocument()
+    config.network.proxyMode = 'direct'
+    config.network.randomProxyEnabled = false
+    config.network.fixedProxyAddress = 'http://127.0.0.1:8080'
+
+    const normalized = normalizeConfigDocument(config)
+
+    expect(normalized.network.proxyMode).toBe('direct')
+    expect(normalized.network.fixedProxyAddress).toBe('')
+    expect(normalized.network.randomProxyEnabled).toBe(false)
+  })
+
   it('updates editable fields without mixing settings or credentials into the document', () => {
     let config = createTestConfig()
     config = updateConfigDocumentField(config, 'target', '12')

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -32,6 +33,10 @@ func NewHTTPFetcher(options HTTPFetcherOptions) (*HTTPFetcher, error) {
 	if endpoint == "" {
 		return nil, fmt.Errorf("%w: 自定义代理 API 为空", ErrProxyUnavailable)
 	}
+	normalizedEndpoint, ok := normalizeHTTPFetcherEndpoint(endpoint)
+	if !ok {
+		return nil, fmt.Errorf("%w: 自定义代理 API 必须是有效的 HTTP 或 HTTPS 地址", ErrProxyUnavailable)
+	}
 	httpClient := options.HTTPClient
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 10 * time.Second}
@@ -45,7 +50,7 @@ func NewHTTPFetcher(options HTTPFetcherOptions) (*HTTPFetcher, error) {
 		timeout = 10 * time.Second
 	}
 	return &HTTPFetcher{
-		endpoint:   endpoint,
+		endpoint:   normalizedEndpoint,
 		httpClient: httpClient,
 		headers:    cloneStringMap(options.Headers),
 		source:     source,
@@ -53,9 +58,20 @@ func NewHTTPFetcher(options HTTPFetcherOptions) (*HTTPFetcher, error) {
 	}, nil
 }
 
+func normalizeHTTPFetcherEndpoint(raw string) (string, bool) {
+	parsed, err := url.ParseRequestURI(strings.TrimSpace(raw))
+	if err != nil || parsed == nil || parsed.Host == "" || parsed.Fragment != "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return "", false
+	}
+	return parsed.String(), true
+}
+
 func (f *HTTPFetcher) Fetch(ctx context.Context, _ int) ([]ProxyLease, error) {
 	if f == nil || strings.TrimSpace(f.endpoint) == "" {
 		return nil, ErrProxyUnavailable
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	reqCtx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()

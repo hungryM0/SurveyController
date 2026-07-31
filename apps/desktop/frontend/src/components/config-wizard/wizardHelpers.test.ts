@@ -7,6 +7,6 @@ describe('wizardHelpers', () => {
     expect(wizardNextStep('answers')).toBe('task')
     expect(wizardNextStep('task')).toBe('network')
     expect(wizardNextStep('network')).toBe('review')
-    expect(wizardNextStep('review')).toBe('review')
+    expect(wizardNextStep('review')).toBe('run')
   })
 })

@@ -10,8 +10,8 @@ export function createBaseAppViewState(version = __APP_VERSION__): AppViewState 
       { id: 'task', label: '任务', icon: 'home', section: 'top', selected: true },
     ],
     bottomNav: [
-      { id: 'community', label: '社区', icon: 'chat', section: 'bottom' },
       { id: 'settings', label: '设置', icon: 'sliders', section: 'bottom' },
+      { id: 'community', label: '社区', icon: 'chat', section: 'bottom' },
       { id: 'more', label: '更多', icon: 'grid', section: 'bottom' },
     ],
     dashboard: {

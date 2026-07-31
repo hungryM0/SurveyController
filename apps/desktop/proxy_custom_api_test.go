@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"surveycontroller/proxycore"
 )
 
 func TestCustomProxyAPITestState(t *testing.T) {
@@ -37,8 +39,22 @@ func TestAppServiceTestCustomProxyAPI(t *testing.T) {
 	}))
 	defer server.Close()
 
-	state := NewAppService().TestCustomProxyAPI(context.Background(), TestCustomProxyAPIRequest{URL: server.URL})
+	service := NewAppService()
+	state := service.TestCustomProxyAPI(context.Background(), TestCustomProxyAPIRequest{URL: server.URL})
 	if !state.Success || len(state.Proxies) != 1 {
 		t.Fatalf("state = %#v", state)
+	}
+	status := service.GetProxyStatus()
+	if status.Source != proxycore.DefaultCustomProxySource || status.Available != 1 || status.Message != "自定义代理已连接" {
+		t.Fatalf("success status = %#v", status)
+	}
+
+	state = service.TestCustomProxyAPI(context.Background(), TestCustomProxyAPIRequest{})
+	if state.Success || state.Message != "API地址不能为空" {
+		t.Fatalf("failure state = %#v", state)
+	}
+	status = service.GetProxyStatus()
+	if status.Source != proxycore.DefaultCustomProxySource || status.Available != 0 || status.InUse != 0 || status.Message != "API地址不能为空" {
+		t.Fatalf("failure status = %#v", status)
 	}
 }

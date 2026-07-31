@@ -1,21 +1,23 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
-import { Window } from '@wailsio/runtime'
+import { Dialogs, Window } from '@wailsio/runtime'
 import { AppTheme, LoaderBusy } from './components/ui'
 import CloseConfirmationDialog from './components/CloseConfirmationDialog'
 import NavRail from './components/NavRail'
 import WindowControls from './components/WindowControls'
-import { createWizardDraft, useConfigurationWizard, validateWizardStep } from './components/config-wizard'
+import { clearWizardDraftStorage, useConfigurationWizard, type WizardCheckState, type WizardDraft } from './components/config-wizard'
 import { useAppBootstrap, type AppModelRefs } from './hooks/useAppBootstrap'
 import { useAsyncFeedback } from './hooks/useAsyncFeedback'
 import { useConfigDocumentActions } from './hooks/useConfigDocumentActions'
 import { useRunControls } from './hooks/useRunControls'
-import { useRunTaskPolling, isRunActive } from './hooks/useRunTaskPolling'
+import { useRunTaskPolling } from './hooks/useRunTaskPolling'
 import { useSettingsActions } from './hooks/useSettingsActions'
 import { useWindowLifecycle } from './hooks/useWindowLifecycle'
 import { useWorkspaceEditor } from './hooks/useWorkspaceEditor'
 import { applyTopmostSetting } from './services/desktopSettings'
+import { checkTask, exportLogLines } from './services/shell'
 import { mapAppViewState } from './viewModels/appModel'
+import { isNetworkReady } from './viewModels/taskWorkflow'
 import { resolvePageMotion } from './motion'
 import AppRoutes from './pages/AppRoutes'
 import type { AICredentialDraft, AppSettings, ConfigDocument } from './types'
@@ -119,19 +121,6 @@ function App() {
     const mapped = mapAppViewState(model, credential, polling.runState, polling.proxyStatus)
     return { ...mapped, logLines: polling.runtimeLogLines }
   }, [credential, model, polling.proxyStatus, polling.runState, polling.runtimeLogLines])
-  const runReadiness = useMemo(() => {
-    if (!editor.config || !editor.settings) return { valid: false, message: '请先完成问卷配置。' }
-    return validateWizardStep('review', createWizardDraft(editor.config, editor.settings, credential))
-  }, [credential, editor.config, editor.settings])
-  const runActive = isRunActive(polling.runState?.status)
-  const runBusy = feedback.busy || runActive
-  const runPhase = polling.runState?.status === 'canceling'
-    ? 'canceling' as const
-    : polling.runState?.status === 'paused'
-      ? 'paused' as const
-      : polling.runState?.status === 'running' || runBusy
-        ? 'running' as const
-        : 'idle' as const
   const pageOrder = view ? [...view.topNav, ...view.bottomNav].map((item) => item.id) : []
   const pageMotion = resolvePageMotion(previousPage.current, currentPage, pageOrder)
 
@@ -140,11 +129,80 @@ function App() {
   }, [currentPage])
 
   async function runSurvey() {
-    if (!runReadiness.valid) {
-      feedback.setError(runReadiness.message ?? '当前配置还不能启动。')
+    if (!editor.config) return
+    if (!isNetworkReady(editor.config, polling.proxyStatus)) {
+      feedback.setError('代理状态尚未确认，或代理连接测试失败。请先检查网络设置。')
+      return
+    }
+    try {
+      const checked = await checkTask(editor.config, editor.settings?.aiProfile, credential)
+      if (checked.status === 'blocked') {
+        feedback.setError(checked.problems?.[0]?.message || '当前配置无法启动。')
+        return
+      }
+    } catch (cause) {
+      feedback.setError(cause instanceof Error ? cause.message : String(cause))
       return
     }
     await runControls.runSurvey()
+  }
+
+  async function checkWizardTask(draft: WizardDraft): Promise<WizardCheckState> {
+    const checked = await checkTask(draft.config, draft.aiProfile, draft.credential)
+    return {
+      status: String(checked.status) as WizardCheckState['status'],
+      problems: (checked.problems ?? []).map((problem) => ({
+        code: problem.code,
+        message: problem.message,
+        step: problem.step,
+        severity: problem.severity,
+      })),
+    }
+  }
+
+  async function exportRunResult() {
+    const path = await Dialogs.SaveFile({
+      Title: '导出任务结果',
+      Filename: 'surveycontroller-result.json',
+      Filters: [{ DisplayName: 'JSON 文件', Pattern: '*.json' }],
+    })
+    if (!path || Array.isArray(path)) return
+    const payload = JSON.stringify({
+      result: polling.runState?.result ?? null,
+      logs: polling.runtimeLogLines,
+    }, null, 2)
+    await exportLogLines(path, payload.split('\n'))
+    feedback.setNotice('任务结果已导出')
+  }
+
+  function changePage(nextPage: string) {
+    if (nextPage === 'task') {
+      setCurrentPage('task')
+      openTaskWizard()
+      return
+    }
+    if (nextPage === currentPage) return
+    if (wizardProps.open) {
+      requestWizardDismiss(() => setCurrentPage(nextPage))
+      return
+    }
+    setCurrentPage(nextPage)
+  }
+
+  const taskWizardProps = {
+    ...wizardProps,
+    onCheckTask: checkWizardTask,
+    proxyStatus: polling.proxyStatus,
+    onProxyStatusChange: polling.setProxyStatus,
+    runTaskState: polling.runState,
+    runLogs: polling.runtimeLogLines,
+    runError: polling.runState?.error,
+    runResult: polling.runState?.result,
+    onStartRun: runSurvey,
+    onPauseRun: runControls.pauseSurvey,
+    onResumeRun: runControls.resumeSurvey,
+    onStopRun: runControls.cancelSurvey,
+    onExportResult: exportRunResult,
   }
 
   if (loading) return <BootScreen />
@@ -163,7 +221,7 @@ function App() {
       </header>
 
       <div className="app-frame">
-        <NavRail topNav={view.topNav} bottomNav={view.bottomNav} currentPage={currentPage} disabled={wizardProps.open} onChange={setCurrentPage} />
+        <NavRail topNav={view.topNav} bottomNav={view.bottomNav} currentPage={currentPage} onChange={changePage} />
         <main className="workspace">
           <div className="message-stack">
             {feedback.error ? <div className="status-banner status-banner-danger">{feedback.error}</div> : null}
@@ -175,17 +233,11 @@ function App() {
                 currentPage={currentPage}
                 view={view}
                 busy={feedback.busy}
-                runPhase={runPhase}
-                runReadiness={runReadiness}
                 autoCheckUpdate={settingsRef.current?.autoCheckUpdate ?? true}
-                configActions={configActions}
-                runControls={runControls}
                 settingsActions={settingsActions}
                 editor={editor}
-                openWizard={openTaskWizard}
-                wizardProps={wizardProps}
-                setCurrentPage={setCurrentPage}
-                runSurvey={runSurvey}
+                wizardProps={taskWizardProps}
+                onOpenTaskWizard={openTaskWizard}
               />
             </div>
           </Suspense>
@@ -195,7 +247,10 @@ function App() {
         open={closeConfirmation.open}
         busy={closeConfirmation.busy}
         onCancel={closeConfirmation.cancelClose}
-        onDiscard={() => void closeConfirmation.closeWithoutSaving()}
+        onDiscard={() => {
+          clearWizardDraftStorage()
+          void closeConfirmation.closeWithoutSaving()
+        }}
         onSave={() => void closeConfirmation.saveAndClose()}
       />
     </div>

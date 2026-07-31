@@ -60,6 +60,11 @@ export interface AppSettings {
     "aiProfile": AIProfileSettings;
 }
 
+export interface CheckTaskRequest {
+    "config": configio$0.ConfigDocument;
+    "aiProfile"?: AIProfileSettings | null;
+}
+
 export interface ConfigFileState {
     "path": string;
     "exists": boolean;
@@ -76,6 +81,14 @@ export interface DecodeQRCodeRequest {
     "path": string;
     "dataUrl"?: string;
     "name"?: string;
+}
+
+export interface FixedProxyTestState {
+    "success": boolean;
+    "message": string;
+    "address"?: string;
+    "statusCode"?: number;
+    "durationMs"?: number;
 }
 
 export interface LoadConfigRequest {
@@ -196,10 +209,38 @@ export interface SaveSettingsRequest {
     "aiCredential": AICredentialUpdate;
 }
 
+export interface TaskCheckProblem {
+    "code": string;
+    "message": string;
+    "step": string;
+    "severity": string;
+}
+
+export interface TaskCheckState {
+    "status": TaskCheckStatus;
+    "problems": TaskCheckProblem[] | null;
+}
+
+export enum TaskCheckStatus {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    TaskCheckReady = "ready",
+    TaskCheckWarning = "warning",
+    TaskCheckBlocked = "blocked",
+};
+
 export interface TestAIConnectionRequest {
     "aiProfile": AIProfileSettings;
 }
 
 export interface TestCustomProxyAPIRequest {
     "url": string;
+}
+
+export interface TestFixedProxyRequest {
+    "address": string;
+    "targetUrl"?: string;
 }

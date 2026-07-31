@@ -17,6 +17,8 @@ export interface ConfigDocument {
 
 export interface NetworkSettings {
     "randomProxyEnabled": boolean;
+    "proxyMode"?: string;
+    "fixedProxyAddress"?: string;
     "proxySource": string;
     "customProxyApi"?: string;
     "proxyAreaCode"?: string;

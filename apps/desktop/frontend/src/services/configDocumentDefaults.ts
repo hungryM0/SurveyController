@@ -27,6 +27,7 @@ export function createEmptyConfigDocument(url = ''): ConfigDocument {
     },
     network: {
       randomProxyEnabled: false,
+      fixedProxyAddress: '',
       proxySource: 'default',
       customProxyApi: '',
       proxyAreaCode: undefined,

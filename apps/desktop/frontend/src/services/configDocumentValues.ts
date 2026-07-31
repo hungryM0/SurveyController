@@ -48,6 +48,30 @@ export function normalizeProxySource(source: string): string {
   return ['default', 'benefit', 'custom'].includes(source) ? source : 'default'
 }
 
+export function normalizeNetworkMode(value: string | undefined, network: Pick<NetworkSettings, 'randomProxyEnabled' | 'fixedProxyAddress'>): 'direct' | 'fixed' | 'random' {
+  if (value === 'direct' || value === 'fixed' || value === 'random') return value
+  if (network.fixedProxyAddress?.trim()) return 'fixed'
+  return network.randomProxyEnabled ? 'random' : 'direct'
+}
+
+export function isHttpProxyAddress(value: string | undefined): boolean {
+  const text = value?.trim() ?? ''
+  if (!text) return false
+  const candidate = text.includes('://') ? text : `http://${text}`
+  try {
+    const parsed = new URL(candidate)
+    if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || !parsed.hostname) return false
+    if (parsed.pathname !== '/' || parsed.search || parsed.hash) return false
+    if (parsed.port) {
+      const port = Number(parsed.port)
+      if (!Number.isInteger(port) || port < 1 || port > 65535) return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function proxyValue(value: string): string {
   if (value === '限时福利') return 'benefit'
   if (value === '自定义') return 'custom'

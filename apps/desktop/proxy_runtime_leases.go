@@ -54,6 +54,17 @@ func (r *proxyRuntime) customLeaseManager(_ context.Context, network configio.Ne
 	return proxyLeaseManager{pool: r.pool}, nil
 }
 
+func fixedProxyLeaseManager(address string) (surveycore.LeaseManager, error) {
+	normalized, ok := proxycore.NormalizeHTTPProxyAddress(address)
+	if !ok {
+		if strings.TrimSpace(address) == "" {
+			return nil, fmt.Errorf("%w: 固定代理地址不能为空", surveycore.ErrInvalidConfig)
+		}
+		return nil, fmt.Errorf("%w: 固定代理地址必须是有效的 HTTP 或 HTTPS 地址", surveycore.ErrInvalidConfig)
+	}
+	return fixedProxyLease{lease: surveycore.ExecutionLease{Address: normalized, Source: "fixed"}}, nil
+}
+
 func (r *proxyRuntime) officialLeaseManager(ctx context.Context, network configio.NetworkSettings, source string, options surveycore.ExecutionOptions) (surveycore.LeaseManager, error) {
 	client := r.officialProxyClient()
 	session, err := r.ensureOfficialSession(ctx, client, source)
@@ -108,6 +119,27 @@ type proxyLeaseManager struct {
 	pool         *proxycore.Pool
 	afterAcquire func(context.Context)
 }
+
+type fixedProxyLease struct {
+	lease surveycore.ExecutionLease
+}
+
+func (m fixedProxyLease) Acquire(ctx context.Context, _ string) (surveycore.ExecutionLease, error) {
+	if err := ctx.Err(); err != nil {
+		return surveycore.ExecutionLease{}, err
+	}
+	return m.lease, nil
+}
+
+func (m fixedProxyLease) Release(_ string) (surveycore.ExecutionLease, bool) {
+	return m.lease, true
+}
+
+func (m fixedProxyLease) MarkSuccess(_ string) bool {
+	return false
+}
+
+func (m fixedProxyLease) MarkCooldown(_ string, _ time.Duration) {}
 
 func (m proxyLeaseManager) Acquire(ctx context.Context, owner string) (surveycore.ExecutionLease, error) {
 	if m.pool == nil {

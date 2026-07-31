@@ -1,17 +1,11 @@
+import { FilePlus2, PencilLine } from 'lucide-react'
 import { lazy } from 'react'
-import type { ConfigurationWizardProps } from '../components/config-wizard'
-import type { useConfigDocumentActions } from '../hooks/useConfigDocumentActions'
-import type { useRunControls } from '../hooks/useRunControls'
+import { Button } from '../components/ui'
+import { ConfigurationWorkspace, type ConfigurationWizardProps } from '../components/config-wizard'
 import type { useSettingsActions } from '../hooks/useSettingsActions'
 import type { useWorkspaceEditor } from '../hooks/useWorkspaceEditor'
 import type { AppViewState } from '../types'
-import type { RunPhase } from './workflow/types'
 
-const WorkflowView = lazy(() => import('./workflow/WorkflowView'))
-const RuntimeView = lazy(() => import('./RuntimeView'))
-const StrategyView = lazy(() => import('./StrategyView'))
-const ReverseFillView = lazy(() => import('./ReverseFillView'))
-const LogsView = lazy(() => import('./LogsView'))
 const CommunityView = lazy(() => import('./CommunityView'))
 const InfoView = lazy(() => import('./InfoView'))
 const MoreView = lazy(() => import('./MoreView'))
@@ -20,77 +14,27 @@ interface AppRoutesProps {
   currentPage: string
   view: AppViewState
   busy: boolean
-  runPhase: RunPhase
-  runReadiness: { valid: boolean, message?: string }
   autoCheckUpdate: boolean
-  configActions: ReturnType<typeof useConfigDocumentActions>
-  runControls: ReturnType<typeof useRunControls>
   settingsActions: ReturnType<typeof useSettingsActions>
   editor: ReturnType<typeof useWorkspaceEditor>
-  openWizard: () => void
   wizardProps: ConfigurationWizardProps
-  setCurrentPage: (page: string) => void
-  runSurvey: () => Promise<void>
+  onOpenTaskWizard: () => void
 }
 
 function AppRoutes({
   currentPage,
   view,
   busy,
-  runPhase,
-  runReadiness,
   autoCheckUpdate,
-  configActions,
-  runControls,
   settingsActions,
   editor,
-  openWizard,
   wizardProps,
-  setCurrentPage,
-  runSurvey,
+  onOpenTaskWizard,
 }: AppRoutesProps) {
   if (currentPage === 'task') {
-    return (
-      <WorkflowView
-        dashboard={view.dashboard}
-        busy={busy}
-        runPhase={runPhase}
-        canRun={runReadiness.valid}
-        runBlockedReason={runReadiness.message}
-        wizardProps={wizardProps}
-        onOpenWizard={openWizard}
-        onRun={runSurvey}
-        onCancelRun={runControls.cancelSurvey}
-        onPauseRun={runControls.pauseSurvey}
-        onResumeRun={runControls.resumeSurvey}
-        onOpenRuntime={() => setCurrentPage('runtime')}
-        onOpenStrategy={() => setCurrentPage('strategy')}
-        onOpenReverseFill={() => setCurrentPage('reverse-fill')}
-        onOpenLogs={() => setCurrentPage('logs')}
-      />
-    )
-  }
-  if (currentPage === 'runtime') {
-    return <RuntimeView groups={view.runtimeGroups} onFieldChange={editor.updateField} onTestAIConnection={runControls.testAI} />
-  }
-  if (currentPage === 'strategy' && editor.config) {
-    return <StrategyView config={editor.config} onConfigChange={editor.setConfig} />
-  }
-  if (currentPage === 'reverse-fill') {
-    return (
-      <ReverseFillView
-        reverseFill={view.reverseFillPlan}
-        reverseFillPath={editor.config?.reverseFill.sourcePath}
-        config={editor.config}
-        busy={busy}
-        onFieldChange={editor.updateField}
-        onChooseReverseFill={configActions.chooseReverseFillFile}
-        onPreviewReverseFill={configActions.previewReverseFillFile}
-      />
-    )
-  }
-  if (currentPage === 'logs') {
-    return <LogsView logs={view.logLines} busy={busy} onExport={configActions.exportLogs} />
+    return wizardProps.open
+      ? <ConfigurationWorkspace {...wizardProps} />
+      : <TaskEntry initialDraft={wizardProps.initialDraft} onOpen={onOpenTaskWizard} />
   }
   if (currentPage === 'community') {
     return <CommunityView />
@@ -120,6 +64,35 @@ function AppRoutes({
     )
   }
   return null
+}
+
+function TaskEntry({
+  initialDraft,
+  onOpen,
+}: {
+  initialDraft: ConfigurationWizardProps['initialDraft']
+  onOpen: () => void
+}) {
+  const hasDraft = Boolean(initialDraft.config.survey.url.trim())
+  const Icon = hasDraft ? PencilLine : FilePlus2
+
+  return (
+    <section className="page scroll-page workspace-page" aria-labelledby="task-entry-title">
+      <div className="content-stack">
+        <section className="surface table-empty-state">
+          <div className="empty-icon" aria-hidden="true"><Icon size={28} strokeWidth={1.8} /></div>
+          <h5 id="task-entry-title">{hasDraft ? '继续配置任务' : '添加问卷'}</h5>
+          <p>{hasDraft ? '从保留的配置继续完成问卷任务。' : '添加问卷链接后开始配置任务。'}</p>
+          <Button
+            type="primary"
+            value={hasDraft ? '继续配置' : '添加问卷'}
+            icon={<Icon size={15} strokeWidth={1.9} />}
+            onClick={onOpen}
+          />
+        </section>
+      </div>
+    </section>
+  )
 }
 
 export default AppRoutes

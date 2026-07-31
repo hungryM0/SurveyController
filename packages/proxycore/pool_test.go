@@ -2,6 +2,7 @@ package proxycore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -161,5 +162,64 @@ func TestPoolFetchSelectsOneAndPoolsExtra(t *testing.T) {
 	}
 	if next.Address != "http://2.2.2.2:8000" {
 		t.Fatalf("next = %#v", next)
+	}
+}
+
+func TestPoolRejectsInvalidLeases(t *testing.T) {
+	pool := NewPool(PoolOptions{})
+	if merged := pool.Add([]ProxyLease{
+		{Address: "ftp://proxy.example:8080", Poolable: true},
+		{Address: "http://:8080", Poolable: true},
+		{Address: "http://proxy.example:65536", Poolable: true},
+	}); merged != 0 || pool.Len() != 0 {
+		t.Fatalf("invalid leases merged = %d, pool length = %d", merged, pool.Len())
+	}
+}
+
+func TestPoolAcquireHonorsContextWhileWaitingForFetch(t *testing.T) {
+	fetchStarted := make(chan struct{})
+	releaseFetch := make(chan struct{})
+	fetcher := FetcherFunc(func(ctx context.Context, _ int) ([]ProxyLease, error) {
+		select {
+		case <-fetchStarted:
+		default:
+			close(fetchStarted)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-releaseFetch:
+			return []ProxyLease{{Address: "proxy.example:8080", Poolable: true}}, nil
+		}
+	})
+	pool := NewPool(PoolOptions{Fetcher: fetcher})
+
+	firstResult := make(chan error, 1)
+	go func() {
+		_, err := pool.Acquire(context.Background(), "first")
+		firstResult <- err
+	}()
+	<-fetchStarted
+
+	ctx, cancel := context.WithCancel(context.Background())
+	secondResult := make(chan error, 1)
+	go func() {
+		_, err := pool.Acquire(ctx, "second")
+		secondResult <- err
+	}()
+	cancel()
+
+	select {
+	case err := <-secondResult:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("second Acquire() error = %v, want context canceled", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("second Acquire() did not honor context cancellation while waiting for fetch")
+	}
+
+	close(releaseFetch)
+	if err := <-firstResult; err != nil {
+		t.Fatalf("first Acquire() error = %v", err)
 	}
 }

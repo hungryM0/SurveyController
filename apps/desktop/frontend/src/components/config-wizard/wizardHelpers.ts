@@ -6,7 +6,7 @@ export function wizardStepIndex(step: WizardStepId): number {
 }
 
 export function wizardNextStep(step: WizardStepId): WizardStepId {
-  return WIZARD_STEPS[wizardStepIndex(step) + 1]?.id ?? 'review'
+  return WIZARD_STEPS[wizardStepIndex(step) + 1]?.id ?? 'run'
 }
 
 export function wizardErrorMessage(cause: unknown): string {

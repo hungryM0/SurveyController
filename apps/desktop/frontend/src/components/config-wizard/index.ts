@@ -1,9 +1,12 @@
 export { default as ConfigurationWorkspace } from './ConfigurationWorkspace'
+export { default as RunStep } from './RunStep'
 export type {
   ConfigurationWizardProps,
   WizardImportResult,
   WizardQRCodeResult,
   WizardSaveResult,
+  WizardCheckProblem,
+  WizardCheckState,
 } from './wizardTypes'
 export {
   WIZARD_STEPS,
@@ -21,6 +24,7 @@ export {
   shouldAutoOpenSetupWizard,
 } from './setupWizardLifecycle'
 export { useConfigurationWizard } from './useConfigurationWizard'
+export { clearWizardDraftStorage } from './useConfigurationWizard'
 export type {
   PersistedSetupWizardState,
   UseConfigurationWizardOptions,
@@ -32,3 +36,4 @@ export type {
 } from './configWizardModel'
 export type { WizardReviewItem } from './wizardReview'
 export type { WizardValidationResult } from './wizardValidation'
+export type { RunStepProps } from './RunStep'

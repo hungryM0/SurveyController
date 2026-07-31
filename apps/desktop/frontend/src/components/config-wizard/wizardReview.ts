@@ -1,4 +1,5 @@
 import { normalizePair, type WizardDraft } from './configWizardModel'
+import { normalizeNetworkMode } from '../../services/configDocumentValues'
 
 export interface WizardReviewItem {
   label: string
@@ -7,7 +8,7 @@ export interface WizardReviewItem {
 
 export function buildWizardReviewItems(draft: WizardDraft): WizardReviewItem[] {
   const config = draft.config
-  const questions = config.survey.definition.questions?.length || config.answers.questions?.length || 0
+  const questions = config.survey.definition.questions?.length ?? 0
   const [intervalStart, intervalEnd] = normalizePair(config.execution.submitInterval, [0, 0])
   const [durationStart, durationEnd] = normalizePair(config.execution.answerDuration, [60, 120])
   return [
@@ -20,7 +21,7 @@ export function buildWizardReviewItems(draft: WizardDraft): WizardReviewItem[] {
     { label: '作答时长', value: `${durationStart}–${durationEnd} 秒` },
     {
       label: '网络',
-      value: config.network.randomProxyEnabled ? `随机 IP · ${resolveProxyLabel(config.network.proxySource)}` : '直连',
+      value: networkLabel(config),
     },
     {
       label: '答案来源',
@@ -41,4 +42,11 @@ function resolveProxyLabel(value: string): string {
   if (value === 'benefit' || value === '限时福利') return '限时福利'
   if (value === 'custom' || value === '自定义') return '自定义'
   return '默认'
+}
+
+function networkLabel(config: WizardDraft['config']): string {
+  const mode = normalizeNetworkMode(config.network.proxyMode, config.network)
+  if (mode === 'fixed') return '固定代理'
+  if (mode === 'random') return `随机 IP · ${resolveProxyLabel(config.network.proxySource)}`
+  return '直连'
 }

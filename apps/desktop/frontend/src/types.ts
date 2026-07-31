@@ -25,12 +25,14 @@ import type {
   AIProfileSettings as BoundAIProfileSettings,
   AppSettings as BoundAppSettings,
   CustomProxyAPITestState as BoundCustomProxyAPITestState,
+  FixedProxyTestState as BoundFixedProxyTestState,
   ProxyAreaOptionsState as BoundProxyAreaOptionsState,
   ProxyRedeemState as BoundProxyRedeemState,
   ProxyStatus as BoundProxyStatus,
   QRCodeDecodeState as BoundQRCodeDecodeState,
   RunTaskEvent as BoundRunTaskEvent,
   RunTaskState as BoundRunTaskState,
+  TaskCheckState as BoundTaskCheckState,
 } from '../bindings/github.com/hungrym0/SurveyController/apps/desktop/models'
 
 export type ConfigDocument = BoundConfigDocument
@@ -55,6 +57,7 @@ export type AIConnectionTestState = BoundAIConnectionTestState
 export type AIProfileSettings = BoundAIProfileSettings
 export type AppSettings = BoundAppSettings
 export type CustomProxyAPITestState = BoundCustomProxyAPITestState
+export type FixedProxyTestState = BoundFixedProxyTestState
 export type ProxyAreaOptionsState = BoundProxyAreaOptionsState
 export type ProxyRedeemState = BoundProxyRedeemState
 export type ProxyStatus = BoundProxyStatus
@@ -62,6 +65,7 @@ export type QRCodeDecodeState = BoundQRCodeDecodeState
 export type RunTaskEvent = BoundRunTaskEvent
 export type RunTaskState = BoundRunTaskState
 export type RunTaskStatus = BoundRunTaskState['status']
+export type TaskCheckState = BoundTaskCheckState
 
 export type Tone = string
 

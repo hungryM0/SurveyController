@@ -29,6 +29,11 @@ func (s *AppService) StartRun(ctx context.Context, request RunSurveyRequest) (Ru
 	if err != nil {
 		return manager.failStart(runID, startedAt, err), err
 	}
+	checked := s.CheckTask(ctx, CheckTaskRequest{Config: document, AIProfile: &settings.AIProfile})
+	if checked.Status == TaskCheckBlocked {
+		err := taskCheckError(checked)
+		return manager.failStart(runID, startedAt, err), err
+	}
 
 	options, err := s.proxy.executionOptions(ctx, document)
 	if err != nil {

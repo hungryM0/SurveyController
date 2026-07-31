@@ -6,12 +6,13 @@ import { Button } from './ui'
 interface FluentDateTimePickerProps {
   value: string
   onChange: (value: string) => void
+  disabled?: boolean
 }
 
 type DateParts = { year: number; month: number; day: number; hour: number; minute: number }
 type PopoverPosition = { top: number; left: number; maxHeight: number }
 
-function FluentDateTimePicker({ value, onChange }: FluentDateTimePickerProps) {
+function FluentDateTimePicker({ value, onChange, disabled = false }: FluentDateTimePickerProps) {
   const triggerId = useId()
   const pickerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -110,6 +111,7 @@ function FluentDateTimePicker({ value, onChange }: FluentDateTimePickerProps) {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={value ? `提交时间 ${display}` : '选择提交日期和时间'}
+        disabled={disabled}
         ref={triggerRef}
         onClick={() => setOpen((current) => !current)}
       >

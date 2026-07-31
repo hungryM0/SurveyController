@@ -9,7 +9,7 @@ import {
   updateSurveyURL,
 } from '../../services/configDocument'
 
-export type WizardStepId = 'survey' | 'task' | 'network' | 'answers' | 'review'
+export type WizardStepId = 'survey' | 'answers' | 'task' | 'network' | 'review' | 'run'
 
 export interface WizardStepDefinition {
   id: WizardStepId
@@ -24,11 +24,12 @@ export interface WizardDraft {
 }
 
 export const WIZARD_STEPS: readonly WizardStepDefinition[] = [
-  { id: 'survey', title: '添加问卷', description: '输入链接并解析问卷结构' },
-  { id: 'answers', title: '答案设置', description: '设置作答方式和答案策略' },
-  { id: 'task', title: '任务设置', description: '设置提交数量和并发方式' },
-  { id: 'network', title: '网络设置', description: '选择代理和访问身份' },
-  { id: 'review', title: '检查并完成', description: '确认配置后保存' },
+  { id: 'survey', title: '问卷', description: '输入链接并解析问卷结构' },
+  { id: 'answers', title: '答案', description: '设置作答方式和答案策略' },
+  { id: 'task', title: '任务', description: '设置提交数量和并发方式' },
+  { id: 'network', title: '网络', description: '选择代理和访问身份' },
+  { id: 'review', title: '检查', description: '确认配置并保存' },
+  { id: 'run', title: '运行', description: '启动并管理任务生命周期' },
 ]
 
 export function cloneWizardDraft(draft: WizardDraft): WizardDraft {

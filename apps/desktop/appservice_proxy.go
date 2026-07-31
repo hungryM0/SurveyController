@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"strings"
+
+	"surveycontroller/proxycore"
 )
 
 func (s *AppService) GetProxyStatus() ProxyStatus {
@@ -22,7 +24,24 @@ func (s *AppService) RedeemProxyCard(ctx context.Context, request RedeemProxyCar
 }
 
 func (s *AppService) TestCustomProxyAPI(ctx context.Context, request TestCustomProxyAPIRequest) CustomProxyAPITestState {
-	return testCustomProxyAPI(ctx, request.URL)
+	state := testCustomProxyAPI(ctx, request.URL)
+	if s.proxy != nil {
+		status := ProxyStatus{
+			RandomIPEnabled: true,
+			Source:          proxycore.DefaultCustomProxySource,
+			Message:         state.Message,
+		}
+		if state.Success {
+			status.Available = len(state.Proxies)
+			status.Message = "自定义代理已连接"
+		}
+		s.proxy.updateStatus(proxyRuntimeKey(proxycore.DefaultCustomProxySource, strings.TrimSpace(request.URL)), nil, status)
+	}
+	return state
+}
+
+func (s *AppService) TestFixedProxy(ctx context.Context, request TestFixedProxyRequest) FixedProxyTestState {
+	return testFixedProxy(ctx, request.Address, request.TargetURL)
 }
 
 func (s *AppService) TestAIConnection(ctx context.Context, request TestAIConnectionRequest) AIConnectionTestState {

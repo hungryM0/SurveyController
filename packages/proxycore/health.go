@@ -38,7 +38,7 @@ func CheckProxyHealth(ctx context.Context, lease ProxyLease, options HealthCheck
 		Address:   address,
 		TargetURL: targetURL,
 	}
-	normalized, ok := NormalizeProxyAddress(address)
+	normalized, ok := NormalizeHTTPProxyAddress(address)
 	if !ok {
 		result.Duration = time.Since(started)
 		result.Error = ErrProxyUnavailable.Error()

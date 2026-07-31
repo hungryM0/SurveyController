@@ -10,7 +10,8 @@ export {
 
 export {
     AICredentialOperation,
-    RunTaskStatus
+    RunTaskStatus,
+    TaskCheckStatus
 } from "./models.js";
 
 export type {
@@ -18,9 +19,11 @@ export type {
     AICredentialUpdate,
     AIProfileSettings,
     AppSettings,
+    CheckTaskRequest,
     ConfigFileState,
     CustomProxyAPITestState,
     DecodeQRCodeRequest,
+    FixedProxyTestState,
     LoadConfigRequest,
     ParseSurveyRequest,
     ProxyAreaCity,
@@ -37,6 +40,9 @@ export type {
     RunTaskStateRequest,
     SaveConfigRequest,
     SaveSettingsRequest,
+    TaskCheckProblem,
+    TaskCheckState,
     TestAIConnectionRequest,
-    TestCustomProxyAPIRequest
+    TestCustomProxyAPIRequest,
+    TestFixedProxyRequest
 } from "./models.js";

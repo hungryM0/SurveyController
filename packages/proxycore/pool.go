@@ -56,10 +56,15 @@ func (p *Pool) Add(fetched []ProxyLease) int {
 }
 
 func (p *Pool) Acquire(ctx context.Context, owner string) (ProxyLease, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if lease, ok := p.tryPop(owner); ok {
 		return lease, nil
 	}
-	p.fetchMu.Lock()
+	if err := p.lockFetch(ctx); err != nil {
+		return ProxyLease{}, err
+	}
 	defer p.fetchMu.Unlock()
 
 	if lease, ok := p.tryPop(owner); ok {
@@ -77,6 +82,31 @@ func (p *Pool) Acquire(ctx context.Context, owner string) (ProxyLease, error) {
 		return lease, nil
 	}
 	return ProxyLease{}, ErrProxyUnavailable
+}
+
+func (p *Pool) lockFetch(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ticker := time.NewTicker(time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if p.fetchMu.TryLock() {
+			if err := ctx.Err(); err != nil {
+				p.fetchMu.Unlock()
+				return err
+			}
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 func (p *Pool) Release(owner string) (ProxyLease, bool) {
@@ -252,7 +282,7 @@ func (p *Pool) discardAddressLocked(proxyAddress string) {
 }
 
 func normalizeLease(lease ProxyLease) (ProxyLease, bool) {
-	normalized, ok := NormalizeProxyAddress(lease.Address)
+	normalized, ok := NormalizeHTTPProxyAddress(lease.Address)
 	if !ok {
 		return ProxyLease{}, false
 	}

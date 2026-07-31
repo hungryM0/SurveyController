@@ -20,6 +20,7 @@ export function useRunTaskPolling({ settingsRef, setError, setNotice }: RunTaskP
   const runPollTimer = useRef<number | null>(null)
   const notifiedRunEndRef = useRef('')
   const runCursorRef = useRef({ runId: '', sequence: 0 })
+  const runStateRef = useRef<RunTaskState | null>(null)
 
   const stopRunPolling = useCallback(() => {
     if (runPollTimer.current === null) {
@@ -65,7 +66,9 @@ export function useRunTaskPolling({ settingsRef, setError, setNotice }: RunTaskP
       if (runChanged || newLines.length) {
         setRuntimeLogLines((lines) => (runChanged ? newLines : [...lines, ...newLines]).slice(-200))
       }
-      setRunState(nextRun)
+      const mergedRun = mergeRunTaskState(runStateRef.current, nextRun)
+      runStateRef.current = mergedRun
+      setRunState(mergedRun)
       setProxyStatus(nextProxy)
       if (!isRunActive(nextRun.status)) {
         stopRunPolling()
@@ -88,6 +91,7 @@ export function useRunTaskPolling({ settingsRef, setError, setNotice }: RunTaskP
   }, [pollRunState])
 
   const hydrateRunState = useCallback((nextRun: RunTaskState) => {
+    runStateRef.current = nextRun
     setRunState(nextRun)
     runCursorRef.current = {
       runId: nextRun.runId ?? '',
@@ -119,6 +123,20 @@ export function useRunTaskPolling({ settingsRef, setError, setNotice }: RunTaskP
     hydrateRunState,
     resetLogs,
   }
+}
+
+export function mergeRunTaskState(previous: RunTaskState | null, next: RunTaskState): RunTaskState {
+  const runChanged = Boolean(previous?.runId && next.runId && previous.runId !== next.runId)
+  if (runChanged) return next
+
+  const eventsBySequence = new Map<number, NonNullable<RunTaskState['events']>[number]>()
+  for (const event of [...(previous?.events ?? []), ...(next.events ?? [])]) {
+    eventsBySequence.set(event.sequence, event)
+  }
+  const events = [...eventsBySequence.values()]
+    .sort((left, right) => left.sequence - right.sequence)
+    .slice(-200)
+  return { ...next, events }
 }
 
 export function isRunActive(status?: RunTaskState['status']): boolean {

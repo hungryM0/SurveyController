@@ -45,3 +45,12 @@ func TestCheckProxyHealthReportsBadStatusAndBadLease(t *testing.T) {
 		t.Fatalf("bad lease result = %#v", result)
 	}
 }
+
+func TestNormalizeHTTPProxyAddressRejectsUnsupportedSchemes(t *testing.T) {
+	if normalized, ok := NormalizeHTTPProxyAddress("127.0.0.1:8080"); !ok || normalized != "http://127.0.0.1:8080" {
+		t.Fatalf("normalized = %q, ok = %v", normalized, ok)
+	}
+	if _, ok := NormalizeHTTPProxyAddress("ftp://127.0.0.1:8080"); ok {
+		t.Fatal("ftp proxy address should be rejected")
+	}
+}

@@ -14,6 +14,7 @@ interface SelectNativeProps {
   value?: string
   name?: string
   tooltip?: string
+  'aria-label'?: string
   disabled?: boolean
   onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
   onClick?: () => void
@@ -39,6 +40,7 @@ function SelectNative({
   value,
   name,
   tooltip,
+  'aria-label': ariaLabel,
   disabled,
   onChange,
   onClick,
@@ -53,7 +55,7 @@ function SelectNative({
       disabled={disabled}
       onValueChange={(next) => emitSelectChange(onChange, decodeValue(next))}
     >
-      <Select.Trigger className="sc-select-trigger" title={tooltip} onClick={onClick} aria-label={selected?.label ?? '选择'}>
+      <Select.Trigger className="sc-select-trigger" title={tooltip} onClick={onClick} aria-label={ariaLabel ?? selected?.label ?? '选择'}>
         <Select.Value>{selected?.label ?? data.find((item) => item.value === '')?.label ?? '请选择'}</Select.Value>
         <Select.Icon className="sc-select-icon">
           <ChevronDown size={14} strokeWidth={2.2} />

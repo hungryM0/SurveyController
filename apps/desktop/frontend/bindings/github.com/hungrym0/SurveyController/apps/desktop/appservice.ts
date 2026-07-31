@@ -20,6 +20,10 @@ export function CancelRun(): $CancellablePromise<$models.RunTaskState> {
     return $Call.ByID(56584525);
 }
 
+export function CheckTask(request: $models.CheckTaskRequest): $CancellablePromise<$models.TaskCheckState> {
+    return $Call.ByID(668888663, request);
+}
+
 export function CreateSurveyDocument(request: $models.ParseSurveyRequest): $CancellablePromise<configio$0.ConfigDocument> {
     return $Call.ByID(3276327169, request);
 }
@@ -94,4 +98,8 @@ export function TestAIConnection(request: $models.TestAIConnectionRequest): $Can
 
 export function TestCustomProxyAPI(request: $models.TestCustomProxyAPIRequest): $CancellablePromise<$models.CustomProxyAPITestState> {
     return $Call.ByID(3872558909, request);
+}
+
+export function TestFixedProxy(request: $models.TestFixedProxyRequest): $CancellablePromise<$models.FixedProxyTestState> {
+    return $Call.ByID(3006840148, request);
 }

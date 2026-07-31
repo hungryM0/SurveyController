@@ -7,6 +7,7 @@ import {
   normalizePair,
   normalizeProvider,
   normalizeProxyAreaCode,
+  normalizeNetworkMode,
   normalizeProxySource,
   normalizeRandomUARatios,
   normalizeStringPair,
@@ -42,6 +43,16 @@ export function normalizeConfigDocument(config: ConfigDocument): ConfigDocument 
   next.execution.failStop ??= true
   next.execution.pauseOnAliyunCaptcha ??= true
   next.network.randomProxyEnabled = Boolean(next.network.randomProxyEnabled)
+  const configuredProxyMode = next.network.proxyMode?.trim() ?? ''
+  const mode = normalizeNetworkMode(configuredProxyMode || undefined, next.network)
+  next.network.proxyMode = configuredProxyMode ? mode : mode === 'direct' ? undefined : mode
+  next.network.fixedProxyAddress = next.network.fixedProxyAddress?.trim() ?? ''
+  if (mode === 'fixed') {
+    next.network.randomProxyEnabled = false
+  } else {
+    next.network.fixedProxyAddress = ''
+    next.network.randomProxyEnabled = mode === 'random'
+  }
   next.network.proxySource = normalizeProxySource(next.network.proxySource)
   next.network.customProxyApi = next.network.customProxyApi?.trim() ?? ''
   next.network.proxyAreaCode = normalizeProxyAreaCode(next.network.proxyAreaCode)
@@ -86,6 +97,13 @@ export function updateConfigDocumentField(
       break
     case 'random-ip':
       next.network.randomProxyEnabled = Boolean(rawValue)
+      next.network.proxyMode = next.network.randomProxyEnabled ? 'random' : 'direct'
+      next.network.fixedProxyAddress = ''
+      break
+    case 'network-mode':
+      next.network.proxyMode = rawValue === 'fixed' || rawValue === 'random' ? String(rawValue) : 'direct'
+      next.network.randomProxyEnabled = next.network.proxyMode === 'random'
+      if (next.network.proxyMode !== 'fixed') next.network.fixedProxyAddress = ''
       break
     case 'proxy-source':
       next.network.proxySource = proxyValue(text)
@@ -178,5 +196,5 @@ export function isParsedDocument(config: ConfigDocument | null | undefined): boo
   if (!config?.survey.url.trim()) {
     return false
   }
-  return Boolean(config.survey.definition.questions?.length || config.answers.questions?.length)
+  return Boolean(config.survey.definition.questions?.length)
 }

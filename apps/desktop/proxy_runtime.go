@@ -47,10 +47,31 @@ func (r *proxyRuntime) executionOptions(ctx context.Context, document configio.C
 	}
 	options := surveycore.ExecutionOptionsFromConfig(&cfg)
 	network := document.Network
-	options.UseRandomIP = network.RandomProxyEnabled
 	options.UserAgent = surveycore.UserAgentSettings{Enabled: network.RandomUAEnabled, Ratios: cloneIntMap(network.RandomUARatios)}
+	mode := normalizeDesktopNetworkMode(network)
+	if mode == "fixed" {
+		fixedAddress := strings.TrimSpace(network.FixedProxyAddress)
+		manager, err := fixedProxyLeaseManager(fixedAddress)
+		if err != nil {
+			r.updateStatus(proxyRuntimeKey("fixed", fixedAddress), nil, ProxyStatus{
+				Source:  "fixed",
+				Message: "固定代理地址无效",
+			})
+			return options, err
+		}
+		options.UseRandomIP = true
+		options.LeaseManager = manager
+		r.updateStatus(proxyRuntimeKey("fixed", fixedAddress), nil, ProxyStatus{
+			Available: 1,
+			Source:    "fixed",
+			Message:   "固定代理已配置，请测试连接",
+		})
+		return options, nil
+	}
+
+	options.UseRandomIP = mode == "random"
 	source := normalizeDesktopProxySource(network.ProxySource)
-	if !network.RandomProxyEnabled {
+	if mode != "random" {
 		r.updateStatus("", nil, ProxyStatus{
 			RandomIPEnabled: false,
 			Source:          source,
