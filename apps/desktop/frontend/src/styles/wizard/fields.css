@@ -94,3 +94,21 @@
 
 .config-wizard-url-field .sc-input-container { width: 100%; }
 
+.config-wizard-strategy-section {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.config-wizard-strategy-editor {
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface-soft);
+}
+
+.config-wizard-strategy-editor .strategy-tab-bar {
+  position: static;
+  border-radius: 0.5rem;
+  padding: 0.35rem;
+}

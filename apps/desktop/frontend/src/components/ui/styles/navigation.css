@@ -2,6 +2,17 @@
   list-style: none;
 }
 
+.side-nav .sc-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  border-radius: 999px;
+  background: var(--warn);
+  color: white;
+  font-size: 0.62rem;
+  padding: 0.1rem 0.25rem;
+}
+
 .sc-navbar-list-item a {
   position: relative;
   display: grid;
@@ -32,6 +43,12 @@
 .sc-navbar-list-item a:hover {
   background: var(--control);
   color: var(--text);
+}
+
+.sc-navbar-list-item a[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 :root[data-theme="dark"] .sc-navbar-list-item a:hover {

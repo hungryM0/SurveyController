@@ -18,6 +18,7 @@ interface NavRailProps {
   topNav: NavItem[]
   bottomNav: NavItem[]
   currentPage: string
+  disabled?: boolean
   onChange: (page: string) => void
 }
 
@@ -32,18 +33,18 @@ const icons: Record<string, LucideIcon> = {
   grid: CircleEllipsis,
 }
 
-function NavRail({ topNav, bottomNav, currentPage, onChange }: NavRailProps) {
+function NavRail({ topNav, bottomNav, currentPage, disabled = false, onChange }: NavRailProps) {
   return (
     <aside className="side-nav">
       <nav className="side-nav-list">
         <ul className="side-nav-section">
           {topNav.map((item) => (
-            <NavButton key={item.id} item={item} active={currentPage === item.id} onClick={() => onChange(item.id)} />
+            <NavButton key={item.id} item={item} active={currentPage === item.id} disabled={disabled} onClick={() => onChange(item.id)} />
           ))}
         </ul>
         <ul className="side-nav-section">
           {bottomNav.map((item) => (
-            <NavButton key={item.id} item={item} active={currentPage === item.id} onClick={() => onChange(item.id)} />
+            <NavButton key={item.id} item={item} active={currentPage === item.id} disabled={disabled} onClick={() => onChange(item.id)} />
           ))}
         </ul>
       </nav>
@@ -51,18 +52,22 @@ function NavRail({ topNav, bottomNav, currentPage, onChange }: NavRailProps) {
   )
 }
 
-function NavButton({ item, active, onClick }: { item: NavItem, active: boolean, onClick: () => void }) {
+function NavButton({ item, active, disabled, onClick }: { item: NavItem, active: boolean, disabled: boolean, onClick: () => void }) {
   const Icon = icons[item.icon] ?? FileText
   return (
     <NavBarLink
       href="#"
       text={item.label}
+      aria-label={item.label}
+      aria-disabled={disabled}
+      title={item.label}
+      tabIndex={disabled ? -1 : undefined}
       icon={<Icon size={21} strokeWidth={2} />}
       active={active}
       showBadge={item.badge}
       onClick={(event: MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault()
-        onClick()
+        if (!disabled) onClick()
       }}
     />
   )

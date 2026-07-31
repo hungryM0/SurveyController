@@ -51,16 +51,6 @@
   gap: 0.5rem;
 }
 
-@keyframes config-wizard-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes config-wizard-dialog-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 0.6rem)); }
-  to { opacity: 1; transform: translate(-50%, -50%); }
-}
-
 @keyframes config-wizard-step-in {
   from { opacity: 0; transform: translateY(0.35rem); }
   to { opacity: 1; transform: translateY(0); }

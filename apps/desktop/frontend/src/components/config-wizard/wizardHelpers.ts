@@ -5,6 +5,10 @@ export function wizardStepIndex(step: WizardStepId): number {
   return index < 0 ? 0 : index
 }
 
+export function wizardNextStep(step: WizardStepId): WizardStepId {
+  return WIZARD_STEPS[wizardStepIndex(step) + 1]?.id ?? 'review'
+}
+
 export function wizardErrorMessage(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
 }

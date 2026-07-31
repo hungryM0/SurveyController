@@ -1,5 +1,5 @@
 import { Dialogs } from '@wailsio/runtime'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createSurveyDocument,
   decodeQRCode,
@@ -10,7 +10,7 @@ import {
 import type { AICredentialDraft, AppSettings, ConfigDocument } from '../../types'
 import { createWizardDraft, type WizardDraft } from './configWizardModel'
 import { persistSetupWizard, shouldAutoOpenSetupWizard } from './setupWizardLifecycle'
-import type { ConfigurationWizardProps } from './wizardTypes'
+import type { ConfigurationWizardProps, WizardDismissRequest } from './wizardTypes'
 
 interface PersistedSetupWizardState {
   config: ConfigDocument
@@ -46,6 +46,8 @@ export function useConfigurationWizard({
   const autoShown = useRef(false)
   const deferred = useRef(false)
   const importPath = useRef('')
+  const dismissRequest = useRef<WizardDismissRequest | null>(null)
+  const pendingDismissAction = useRef<(() => void) | null>(null)
   const initialDraft = useMemo(
     () => createWizardDraft(config, settings, credential),
     [config, credential, settings],
@@ -77,6 +79,27 @@ export function useConfigurationWizard({
     importPath.current = ''
     setOpen(false)
   }
+
+  const registerDismissRequest = useCallback((request: WizardDismissRequest | null) => {
+    dismissRequest.current = request
+    if (request && pendingDismissAction.current) {
+      const afterDismiss = pendingDismissAction.current
+      pendingDismissAction.current = null
+      request(afterDismiss)
+    }
+  }, [])
+
+  const requestWizardDismiss = useCallback((afterDismiss?: () => void) => {
+    if (!open) {
+      afterDismiss?.()
+      return
+    }
+    if (dismissRequest.current) {
+      dismissRequest.current(afterDismiss)
+      return
+    }
+    pendingDismissAction.current = afterDismiss ?? null
+  }, [open])
 
   async function decodeWizardQRCode() {
     const path = await Dialogs.OpenFile({
@@ -142,9 +165,10 @@ export function useConfigurationWizard({
     onChooseReverseFill: chooseWizardReverseFill,
     onSave: saveWizardDraft,
     onComplete,
+    onRegisterDismissRequest: registerDismissRequest,
   }
 
-  return { openWizard, wizardProps }
+  return { openWizard, requestWizardDismiss, wizardProps }
 }
 
 export type { PersistedSetupWizardState, UseConfigurationWizardOptions }

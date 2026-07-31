@@ -5,13 +5,9 @@ export function createBaseAppViewState(version = __APP_VERSION__): AppViewState 
     appTitle: 'SurveyController',
     appVersion: version,
     themeMode: 'system',
-    currentPage: 'dashboard',
+    currentPage: 'task',
     topNav: [
-      { id: 'dashboard', label: '概览', icon: 'home', section: 'top', selected: true },
-      { id: 'runtime', label: '运行参数', icon: 'settings', section: 'top' },
-      { id: 'strategy', label: '题目策略', icon: 'flow', section: 'top' },
-      { id: 'reverse-fill', label: '反填', icon: 'refresh', section: 'top' },
-      { id: 'logs', label: '日志', icon: 'document', section: 'top' },
+      { id: 'task', label: '任务', icon: 'home', section: 'top', selected: true },
     ],
     bottomNav: [
       { id: 'community', label: '社区', icon: 'chat', section: 'bottom' },

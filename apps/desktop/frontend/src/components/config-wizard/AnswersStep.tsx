@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react'
 import { Button, InputText, RangeSliderBar, SelectNative, Switch } from '../ui'
 import { cloneWizardDraft, normalizePair, type WizardDraft } from './configWizardModel'
 import { formatWizardSeconds } from './wizardHelpers'
+import AnswerStrategySection from './AnswerStrategySection'
 
 interface AnswersStepProps {
   draft: WizardDraft
@@ -69,9 +70,11 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <ListChecks size={19} strokeWidth={1.9} aria-hidden="true" />
           <div>
             <strong>已生成 {questionCount} 道题的初始策略</strong>
-            <span>完成向导后，可在“题目策略”中逐题调整。</span>
+            <span>需要时可以在本步骤逐题调整。</span>
           </div>
         </div>
+
+        <AnswerStrategySection draft={draft} busy={busy} onChange={onChange} />
 
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
@@ -94,7 +97,7 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">Excel 反填</span>
-            <small>用表格中的答案生成多份提交，可稍后在“反填”页预览。</small>
+            <small>用表格中的答案生成多份提交，并按题目映射数据列。</small>
           </span>
           <Switch
             aria-label="Excel 反填"

@@ -11,9 +11,10 @@ interface WindowLifecycleOptions {
   saveConfig: () => Promise<void>
   saveSettings: () => Promise<AppSettings>
   setError: (message: string) => void
+  guardClose?: (continueClose: () => void) => void
 }
 
-export function useWindowLifecycle({ settingsRef, saveConfig, saveSettings, setError }: WindowLifecycleOptions) {
+export function useWindowLifecycle({ settingsRef, saveConfig, saveSettings, setError, guardClose }: WindowLifecycleOptions) {
   const closing = useRef(false)
   const closeWindow = useCallback(async () => {
     if (closing.current) return
@@ -42,10 +43,21 @@ export function useWindowLifecycle({ settingsRef, saveConfig, saveSettings, setE
     onError: (error) => setError(error.message),
   })
 
+  const guardCloseRef = useRef(guardClose)
+  guardCloseRef.current = guardClose
+  const requestClose = useCallback(() => {
+    const guard = guardCloseRef.current
+    if (guard) {
+      guard(confirmation.requestClose)
+      return
+    }
+    confirmation.requestClose()
+  }, [confirmation.requestClose])
+
   useEffect(
-    () => Events.On('surveycontroller:close-requested', confirmation.requestClose),
-    [confirmation.requestClose],
+    () => Events.On('surveycontroller:close-requested', requestClose),
+    [requestClose],
   )
 
-  return confirmation
+  return { ...confirmation, requestClose }
 }

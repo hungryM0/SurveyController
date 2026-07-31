@@ -116,4 +116,9 @@
   height: 9rem;
   flex-shrink: 0;
 }
+.settings-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.25rem 0 0.75rem;
+}
 

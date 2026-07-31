@@ -1,4 +1,3 @@
-import * as Dialog from '@radix-ui/react-dialog'
 import { ArrowLeft, ArrowRight, Save, Search } from 'lucide-react'
 import { Button } from '../ui'
 import AnswersStep from './AnswersStep'
@@ -26,6 +25,7 @@ interface WizardFrameProps {
   onStepSelect: (step: WizardStepId) => void
   onBack: () => void
   onPrimary: () => void
+  onRequestDismiss: () => void
   onDismiss: () => void
   onContinueEditing: () => void
 }
@@ -47,21 +47,21 @@ function WizardFrame({
   onStepSelect,
   onBack,
   onPrimary,
+  onRequestDismiss,
   onDismiss,
   onContinueEditing,
 }: WizardFrameProps) {
   const stepIndex = indexOfStep(step)
+  const interactionLocked = busy || confirmDismiss
 
   return (
-    <>
-      <Dialog.Overlay className="config-wizard-backdrop" />
-      <Dialog.Content className="config-wizard-dialog surface" aria-describedby="config-wizard-description">
+    <section className="config-wizard-workspace surface" aria-labelledby="config-wizard-title" aria-describedby="config-wizard-description">
         <header className="config-wizard-header">
           <div>
-            <Dialog.Title className="config-wizard-title">配置向导</Dialog.Title>
-            <Dialog.Description className="config-wizard-description" id="config-wizard-description">
-              完成必要设置后再开始任务。
-            </Dialog.Description>
+            <h1 className="config-wizard-title" id="config-wizard-title">配置任务</h1>
+            <p className="config-wizard-description" id="config-wizard-description">
+              按步骤完成设置，保存后即可启动任务。
+            </p>
           </div>
           <span className="config-wizard-step-count" aria-live="polite">
             {stepIndex + 1} / {WIZARD_STEPS.length}
@@ -72,7 +72,7 @@ function WizardFrame({
           <WizardProgress
             currentStep={step}
             highestStepIndex={highestStepIndex}
-            disabled={busy}
+            disabled={interactionLocked}
             onStepSelect={onStepSelect}
           />
 
@@ -81,19 +81,19 @@ function WizardFrame({
               <SurveyStep
                 draft={draft}
                 parsed={parsed}
-                busy={busy}
+                busy={interactionLocked}
                 statusMessage={statusMessage}
                 onURLChange={onURLChange}
                 onDecodeQRCode={onDecodeQRCode}
                 onImport={onImport}
               />
             ) : null}
-            {step === 'task' ? <TaskStep draft={draft} busy={busy} onChange={onChange} /> : null}
-            {step === 'network' ? <NetworkStep draft={draft} busy={busy} onChange={onChange} /> : null}
+            {step === 'task' ? <TaskStep draft={draft} busy={interactionLocked} onChange={onChange} /> : null}
+            {step === 'network' ? <NetworkStep draft={draft} busy={interactionLocked} onChange={onChange} /> : null}
             {step === 'answers' ? (
               <AnswersStep
                 draft={draft}
-                busy={busy}
+                busy={interactionLocked}
                 onChange={onChange}
                 onChooseReverseFill={onChooseReverseFill}
               />
@@ -118,13 +118,13 @@ function WizardFrame({
             </div>
           ) : null}
           <div className="config-wizard-footer-main">
-            <Button value="稍后设置" type="subtle" disabled={busy} onClick={onDismiss} />
+            <Button value="稍后设置" type="subtle" disabled={interactionLocked} onClick={onRequestDismiss} />
             <div className="config-wizard-footer-actions">
               <Button
                 value="返回"
                 type="subtle"
                 icon={<ArrowLeft size={16} strokeWidth={1.9} />}
-                disabled={busy || stepIndex === 0}
+                disabled={interactionLocked || stepIndex === 0}
                 onClick={onBack}
               />
               <Button
@@ -138,8 +138,7 @@ function WizardFrame({
             </div>
           </div>
         </footer>
-      </Dialog.Content>
-    </>
+    </section>
   )
 }
 

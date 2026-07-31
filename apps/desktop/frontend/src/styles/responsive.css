@@ -1,8 +1,3 @@
 @import './responsive/general.css';
-@import './responsive/dashboard-shell.css';
-@import './responsive/dashboard-layout.css';
-@import './responsive/dashboard-panels.css';
-@import './responsive/dashboard-command.css';
-@import './responsive/dashboard-task.css';
 @import './responsive/runtime.css';
 @import './responsive/wizard.css';

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   WIZARD_STEPS,
   cloneWizardDraft,
@@ -11,7 +11,7 @@ import {
 import type { WizardFrameProps } from './WizardFrame'
 import type { ConfigurationWizardProps } from './wizardTypes'
 import { validateWizardStep } from './wizardValidation'
-import { wizardErrorMessage, wizardStepIndex } from './wizardHelpers'
+import { wizardErrorMessage, wizardNextStep, wizardStepIndex } from './wizardHelpers'
 
 export function useWizardFlow({
   open,
@@ -23,32 +23,37 @@ export function useWizardFlow({
   onChooseReverseFill,
   onSave,
   onComplete,
+  resumeConfigured = false,
 }: ConfigurationWizardProps) {
+  const initialProgress = resolveInitialProgress(initialDraft, resumeConfigured)
   const [draft, setDraft] = useState(() => cloneWizardDraft(initialDraft))
-  const [step, setStep] = useState<WizardStepId>('survey')
+  const [step, setStep] = useState<WizardStepId>(initialProgress.step)
   const [parsed, setParsed] = useState(() => isParsedConfig(initialDraft))
-  const [highestStepIndex, setHighestStepIndex] = useState(0)
+  const [highestStepIndex, setHighestStepIndex] = useState(initialProgress.highestStepIndex)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
   const [draftTouched, setDraftTouched] = useState(false)
   const [confirmDismiss, setConfirmDismiss] = useState(false)
   const wasOpen = useRef(open)
+  const pendingDismissAction = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (open && !wasOpen.current) {
+      const progress = resolveInitialProgress(initialDraft, resumeConfigured)
       setDraft(cloneWizardDraft(initialDraft))
-      setStep('survey')
+      setStep(progress.step)
       setParsed(isParsedConfig(initialDraft))
-      setHighestStepIndex(0)
+      setHighestStepIndex(progress.highestStepIndex)
       setBusy(false)
       setError('')
       setStatusMessage('')
       setDraftTouched(false)
       setConfirmDismiss(false)
+      pendingDismissAction.current = null
     }
     wasOpen.current = open
-  }, [initialDraft, open])
+  }, [initialDraft, open, resumeConfigured])
 
   const stepIndex = wizardStepIndex(step)
 
@@ -96,7 +101,7 @@ export function useWizardFlow({
       setDraftTouched(true)
       setParsed(true)
       setStatusMessage('问卷解析完成。')
-      moveToStep('task')
+      moveToStep(wizardNextStep('survey'))
     })
   }
 
@@ -118,7 +123,7 @@ export function useWizardFlow({
       setDraftTouched(true)
       setParsed(true)
       setStatusMessage('二维码已识别，问卷解析完成。')
-      moveToStep('task')
+      moveToStep(wizardNextStep('survey'))
     })
   }
 
@@ -164,7 +169,7 @@ export function useWizardFlow({
   async function handlePrimaryAction() {
     if (step === 'survey') {
       if (parsed) {
-        moveToStep('task')
+        moveToStep(wizardNextStep('survey'))
       } else {
         await parseAndContinue()
       }
@@ -180,7 +185,7 @@ export function useWizardFlow({
       setError(validation.message ?? '请检查当前设置。')
       return
     }
-    moveToStep(WIZARD_STEPS[stepIndex + 1]?.id ?? 'review')
+    moveToStep(wizardNextStep(step))
   }
 
   function moveToStep(nextStep: WizardStepId) {
@@ -196,23 +201,32 @@ export function useWizardFlow({
     }
   }
 
-  function dismissNow() {
+  const dismissNow = useCallback(() => {
     if (!busy) {
       setConfirmDismiss(false)
+      const afterDismiss = pendingDismissAction.current
+      pendingDismissAction.current = null
       onDismiss()
+      afterDismiss?.()
     }
-  }
+  }, [busy, onDismiss])
 
-  function requestDismiss() {
+  const requestDismiss = useCallback((afterDismiss?: () => void) => {
     if (busy) {
       return
     }
+    pendingDismissAction.current = afterDismiss ?? null
     if (draftTouched) {
       setConfirmDismiss(true)
     } else {
       dismissNow()
     }
-  }
+  }, [busy, dismissNow, draftTouched])
+
+  const continueEditing = useCallback(() => {
+    pendingDismissAction.current = null
+    setConfirmDismiss(false)
+  }, [])
 
   const frameProps: WizardFrameProps = {
     draft,
@@ -238,9 +252,26 @@ export function useWizardFlow({
     onStepSelect: moveToStep,
     onBack: moveBack,
     onPrimary: () => void handlePrimaryAction(),
+    onRequestDismiss: () => requestDismiss(),
     onDismiss: dismissNow,
-    onContinueEditing: () => setConfirmDismiss(false),
+    onContinueEditing: continueEditing,
   }
 
   return { frameProps, requestDismiss }
+}
+
+function resolveInitialProgress(draft: ConfigurationWizardProps['initialDraft'], resumeConfigured: boolean) {
+  if (!resumeConfigured) {
+    return { step: 'survey' as const, highestStepIndex: 0 }
+  }
+
+  const parsed = isParsedConfig(draft)
+  for (const [index, candidate] of WIZARD_STEPS.entries()) {
+    const validation = validateWizardStep(candidate.id, draft, parsed)
+    if (!validation.valid) {
+      return { step: candidate.id, highestStepIndex: index }
+    }
+  }
+
+  return { step: 'review' as const, highestStepIndex: WIZARD_STEPS.length - 1 }
 }

@@ -5,7 +5,6 @@
 }
 
 @media (max-width: 720px) {
-  .config-wizard-dialog { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); }
   .config-wizard-layout { grid-template-columns: 1fr; }
   .config-wizard-progress {
     border-right: 0;
@@ -42,8 +41,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .config-wizard-backdrop,
-  .config-wizard-dialog,
   .config-wizard-step,
   .config-wizard-reveal { animation: none; }
   .config-wizard-progress button { transition: none; }

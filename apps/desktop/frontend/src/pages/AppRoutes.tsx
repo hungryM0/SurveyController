@@ -1,12 +1,13 @@
 import { lazy } from 'react'
+import type { ConfigurationWizardProps } from '../components/config-wizard'
 import type { useConfigDocumentActions } from '../hooks/useConfigDocumentActions'
 import type { useRunControls } from '../hooks/useRunControls'
 import type { useSettingsActions } from '../hooks/useSettingsActions'
 import type { useWorkspaceEditor } from '../hooks/useWorkspaceEditor'
 import type { AppViewState } from '../types'
-import type { RunPhase } from './dashboard/types'
+import type { RunPhase } from './workflow/types'
 
-const DashboardView = lazy(() => import('./DashboardView'))
+const WorkflowView = lazy(() => import('./workflow/WorkflowView'))
 const RuntimeView = lazy(() => import('./RuntimeView'))
 const StrategyView = lazy(() => import('./StrategyView'))
 const ReverseFillView = lazy(() => import('./ReverseFillView'))
@@ -19,7 +20,6 @@ interface AppRoutesProps {
   currentPage: string
   view: AppViewState
   busy: boolean
-  runBusy: boolean
   runPhase: RunPhase
   runReadiness: { valid: boolean, message?: string }
   autoCheckUpdate: boolean
@@ -28,6 +28,7 @@ interface AppRoutesProps {
   settingsActions: ReturnType<typeof useSettingsActions>
   editor: ReturnType<typeof useWorkspaceEditor>
   openWizard: () => void
+  wizardProps: ConfigurationWizardProps
   setCurrentPage: (page: string) => void
   runSurvey: () => Promise<void>
 }
@@ -36,7 +37,6 @@ function AppRoutes({
   currentPage,
   view,
   busy,
-  runBusy,
   runPhase,
   runReadiness,
   autoCheckUpdate,
@@ -45,37 +45,28 @@ function AppRoutes({
   settingsActions,
   editor,
   openWizard,
+  wizardProps,
   setCurrentPage,
   runSurvey,
 }: AppRoutesProps) {
-  if (currentPage === 'dashboard') {
+  if (currentPage === 'task') {
     return (
-      <DashboardView
+      <WorkflowView
         dashboard={view.dashboard}
-        busy={runBusy}
+        busy={busy}
         runPhase={runPhase}
         canRun={runReadiness.valid}
         runBlockedReason={runReadiness.message}
-        onUpdateUrl={configActions.updateURL}
-        onAutoConfig={configActions.autoConfig}
-        onLoadQRCode={configActions.loadQRCodeFromDialog}
-        onDecodeQRCodeImage={(file) => void configActions.decodeQRCodeImage(file)}
-        onLoadConfig={configActions.loadConfigFromDialog}
-        onSaveConfig={configActions.saveConfigToDialog}
-        onOpenSetupWizard={openWizard}
-        onOpenRuntime={() => setCurrentPage('runtime')}
-        onTargetChange={(value) => editor.updateField('target', String(value))}
-        onThreadsChange={(value) => editor.updateField('threads', String(value))}
-        onRandomIpChange={(value) => editor.updateField('random-ip', value)}
-        onProxySourceChange={(value) => editor.updateField('proxy-source', value)}
-        customProxyAPI={editor.config?.network.customProxyApi ?? ''}
-        onCustomProxyAPIChange={(value) => editor.updateField('custom-proxy-api', value)}
-        onSyncProxyStatus={runControls.syncRandomIpQuota}
-        onRedeemProxyCard={(cardCode) => void runControls.redeemRandomIpQuota(cardCode)}
+        wizardProps={wizardProps}
+        onOpenWizard={openWizard}
         onRun={runSurvey}
         onCancelRun={runControls.cancelSurvey}
         onPauseRun={runControls.pauseSurvey}
         onResumeRun={runControls.resumeSurvey}
+        onOpenRuntime={() => setCurrentPage('runtime')}
+        onOpenStrategy={() => setCurrentPage('strategy')}
+        onOpenReverseFill={() => setCurrentPage('reverse-fill')}
+        onOpenLogs={() => setCurrentPage('logs')}
       />
     )
   }

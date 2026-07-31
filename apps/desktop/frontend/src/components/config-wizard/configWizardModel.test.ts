@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createTestConfig, createTestQuestion, createTestQuestionEntry, createTestSettings } from '../../test/configFactory'
 import {
+  WIZARD_STEPS,
   cloneWizardDraft,
   createWizardDraft,
   isParsedConfig,
@@ -31,6 +32,10 @@ function parsedDraft(): WizardDraft {
 }
 
 describe('configWizardModel', () => {
+  it('keeps the user journey in task order', () => {
+    expect(WIZARD_STEPS.map((step) => step.id)).toEqual(['survey', 'answers', 'task', 'network', 'review'])
+  })
+
   it('creates an isolated draft with wizard defaults', () => {
     const source = parsedDraft()
     source.config.network.randomUaRatios = { wechat: 20, mobile: 30, pc: 50 }

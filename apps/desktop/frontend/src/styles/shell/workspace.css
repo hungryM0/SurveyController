@@ -2,6 +2,11 @@
   --workspace-width: 76rem;
 }
 
+.scroll-page {
+  overflow: auto;
+  scrollbar-color: color-mix(in srgb, var(--muted) 38%, transparent) transparent;
+}
+
 .workspace-page.scroll-page {
   padding: clamp(0.85rem, 1.8vw, 1.4rem);
 }

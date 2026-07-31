@@ -1,4 +1,4 @@
-export { default as ConfigurationWizard } from './ConfigurationWizard'
+export { default as ConfigurationWorkspace } from './ConfigurationWorkspace'
 export type {
   ConfigurationWizardProps,
   WizardImportResult,

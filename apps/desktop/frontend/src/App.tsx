@@ -5,7 +5,7 @@ import { AppTheme, LoaderBusy } from './components/ui'
 import CloseConfirmationDialog from './components/CloseConfirmationDialog'
 import NavRail from './components/NavRail'
 import WindowControls from './components/WindowControls'
-import { ConfigurationWizard, createWizardDraft, useConfigurationWizard, validateWizardStep } from './components/config-wizard'
+import { createWizardDraft, useConfigurationWizard, validateWizardStep } from './components/config-wizard'
 import { useAppBootstrap, type AppModelRefs } from './hooks/useAppBootstrap'
 import { useAsyncFeedback } from './hooks/useAsyncFeedback'
 import { useConfigDocumentActions } from './hooks/useConfigDocumentActions'
@@ -33,7 +33,7 @@ function App() {
   const refs: AppModelRefs = { settings: settingsRef, config: configRef, configPath: configPathRef }
   const [credential, setCredential] = useState<AICredentialDraft>({ value: '', operation: 'keep' })
   const credentialRef = useRef(credential)
-  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [currentPage, setCurrentPage] = useState('task')
   const previousPage = useRef(currentPage)
 
   const polling = useRunTaskPolling({
@@ -81,14 +81,7 @@ function App() {
     withBusy: feedback.withBusy,
     setNotice: feedback.setNotice,
   })
-  const closeConfirmation = useWindowLifecycle({
-    settingsRef,
-    saveConfig: configActions.saveCurrentConfig,
-    saveSettings: settingsActions.persistSettings,
-    setError: feedback.setError,
-  })
-
-  const { openWizard, wizardProps } = useConfigurationWizard({
+  const { openWizard, requestWizardDismiss, wizardProps } = useConfigurationWizard({
     loading,
     config: editor.config,
     configExists: model?.configExists ?? false,
@@ -102,8 +95,20 @@ function App() {
         : current)
     },
     onNotice: feedback.setNotice,
-    onComplete: () => setCurrentPage('dashboard'),
+    onComplete: () => setCurrentPage('task'),
   })
+  const closeConfirmation = useWindowLifecycle({
+    settingsRef,
+    saveConfig: configActions.saveCurrentConfig,
+    saveSettings: settingsActions.persistSettings,
+    setError: feedback.setError,
+    guardClose: requestWizardDismiss,
+  })
+
+  function openTaskWizard() {
+    setCurrentPage('task')
+    openWizard()
+  }
 
   useEffect(() => {
     void applyTopmostSetting(Window, model?.settings).catch(() => undefined)
@@ -158,7 +163,7 @@ function App() {
       </header>
 
       <div className="app-frame">
-        <NavRail topNav={view.topNav} bottomNav={view.bottomNav} currentPage={currentPage} onChange={setCurrentPage} />
+        <NavRail topNav={view.topNav} bottomNav={view.bottomNav} currentPage={currentPage} disabled={wizardProps.open} onChange={setCurrentPage} />
         <main className="workspace">
           <div className="message-stack">
             {feedback.error ? <div className="status-banner status-banner-danger">{feedback.error}</div> : null}
@@ -170,7 +175,6 @@ function App() {
                 currentPage={currentPage}
                 view={view}
                 busy={feedback.busy}
-                runBusy={runBusy}
                 runPhase={runPhase}
                 runReadiness={runReadiness}
                 autoCheckUpdate={settingsRef.current?.autoCheckUpdate ?? true}
@@ -178,7 +182,8 @@ function App() {
                 runControls={runControls}
                 settingsActions={settingsActions}
                 editor={editor}
-                openWizard={openWizard}
+                openWizard={openTaskWizard}
+                wizardProps={wizardProps}
                 setCurrentPage={setCurrentPage}
                 runSurvey={runSurvey}
               />
@@ -186,7 +191,6 @@ function App() {
           </Suspense>
         </main>
       </div>
-      <ConfigurationWizard {...wizardProps} />
       <CloseConfirmationDialog
         open={closeConfirmation.open}
         busy={closeConfirmation.busy}

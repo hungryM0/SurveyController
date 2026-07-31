@@ -13,14 +13,14 @@ function ReviewStep({ draft }: ReviewStepProps) {
     <section className="config-wizard-step config-wizard-review-step" aria-labelledby="config-wizard-review-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-review-title">检查配置</h2>
-        <p>保存后会回到概览页。任务不会自动启动。</p>
+        <p>保存后回到任务工作区。任务不会自动启动。</p>
       </div>
 
       <div className="config-wizard-ready-card" role="status">
         <CheckCircle2 size={20} strokeWidth={1.9} aria-hidden="true" />
         <div>
           <strong>配置可以保存</strong>
-          <span>保存完成后，仍可在各设置页继续调整。</span>
+          <span>保存完成后，仍可返回对应步骤继续调整。</span>
         </div>
       </div>
 

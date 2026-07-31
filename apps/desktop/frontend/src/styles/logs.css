@@ -174,3 +174,31 @@
   font-family: var(--font-ui, "Segoe UI Variable Text", "Segoe UI", sans-serif);
   font-size: 0.78rem;
 }
+.logs-terminal-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--surface-strong) 88%, var(--accent-soft));
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.terminal-line {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.75rem;
+  border-radius: 0.35rem;
+  padding: 0.22rem 0.35rem;
+  transition: background-color 180ms ease-out;
+}
+
+.terminal-line:hover {
+  background: var(--surface-soft);
+}

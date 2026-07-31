@@ -12,7 +12,6 @@
     min-width: 100%;
   }
 
-  .dashboard-command-grid,
   .quick-grid,
   .community-grid,
   .more-grid,
@@ -20,20 +19,10 @@
     grid-template-columns: 1fr;
   }
 
-  .metrics-strip,
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .run-footer {
-    grid-template-columns: 1fr auto auto;
-    height: auto;
-  }
-
-  .run-footer .sc-progress-bar {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
 }
 
 @media (max-width: 760px) {
@@ -44,10 +33,6 @@
 
   .side-nav .sc-navbar-list-item a {
     min-height: 3.25rem;
-  }
-
-  .metrics-strip {
-    grid-template-columns: 1fr;
   }
 
   .setting-row,
@@ -79,4 +64,3 @@
     animation: none;
   }
 }
-

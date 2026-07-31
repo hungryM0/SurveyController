@@ -17,6 +17,13 @@
   gap: 0.65rem;
 }
 
+.strategy-editor-workspace {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.65rem;
+}
+
 .strategy-scroll {
   overflow-y: auto;
   padding: 0.75rem;
@@ -52,7 +59,7 @@
 
 .strategy-scroll.workspace-page {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0.75rem;
   padding: clamp(0.85rem, 1.8vw, 1.4rem);
 }

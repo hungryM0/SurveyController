@@ -183,3 +183,56 @@
 .community-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+}
+
+.metric-tile {
+  display: grid;
+  gap: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  padding: 0.65rem;
+}
+
+.metric-tile span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.metric-tile strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-tile.tone-success {
+  border-left: 3px solid var(--success);
+}
+
+.metric-tile.tone-success strong {
+  color: var(--success);
+}
+
+.filepath-badge {
+  display: inline-block;
+  max-width: 28rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-family: Consolas, monospace;
+  font-size: 0.76rem;
+  padding: 0.2rem 0.55rem;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}

@@ -24,7 +24,7 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
     <section className="config-wizard-step config-wizard-task-step" aria-labelledby="config-wizard-task-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-task-title">设置本次任务</h2>
-        <p>先定提交数量和并发。保存后仍可在运行参数中调整。</p>
+        <p>先定提交数量和并发，后续步骤仍可返回调整。</p>
       </div>
 
       <div className="config-wizard-form-grid">
