@@ -264,7 +264,6 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
     <section className="config-wizard-step config-wizard-network-step" aria-labelledby="config-wizard-network-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-network-title">设置网络方式</h2>
-        <p>不需要切换访问 IP 时，保持直连即可。</p>
       </div>
 
       <StatusBanner
@@ -306,7 +305,6 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">访问方式</span>
-            <small>直连、固定代理和随机 IP 三种方式只能选择一种。</small>
           </span>
           <SelectNative
             aria-label="访问方式"
@@ -325,13 +323,11 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
           <div className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">固定代理地址</span>
-              <small id="config-wizard-fixed-proxy-help">支持 http://、https://，也可以填写 host:port。</small>
             </span>
             <div className="config-wizard-custom-proxy-controls">
               <div className="config-wizard-custom-proxy-row">
                 <div className="config-wizard-custom-proxy-input">
                   <InputText
-                    aria-describedby="config-wizard-fixed-proxy-help"
                     aria-label="固定代理地址"
                     disabled={busy}
                     placeholder="http://127.0.0.1:8080"
@@ -357,7 +353,6 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
           <div className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">代理来源</span>
-              <small>选择内置代理服务，或接入自己的代理 API。</small>
             </span>
             <SelectNative
               data={proxySources}
@@ -372,13 +367,11 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
           <div className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">代理 API</span>
-              <small id="config-wizard-custom-proxy-help">填写返回代理地址的 HTTP 接口。</small>
             </span>
             <div className="config-wizard-custom-proxy-controls">
               <div className="config-wizard-custom-proxy-row">
                 <div className="config-wizard-custom-proxy-input">
                   <InputText
-                    aria-describedby="config-wizard-custom-proxy-help"
                     aria-label="代理 API"
                     disabled={busy}
                     placeholder="https://..."
@@ -412,7 +405,6 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
           <label className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">代理地区代码</span>
-              <small>填写 6 位行政区划代码，留空表示不限地区。</small>
             </span>
             <InputText
               aria-label="代理地区代码"
@@ -432,7 +424,6 @@ function NetworkStep({ draft, busy, onChange, onProxyStatusChange }: NetworkStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">随机访问身份</span>
-            <small>混合电脑、手机和微信访问身份。</small>
           </span>
           <Switch
             aria-label="随机访问身份"

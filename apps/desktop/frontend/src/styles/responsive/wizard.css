@@ -5,18 +5,6 @@
 }
 
 @media (max-width: 720px) {
-  .config-wizard-header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    padding: 0.9rem 1rem;
-  }
-  .config-wizard-header > div:first-child {
-    min-width: 0;
-    flex: 1 1 100%;
-  }
-  .config-wizard-header .config-wizard-lifecycle-status {
-    margin-left: auto;
-  }
   .config-wizard-layout { display: block; }
   .config-wizard-progress {
     border-right: 0;

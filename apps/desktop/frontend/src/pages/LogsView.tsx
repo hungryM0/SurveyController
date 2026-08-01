@@ -46,7 +46,6 @@ function LogsView({ logs, busy = false, onExport }: LogsViewProps) {
               <Activity size={22} />
             </div>
             <h2>暂无运行日志</h2>
-            <p>启动任务后，运行状态会显示在这里。</p>
           </div>
         ) : (
           <div className="logs-lines">

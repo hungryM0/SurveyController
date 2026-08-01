@@ -50,7 +50,6 @@ function RunStep({
     <section className="config-wizard-step config-wizard-run-step" aria-labelledby="config-wizard-run-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-run-title">运行任务</h2>
-        <p>任务状态、进度、日志和结果都保留在当前流程。</p>
       </div>
 
       <div className={`config-wizard-run-status is-${status}`} role={displayedError ? 'alert' : 'status'}>

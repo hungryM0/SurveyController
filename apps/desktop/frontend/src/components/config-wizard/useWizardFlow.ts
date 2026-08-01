@@ -11,7 +11,7 @@ import type { WizardFrameProps } from './WizardFrame'
 import type { ConfigurationWizardProps } from './wizardTypes'
 import { isRealSurveyConfig, validateWizardStep } from './wizardValidation'
 import { wizardErrorMessage, wizardNextStep, wizardStepIndex } from './wizardHelpers'
-import { fingerprintConfig, isNetworkReady, mapTaskWorkflow } from '../../viewModels/taskWorkflow'
+import { fingerprintConfig, isNetworkReady } from '../../viewModels/taskWorkflow'
 import { clearWizardDraftStorage } from './useConfigurationWizard'
 
 export function useWizardFlow({
@@ -80,15 +80,6 @@ export function useWizardFlow({
   }, [externalCheckState, initialDraft, open, resumeConfigured, runTaskState])
 
   const stepIndex = wizardStepIndex(step)
-  const workflowStatus = mapTaskWorkflow({
-    config: draft.config,
-    currentStep: step === 'review' ? 'check' : step,
-    proxyStatus,
-    runState: runTaskState,
-    checkedConfigFingerprint: (externalCheckState ?? checkState) ? fingerprintConfig(draft.config) : undefined,
-    checkedStatus: (externalCheckState ?? checkState)?.status,
-  }).statusPresentation
-
   function notifyDraftChange(nextDraft: typeof draft) {
     const result = onDraftChange?.(cloneWizardDraft(nextDraft))
     latestDraftPersistence.current = result ? Promise.resolve(result) : null
@@ -376,11 +367,9 @@ export function useWizardFlow({
     onStepSelect: selectStep,
     onBack: moveBack,
     onPrimary: () => void handlePrimaryAction(),
-    onRequestDismiss: () => requestDismiss(),
     onDismiss: dismissNow,
     onContinueEditing: continueEditing,
     checkState: externalCheckState ?? checkState,
-    workflowStatus,
     onReturnToStep: selectStep,
     onProxyStatusChange,
     runTaskState,

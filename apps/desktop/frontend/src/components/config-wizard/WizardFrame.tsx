@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, CircleCheck, CircleDashed, ClipboardList, FilePlus2, LoaderCircle, Pause, PauseCircle, PencilLine, PlayCircle, RotateCcw, Save, Search, Square, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Circle, Pause, PlayCircle, RotateCcw, Save, Square } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Button } from '../ui'
 import AnswersStep from './AnswersStep'
@@ -11,7 +11,6 @@ import { WIZARD_STEPS, type WizardDraft, type WizardStepId } from './configWizar
 import WizardProgress from './WizardProgress'
 import type { WizardCheckState } from './wizardTypes'
 import type { ProxyStatus, RunResult, RunTaskState } from '../../types'
-import type { StatusPresentation } from '../../viewModels/taskWorkflow'
 
 interface WizardFrameProps {
   draft: WizardDraft
@@ -30,11 +29,9 @@ interface WizardFrameProps {
   onStepSelect: (step: WizardStepId) => void
   onBack: () => void
   onPrimary: () => void
-  onRequestDismiss: () => void
   onDismiss: () => void
   onContinueEditing: () => void
   checkState?: WizardCheckState | null
-  workflowStatus?: StatusPresentation
   onReturnToStep?: (step: WizardStepId) => void
   onProxyStatusChange?: (status: ProxyStatus | null) => void
   runTaskState?: RunTaskState | null
@@ -65,11 +62,9 @@ function WizardFrame({
   onStepSelect,
   onBack,
   onPrimary,
-  onRequestDismiss,
   onDismiss,
   onContinueEditing,
   checkState,
-  workflowStatus,
   onReturnToStep,
   onProxyStatusChange,
   runTaskState,
@@ -89,7 +84,6 @@ function WizardFrame({
   const runStatus = runTaskState?.status ?? 'idle'
   const runLifecycleLocked = step === 'run' && isRunInProgress(runStatus)
   const runStartUnavailable = step === 'run' && !onStartRun
-  const displayedWorkflowStatus = workflowStatus ?? { label: '新建', icon: 'file-plus-2', tone: 'neutral' as const }
 
   useEffect(() => {
     if (!confirmDismiss) return
@@ -125,23 +119,7 @@ function WizardFrame({
   }, [confirmDismiss, onContinueEditing])
 
   return (
-    <section className="config-wizard-workspace surface" aria-labelledby="config-wizard-title" aria-describedby="config-wizard-description">
-        <header className="config-wizard-header">
-          <div>
-            <h1 className="config-wizard-title" id="config-wizard-title">配置任务</h1>
-            <p className="config-wizard-description" id="config-wizard-description">
-              按步骤完成设置，保存后即可启动任务。
-            </p>
-          </div>
-          <div className={`config-wizard-lifecycle-status is-${displayedWorkflowStatus.tone}`} role="status" aria-label={`任务状态：${displayedWorkflowStatus.label}`}>
-            <LifecycleIcon name={displayedWorkflowStatus.icon} />
-            <strong>{displayedWorkflowStatus.label}</strong>
-          </div>
-          <span className="config-wizard-step-count" aria-live="polite">
-            {stepIndex + 1} / {WIZARD_STEPS.length}
-          </span>
-        </header>
-
+    <section className={`config-wizard-workspace surface ${step === 'survey' ? 'is-survey' : ''}`} aria-label="配置任务">
         <div className="config-wizard-layout">
           <WizardProgress
             currentStep={step}
@@ -157,9 +135,11 @@ function WizardFrame({
                 parsed={parsed}
                 busy={interactionLocked}
                 statusMessage={statusMessage}
+                primaryLabel={primaryLabel(step, busy, parsed, Boolean(onStartRun), runStatus)}
                 onURLChange={onURLChange}
                 onDecodeQRCode={onDecodeQRCode}
                 onImport={onImport}
+                onPrimary={onPrimary}
               />
             ) : null}
             {step === 'task' ? <TaskStep draft={draft} busy={interactionLocked} onChange={onChange} /> : null}
@@ -192,7 +172,8 @@ function WizardFrame({
           </main>
         </div>
 
-        <footer className="config-wizard-footer">
+        {step !== 'survey' || confirmDismiss ? (
+          <footer className="config-wizard-footer">
           {confirmDismiss ? (
             <div ref={discardDialogRef} className="config-wizard-discard-confirm" role="alertdialog" aria-modal="true" aria-labelledby="config-wizard-discard-title">
               <div>
@@ -206,7 +187,6 @@ function WizardFrame({
             </div>
           ) : null}
           <div className="config-wizard-footer-main">
-            <Button value="稍后设置" type="subtle" disabled={interactionLocked} onClick={onRequestDismiss} />
             <div className="config-wizard-footer-actions">
               <Button
                 value="返回"
@@ -225,7 +205,8 @@ function WizardFrame({
               />
             </div>
           </div>
-        </footer>
+          </footer>
+        ) : null}
     </section>
   )
 }
@@ -269,9 +250,6 @@ function primaryLabel(
 }
 
 function primaryIcon(step: WizardStepId, runStatus: RunTaskState['status'] | 'idle') {
-  if (step === 'survey') {
-    return <Search size={16} strokeWidth={1.9} />
-  }
   if (step === 'review') {
     return <Save size={16} strokeWidth={1.9} />
   }
@@ -288,32 +266,6 @@ function primaryIcon(step: WizardStepId, runStatus: RunTaskState['status'] | 'id
 
 function isRunInProgress(status: RunTaskState['status'] | 'idle'): boolean {
   return status === 'running' || status === 'paused' || status === 'canceling'
-}
-
-function LifecycleIcon({ name }: { name: string }) {
-  const props = { size: 16, strokeWidth: 1.9, 'aria-hidden': true as const }
-  switch (name) {
-    case 'pencil-line':
-      return <PencilLine {...props} />
-    case 'clipboard-list':
-      return <ClipboardList {...props} />
-    case 'circle-check':
-      return <CircleCheck {...props} />
-    case 'play-circle':
-      return <PlayCircle {...props} />
-    case 'pause-circle':
-      return <PauseCircle {...props} />
-    case 'loader-circle':
-      return <LoaderCircle {...props} />
-    case 'circle-check-big':
-      return <CheckCircle2 {...props} />
-    case 'circle-x':
-      return <XCircle {...props} />
-    case 'circle-dashed':
-      return <CircleDashed {...props} />
-    default:
-      return <FilePlus2 {...props} />
-  }
 }
 
 export default WizardFrame

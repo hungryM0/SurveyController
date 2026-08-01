@@ -72,9 +72,7 @@ function WizardProgress({ currentStep, highestStepIndex, disabled = false, onSte
                 <span className="config-wizard-progress-index" aria-hidden="true">
                   {complete ? <Check size={13} strokeWidth={2.4} /> : index + 1}
                 </span>
-                <span className="config-wizard-progress-copy">
-                  <strong>{step.title}</strong>
-                </span>
+                <strong className="config-wizard-progress-copy">{step.title}</strong>
               </button>
             </li>
           )

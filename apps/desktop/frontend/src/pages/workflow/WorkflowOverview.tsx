@@ -39,7 +39,7 @@ function WorkflowOverview({
 }: WorkflowOverviewProps) {
   const configured = Boolean(dashboard.surveyUrl.trim()) && dashboard.questionCount > 0
   const running = runPhase !== 'idle'
-  const stages = workflowStages(dashboard, runPhase)
+  const stages = workflowStages(dashboard)
   const firstIncompleteStage = stages.findIndex((stage) => !stage.complete)
   const currentStageIndex = firstIncompleteStage < 0 ? stages.length - 1 : firstIncompleteStage
 
@@ -50,7 +50,6 @@ function WorkflowOverview({
           <div className="workspace-header-copy">
             <span className="eyebrow">任务工作区</span>
             <h1>{configured ? dashboard.surveyTitle : '准备一次问卷任务'}</h1>
-            <p>{configured ? '配置已保存。检查下面的任务摘要，然后开始执行。' : '按步骤完成配置，程序会在运行前检查必要设置。'}</p>
           </div>
           <div className="workspace-header-meta">
             <span>{running ? '任务进行中' : canRun ? '配置已就绪' : '需要配置'}</span>
@@ -74,7 +73,6 @@ function WorkflowOverview({
                 <span className="workflow-path-index" aria-hidden="true">{stage.complete ? <Check size={14} strokeWidth={2.4} /> : index + 1}</span>
                 <div>
                   <strong>{stage.label}</strong>
-                  <small>{stage.detail}</small>
                 </div>
               </li>
             ))}
@@ -91,10 +89,10 @@ function WorkflowOverview({
               <ListChecks size={20} aria-hidden="true" />
             </div>
             <div className="workflow-summary-grid">
-              <SummaryCard icon={<FileText size={17} />} label="问卷" value={configured ? dashboard.surveyTitle : '尚未添加'} detail={configured ? `${dashboard.platformLabel} · ${dashboard.questionCount} 道题` : '需要先解析问卷'} />
-              <SummaryCard icon={<Route size={17} />} label="答案" value={configured ? '初始策略' : '尚未生成'} detail={dashboard.questionCount ? `${dashboard.questionCount} 道题已生成初始策略` : '解析后生成策略'} />
-              <SummaryCard icon={<Target size={17} />} label="任务" value={`${dashboard.targetCount} 份 · ${dashboard.threadCount} 路`} detail={dashboard.progressTarget ? '达到目标后自动停止' : '等待任务设置'} />
-              <SummaryCard icon={<Globe2 size={17} />} label="网络" value={dashboard.proxySource || '直连'} detail={dashboard.randomIpEnabled ? '随机 IP 已启用' : '使用当前网络'} />
+              <SummaryCard icon={<FileText size={17} />} label="问卷" value={configured ? dashboard.surveyTitle : '尚未添加'} />
+              <SummaryCard icon={<Route size={17} />} label="答案" value={configured ? '初始策略' : '尚未生成'} />
+              <SummaryCard icon={<Target size={17} />} label="任务" value={`${dashboard.targetCount} 份 · ${dashboard.threadCount} 路`} />
+              <SummaryCard icon={<Globe2 size={17} />} label="网络" value={dashboard.proxySource || '直连'} />
             </div>
             {configured ? (
               <div className="workflow-advanced-links" aria-label="高级编辑">
@@ -140,28 +138,27 @@ function WorkflowOverview({
   )
 }
 
-function SummaryCard({ icon, label, value, detail }: { icon: ReactNode, label: string, value: string, detail: string }) {
+function SummaryCard({ icon, label, value }: { icon: ReactNode, label: string, value: string }) {
   return (
     <article className="workflow-summary-card">
       <div className="workflow-summary-card-head"><span>{icon}</span><small>{label}</small></div>
       <strong title={value}>{value}</strong>
-      <p>{detail}</p>
     </article>
   )
 }
 
-function workflowStages(dashboard: DashboardState, runPhase: RunPhase) {
+function workflowStages(dashboard: DashboardState) {
   const hasSurvey = Boolean(dashboard.surveyUrl.trim()) && dashboard.questionCount > 0
   const answersReady = hasSurvey
   const taskReady = answersReady && dashboard.targetCount > 0 && dashboard.threadCount > 0
   const networkReady = taskReady && Boolean(dashboard.proxySource)
   const runComplete = dashboard.progressTarget > 0 && dashboard.progressCurrent >= dashboard.progressTarget
   return [
-    { label: '问卷', complete: hasSurvey, detail: hasSurvey ? `${dashboard.questionCount} 道题已解析` : '添加链接并解析结构' },
-    { label: '答案', complete: answersReady, detail: hasSurvey ? '已生成初始作答策略' : '解析后自动生成' },
-    { label: '任务', complete: taskReady, detail: `${dashboard.targetCount} 份 · ${dashboard.threadCount} 路并发` },
-    { label: '网络', complete: networkReady, detail: dashboard.randomIpEnabled ? '随机 IP 已启用' : '使用当前网络' },
-    { label: '运行', complete: runComplete, detail: runPhase === 'idle' ? '检查完成后启动' : dashboard.statusText },
+    { label: '问卷', complete: hasSurvey },
+    { label: '答案', complete: answersReady },
+    { label: '任务', complete: taskReady },
+    { label: '网络', complete: networkReady },
+    { label: '运行', complete: runComplete },
   ]
 }
 

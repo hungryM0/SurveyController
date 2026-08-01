@@ -46,7 +46,7 @@ describe('AppRoutes task page', () => {
     const { html } = renderTaskRoute(false)
 
     expect(html).toContain('添加问卷')
-    expect(html).toContain('添加问卷链接后开始配置任务。')
+    expect(html).not.toContain('添加问卷链接后开始配置任务。')
     expect(html).toContain('class="sc-button sc-button-primary"')
     expect(html).not.toContain('WorkflowOverview')
   })
@@ -56,13 +56,13 @@ describe('AppRoutes task page', () => {
 
     expect(html).toContain('继续配置任务')
     expect(html).toContain('继续配置')
-    expect(html).not.toContain('添加问卷链接后开始配置任务。')
+    expect(html).not.toContain('从保留的配置继续完成问卷任务。')
   })
 
   it('renders the wizard when the task flow is open', () => {
     const { html } = renderTaskRoute(true)
 
     expect(html).toContain('config-wizard-workspace')
-    expect(html).not.toContain('添加问卷链接后开始配置任务。')
+    expect(html).not.toContain('从保留的配置继续完成问卷任务。')
   })
 })

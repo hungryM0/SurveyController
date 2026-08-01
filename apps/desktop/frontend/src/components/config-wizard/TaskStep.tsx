@@ -32,14 +32,12 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
     <section className="config-wizard-step config-wizard-task-step" aria-labelledby="config-wizard-task-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-task-title">设置本次任务</h2>
-        <p>先定提交数量和并发，后续步骤仍可返回调整。</p>
       </div>
 
       <div className="config-wizard-form-grid">
         <label className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">目标份数</span>
-            <small>任务达到这个数量后停止。</small>
           </span>
           <InputText
             aria-label="目标份数"
@@ -61,7 +59,6 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">并发数</span>
-            <small>同时处理的问卷数量。网络不稳定时建议调低。</small>
           </span>
           <div className="config-wizard-slider-field">
             <SliderBar
@@ -86,7 +83,6 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">提交间隔</span>
-            <small>每份问卷提交前等待的时间范围。</small>
           </span>
           <div className="config-wizard-slider-field">
             <RangeSliderBar
@@ -107,7 +103,6 @@ function TaskStep({ draft, busy, onChange }: TaskStepProps) {
         <div className="config-wizard-field config-wizard-task-time-window">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">时间窗口</span>
-            <small>限制任务允许提交的日期和时间，留空表示不限制。</small>
           </span>
           <DateTimeWindowField
             disabled={busy}

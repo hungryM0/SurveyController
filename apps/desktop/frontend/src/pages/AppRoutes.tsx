@@ -82,7 +82,6 @@ function TaskEntry({
         <section className="surface table-empty-state">
           <div className="empty-icon" aria-hidden="true"><Icon size={28} strokeWidth={1.8} /></div>
           <h5 id="task-entry-title">{hasDraft ? '继续配置任务' : '添加问卷'}</h5>
-          <p>{hasDraft ? '从保留的配置继续完成问卷任务。' : '添加问卷链接后开始配置任务。'}</p>
           <Button
             type="primary"
             value={hasDraft ? '继续配置' : '添加问卷'}

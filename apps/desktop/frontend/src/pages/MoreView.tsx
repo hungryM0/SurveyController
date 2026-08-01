@@ -135,7 +135,6 @@ function MoreView({
               <GitBranch size={18} />
               <strong>项目仓库</strong>
             </div>
-            <p>主仓库、贡献、提交、问题都在这。</p>
             <div className="more-actions">
               <Button value="打开仓库" icon={<GitBranch size={14} />} onClick={() => void openUrl(MORE_REPO_URL)} />
             </div>
@@ -146,7 +145,6 @@ function MoreView({
               <HeartHandshake size={18} />
               <strong>赞助支持</strong>
             </div>
-            <p>如果这个项目对你有帮助，欢迎请作者喝杯奶茶。</p>
             <div className="more-donate-row">
               <div className="more-donate-card more-donate-wechat">
                 <strong>微信赞赏</strong>
@@ -159,7 +157,6 @@ function MoreView({
                 <span>支付宝扫一扫</span>
               </div>
             </div>
-            <small className="more-thanks-text">感谢每一位支持者，你们的鼓励是持续更新的动力。</small>
           </article>
 
           <article className="surface more-card more-card-update">
@@ -167,7 +164,6 @@ function MoreView({
               <ShieldCheck size={18} />
               <strong>关于</strong>
             </div>
-            <p>Wails v3 + React + Go。当前只维护 Windows 桌面端。</p>
             <div className="more-summary-list">
               {aboutItems.map((item) => (
                 <div key={item.label}>

@@ -10,7 +10,6 @@ export function NoticeField({ field }: NoticeFieldProps) {
     <div className="setting-row notice-setting-row">
       <div className="setting-copy">
         <span>{field.label}</span>
-        {field.description ? <small>{field.description}</small> : null}
       </div>
     </div>
   )
@@ -28,7 +27,6 @@ export function AIConnectionField({ busy, message, onTest }: AIConnectionFieldPr
     <div className="setting-row">
       <div className="setting-copy">
         <span>测试 AI 连接</span>
-        <small>验证 API 配置是否正确。</small>
       </div>
       <div className="custom-proxy-api-field">
         <Button value={busy ? '测试中...' : '测试'} disabled={busy} onClick={onTest} />
@@ -65,7 +63,6 @@ export function ProxyAreaField({ source, value, options, onChange }: ProxyAreaFi
       <div className="setting-row">
         <div className="setting-copy">
           <span>指定地区</span>
-          <small>自定义代理源不使用地区筛选。</small>
         </div>
         <span className="readonly-value">不适用</span>
       </div>
@@ -76,7 +73,6 @@ export function ProxyAreaField({ source, value, options, onChange }: ProxyAreaFi
     <div className="setting-row">
       <div className="setting-copy">
         <span>指定地区</span>
-        <small>{source === 'benefit' ? '限时福利源只支持部分城市。' : '选择省份或城市，留空则不限地区。'}</small>
       </div>
       <div className="range-field proxy-area-field">
         <SelectNative data={provinceItems} value={selected.provinceCode} onChange={(event) => onChange(event.target.value)} />

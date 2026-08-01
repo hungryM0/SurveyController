@@ -15,8 +15,7 @@
 }
 
 .config-wizard-step-heading {
-  display: grid;
-  gap: 0.25rem;
+  display: block;
 }
 
 .config-wizard-step-heading h2 {
@@ -26,8 +25,32 @@
   font-weight: 700;
 }
 
-.config-wizard-step-heading p,
-.config-wizard-hint,
+.config-wizard-workspace.is-survey .config-wizard-survey-step {
+  width: min(100%, 42rem);
+  gap: 1.35rem;
+}
+
+.config-wizard-survey-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.config-wizard-survey-heading h2 {
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+}
+
+.config-wizard-survey-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.config-wizard-survey-actions .sc-button-primary { min-width: 9.25rem; }
+
 .config-wizard-status {
   margin: 0;
   color: var(--muted);
@@ -59,12 +82,6 @@
   font-weight: 650;
 }
 
-.config-wizard-field-copy small {
-  color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
 .config-wizard-field > .sc-input-container,
 .config-wizard-field > .sc-select-trigger,
 .config-wizard-field > .sc-switch-container,
@@ -93,6 +110,14 @@
 }
 
 .config-wizard-url-field .sc-input-container { width: 100%; }
+
+.config-wizard-workspace.is-survey .config-wizard-url-field {
+  gap: 0.6rem;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.config-wizard-workspace.is-survey .config-wizard-url-field .sc-input { font-size: 1rem; }
 
 .config-wizard-custom-proxy-controls {
   display: grid;

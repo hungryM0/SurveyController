@@ -67,7 +67,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
     <section className="config-wizard-step config-wizard-answers-step" aria-labelledby="config-wizard-answers-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-answers-title">设置作答方式</h2>
-        <p>控制整份问卷的作答时长和填空题答案来源。</p>
       </div>
 
       <div className="config-wizard-form-grid">
@@ -84,7 +83,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">作答时长</span>
-            <small>每份问卷会在这个时间范围内完成。</small>
           </span>
           <div className="config-wizard-slider-field">
             <RangeSliderBar
@@ -102,7 +100,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">Excel 反填</span>
-            <small>用表格中的答案生成多份提交，并按题目映射数据列。</small>
           </span>
           <Switch
             aria-label="Excel 反填"
@@ -119,7 +116,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <div className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">反填数据文件</span>
-              <small>{config.reverseFill.sourcePath || '选择包含答案数据的 Excel 文件。'}</small>
             </span>
             <Button
               value={config.reverseFill.sourcePath ? '更换文件' : '选择 Excel'}
@@ -134,7 +130,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">填空题答案</span>
-            <small>AI 只处理填空题。选择题仍按题目策略填写。</small>
           </span>
           <SelectNative
             data={aiModes}
@@ -148,7 +143,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <div className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">AI 服务商</span>
-              <small>配置只保存在本机。</small>
             </span>
             <SelectNative
               data={aiProviders}
@@ -163,7 +157,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <label className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">接口地址</span>
-              <small>填写 OpenAI 兼容接口的基础地址。</small>
             </span>
             <InputText
               aria-label="AI 接口地址"
@@ -180,7 +173,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <label className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">API 密钥</span>
-              <small>{draft.aiProfile.hasAPIKey && draft.credential.operation === 'keep' ? '凭据已保存，留空保持不变。' : '凭据保存在 Windows 凭据管理器。'}</small>
             </span>
             <InputText
               aria-label="AI API 密钥"
@@ -198,7 +190,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
           <label className="config-wizard-field config-wizard-reveal">
             <span className="config-wizard-field-copy">
               <span className="config-wizard-field-label">模型</span>
-              <small>留空时使用服务商默认模型。</small>
             </span>
             <InputText
               aria-label="AI 模型"
@@ -214,7 +205,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">连续失败时停止</span>
-            <small>避免在配置失效后继续消耗任务次数。</small>
           </span>
           <Switch
             aria-label="连续失败时停止"
@@ -230,7 +220,6 @@ function AnswersStep({ draft, busy, onChange, onChooseReverseFill }: AnswersStep
         <div className="config-wizard-field">
           <span className="config-wizard-field-copy">
             <span className="config-wizard-field-label">遇到验证码时暂停</span>
-            <small>检测到阿里云验证码后等待人工处理。</small>
           </span>
           <Switch
             aria-label="遇到验证码时暂停"

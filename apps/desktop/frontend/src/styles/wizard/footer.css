@@ -62,10 +62,6 @@
 }
 
 @media (max-width: 720px) {
-  .config-wizard-header { padding: 0.85rem 0.9rem; }
-  .config-wizard-title { font-size: 1.05rem; }
-  .config-wizard-description { display: none; }
-  .config-wizard-step-count { display: none; }
   .config-wizard-main { padding: 1rem 0.9rem; }
   .config-wizard-field { grid-template-columns: 1fr; gap: 0.55rem; }
   .config-wizard-field > .sc-input-container,
@@ -76,6 +72,10 @@
   .config-wizard-footer-main { align-items: stretch; flex-direction: column; gap: 0.6rem; }
   .config-wizard-footer-actions { justify-content: stretch; }
   .config-wizard-footer-actions > * { flex: 1; }
+  .config-wizard-survey-heading,
+  .config-wizard-survey-actions { align-items: stretch; flex-direction: column; }
+  .config-wizard-survey-heading .sc-button,
+  .config-wizard-survey-actions .sc-button { width: 100%; }
   .config-wizard-discard-confirm { align-items: stretch; flex-direction: column; }
   .config-wizard-discard-actions > * { flex: 1; }
   .config-wizard-review-grid { grid-template-columns: 1fr; }

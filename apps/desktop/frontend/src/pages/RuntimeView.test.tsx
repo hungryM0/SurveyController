@@ -46,7 +46,7 @@ describe('RuntimeView data mapping', () => {
     }))
 
     expect(html).toContain('指定地区')
-    expect(html).toContain('选择省份或城市')
+    expect(html).not.toContain('选择省份或城市')
   })
 
   it('renders Fluent datetime triggers without the native disclosure control', () => {
@@ -69,7 +69,7 @@ describe('RuntimeView data mapping', () => {
 
     expect(html).toContain('自定义代理 API')
     expect(html).toContain('检测')
-    expect(html).toContain('仅支持 JSON 或纯文本返回代理地址')
+    expect(html).not.toContain('仅支持 JSON 或纯文本返回代理地址')
   })
 
   it('keeps reverse fill controls on the reverse fill page', () => {

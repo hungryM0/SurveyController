@@ -25,7 +25,6 @@ function SettingField({ field, onChange }: SettingFieldProps) {
     <div className={`setting-row ${field.kind === 'textarea' ? 'textarea-setting-row' : ''}`}>
       <div className="setting-copy">
         <span>{field.label}</span>
-        {field.description ? <small>{field.description}</small> : null}
       </div>
 
       {field.kind === 'toggle' ? (

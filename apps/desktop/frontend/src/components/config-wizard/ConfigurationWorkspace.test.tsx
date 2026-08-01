@@ -53,7 +53,6 @@ function renderRunFrame(status: RunTaskState['status']) {
       onStepSelect={vi.fn()}
       onBack={vi.fn()}
       onPrimary={vi.fn()}
-      onRequestDismiss={vi.fn()}
       onDismiss={vi.fn()}
       onContinueEditing={vi.fn()}
       runTaskState={{ status, nextSequence: 1, droppedEvents: 0 }}
@@ -74,12 +73,14 @@ describe('ConfigurationWorkspace', () => {
   it('renders the first survey step and the full journey', () => {
     const html = renderWorkspace(true, createTestConfig())
 
-    expect(html).toContain('class="config-wizard-workspace surface"')
-    expect(html).toContain('配置任务')
+    expect(html).toContain('class="config-wizard-workspace surface is-survey"')
     expect(html).toContain('添加要填写的问卷')
     expect(html).toContain('识别二维码')
     expect(html).toContain('导入已有配置')
-    expect(html).toContain('稍后设置')
+    expect(html).not.toContain('稍后设置')
+    expect(html.indexOf('识别二维码')).toBeGreaterThan(html.indexOf('导入已有配置'))
+    expect(html.indexOf('识别二维码')).toBeLessThan(html.indexOf('问卷链接'))
+    expect(html.indexOf('导入已有配置')).toBeGreaterThan(html.indexOf('config-wizard-footer-main'))
     expect(html).toContain('第 2 步：答案')
     expect(html).toContain('第 3 步：任务')
     expect(html).toContain('第 6 步：运行')

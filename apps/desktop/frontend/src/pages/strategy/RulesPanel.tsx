@@ -86,7 +86,6 @@ export function RulesPanel({ config, onConfigChange }: RulesPanelProps) {
             <div className="strategy-empty-state" role="status">
               <div className="strategy-empty-icon" aria-hidden="true"><Activity size={22} /></div>
               <h3>暂无条件规则</h3>
-              <p>添加规则后，题目之间的条件关系会显示在这里。</p>
             </div>
           ) : null}
         </div>

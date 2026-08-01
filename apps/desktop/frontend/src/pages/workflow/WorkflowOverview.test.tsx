@@ -44,7 +44,7 @@ describe('WorkflowOverview', () => {
 
     expect(html).toContain('准备一次问卷任务')
     expect(html).toContain('aria-current="step"')
-    expect(html).toContain('添加链接并解析结构')
+    expect(html).not.toContain('添加链接并解析结构')
     expect(html).toContain('请先输入问卷链接。')
     expect(html).toContain('尚未生成')
     expect(html).not.toContain('高级编辑')

@@ -88,7 +88,6 @@ function RuntimeView({ groups, onFieldChange, onTestAIConnection }: RuntimeViewP
                       <div className="setting-row" key={field.id}>
                         <div className="setting-copy">
                           <span>自定义代理 API</span>
-                          <small>仅支持 JSON 或纯文本返回代理地址。</small>
                         </div>
                         <CustomProxyAPIField value={field.value} onChange={(value) => onFieldChange(field.id, value)} />
                       </div>

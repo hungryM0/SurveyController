@@ -20,7 +20,6 @@ function ReviewStep({ draft, checkState, onReturnToStep }: ReviewStepProps) {
     <section className="config-wizard-step config-wizard-review-step" aria-labelledby="config-wizard-review-title">
       <div className="config-wizard-step-heading">
         <h2 id="config-wizard-review-title">检查配置</h2>
-        <p>保存后回到任务工作区。任务不会自动启动。</p>
       </div>
 
       <div className={`config-wizard-ready-card is-${status}`} role={checkState?.status === 'blocked' ? 'alert' : 'status'}>
