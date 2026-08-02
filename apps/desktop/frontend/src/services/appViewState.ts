@@ -55,8 +55,6 @@ export function createBaseAppViewState(version = __APP_VERSION__): AppViewState 
     communityItems: ['QQ 群交流', '问题反馈', '参与贡献', '开源许可'],
     aboutItems: [
       { label: '版本', value: version },
-      { label: '前端栈', value: 'React + Radix UI + Wails v3' },
-      { label: '桌面壳', value: 'Wails v3' },
     ],
     donateItems: [
       { label: '微信', value: '赞赏码' },

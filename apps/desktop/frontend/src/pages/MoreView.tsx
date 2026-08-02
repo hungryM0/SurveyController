@@ -34,12 +34,12 @@ interface MoreViewProps {
 const DOC_URL = 'https://surveydoc.hungrym0.com/'
 const COPYRIGHT_TEXT = 'Copyright © 2026 HUNGRY_M0. All rights reserved.'
 const CONTRIBUTORS = [
-  { label: '@HUNGRY_M0', url: 'https://github.com/hungryM0' },
-  { label: '@shiahonb777', url: 'https://github.com/shiahonb777' },
-  { label: '@BingBuLiang', url: 'https://github.com/BingBuLiang' },
-  { label: '@dAwn-Rebirth', url: 'https://github.com/dAwn-Rebirth' },
-  { label: '@Moyuin-aka', url: 'https://github.com/Moyuin-aka' },
-  { label: '@qintaiyang', url: 'https://github.com/qintaiyang' },
+  { label: '@HUNGRY_M0', login: 'hungryM0', url: 'https://github.com/hungryM0' },
+  { label: '@shiahonb777', login: 'shiahonb777', url: 'https://github.com/shiahonb777' },
+  { label: '@BingBuLiang', login: 'BingBuLiang', url: 'https://github.com/BingBuLiang' },
+  { label: '@dAwn-Rebirth', login: 'dAwn-Rebirth', url: 'https://github.com/dAwn-Rebirth' },
+  { label: '@Moyuin-aka', login: 'Moyuin-aka', url: 'https://github.com/Moyuin-aka' },
+  { label: '@qintaiyang', login: 'qintaiyang', url: 'https://github.com/qintaiyang' },
 ]
 
 async function openUrl(url: string) {
@@ -178,7 +178,14 @@ function MoreView({
             </div>
             <div className="more-text-list">
               {CONTRIBUTORS.map((item) => (
-                <Button key={item.label} value={item.label} onClick={() => void openUrl(item.url)} />
+                <Button
+                  key={item.label}
+                  className="more-contributor-avatar"
+                  icon={<img src={`https://github.com/${item.login}.png?size=96`} alt={item.label} />}
+                  tooltip={item.label}
+                  aria-label={item.label}
+                  onClick={() => void openUrl(item.url)}
+                />
               ))}
             </div>
             <small className="more-copyright">{COPYRIGHT_TEXT}</small>

@@ -171,19 +171,41 @@
   gap: 0.45rem;
 }
 
+.more-contributor-avatar {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.more-contributor-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .community-text-list,
 .more-summary-list {
   display: grid;
   gap: 0.35rem;
 }
 
-.community-text-list span,
+.community-text-list p,
 .more-summary-list div,
 .more-summary-list .more-empty {
   border-radius: 0.4rem;
   background: var(--surface-soft);
   color: var(--text);
   padding: 0.45rem 0.6rem;
+}
+
+.community-text-list p {
+  margin: 0;
+  line-height: 1.6;
 }
 
 .community-actions,

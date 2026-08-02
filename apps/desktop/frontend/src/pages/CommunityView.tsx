@@ -37,13 +37,10 @@ function CommunityView() {
               <strong>问题反馈</strong>
             </div>
             <div className="community-text-list">
-              <span>GitHub Issues</span>
-              <span>仓库讨论</span>
-              <span>问题跟踪</span>
+              <p>请通过 GitHub Issues 提交可复现的问题，并附上必要的运行环境、操作步骤与错误信息。</p>
             </div>
             <div className="community-actions">
-              <Button value="打开仓库" icon={<ExternalLink size={14} />} onClick={() => void openUrl(COMMUNITY_REPO_URL)} />
-              <Button value="提交 issue" icon={<ExternalLink size={14} />} onClick={() => void openUrl(buildCommunityIssueUrl(COMMUNITY_REPO_URL))} />
+              <Button value="提交 Issue" icon={<ExternalLink size={14} />} onClick={() => void openUrl(buildCommunityIssueUrl(COMMUNITY_REPO_URL))} />
             </div>
           </article>
 
@@ -53,9 +50,7 @@ function CommunityView() {
               <strong>开源许可</strong>
             </div>
             <div className="community-text-list">
-              <span>GPL-3.0 许可证</span>
-              <span>公开相应源代码</span>
-              <span>保留版权声明</span>
+              <p>本程序依据 GNU 通用公共许可证第 3 版发布。分发本程序或其修改版本时，应遵守该许可证的条款，并提供相应源代码及保留适用的版权与许可声明。</p>
             </div>
             <div className="community-actions">
               <Button value="查看许可证" icon={<ExternalLink size={14} />} onClick={() => void openUrl(`${COMMUNITY_REPO_URL}/blob/main/LICENSE`)} />

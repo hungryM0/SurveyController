@@ -21,5 +21,7 @@ describe('CommunityView assets', () => {
   it('renders community page', () => {
     const html = renderToStaticMarkup(<CommunityView />)
     expect(html).toContain('问题反馈')
+    expect(html).toContain('提交 Issue')
+    expect(html).not.toContain('仓库讨论')
   })
 })
