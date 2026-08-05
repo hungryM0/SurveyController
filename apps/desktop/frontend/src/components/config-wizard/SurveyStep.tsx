@@ -1,7 +1,8 @@
 import { CheckCircle2, QrCode, Search, Upload } from 'lucide-react'
-import type { ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent } from 'react'
 import { Button, InputText } from '../ui'
 import type { WizardDraft } from './configWizardModel'
+import { hasPotentialQRImage, supportedQRImageFromTransfer } from './qrImage'
 
 interface SurveyStepProps {
   draft: WizardDraft
@@ -11,6 +12,7 @@ interface SurveyStepProps {
   primaryLabel: string
   onURLChange: (value: string) => void
   onDecodeQRCode: () => void
+  onDecodeQRCodeImage?: (file: File) => void
   onImport: () => void
   onPrimary: () => void
 }
@@ -23,14 +25,60 @@ function SurveyStep({
   primaryLabel,
   onURLChange,
   onDecodeQRCode,
+  onDecodeQRCodeImage,
   onImport,
   onPrimary,
 }: SurveyStepProps) {
+  const [qrDropActive, setQRDropActive] = useState(false)
+  const qrDragDepth = useRef(0)
   const config = draft.config
   const questionCount = config.survey.definition.questions?.length || config.answers.questions?.length || 0
 
+  function decodeTransferredImage(file: File | null, event: { preventDefault: () => void }) {
+    if (!file || busy || !onDecodeQRCodeImage) return
+    event.preventDefault()
+    onDecodeQRCodeImage(file)
+  }
+
+  function handlePaste(event: ClipboardEvent<HTMLElement>) {
+    decodeTransferredImage(supportedQRImageFromTransfer(event.clipboardData), event)
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLElement>) {
+    if (busy || !onDecodeQRCodeImage || !hasPotentialQRImage(event.dataTransfer)) return
+    event.preventDefault()
+    qrDragDepth.current += 1
+    setQRDropActive(true)
+  }
+
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    if (busy || !onDecodeQRCodeImage || !hasPotentialQRImage(event.dataTransfer)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+  }
+
+  function handleDragLeave() {
+    qrDragDepth.current = Math.max(0, qrDragDepth.current - 1)
+    if (qrDragDepth.current === 0) setQRDropActive(false)
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>) {
+    const file = supportedQRImageFromTransfer(event.dataTransfer)
+    qrDragDepth.current = 0
+    setQRDropActive(false)
+    decodeTransferredImage(file, event)
+  }
+
   return (
-    <section className="config-wizard-step config-wizard-survey-step" aria-labelledby="config-wizard-survey-title">
+    <section
+      className={`config-wizard-step config-wizard-survey-step ${qrDropActive ? 'qr-drop-active' : ''}`}
+      aria-labelledby="config-wizard-survey-title"
+      onPaste={handlePaste}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="config-wizard-step-heading config-wizard-survey-heading">
         <h2 id="config-wizard-survey-title">添加要填写的问卷</h2>
         <Button

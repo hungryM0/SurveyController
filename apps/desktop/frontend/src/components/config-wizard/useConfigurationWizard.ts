@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createSurveyDocument,
   decodeQRCode,
+  decodeQRCodeDataURL,
   loadConfigDocument,
   saveConfigDocument,
   saveSettings,
@@ -11,6 +12,7 @@ import type { AICredentialDraft, AIProfileSettings, AppSettings, ConfigDocument 
 import { createWizardDraft, type WizardDraft } from './configWizardModel'
 import { persistSetupWizard } from './setupWizardLifecycle'
 import type { ConfigurationWizardProps, WizardDismissRequest } from './wizardTypes'
+import { readFileAsDataURL } from './qrImage'
 
 interface PersistedSetupWizardState {
   config: ConfigDocument
@@ -204,6 +206,10 @@ export function useConfigurationWizard({
     return await decodeQRCode(path)
   }
 
+  async function decodeWizardQRCodeImage(file: File) {
+    return await decodeQRCodeDataURL(await readFileAsDataURL(file), file.name)
+  }
+
   async function importWizardConfig() {
     const path = await Dialogs.OpenFile({
       Title: '导入配置',
@@ -260,6 +266,7 @@ export function useConfigurationWizard({
     onDismiss: dismissWizard,
     onParseSurvey: createSurveyDocument,
     onDecodeQRCode: decodeWizardQRCode,
+    onDecodeQRCodeImage: decodeWizardQRCodeImage,
     onImportConfig: importWizardConfig,
     onChooseReverseFill: chooseWizardReverseFill,
     onSave: saveWizardDraft,

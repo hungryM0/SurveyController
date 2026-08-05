@@ -21,6 +21,17 @@ import { isNetworkReady } from './viewModels/taskWorkflow'
 import { resolvePageMotion } from './motion'
 import AppRoutes from './pages/AppRoutes'
 import type { AICredentialDraft, AppSettings, ConfigDocument } from './types'
+import type { ReleaseStatus } from './pages/moreViewModel'
+
+const VERSION_BADGES: Record<ReleaseStatus, { label: string; tone: string }> = {
+  idle: { label: '未知', tone: 'unknown' },
+  checking: { label: '未知', tone: 'unknown' },
+  latest: { label: '最新', tone: 'latest' },
+  outdated: { label: '过时', tone: 'outdated' },
+  preview: { label: '预览', tone: 'preview' },
+  unknown: { label: '未知', tone: 'unknown' },
+  error: { label: '未知', tone: 'unknown' },
+}
 
 function App() {
   useEffect(() => {
@@ -36,6 +47,7 @@ function App() {
   const [credential, setCredential] = useState<AICredentialDraft>({ value: '', operation: 'keep' })
   const credentialRef = useRef(credential)
   const [currentPage, setCurrentPage] = useState('task')
+  const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus>('unknown')
   const previousPage = useRef(currentPage)
 
   const polling = useRunTaskPolling({
@@ -215,7 +227,11 @@ function App() {
       <header className="app-titlebar drag-region">
         <div className="brand-block">
           <img className="app-logo" src="/appicon.png" alt="" draggable={false} />
-          <div className="brand-text"><span>{view.appTitle}</span><small>{view.appVersion}</small></div>
+          <div className="brand-text">
+            <span>{view.appTitle}</span>
+            <small>{view.appVersion}</small>
+            <span className={`app-release-badge is-${VERSION_BADGES[releaseStatus].tone}`}>{VERSION_BADGES[releaseStatus].label}</span>
+          </div>
         </div>
         <WindowControls onClose={closeConfirmation.requestClose} />
       </header>
@@ -238,6 +254,7 @@ function App() {
                 editor={editor}
                 wizardProps={taskWizardProps}
                 onOpenTaskWizard={openTaskWizard}
+                onReleaseStatusChange={setReleaseStatus}
               />
             </div>
           </Suspense>

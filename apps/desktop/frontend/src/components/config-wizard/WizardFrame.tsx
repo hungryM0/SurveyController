@@ -23,6 +23,7 @@ interface WizardFrameProps {
   confirmDismiss: boolean
   onURLChange: (value: string) => void
   onDecodeQRCode: () => void
+  onDecodeQRCodeImage?: (file: File) => void
   onImport: () => void
   onChooseReverseFill?: () => Promise<string | null>
   onChange: (draft: WizardDraft) => void
@@ -56,6 +57,7 @@ function WizardFrame({
   confirmDismiss,
   onURLChange,
   onDecodeQRCode,
+  onDecodeQRCodeImage,
   onImport,
   onChooseReverseFill,
   onChange,
@@ -138,6 +140,7 @@ function WizardFrame({
                 primaryLabel={primaryLabel(step, busy, parsed, Boolean(onStartRun), runStatus)}
                 onURLChange={onURLChange}
                 onDecodeQRCode={onDecodeQRCode}
+                onDecodeQRCodeImage={onDecodeQRCodeImage}
                 onImport={onImport}
                 onPrimary={onPrimary}
               />

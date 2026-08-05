@@ -5,6 +5,9 @@ import "strings"
 func pageStateError(htmlText string) error {
 	text := normalizeText(htmlText)
 	compact := strings.ReplaceAll(text, " ", "")
+	if isWeChatClientGate(htmlText) {
+		return ParseError{Message: "该问卷只允许在微信客户端打开，无法通过 HTTP 解析"}
+	}
 	if strings.Contains(text, "已暂停") && (strings.Contains(text, "不能填写") || strings.Contains(text, "问卷已暂停")) {
 		return ParseError{Message: "问卷已暂停，需要前往问卷星后台重新发布"}
 	}
@@ -23,4 +26,10 @@ func pageStateError(htmlText string) error {
 		}
 	}
 	return nil
+}
+
+func isWeChatClientGate(htmlText string) bool {
+	return strings.Contains(htmlText, "请在微信客户端打开链接") &&
+		!strings.Contains(htmlText, "id=\"divQuestion\"") &&
+		!strings.Contains(htmlText, "id='divQuestion'")
 }

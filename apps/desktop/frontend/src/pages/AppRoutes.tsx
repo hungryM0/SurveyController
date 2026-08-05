@@ -5,6 +5,7 @@ import { ConfigurationWorkspace, type ConfigurationWizardProps } from '../compon
 import type { useSettingsActions } from '../hooks/useSettingsActions'
 import type { useWorkspaceEditor } from '../hooks/useWorkspaceEditor'
 import type { AppViewState } from '../types'
+import type { ReleaseStatus } from './moreViewModel'
 
 const CommunityView = lazy(() => import('./CommunityView'))
 const InfoView = lazy(() => import('./InfoView'))
@@ -19,6 +20,7 @@ interface AppRoutesProps {
   editor: ReturnType<typeof useWorkspaceEditor>
   wizardProps: ConfigurationWizardProps
   onOpenTaskWizard: () => void
+  onReleaseStatusChange: (status: ReleaseStatus) => void
 }
 
 function AppRoutes({
@@ -30,6 +32,7 @@ function AppRoutes({
   editor,
   wizardProps,
   onOpenTaskWizard,
+  onReleaseStatusChange,
 }: AppRoutesProps) {
   if (currentPage === 'task') {
     return wizardProps.open
@@ -60,6 +63,7 @@ function AppRoutes({
         donateItems={view.donateItems}
         busy={busy}
         autoCheckUpdate={autoCheckUpdate}
+        onReleaseStatusChange={onReleaseStatusChange}
       />
     )
   }

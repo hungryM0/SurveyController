@@ -27,7 +27,7 @@ describe('MoreView data mapping', () => {
       />,
     )
 
-    expect(html).toContain('本项目仅供学习交流使用')
+    expect(html).not.toContain('本项目仅供学习交流使用')
     expect(html).toContain('微信赞赏')
     expect(html).toContain('支付宝')
     expect(html).not.toContain('IP 使用记录')
@@ -35,6 +35,8 @@ describe('MoreView data mapping', () => {
     expect(html).not.toContain('React + Radix UI + Wails v3')
     expect(html).toContain('GPL-3.0 License')
     expect(html).toContain('https://github.com/hungryM0.png?size=96')
+    expect(html).toContain('https://github.com/shiaho777.png?size=96')
+    expect(html).not.toContain('项目仓库')
     expect(html).toContain('Copyright © 2026 HUNGRY_M0')
   })
 })

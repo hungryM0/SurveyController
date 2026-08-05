@@ -77,6 +77,46 @@
   font-size: 0.78rem;
 }
 
+.brand-text .app-release-badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  padding: 0.12rem 0.42rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.brand-text .app-release-badge.is-latest {
+  border-color: #10b981;
+  background: #10b981;
+  color: #ffffff;
+}
+
+.brand-text .app-release-badge.is-outdated {
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.brand-text .app-release-badge.is-preview {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #1f1f1f;
+}
+
+.brand-text .app-release-badge.is-unknown {
+  border-color: #6b7280;
+  background: #6b7280;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .brand-text .app-release-badge.is-latest { background: #34d399; border-color: #34d399; color: #1f1f1f; }
+:root[data-theme="dark"] .brand-text .app-release-badge.is-outdated { background: #fd3c3c; border-color: #fd3c3c; }
+:root[data-theme="dark"] .brand-text .app-release-badge.is-preview { background: #fbbf24; border-color: #fbbf24; }
+:root[data-theme="dark"] .brand-text .app-release-badge.is-unknown { background: #9ca3af; border-color: #9ca3af; color: #1f1f1f; }
+
 .window-controls {
   display: flex;
   align-self: stretch;

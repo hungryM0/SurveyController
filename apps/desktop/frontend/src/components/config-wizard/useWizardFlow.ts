@@ -20,6 +20,7 @@ export function useWizardFlow({
   onDismiss,
   onParseSurvey,
   onDecodeQRCode,
+  onDecodeQRCodeImage,
   onImportConfig,
   onChooseReverseFill,
   onSave,
@@ -149,31 +150,39 @@ export function useWizardFlow({
 
   async function decodeQRCode() {
     await runAction(async () => {
-      const result = await onDecodeQRCode()
-      const text = typeof result === 'string' ? result : result?.text
-      if (!text) {
-        return
-      }
-      const url = text.trim()
-      const recognized = updateWizardURL(draft, url)
-      const validation = validateWizardStep('survey', recognized, true)
-      if (!validation.valid) {
-        throw new Error(validation.message ?? '二维码中没有有效的问卷链接。')
-      }
-      setParsed(false)
-      const parsedConfig = await onParseSurvey(url)
-      if (!isRealSurveyConfig(parsedConfig)) {
-        throw new Error('解析结果没有有效问卷链接或真实可作答题目。')
-      }
-      const next = mergeParsedConfig(recognized, parsedConfig, url)
-      setDraft(next)
-      setDraftTouched(true)
-      setParsed(true)
-      setCheckState(null)
-      setStatusMessage('二维码已识别，问卷解析完成。')
-      notifyDraftChange(next)
-      moveToStep(wizardNextStep('survey'), true, next)
+      await applyQRCodeResult(await onDecodeQRCode())
     })
+  }
+
+  async function decodeQRCodeImage(file: File) {
+    if (!onDecodeQRCodeImage) return
+    await runAction(async () => {
+      await applyQRCodeResult(await onDecodeQRCodeImage(file))
+    })
+  }
+
+  async function applyQRCodeResult(result: Awaited<ReturnType<typeof onDecodeQRCode>>) {
+    const text = typeof result === 'string' ? result : result?.text
+    if (!text) return
+    const url = text.trim()
+    const recognized = updateWizardURL(draft, url)
+    const validation = validateWizardStep('survey', recognized, true)
+    if (!validation.valid) {
+      throw new Error(validation.message ?? '二维码中没有有效的问卷链接。')
+    }
+    setParsed(false)
+    const parsedConfig = await onParseSurvey(url)
+    if (!isRealSurveyConfig(parsedConfig)) {
+      throw new Error('解析结果没有有效问卷链接或真实可作答题目。')
+    }
+    const next = mergeParsedConfig(recognized, parsedConfig, url)
+    setDraft(next)
+    setDraftTouched(true)
+    setParsed(true)
+    setCheckState(null)
+    setStatusMessage('二维码已识别，问卷解析完成。')
+    notifyDraftChange(next)
+    moveToStep(wizardNextStep('survey'), true, next)
   }
 
   async function importConfig() {
@@ -354,6 +363,7 @@ export function useWizardFlow({
     confirmDismiss,
     onURLChange: updateURL,
     onDecodeQRCode: () => void decodeQRCode(),
+    onDecodeQRCodeImage: onDecodeQRCodeImage ? (file) => void decodeQRCodeImage(file) : undefined,
     onImport: () => void importConfig(),
     onChooseReverseFill: onChooseReverseFill ? async () => {
       try {

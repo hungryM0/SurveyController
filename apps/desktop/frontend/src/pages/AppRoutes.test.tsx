@@ -33,6 +33,7 @@ function renderTaskRoute(open: boolean, url = '') {
     editor: {} as ComponentProps<typeof AppRoutes>['editor'],
     wizardProps: createWizardProps(open, url),
     onOpenTaskWizard,
+    onReleaseStatusChange: vi.fn(),
   }
 
   return {

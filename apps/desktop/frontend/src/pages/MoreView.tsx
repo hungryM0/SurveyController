@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { GitBranch, Globe, HeartHandshake, RotateCcw, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { Globe, HeartHandshake, RotateCcw, ShieldCheck } from 'lucide-react'
 import { Browser } from '@wailsio/runtime'
 import { Button } from '../components/ui'
 import type { PageMetric } from '../types'
@@ -12,7 +12,6 @@ import {
   emptyReleaseInfo,
   errorReleaseInfo,
   MORE_RELEASES_URL,
-  MORE_REPO_URL,
   releaseStatusText,
   shouldAutoCheckRelease,
   WINDOWS_STABLE_FEED_URL,
@@ -20,6 +19,7 @@ import {
   type StableReleaseManifest,
   type VelopackFeedPayload,
   type ReleaseInfo,
+  type ReleaseStatus,
 } from './moreViewModel'
 
 interface MoreViewProps {
@@ -29,13 +29,14 @@ interface MoreViewProps {
   donateItems?: PageMetric[]
   busy?: boolean
   autoCheckUpdate?: boolean
+  onReleaseStatusChange?: (status: ReleaseStatus) => void
 }
 
 const DOC_URL = 'https://surveydoc.hungrym0.com/'
 const COPYRIGHT_TEXT = 'Copyright © 2026 HUNGRY_M0. All rights reserved.'
 const CONTRIBUTORS = [
   { label: '@HUNGRY_M0', login: 'hungryM0', url: 'https://github.com/hungryM0' },
-  { label: '@shiahonb777', login: 'shiahonb777', url: 'https://github.com/shiahonb777' },
+  { label: '@shiaho777', login: 'shiaho777', url: 'https://github.com/shiaho777' },
   { label: '@BingBuLiang', login: 'BingBuLiang', url: 'https://github.com/BingBuLiang' },
   { label: '@dAwn-Rebirth', login: 'dAwn-Rebirth', url: 'https://github.com/dAwn-Rebirth' },
   { label: '@Moyuin-aka', login: 'Moyuin-aka', url: 'https://github.com/Moyuin-aka' },
@@ -55,10 +56,15 @@ function MoreView({
   aboutItems,
   busy = false,
   autoCheckUpdate = true,
+  onReleaseStatusChange,
 }: MoreViewProps) {
   const [release, setRelease] = useState<ReleaseInfo>(() => emptyReleaseInfo(version))
   const [refreshTick, setRefreshTick] = useState(0)
   const [termsOpen, setTermsOpen] = useState(false)
+
+  useEffect(() => {
+    onReleaseStatusChange?.(release.status)
+  }, [onReleaseStatusChange, release.status])
 
   useEffect(() => {
     let ignore = false
@@ -104,15 +110,7 @@ function MoreView({
   return (
     <section className="page scroll-page workspace-page">
       <div className="content-stack more-layout">
-        <PageHeader title="关于" meta={<div className="more-version-card">
-            <span>当前版本</span>
-            <strong>{version}</strong>
-            <small>{release.message}</small>
-          </div>} />
-        <section className="more-warning-bar">
-          <TriangleAlert size={17} />
-          <span>本项目仅供学习交流使用，开源以供研究软件原理，禁止用于任何恶意滥用行为。</span>
-        </section>
+        <PageHeader title="关于" />
 
         <section className="more-grid">
           <article className="surface more-card">
@@ -127,16 +125,6 @@ function MoreView({
             <div className="more-actions">
               <Button value="下载安装包" icon={<Globe size={14} />} onClick={() => void openUrl(release.htmlUrl || MORE_RELEASES_URL)} />
               <Button value="重新检查" icon={<RotateCcw size={14} />} disabled={busy || release.status === 'checking'} onClick={() => setRefreshTick((value) => value + 1)} />
-            </div>
-          </article>
-
-          <article className="surface more-card">
-            <div className="more-card-head">
-              <GitBranch size={18} />
-              <strong>项目仓库</strong>
-            </div>
-            <div className="more-actions">
-              <Button value="打开仓库" icon={<GitBranch size={14} />} onClick={() => void openUrl(MORE_REPO_URL)} />
             </div>
           </article>
 

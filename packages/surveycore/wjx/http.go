@@ -13,6 +13,7 @@ import (
 )
 
 const defaultUserAgent = "Mozilla/5.0 (Linux; Android 12; SurveyController) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36 MicroMessenger/8.0"
+const maxHTMLFetchAttempts = 3
 
 func httpClientOrDefault(client *http.Client) httpDoer {
 	if client != nil {
@@ -22,14 +23,27 @@ func httpClientOrDefault(client *http.Client) httpDoer {
 }
 
 func (p Parser) getHTML(ctx context.Context, surveyURL string) (string, error) {
+	client := httpClientOrDefault(p.Client)
+	for attempt := 1; ; attempt++ {
+		htmlText, err := fetchHTML(ctx, client, surveyURL, p.UserAgent)
+		if err != nil {
+			return "", err
+		}
+		if !isWeChatClientGate(htmlText) || attempt >= maxHTMLFetchAttempts {
+			return htmlText, nil
+		}
+	}
+}
+
+func fetchHTML(ctx context.Context, client httpDoer, surveyURL string, userAgent string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, surveyURL, nil)
 	if err != nil {
 		return "", err
 	}
-	for key, value := range requestHeaders(surveyURL, p.UserAgent) {
+	for key, value := range requestHeaders(surveyURL, userAgent) {
 		req.Header.Set(key, value)
 	}
-	resp, err := httpClientOrDefault(p.Client).Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

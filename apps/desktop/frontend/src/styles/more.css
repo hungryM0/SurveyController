@@ -32,48 +32,6 @@
   line-height: 1.6;
 }
 
-.more-version-card {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 13rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.85rem;
-  background: var(--surface-soft);
-  box-shadow: var(--shadow);
-}
-
-.more-version-card span,
-.more-version-card small {
-  color: var(--muted);
-  font-size: 0.76rem;
-}
-
-.more-version-card strong {
-  color: var(--text);
-  font-size: 1.08rem;
-}
-
-.more-warning-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid rgba(196, 43, 28, 0.22);
-  border-radius: 0.85rem;
-  background:
-    radial-gradient(circle at top left, rgba(255, 185, 0, 0.18), transparent 58%),
-    rgba(255, 244, 206, 0.56);
-  color: #8a3b00;
-}
-
-[data-theme="dark"] .more-warning-bar {
-  background:
-    radial-gradient(circle at top left, rgba(255, 185, 0, 0.18), transparent 58%),
-    rgba(59, 42, 0, 0.34);
-  color: #ffd98a;
-}
-
 .community-grid,
 .more-grid {
   display: grid;
@@ -110,15 +68,17 @@
 
 .community-qr,
 .more-donate-card img {
-  width: 100%;
+  width: min(14rem, 100%);
+  max-height: 14rem;
   border-radius: 0.65rem;
-  object-fit: cover;
+  object-fit: contain;
   box-shadow: var(--shadow);
 }
 
 .more-donate-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: start;
   gap: 0.75rem;
 }
 
@@ -128,6 +88,7 @@
   gap: 0.55rem;
   justify-items: center;
   padding: 0.85rem;
+  max-width: 18rem;
   border: 1px solid var(--line);
   border-radius: 0.8rem;
   background: var(--surface-soft);
@@ -211,8 +172,14 @@
 .community-actions,
 .more-actions {
   display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.more-actions .sc-button {
+  flex: 0 0 auto;
+  width: auto;
 }
 
 .community-layout,
@@ -229,11 +196,12 @@
   align-content: start;
 }
 
-.more-card:nth-child(3) {
-  grid-column: 1;
+.more-card:nth-child(2) {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }
 
-.more-card:nth-child(4) {
+.more-card:nth-child(3) {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
 }

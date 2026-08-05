@@ -26,6 +26,7 @@ export interface ConfigurationWizardProps {
   onDismiss: () => void
   onParseSurvey: (url: string) => Promise<ConfigDocument>
   onDecodeQRCode: () => Promise<WizardQRCodeResult>
+  onDecodeQRCodeImage?: (file: File) => Promise<WizardQRCodeResult>
   onImportConfig: () => Promise<WizardImportResult>
   onChooseReverseFill?: () => Promise<string | null>
   onSave: (draft: WizardDraft) => Promise<WizardSaveResult>

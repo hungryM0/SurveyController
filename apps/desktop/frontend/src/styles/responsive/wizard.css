@@ -34,5 +34,7 @@
 @media (prefers-reduced-motion: reduce) {
   .config-wizard-step,
   .config-wizard-reveal { animation: none; }
+  .config-wizard-survey-step,
+  .config-wizard-survey-step.qr-drop-active::after { animation: none; transition: none; }
   .config-wizard-progress button { transition: none; }
 }
