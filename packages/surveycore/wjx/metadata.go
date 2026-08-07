@@ -150,9 +150,10 @@ func logicMetadata(div *nethtml.Node, questionNum int, optionTexts []string) (bo
 		optionIndex := optionIndexForNode(node, optionTexts)
 		jumpRules = append(jumpRules, model.JumpRule{OptionIndex: optionIndex, TargetQuestion: target, OptionText: optionTextAt(optionTexts, optionIndex)})
 	}
-	hasDisplay := isHidden(div) || strings.TrimSpace(attr(div, "relation")) != ""
+	relation := strings.TrimSpace(attr(div, "relation"))
+	hasDisplay := relation != "" && relation != "-1"
 	displayConditions := make([]model.DisplayCondition, 0)
-	if relation := strings.TrimSpace(attr(div, "relation")); relation != "" && relation != "-1" {
+	if hasDisplay {
 		displayConditions = append(displayConditions, model.DisplayCondition{QuestionNum: intValue(relation), Mode: "selected", OptionIndices: []int{}})
 	}
 	hasLogic := len(jumpRules) > 0 || hasDisplay

@@ -118,6 +118,18 @@ func (m *runManager) finish(runID string, result *surveycore.RunResult, runErr e
 		return m.snapshotLocked(RunTaskStateRequest{})
 	}
 	done := m.done
+	if runErr != nil && m.logSink != nil && m.logErr == nil {
+		event := surveycore.Event{
+			Worker:  "core",
+			Message: "任务失败：" + runErr.Error(),
+			Fail:    true,
+			Time:    endedAt,
+		}
+		m.events.append(RunTaskEvent{Event: event})
+		if err := m.logSink.write(event); err != nil {
+			m.logErr = err
+		}
+	}
 	if m.logSink != nil {
 		if err := m.logSink.close(); err != nil && m.logErr == nil {
 			m.logErr = err

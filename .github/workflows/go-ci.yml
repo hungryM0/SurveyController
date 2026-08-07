@@ -27,36 +27,11 @@ jobs:
       - name: Test core modules
         run: go test ./packages/proxycore/... ./packages/surveycore/...
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: Install frontend dependencies
-        working-directory: apps/desktop/frontend
-        run: bun install --frozen-lockfile
-
-      - name: Build frontend
-        working-directory: apps/desktop/frontend
-        run: bun run build
-
       - name: Test desktop module
         working-directory: apps/desktop
         run: go test ./...
 
-  frontend-test:
-    name: Frontend tests
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: Install frontend dependencies
-        working-directory: apps/desktop/frontend
-        run: bun install --frozen-lockfile
-
-      - name: Test frontend
-        working-directory: apps/desktop/frontend
-        run: bun run test
+      - name: Build native WinUI shell
+        working-directory: apps/desktop
+        shell: pwsh
+        run: ./build/native.ps1 -Action build -Configuration Release

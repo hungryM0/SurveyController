@@ -1,0 +1,40 @@
+<Page
+    x:Class="SurveyController.App.MorePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Padding="22,18,22,28" RowSpacing="14">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <TextBlock FontSize="28" FontWeight="SemiBold" Text="关于" />
+            <Grid Grid.Row="1" ColumnSpacing="14">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="0.38*" /><ColumnDefinition Width="0.62*" /></Grid.ColumnDefinitions>
+                <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="16">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="更新检查" />
+                        <TextBlock x:Name="UpdateStatus" MinHeight="48" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="点击按钮检查新版本" />
+                        <StackPanel Orientation="Horizontal" Spacing="8"><Button Content="下载安装包" Click="OnOpenDownload" /><Button Content="重新检查" Click="OnCheckUpdate" /></StackPanel>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="关于" />
+                        <Border Padding="10,7" Background="{ThemeResource ControlFillColorDefaultBrush}" CornerRadius="4"><TextBlock Text="版本 5.0.0" /></Border>
+                        <Border Padding="10,7" Background="{ThemeResource ControlFillColorDefaultBrush}" CornerRadius="4"><TextBlock Text="License GPL-3.0 License" /></Border>
+                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Copyright © 2026 HUNGRY_M0. All rights reserved." />
+                        <StackPanel Orientation="Horizontal" Spacing="8"><Button Content="查看文档" Click="OnOpenDocs" /><Button Content="查看协议" Click="OnOpenTerms" /></StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <Border Grid.Row="2" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="赞助支持" />
+                    <Grid ColumnSpacing="28">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <StackPanel HorizontalAlignment="Center" Spacing="8"><TextBlock HorizontalAlignment="Center" Foreground="#18A85B" FontSize="17" FontWeight="SemiBold" Text="微信赞赏" /><Border Padding="10" Background="White" CornerRadius="10"><Image Width="220" Height="220" Source="ms-appx:///Assets/WeDonate.png" Stretch="Uniform" /></Border></StackPanel>
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="8"><TextBlock HorizontalAlignment="Center" Foreground="#1677FF" FontSize="17" FontWeight="SemiBold" Text="支付宝" /><Border Padding="10" Background="White" CornerRadius="10"><Image Width="220" Height="220" Source="ms-appx:///Assets/AliDonate.jpg" Stretch="Uniform" /></Border></StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Page>

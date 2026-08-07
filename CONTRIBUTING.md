@@ -2,7 +2,7 @@
 
 开始前请先阅读 [行为准则](CODE_OF_CONDUCT.md)。
 
-本分支以 Go+Wails 重构为主线。旧 Python 运行链路已移除。
+本分支以 Go 后端 + C++/WinUI 3 原生桌面壳为主线。旧 Python、Wails 和 React 前端链路已移除。
 
 ## 开发环境
 
@@ -11,8 +11,8 @@
 - Windows 10/11
 - Go 1.26.5 或更新版本
 - Git
-- Wails v3（只在开发 Wails 应用壳时需要）
-- Bun（用于前端依赖、开发、测试和桌面构建编排）
+- Visual Studio Build Tools 2026，包含 MSVC v145、MSBuild 和 Windows SDK 10.0.26100
+- Bun（用于桌面构建脚本）
 
 当前只维护 Windows 桌面端和 Windows 安装包。
 
@@ -38,13 +38,11 @@ go test ./...
 
 ```bash
 cd apps/desktop
-bun run desktop:dev
 bun run desktop:build
-bun run desktop:bindings
 bun run desktop:package
 ```
 
-桌面构建由 `apps/desktop/build/` 下的 Bun TypeScript 脚本负责。`apps/desktop/build/config.yml` 保存 Wails 开发配置和资源元数据。
+桌面构建由 `apps/desktop/build/` 下的 Bun TypeScript 脚本和 PowerShell 脚本负责。`apps/desktop/build/config.yml` 保存版本和发布元数据。
 
 ## 目录边界
 
@@ -60,7 +58,7 @@ bun run desktop:package
 | README 和图片资源 | `assets/` |
 
 不要把平台实现塞进通用根包。
-不要把 Wails 服务、任务持久化、代理池混进 `surveycore`。
+不要把桌面服务、任务持久化、代理池混进 `surveycore`。
 不要把 UI 状态和弹窗逻辑搬进 Go 核心库。
 
 ## 代码要求
@@ -70,7 +68,7 @@ bun run desktop:package
 - Go 核心使用显式配置、`context.Context`、接口和 fake 测试。
 - 普通单测不访问真实问卷、真实账号、真实付费代理。
 - 真实链路验证必须显式环境变量开启，并放到独立 live/integration 流程。
-- Wails WebView 只做桌面 UI，不承担问卷提交自动化。
+- WinUI 3 只做桌面 UI，不承担问卷提交自动化。
 
 ## PR 要求
 

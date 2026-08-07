@@ -1,0 +1,36 @@
+<Page
+    x:Class="SurveyController.App.CommunityPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Padding="22,18,22,28" RowSpacing="14">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="186" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <TextBlock FontSize="28" FontWeight="SemiBold" Text="社区" />
+            <Border Grid.Row="1" Padding="22" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <TextBlock VerticalAlignment="Center" FontSize="21" FontWeight="SemiBold" Text="QQ 群交流" />
+                    <Border HorizontalAlignment="Right" Padding="8" Background="White" CornerRadius="10">
+                        <Image Width="128" Height="128" Source="ms-appx:///Assets/community_qr.png" Stretch="Uniform" />
+                    </Border>
+                </Grid>
+            </Border>
+            <Grid Grid.Row="2" ColumnSpacing="14">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="14">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="问题反馈" />
+                        <TextBlock TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="请通过 GitHub Issues 提交可复现的问题，并附上必要的运行环境、操作步骤与错误信息。" />
+                        <Button HorizontalAlignment="Left" Content="提交 Issue" Click="OnOpenIssues" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="14">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="开源许可" />
+                        <TextBlock TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="本程序依据 GNU 通用公共许可证第 3 版发布。分发本程序或其修改版本时，应遵守该许可证条款，并提供相应源代码及保留适用的版权与许可声明。" />
+                        <Button HorizontalAlignment="Left" Content="查看许可证" Click="OnOpenLicense" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>

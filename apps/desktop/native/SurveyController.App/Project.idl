@@ -1,0 +1,39 @@
+namespace SurveyController.App
+{
+    [default_interface]
+    runtimeclass MainWindow : Microsoft.UI.Xaml.Window
+    {
+        MainWindow();
+    }
+
+    [default_interface]
+    runtimeclass TaskPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        TaskPage();
+    }
+
+    [default_interface]
+    runtimeclass StrategyEditor : Microsoft.UI.Xaml.Controls.UserControl
+    {
+        StrategyEditor();
+        void Refresh();
+    }
+
+    [default_interface]
+    runtimeclass SettingsPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        SettingsPage();
+    }
+
+    [default_interface]
+    runtimeclass CommunityPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        CommunityPage();
+    }
+
+    [default_interface]
+    runtimeclass MorePage : Microsoft.UI.Xaml.Controls.Page
+    {
+        MorePage();
+    }
+}

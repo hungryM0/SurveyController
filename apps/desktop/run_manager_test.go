@@ -98,6 +98,27 @@ func TestRunManagerLogFailureFailsTask(t *testing.T) {
 	}
 }
 
+func TestRunManagerPersistsFinalRunError(t *testing.T) {
+	sink := &trackingRunEventSink{}
+	manager := newRunManager()
+	_, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if _, err := manager.start("run-error", time.Now(), cancel, newRunPauseController(), sink); err != nil {
+		t.Fatal(err)
+	}
+
+	state := manager.finish("run-error", nil, errors.New("提交被拒绝：验证码错误"), time.Now())
+	if state.Status != RunTaskStatusFailed || state.Error != "提交被拒绝：验证码错误" {
+		t.Fatalf("state = %#v", state)
+	}
+	if got := sink.lastMessage(); got != "任务失败：提交被拒绝：验证码错误" {
+		t.Fatalf("last log message = %q", got)
+	}
+	if len(state.Events) != 1 || state.Events[0].Event.Message != "任务失败：提交被拒绝：验证码错误" {
+		t.Fatalf("events = %#v", state.Events)
+	}
+}
+
 func TestRunManagerShutdownCancelsAndWaitsForFinish(t *testing.T) {
 	sink := &trackingRunEventSink{}
 	manager := newRunManager()
@@ -239,9 +260,13 @@ type blockingRunEventSink struct {
 type trackingRunEventSink struct {
 	mu         sync.Mutex
 	closeCalls int
+	events     []surveycore.Event
 }
 
-func (*trackingRunEventSink) write(surveycore.Event) error {
+func (s *trackingRunEventSink) write(event surveycore.Event) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.events = append(s.events, event)
 	return nil
 }
 
@@ -256,6 +281,15 @@ func (s *trackingRunEventSink) closedCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.closeCalls
+}
+
+func (s *trackingRunEventSink) lastMessage() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.events) == 0 {
+		return ""
+	}
+	return s.events[len(s.events)-1].Message
 }
 
 func (s *blockingRunEventSink) write(surveycore.Event) error {

@@ -1,5 +1,5 @@
 # 桌面端构建配置
-# 修改 `info.version` 后运行 `bun run desktop:build` 同步 Windows 版本元数据。
+# 修改 `info.version` 后运行 `bun run desktop:build`。
 version: '3'
 
 # 这些信息用于生成构建资源。
@@ -11,31 +11,3 @@ info:
   copyright: "(c) 2026, HUNGRY_M0" # 版权文本
   comments: "适用于问卷星、腾讯问卷、见数平台的高并发提交程序" # 备注
   version: "5.0.0" # 应用版本号
-
-dev_mode:
-  root_path: .
-  log_level: warn
-  debounce: 1000
-  ignore:
-    dir:
-      - .git
-      - node_modules
-      - frontend
-      - bin
-    file:
-      - .DS_Store
-      - .gitignore
-      - .gitkeep
-      - "*_test.go"
-    watched_extension:
-      - "*.go"
-      - "*.js"
-      - "*.ts"
-    git_ignore: true
-  executes:
-    - cmd: bun build/scripts/dev.ts dev-build
-      type: blocking
-    - cmd: bun build/scripts/dev.ts frontend-dev
-      type: background
-    - cmd: bun build/scripts/dev.ts run
-      type: primary

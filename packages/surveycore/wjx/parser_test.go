@@ -82,6 +82,27 @@ func TestParseDefinitionMetadataFields(t *testing.T) {
 	}
 }
 
+func TestParseDefinitionDoesNotTreatRelationMinusOneAsDisplayLogic(t *testing.T) {
+	definition, err := ParseDefinitionFromHTML(`
+<html><head><title>普通题 - 问卷星</title></head><body>
+<div id="divQuestion"><fieldset>
+  <div topic="10" id="div10" type="3" req="1" style="display:none" relation="-1">
+    <div class="topichtml">10. 标题</div>
+    <div class="ui-controlgroup"><div><span class="label">选项1</span></div><div><span class="label">选项2</span></div></div>
+  </div>
+</fieldset></div></body></html>`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(definition.Questions) != 1 {
+		t.Fatalf("question count = %d", len(definition.Questions))
+	}
+	question := definition.Questions[0]
+	if question.HasDisplayCondition || len(question.DisplayConditions) != 0 || question.LogicStatus != "none" {
+		t.Fatalf("question logic = %#v", question.QuestionLogic)
+	}
+}
+
 func TestParserFetchesHTML(t *testing.T) {
 	server := newWJXTestServer(t, true)
 	defer server.Close()

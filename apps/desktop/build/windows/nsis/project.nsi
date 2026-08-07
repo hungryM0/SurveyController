@@ -1,89 +1,94 @@
-﻿Unicode true
-
-!include "wails_tools.nsh"
-
-VIProductVersion "${INFO_PRODUCTVERSION}.0"
-VIFileVersion    "${INFO_PRODUCTVERSION}.0"
-
-VIAddVersionKey "CompanyName"     "${INFO_COMPANYNAME}"
-VIAddVersionKey "FileDescription" "${INFO_PRODUCTNAME} Installer"
-VIAddVersionKey "ProductVersion"  "${INFO_PRODUCTVERSION}"
-VIAddVersionKey "FileVersion"     "${INFO_PRODUCTVERSION}"
-VIAddVersionKey "LegalCopyright"  "${INFO_COPYRIGHT}"
-VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
-
-ManifestDPIAware true
+Unicode true
 
 !include "MUI.nsh"
+!include "LogicLib.nsh"
+!include "WinVer.nsh"
+!include "FileFunc.nsh"
+!include "x64.nsh"
 
+!ifndef ARG_NATIVE_PAYLOAD
+    !error "ARG_NATIVE_PAYLOAD is required"
+!endif
+!ifndef ARG_INSTALLER_OUTPUT
+    !error "ARG_INSTALLER_OUTPUT is required"
+!endif
+
+!define PRODUCT_EXECUTABLE "SurveyController.exe"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\SurveyController"
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
-!define SURVEYCONTROLLER_LICENSE_BEFORE "..\..\..\..\..\Setup\LICENSE\before_install.txt"
-!define SURVEYCONTROLLER_LICENSE_AFTER "..\..\..\..\..\Setup\LICENSE\after_install.txt"
-!define MUI_FINISHPAGE_NOAUTOCLOSE # Wait on the INSTFILES page so the user can take a look into the details of the installation steps
-!define MUI_FINISHPAGE_SHOWREADME "$PLUGINSDIR\after_install.txt"
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "显示安装说明"
-!define MUI_ABORTWARNING # This will warn the user if they exit from the installer.
-!define WAILS_WIN10_REQUIRED "本程序仅支持 Windows 10、Windows Server 2016 或更新版本。"
-!define WAILS_ARCHITECTURE_NOT_SUPPORTED "当前 Windows 架构不支持安装本程序。支持架构：${ARCH}"
-!define WAILS_INSTALL_WEBVIEW_DETAILPRINT "正在安装：WebView2 Runtime"
-
-!insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
-!insertmacro MUI_PAGE_LICENSE "${SURVEYCONTROLLER_LICENSE_BEFORE}" # Terms shown before installation.
-!insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
-!insertmacro MUI_PAGE_INSTFILES # Installing page.
-!insertmacro MUI_PAGE_FINISH # Finished installation page.
-
-!insertmacro MUI_UNPAGE_INSTFILES # Uninstalling page
-
-!insertmacro MUI_LANGUAGE "SimpChinese" # Set the Language of the installer
-
+!define MUI_ABORTWARNING
 
 Name "${INFO_PRODUCTNAME}"
-OutFile "..\..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
-!if "${WAILS_INSTALL_SCOPE}" == "user"
-    InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
-!else
-    InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
-!endif
-ShowInstDetails show # This will always show the installation details.
+OutFile "${ARG_INSTALLER_OUTPUT}"
+InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
+InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
+RequestExecutionLevel user
+ManifestDPIAware true
+SetCompressor /SOLID lzma
+SetCompressorDictSize 64
+ShowInstDetails show
+ShowUninstDetails show
+
+VIProductVersion "${INFO_PRODUCTVERSION}.0"
+VIFileVersion "${INFO_PRODUCTVERSION}.0"
+VIAddVersionKey "CompanyName" "${INFO_COMPANYNAME}"
+VIAddVersionKey "FileDescription" "${INFO_PRODUCTNAME} 安装程序"
+VIAddVersionKey "ProductVersion" "${INFO_PRODUCTVERSION}"
+VIAddVersionKey "FileVersion" "${INFO_PRODUCTVERSION}"
+VIAddVersionKey "LegalCopyright" "${INFO_COPYRIGHT}"
+VIAddVersionKey "ProductName" "${INFO_PRODUCTNAME}"
+
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_LANGUAGE "SimpChinese"
 
 Function .onInit
-   !insertmacro wails.checkArchitecture
-   InitPluginsDir
-   File /oname=$PLUGINSDIR\after_install.txt "${SURVEYCONTROLLER_LICENSE_AFTER}"
+    ${IfNot} ${IsNativeAMD64}
+        MessageBox MB_OK|MB_ICONSTOP "本安装包只支持 64 位 Windows。"
+        SetErrorLevel 65
+        Quit
+    ${EndIf}
+    ${IfNot} ${AtLeastBuild} 19045
+        MessageBox MB_OK|MB_ICONSTOP "SurveyController 需要 Windows 10 22H2（build 19045）或 Windows 11。"
+        SetErrorLevel 64
+        Quit
+    ${EndIf}
 FunctionEnd
 
-Section
-    !insertmacro wails.setShellContext
+Section "安装"
+    SetShellVarContext current
+    RMDir /r "$INSTDIR"
+    SetOutPath "$INSTDIR"
+    File /r "${ARG_NATIVE_PAYLOAD}\*.*"
 
-    !insertmacro wails.webview2runtime
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+    CreateDirectory "$SMPROGRAMS\SurveyController"
+    CreateShortcut "$SMPROGRAMS\SurveyController\SurveyController.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    CreateShortcut "$DESKTOP\SurveyController.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 
-    SetOutPath $INSTDIR
-
-    !insertmacro wails.files
-
-    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
-    CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
-
-    !insertmacro wails.associateFiles
-    !insertmacro wails.associateCustomProtocols
-
-    !insertmacro wails.writeUninstaller
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${INFO_PRODUCTNAME}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${INFO_PRODUCTVERSION}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "${INFO_COMPANYNAME}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
+    WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoModify" 1
+    WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoRepair" 1
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    WriteRegDWORD HKCU "${UNINSTALL_KEY}" "EstimatedSize" $0
 SectionEnd
 
-Section "uninstall"
-    !insertmacro wails.setShellContext
-
-    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
-
-    RMDir /r $INSTDIR
-
-    Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
-    Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
-
-    !insertmacro wails.unassociateFiles
-    !insertmacro wails.unassociateCustomProtocols
-
-    !insertmacro wails.deleteUninstaller
+Section "Uninstall"
+    SetShellVarContext current
+    Delete "$SMPROGRAMS\SurveyController\SurveyController.lnk"
+    RMDir "$SMPROGRAMS\SurveyController"
+    Delete "$DESKTOP\SurveyController.lnk"
+    DeleteRegKey HKCU "${UNINSTALL_KEY}"
+    RMDir /r "$INSTDIR"
 SectionEnd

@@ -3,8 +3,8 @@ name: SurveyController Windows Desktop
 purpose: Windows 问卷自动化桌面端的统一设计契约
 product: 工具型桌面端应用
 platform: Windows desktop
-stack: React + TypeScript + Wails v3 + Radix UI
-source_of_truth: apps/desktop/frontend/src/style.css and apps/desktop/frontend/src/styles/
+stack: C++20 + C++/WinRT + WinUI 3 + Windows App SDK
+source_of_truth: apps/desktop/native/SurveyController.App/Views/ and XAML resources
 breakpoints:
   compact: '< 720px'
   desktop: '>= 720px'
@@ -147,8 +147,8 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 ### 桌面壳
 
 - 标题栏、侧边导航和工作区保持固定层级。
-- 页面内容放在 `apps/desktop/frontend/src/pages/`。
-- 导航宽度、标题栏高度和工作区间距使用 `src/styles/base.css` 中的变量。
+- 页面内容放在 `apps/desktop/native/SurveyController.App/Views/`。
+- 导航宽度、标题栏高度和工作区间距使用 XAML ResourceDictionary 中的资源。
 - 卡片只承担一个清晰分组，不把互不相关的设置塞进同一张卡片。
 
 ### 表单页
@@ -162,13 +162,13 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 - 弹层从触发控件附近展开，保持触发上下文。
 - 弹层必须有稳定背景、边框和层级，不能让下方文字穿透。
-- 需要超出工作区定位时使用 Radix Portal 或等价的可用空间定位。
+- 需要超出工作区定位时使用 WinUI 3 `TeachingTip`、`Flyout` 或等价的可用空间定位。
 
 ## 组件规则
 
 ### Button
 
-- 普通按钮复用 `src/components/ui/button.tsx` 和 `Button`。
+- 普通按钮复用 WinUI 3 `Button` 和现有样式资源。
 - 主操作使用现有 primary 变体，次级操作使用 subtle 或 outline 变体。
 - 同一组按钮只保留一个主操作。
 - 按钮必须定义默认、悬停、按下、禁用、忙碌和 `focus-visible` 状态。
@@ -178,19 +178,19 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 - 每个输入都有可见标签或等价 `aria-label`。
 - Placeholder 不能代替标签。
-- 输入高度和圆角跟随现有 `sc-input`，不在业务组件写新尺寸。
+- 输入高度和圆角跟随 WinUI 3 `TextBox` 样式资源，不在页面 XAML 中重复定义。
 - 错误状态同时使用边框、文字和可访问通知。
 
 ### Select 与 Popover
 
-- 下拉触发器统一复用 `SelectNative`、`sc-select-trigger` 和 `sc-select-icon`。
-- 下拉弹层统一复用 `sc-select-content`、`sc-select-viewport`、`sc-select-item` 的视觉协议。
+- 下拉触发器统一复用 WinUI 3 `ComboBox` 样式资源。
+- 下拉弹层统一复用 WinUI 3 `ComboBox` 的键盘和焦点语义。
 - 日期、时间、代理源、地区和其他菜单属于同一类弹出控件。除内容不同外，不得另造一套箭头、边框、圆角、阴影和进入动画。
 - 弹层支持 Tab、Enter、Escape 和方向键语义。点击外部关闭，不能制造键盘陷阱。
 
 ### Switch 与 Slider
 
-- 复用现有 Radix `Switch`、`SliderBar` 和 `RangeSliderBar`。
+- 复用 WinUI 3 `ToggleSwitch`、`Slider` 和 `ProgressBar`。
 - 受控 value 更新不能通过变化的 `key` 重建组件，否则会丢失焦点和指针捕获。
 - 滑块必须显示当前值或范围，不能只显示一条没有解释的线。
 
@@ -202,7 +202,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 ### Icon
 
-- 图标统一来自 `lucide-react`。
+- 图标统一使用 WinUI 3 `SymbolIcon`、`FontIcon` 或项目资源图标。
 - 纯图标按钮必须有 `aria-label` 或 `title`。
 - 图标尺寸和描边要跟邻近控件一致，不用字符画或临时 SVG。
 
@@ -235,7 +235,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 - 所有可交互元素支持键盘操作。
 - 保留 `focus-visible` 焦点样式，不直接移除焦点反馈。
-- 鼠标点击不显示 WebView 原生蓝色焦点框。
+- 鼠标点击不显示系统默认焦点框，但必须保留键盘焦点反馈。
 - 正常文字对比度至少 4.5:1，大文字至少 3:1。
 - 交互区域不小于 32px，文字不能被裁切。
 - 错误、成功和登录失效提示使用 `role="alert"` 或 `aria-live`。
@@ -244,14 +244,10 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 ## 实施约束
 
-- 页面编排放在 `apps/desktop/frontend/src/pages/`。
-- 可复用组件放在 `apps/desktop/frontend/src/components/`。
-- Radix 控件封装放在 `apps/desktop/frontend/src/components/ui/`。
-- 基础控件样式放在 `apps/desktop/frontend/src/components/ui/styles/`。
-- `apps/desktop/frontend/src/style.css` 只维护样式导入顺序。
-- 主题变量和全局基础放在 `apps/desktop/frontend/src/styles/base.css`。
-- 页面、窗口壳、向导、弹窗和日期控件样式按职责放在 `apps/desktop/frontend/src/styles/`。
-- Wails 调用走 `apps/desktop/frontend/src/services/shell.ts`。
+- 页面编排放在 `apps/desktop/native/SurveyController.App/Views/`。
+- 可复用原生控件优先使用 WinUI 3 内置控件和 Windows App SDK 资源。
+- 原生服务调用走 `apps/desktop/native/SurveyController.App/Services/`。
+- Go 后端通过匿名管道 JSON RPC 与原生壳通信。
 - UI 只负责展示、交互和编排。网络、文件 IO、代理验活和问卷运行走服务层。
 - 业务组件不得直接写十六进制颜色、新字体、新圆角或新阴影体系。
 - 新增组件前先搜索现有 `src/components/ui/` 和 `src/components/`，能组合就不平行造轮子。
