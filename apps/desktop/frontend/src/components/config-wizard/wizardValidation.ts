@@ -15,6 +15,12 @@ export interface TaskValidationErrors {
   answerDatetimeWindow?: string
 }
 
+export function validateSurveyURL(value: string): WizardValidationResult {
+  if (!value.trim()) return invalid('请先输入问卷链接。')
+  if (!isHttpUrl(value)) return invalid('问卷链接需要以 http:// 或 https:// 开头。')
+  return { valid: true }
+}
+
 export function isRealSurveyConfig(config: ConfigDocument): boolean {
   return Boolean(isHttpUrl(config.survey.url)
     && config.survey.definition.questions?.some((question) => !question.is_description))
@@ -39,8 +45,8 @@ export function validateWizardStep(
 ): WizardValidationResult {
   const config = draft.config
   if (step === 'survey') {
-    if (!config.survey.url.trim()) return invalid('请先输入问卷链接。')
-    if (!isHttpUrl(config.survey.url)) return invalid('问卷链接需要以 http:// 或 https:// 开头。')
+    const urlValidation = validateSurveyURL(config.survey.url)
+    if (!urlValidation.valid) return urlValidation
     if (!parsed) return invalid('请先解析问卷，确认问卷内容后再继续。')
     if (!isRealSurveyConfig(config)) return invalid('问卷解析结果没有真实可作答题目。')
   }

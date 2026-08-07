@@ -9,7 +9,7 @@ import {
 } from './configWizardModel'
 import type { WizardFrameProps } from './WizardFrame'
 import type { ConfigurationWizardProps } from './wizardTypes'
-import { isRealSurveyConfig, validateWizardStep } from './wizardValidation'
+import { isRealSurveyConfig, validateSurveyURL, validateWizardStep } from './wizardValidation'
 import { wizardErrorMessage, wizardNextStep, wizardStepIndex } from './wizardHelpers'
 import { fingerprintConfig, isNetworkReady } from '../../viewModels/taskWorkflow'
 import { clearWizardDraftStorage } from './useConfigurationWizard'
@@ -125,7 +125,7 @@ export function useWizardFlow({
   }
 
   async function parseAndContinue() {
-    const validation = validateWizardStep('survey', draft, true)
+    const validation = validateSurveyURL(draft.config.survey.url)
     if (!validation.valid) {
       setError(validation.message ?? '问卷链接无效。')
       return
@@ -166,7 +166,7 @@ export function useWizardFlow({
     if (!text) return
     const url = text.trim()
     const recognized = updateWizardURL(draft, url)
-    const validation = validateWizardStep('survey', recognized, true)
+    const validation = validateSurveyURL(recognized.config.survey.url)
     if (!validation.valid) {
       throw new Error(validation.message ?? '二维码中没有有效的问卷链接。')
     }
