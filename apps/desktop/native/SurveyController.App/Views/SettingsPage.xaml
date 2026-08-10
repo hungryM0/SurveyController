@@ -1,67 +1,101 @@
 <Page
     x:Class="SurveyController.App.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Required">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Padding="22,18,22,28" RowSpacing="14">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+    <ScrollViewer HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+        <Grid Margin="36,28,36,40">
+            <StackPanel MaxWidth="1180" HorizontalAlignment="Left" Spacing="8">
+                <TextBlock Margin="0,0,0,12" FontSize="28" FontWeight="SemiBold" Text="设置" />
 
-            <Grid>
-                <TextBlock FontSize="28" FontWeight="SemiBold" Text="设置" />
-                <Border HorizontalAlignment="Right" Padding="10,5" Background="{ThemeResource ControlFillColorDefaultBrush}" CornerRadius="12">
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="3 组设置" />
+                <TextBlock Margin="0,0,0,4" FontSize="18" FontWeight="SemiBold" Text="界面外观" />
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Setting" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="主题" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="选择应用使用的颜色模式" /></StackPanel>
+                        <ComboBox x:Name="ThemeMode" Grid.Column="2" Width="220" VerticalAlignment="Center"><ComboBoxItem Content="跟随系统" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" /></ComboBox>
+                    </Grid>
                 </Border>
-            </Grid>
-
-            <Grid Grid.Row="1" ColumnSpacing="14">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                    <StackPanel Spacing="4">
-                        <TextBlock Margin="0,0,0,8" FontSize="18" FontWeight="SemiBold" Text="界面外观" />
-                        <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="主题" /><ComboBox x:Name="ThemeMode" Width="176" HorizontalAlignment="Right"><ComboBoxItem Content="跟随系统" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" /></ComboBox></Grid>
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                        <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="导航文字" /><ToggleSwitch x:Name="ShowNavigationText" HorizontalAlignment="Right" OffContent="关" OnContent="开" /></Grid>
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                        <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="窗口背景效果" /><ToggleSwitch x:Name="MicaEnabled" HorizontalAlignment="Right" OffContent="关" OnContent="开" /></Grid>
-                    </StackPanel>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="GlobalNavigationButton" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="显示导航文字" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="宽窗口显示完整导航，窄窗口自动收起" /></StackPanel>
+                        <ToggleSwitch x:Name="ShowNavigationText" Grid.Column="2" VerticalAlignment="Center" OffContent="关" OnContent="开" />
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="View" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="窗口背景效果" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="在支持的系统上使用 Mica 背景" /></StackPanel>
+                        <ToggleSwitch x:Name="MicaEnabled" Grid.Column="2" VerticalAlignment="Center" OffContent="关" OnContent="开" />
+                    </Grid>
                 </Border>
 
-                <Border Grid.Column="1" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                    <StackPanel Spacing="4">
-                        <TextBlock Margin="0,0,0,8" FontSize="18" FontWeight="SemiBold" Text="行为设置" />
-                        <StackPanel Margin="0,0,0,8" Orientation="Horizontal" Spacing="8"><Button Content="选择目录" Click="OnChooseDirectory" /><Button Content="恢复默认" Click="OnReset" /></StackPanel>
-                        <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="窗口置顶" /><ToggleSwitch x:Name="Topmost" HorizontalAlignment="Right" /></Grid>
-                        <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="关闭前询问是否保存" /><ToggleSwitch x:Name="AskSaveOnClose" HorizontalAlignment="Right" /></Grid>
-                        <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="执行期间阻止自动休眠" /><ToggleSwitch x:Name="PreventSleep" HorizontalAlignment="Right" /></Grid>
-                        <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="后台任务完成/失败时通知" /><ToggleSwitch x:Name="TaskNotification" HorizontalAlignment="Right" /></Grid>
-                        <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="提交结果遥测" /><ToggleSwitch x:Name="Telemetry" HorizontalAlignment="Right" /></Grid>
-                        <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="自动保存日志" /><ToggleSwitch x:Name="AutoSaveLogs" HorizontalAlignment="Right" /></Grid>
-                        <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="日志保留数量" /><ComboBox x:Name="LogCount" Width="176" HorizontalAlignment="Right"><x:Int32>3</x:Int32><x:Int32>5</x:Int32><x:Int32>10</x:Int32><x:Int32>20</x:Int32><x:Int32>30</x:Int32><x:Int32>50</x:Int32></ComboBox></Grid>
-                        <TextBox x:Name="ConfigDirectory" Header="配置目录" IsReadOnly="True" />
-                    </StackPanel>
+                <TextBlock Margin="0,20,0,4" FontSize="18" FontWeight="SemiBold" Text="运行与保存" />
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Folder" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="配置目录" /><TextBlock x:Name="ConfigDirectory" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" /></StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Content="选择目录" Click="OnChooseDirectory" /><Button Content="恢复默认" Click="OnReset" /></StackPanel>
+                    </Grid>
                 </Border>
-            </Grid>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Pin" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="窗口置顶" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="始终显示在其他窗口上方" /></StackPanel>
+                        <ToggleSwitch x:Name="Topmost" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Save" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="关闭前保存确认" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="退出时询问是否保存本次配置" /></StackPanel>
+                        <ToggleSwitch x:Name="AskSaveOnClose" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Sync" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="执行期间阻止自动休眠" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="任务运行时保持系统唤醒" /></StackPanel>
+                        <ToggleSwitch x:Name="PreventSleep" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Message" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="任务通知" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="任务完成或失败时显示通知" /></StackPanel>
+                        <ToggleSwitch x:Name="TaskNotification" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Document" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="自动保存日志" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="保留最近运行记录" /></StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="16"><ToggleSwitch x:Name="AutoSaveLogs" /><ComboBox x:Name="LogCount" Width="120"><x:Int32>3</x:Int32><x:Int32>5</x:Int32><x:Int32>10</x:Int32><x:Int32>20</x:Int32><x:Int32>30</x:Int32><x:Int32>50</x:Int32></ComboBox></StackPanel>
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Message" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="提交结果遥测" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="帮助改进提交稳定性" /></StackPanel>
+                        <ToggleSwitch x:Name="Telemetry" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
 
-            <Border Grid.Row="2" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                <StackPanel>
-                    <TextBlock Margin="0,0,0,8" FontSize="18" FontWeight="SemiBold" Text="更新设置" />
-                    <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="在应用程序启动时检查更新" /><ToggleSwitch x:Name="AutoCheckUpdate" HorizontalAlignment="Right" /></Grid>
+                <TextBlock Margin="0,20,0,4" FontSize="18" FontWeight="SemiBold" Text="更新" />
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <SymbolIcon VerticalAlignment="Center" Symbol="Sync" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="启动时检查更新" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="发现新版本时提示下载" /></StackPanel>
+                        <ToggleSwitch x:Name="AutoCheckUpdate" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Margin="0,12,0,0" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
+                    <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button Style="{StaticResource AccentButtonStyle}" Content="保存设置" Click="OnSave" />
                 </StackPanel>
-            </Border>
-
-            <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
-                <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <Button Style="{StaticResource AccentButtonStyle}" Content="保存设置" Click="OnSave" />
             </StackPanel>
         </Grid>
     </ScrollViewer>

@@ -2,15 +2,16 @@
     x:Class="SurveyController.App.TaskPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:SurveyController.App">
+    xmlns:local="using:SurveyController.App"
+    NavigationCacheMode="Required">
 
     <Page.Resources>
         <Style x:Key="StepButtonStyle" TargetType="Button">
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="8" />
+            <Setter Property="Padding" Value="10,8" />
         </Style>
         <Style x:Key="FieldCardStyle" TargetType="Border">
             <Setter Property="Padding" Value="14" />
@@ -19,36 +20,43 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="7" />
         </Style>
+        <Style x:Key="WizardPanelStyle" TargetType="ScrollViewer">
+            <Setter Property="Transitions">
+                <Setter.Value>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="12" />
+                    </TransitionCollection>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
 
     <Grid Padding="20">
         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="68" />
+                    <RowDefinition Height="64" />
                     <RowDefinition Height="1" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="1" />
                     <RowDefinition x:Name="FooterRow" Height="64" />
                 </Grid.RowDefinitions>
 
-                <Grid x:Name="ProgressHeader" Margin="30,0" ColumnSpacing="4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="StepButton1" Grid.Column="0" Tag="0" AutomationProperties.Name="步骤 1：问卷" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle1" Width="30" Height="30" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="15"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="1" /></Border><TextBlock x:Name="StepLabel1" VerticalAlignment="Center" FontWeight="SemiBold" Text="问卷" /></StackPanel></Button>
-                    <Button x:Name="StepButton2" Grid.Column="1" Tag="1" AutomationProperties.Name="步骤 2：答案" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle2" Width="30" Height="30" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="15"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="2" /></Border><TextBlock x:Name="StepLabel2" VerticalAlignment="Center" FontWeight="SemiBold" Text="答案" /></StackPanel></Button>
-                    <Button x:Name="StepButton3" Grid.Column="2" Tag="2" AutomationProperties.Name="步骤 3：任务" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle3" Width="30" Height="30" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="15"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="3" /></Border><TextBlock x:Name="StepLabel3" VerticalAlignment="Center" FontWeight="SemiBold" Text="任务" /></StackPanel></Button>
-                    <Button x:Name="StepButton4" Grid.Column="3" Tag="3" AutomationProperties.Name="步骤 4：网络" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle4" Width="30" Height="30" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="15"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="4" /></Border><TextBlock x:Name="StepLabel4" VerticalAlignment="Center" FontWeight="SemiBold" Text="网络" /></StackPanel></Button>
-                    <Button x:Name="StepButton5" Grid.Column="4" Tag="4" AutomationProperties.Name="步骤 5：检查" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle5" Width="30" Height="30" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="15"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="5" /></Border><TextBlock x:Name="StepLabel5" VerticalAlignment="Center" FontWeight="SemiBold" Text="检查" /></StackPanel></Button>
-                    <Button x:Name="StepButton6" Grid.Column="5" Tag="5" AutomationProperties.Name="步骤 6：运行" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle6" Width="30" Height="30" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="15"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="6" /></Border><TextBlock x:Name="StepLabel6" VerticalAlignment="Center" FontWeight="SemiBold" Text="运行" /></StackPanel></Button>
-                </Grid>
+                <ScrollViewer x:Name="ProgressHeader" Margin="20,0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button x:Name="StepButton1" Tag="0" AutomationProperties.Name="步骤 1：问卷" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle1" Width="28" Height="28" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="1" /></Border><TextBlock x:Name="StepLabel1" VerticalAlignment="Center" FontWeight="SemiBold" Text="问卷" /></StackPanel></Button>
+                        <Button x:Name="StepButton2" Tag="1" AutomationProperties.Name="步骤 2：答案" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle2" Width="28" Height="28" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="2" /></Border><TextBlock x:Name="StepLabel2" VerticalAlignment="Center" FontWeight="SemiBold" Text="答案" /></StackPanel></Button>
+                        <Button x:Name="StepButton3" Tag="2" AutomationProperties.Name="步骤 3：任务" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle3" Width="28" Height="28" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="3" /></Border><TextBlock x:Name="StepLabel3" VerticalAlignment="Center" FontWeight="SemiBold" Text="任务" /></StackPanel></Button>
+                        <Button x:Name="StepButton4" Tag="3" AutomationProperties.Name="步骤 4：网络" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle4" Width="28" Height="28" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="4" /></Border><TextBlock x:Name="StepLabel4" VerticalAlignment="Center" FontWeight="SemiBold" Text="网络" /></StackPanel></Button>
+                        <Button x:Name="StepButton5" Tag="4" AutomationProperties.Name="步骤 5：检查" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle5" Width="28" Height="28" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="5" /></Border><TextBlock x:Name="StepLabel5" VerticalAlignment="Center" FontWeight="SemiBold" Text="检查" /></StackPanel></Button>
+                        <Button x:Name="StepButton6" Tag="5" AutomationProperties.Name="步骤 6：运行" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle6" Width="28" Height="28" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="6" /></Border><TextBlock x:Name="StepLabel6" VerticalAlignment="Center" FontWeight="SemiBold" Text="运行" /></StackPanel></Button>
+                    </StackPanel>
+                </ScrollViewer>
                 <Rectangle Grid.Row="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
                 <Grid Grid.Row="2">
-                    <ScrollViewer x:Name="SurveyPanel" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-                        <Grid MaxWidth="680" Margin="28,52" HorizontalAlignment="Stretch" RowSpacing="18">
+                    <ScrollViewer x:Name="SurveyPanel" Style="{StaticResource WizardPanelStyle}" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <Grid MaxWidth="1180" Margin="36,36,36,48" HorizontalAlignment="Stretch" RowSpacing="18">
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid><TextBlock FontSize="28" FontWeight="SemiBold" Text="添加要填写的问卷" /><Button HorizontalAlignment="Right" Content="导入已有配置" Click="OnImportConfig" /></Grid>
                             <Button Grid.Row="1" HorizontalAlignment="Left" Content="识别二维码" Click="OnChooseQRCode" />
@@ -58,22 +66,22 @@
                         </Grid>
                     </ScrollViewer>
 
-                    <ScrollViewer x:Name="AnswersPanel" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="28,24" Spacing="14">
+                    <ScrollViewer x:Name="AnswersPanel" Style="{StaticResource WizardPanelStyle}" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="1180" Margin="36,28,36,40" HorizontalAlignment="Stretch" Spacing="14">
                              <TextBlock FontSize="26" FontWeight="SemiBold" Text="设置作答方式" />
                              <InfoBar x:Name="AnswerCoverageStatus" IsOpen="True" IsClosable="False" Severity="Informational" Title="等待问卷解析" />
                              <Expander Header="填空题答案">
                                  <StackPanel Padding="0,10,0,2" Spacing="10">
                                      <Border Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="AI 模式" /><ComboBox x:Name="AIMode" Width="210" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="OnAIModeChanged"><ComboBoxItem Content="限时免费" Tag="free" /><ComboBoxItem Content="自定义服务" Tag="provider" /></ComboBox></Grid></Border>
                                      <Border x:Name="AIProviderRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="AI 服务商" /><ComboBox x:Name="AIProvider" Width="210" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="OnAIModeChanged"><ComboBoxItem Content="DeepSeek" Tag="deepseek" /><ComboBoxItem Content="OpenAI 兼容" Tag="custom" /></ComboBox></Grid></Border>
-                                     <Border x:Name="AIBaseURLRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="420" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="接口地址" /><TextBox x:Name="AIBaseURL" Grid.Column="1" PlaceholderText="https://..." /></Grid></Border>
-                                     <Border x:Name="AIModelRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="模型" /><TextBox x:Name="AIModel" Grid.Column="1" PlaceholderText="默认模型" /></Grid></Border>
-                                     <Border x:Name="AICredentialRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="420" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="API 密钥" /><PasswordBox x:Name="AIApiKey" Grid.Column="1" PasswordRevealMode="Peek" /></Grid></Border>
-                                     <StackPanel x:Name="AITestRow" Visibility="Collapsed" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10"><InfoBar x:Name="AIStatus" Width="520" IsOpen="False" IsClosable="False" /><Button Content="测试 AI 连接" Click="OnTestAIConnection" /></StackPanel>
+                                     <Border x:Name="AIBaseURLRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="接口地址" /><TextBox x:Name="AIBaseURL" Grid.Column="1" PlaceholderText="https://..." /></Grid></Border>
+                                     <Border x:Name="AIModelRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="模型" /><TextBox x:Name="AIModel" Grid.Column="1" PlaceholderText="默认模型" /></Grid></Border>
+                                     <Border x:Name="AICredentialRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="API 密钥" /><PasswordBox x:Name="AIApiKey" Grid.Column="1" PasswordRevealMode="Peek" /></Grid></Border>
+                                     <Grid x:Name="AITestRow" Visibility="Collapsed" ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><InfoBar x:Name="AIStatus" IsOpen="False" IsClosable="False" /><Button Grid.Column="1" Content="测试 AI 连接" Click="OnTestAIConnection" /></Grid>
                                  </StackPanel>
                              </Expander>
                              <Border Style="{StaticResource FieldCardStyle}">
-                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="150" /><ColumnDefinition Width="150" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="作答时长" /><NumberBox x:Name="AnswerDurationMin" Grid.Column="1" Header="最短秒数" Minimum="1" Maximum="3600" SpinButtonPlacementMode="Compact" /><NumberBox x:Name="AnswerDurationMax" Grid.Column="2" Header="最长秒数" Minimum="1" Maximum="3600" SpinButtonPlacementMode="Compact" /></Grid>
+                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="作答时长" /><NumberBox x:Name="AnswerDurationMin" Grid.Column="1" Header="最短秒数" Minimum="1" Maximum="3600" SpinButtonPlacementMode="Compact" /><NumberBox x:Name="AnswerDurationMax" Grid.Column="2" Header="最长秒数" Minimum="1" Maximum="3600" SpinButtonPlacementMode="Compact" /></Grid>
                             </Border>
                             <local:StrategyEditor x:Name="AnswerStrategyEditor" />
                             <Border Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Excel 反填" /><StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8"><Button x:Name="ReverseFillButton" Content="选择 Excel" Click="OnChooseReverseFill" /><ToggleSwitch x:Name="ReverseFillEnabled" OffContent="关" OnContent="开" /></StackPanel></Grid></Border>
@@ -82,69 +90,73 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <ScrollViewer x:Name="TaskPanel" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-                        <StackPanel MaxWidth="760" Margin="28,28" HorizontalAlignment="Stretch" Spacing="14">
+                    <ScrollViewer x:Name="TaskPanel" Style="{StaticResource WizardPanelStyle}" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="1180" Margin="36,28,36,40" HorizontalAlignment="Stretch" Spacing="14">
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="设置本次任务" />
                             <Border Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="目标份数" /><NumberBox x:Name="TargetCount" Width="180" HorizontalAlignment="Right" Minimum="1" Maximum="999999" SpinButtonPlacementMode="Compact" /></Grid></Border>
                             <Border Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="并发数" /><NumberBox x:Name="ThreadCount" Width="180" HorizontalAlignment="Right" Minimum="1" Maximum="128" SpinButtonPlacementMode="Compact" /></Grid></Border>
-                            <Border Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="180" /><ColumnDefinition Width="180" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="提交间隔" /><NumberBox x:Name="SubmitIntervalMin" Grid.Column="1" Header="最短秒数" Minimum="0" Maximum="1800" SpinButtonPlacementMode="Compact" /><NumberBox x:Name="SubmitIntervalMax" Grid.Column="2" Header="最长秒数" Minimum="0" Maximum="1800" SpinButtonPlacementMode="Compact" /></Grid></Border>
-                            <Border Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="230" /><ColumnDefinition Width="230" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="时间窗口" /><TextBox x:Name="WindowStart" Grid.Column="1" Header="开始时间" PlaceholderText="YYYY-MM-DD HH:mm:ss" /><TextBox x:Name="WindowEnd" Grid.Column="2" Header="结束时间" PlaceholderText="YYYY-MM-DD HH:mm:ss" /></Grid></Border>
+                            <Border Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="提交间隔" /><NumberBox x:Name="SubmitIntervalMin" Grid.Column="1" Header="最短秒数" Minimum="0" Maximum="1800" SpinButtonPlacementMode="Compact" /><NumberBox x:Name="SubmitIntervalMax" Grid.Column="2" Header="最长秒数" Minimum="0" Maximum="1800" SpinButtonPlacementMode="Compact" /></Grid></Border>
+                            <Border Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="时间窗口" /><TextBox x:Name="WindowStart" Grid.Column="1" Header="开始时间" PlaceholderText="YYYY-MM-DD HH:mm:ss" /><TextBox x:Name="WindowEnd" Grid.Column="2" Header="结束时间" PlaceholderText="YYYY-MM-DD HH:mm:ss" /></Grid></Border>
                         </StackPanel>
                     </ScrollViewer>
 
-                    <ScrollViewer x:Name="NetworkPanel" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-                        <StackPanel MaxWidth="760" Margin="28,28" HorizontalAlignment="Stretch" Spacing="14">
+                    <ScrollViewer x:Name="NetworkPanel" Style="{StaticResource WizardPanelStyle}" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="1180" Margin="36,28,36,40" HorizontalAlignment="Stretch" Spacing="14">
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="设置网络方式" />
                             <InfoBar x:Name="NetworkStatus" IsOpen="True" IsClosable="False" Severity="Informational" Title="直连" Message="不使用代理访问问卷。" />
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="代理来源" /><TextBlock x:Name="ProxyStatusSource" FontWeight="SemiBold" Text="直连" TextWrapping="Wrap" /></StackPanel></Border>
-                                <Border Grid.Column="1" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="额度" /><TextBlock x:Name="ProxyStatusQuota" FontWeight="SemiBold" Text="不适用" TextWrapping="Wrap" /></StackPanel></Border>
-                                <Border Grid.Column="2" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="代理 IP 池" /><TextBlock x:Name="ProxyStatusPool" FontWeight="SemiBold" Text="不适用" TextWrapping="Wrap" /></StackPanel></Border>
-                            </Grid>
+                            <StackPanel Spacing="0">
+                                <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="代理来源" /><TextBlock x:Name="ProxyStatusSource" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="直连" TextWrapping="Wrap" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="额度" /><TextBlock x:Name="ProxyStatusQuota" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="不适用" TextWrapping="Wrap" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="代理 IP 池" /><TextBlock x:Name="ProxyStatusPool" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="不适用" TextWrapping="Wrap" /></Grid>
+                            </StackPanel>
                             <Border Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="访问方式" /><ComboBox x:Name="ProxyMode" Width="210" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="OnProxyModeChanged"><ComboBoxItem Content="直连" Tag="direct" /><ComboBoxItem Content="固定代理" Tag="fixed" /><ComboBoxItem Content="随机 IP" Tag="random" /></ComboBox></Grid></Border>
-                            <Border x:Name="FixedProxyRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="360" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="固定代理地址" /><TextBox x:Name="FixedProxyAddress" Grid.Column="1" PlaceholderText="http://127.0.0.1:8080" /><Button Grid.Column="2" Content="测试连接" Click="OnTestFixedProxy" /></Grid></Border>
+                            <Border x:Name="FixedProxyRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="固定代理地址" /><TextBox x:Name="FixedProxyAddress" Grid.Column="1" PlaceholderText="http://127.0.0.1:8080" /><Button Grid.Column="2" Content="测试连接" Click="OnTestFixedProxy" /></Grid></Border>
                             <Border x:Name="ProxySourceRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="代理来源" /><ComboBox x:Name="ProxySource" Width="210" HorizontalAlignment="Right" SelectedIndex="0" SelectionChanged="OnProxySourceChanged"><ComboBoxItem Content="默认代理" Tag="default" /><ComboBoxItem Content="限时福利" Tag="benefit" /><ComboBoxItem Content="自定义代理" Tag="custom" /></ComboBox></Grid></Border>
-                            <Border x:Name="CustomProxyRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="360" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="代理 API" /><TextBox x:Name="CustomProxyApi" Grid.Column="1" PlaceholderText="https://..." /><Button Grid.Column="2" Content="测试连接" Click="OnTestCustomProxy" /></Grid></Border>
-                            <Border x:Name="ProxyAreaRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="210" /><ColumnDefinition Width="210" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="指定地区" /><ComboBox x:Name="ProxyProvince" Grid.Column="1" PlaceholderText="省份" SelectionChanged="OnProxyProvinceChanged" /><ComboBox x:Name="ProxyCity" Grid.Column="2" PlaceholderText="城市" SelectionChanged="OnProxyCityChanged" /></Grid></Border>
+                            <Border x:Name="CustomProxyRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="代理 API" /><TextBox x:Name="CustomProxyApi" Grid.Column="1" PlaceholderText="https://..." /><Button Grid.Column="2" Content="测试连接" Click="OnTestCustomProxy" /></Grid></Border>
+                            <Border x:Name="ProxyAreaRow" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}"><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="指定地区" /><ComboBox x:Name="ProxyProvince" Grid.Column="1" PlaceholderText="省份" SelectionChanged="OnProxyProvinceChanged" /><ComboBox x:Name="ProxyCity" Grid.Column="2" PlaceholderText="城市" SelectionChanged="OnProxyCityChanged" /></Grid></Border>
                             <Border Style="{StaticResource FieldCardStyle}"><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="随机访问身份" /><ToggleSwitch x:Name="RandomUA" HorizontalAlignment="Right" OffContent="关" OnContent="开" /></Grid></Border>
                             <Button x:Name="SyncProxyButton" Visibility="Collapsed" HorizontalAlignment="Right" Content="同步额度" Click="OnSyncProxy" />
                         </StackPanel>
                     </ScrollViewer>
 
-                    <ScrollViewer x:Name="ReviewPanel" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-                        <StackPanel MaxWidth="820" Margin="28,28" HorizontalAlignment="Stretch" Spacing="14">
+                    <ScrollViewer x:Name="ReviewPanel" Style="{StaticResource WizardPanelStyle}" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="1180" Margin="36,28,36,40" HorizontalAlignment="Stretch" Spacing="14">
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="检查配置" />
                             <InfoBar x:Name="CheckStatus" IsOpen="True" IsClosable="False" Severity="Informational" Title="尚未检查配置" Message="点击底部按钮检查整套配置。" />
                             <ItemsControl x:Name="CheckProblems" />
-                            <Grid ColumnSpacing="12" RowSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                <Border Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="问卷" /><TextBlock x:Name="ReviewSurvey" FontWeight="SemiBold" TextWrapping="Wrap" /></StackPanel></Border>
-                                <Border Grid.Column="1" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="平台" /><TextBlock x:Name="ReviewProvider" FontWeight="SemiBold" /></StackPanel></Border>
-                                <Border Grid.Column="2" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="题目" /><TextBlock x:Name="ReviewQuestions" FontWeight="SemiBold" /></StackPanel></Border>
-                                <Border Grid.Row="1" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="目标份数" /><TextBlock x:Name="ReviewTarget" FontWeight="SemiBold" /></StackPanel></Border>
-                                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="并发数" /><TextBlock x:Name="ReviewThreads" FontWeight="SemiBold" /></StackPanel></Border>
-                                <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="网络" /><TextBlock x:Name="ReviewNetwork" FontWeight="SemiBold" /></StackPanel></Border>
-                                <Border Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource FieldCardStyle}"><StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="问卷链接" /><TextBlock x:Name="ReviewUrl" FontFamily="Consolas" TextWrapping="Wrap" /></StackPanel></Border>
-                            </Grid>
+                            <StackPanel Spacing="0">
+                                <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="问卷" /><TextBlock x:Name="ReviewSurvey" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" TextWrapping="Wrap" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="平台" /><TextBlock x:Name="ReviewProvider" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="题目" /><TextBlock x:Name="ReviewQuestions" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="目标份数" /><TextBlock x:Name="ReviewTarget" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="并发数" /><TextBlock x:Name="ReviewThreads" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="44"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="网络" /><TextBlock x:Name="ReviewNetwork" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <StackPanel Padding="0,10,0,0" Spacing="4"><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="问卷链接" /><TextBlock x:Name="ReviewUrl" FontFamily="Consolas" TextWrapping="Wrap" /></StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
 
-                    <ScrollViewer x:Name="RunPanel" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-                        <StackPanel MaxWidth="820" Margin="28,28" HorizontalAlignment="Stretch" Spacing="14">
+                    <ScrollViewer x:Name="RunPanel" Style="{StaticResource WizardPanelStyle}" Visibility="Collapsed" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="1180" Margin="36,28,36,40" HorizontalAlignment="Stretch" Spacing="14">
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="运行任务" />
                             <InfoBar x:Name="RunStatus" IsOpen="True" IsClosable="False" Severity="Informational" Title="尚未启动" Message="配置保存后可以启动任务。" />
                             <ProgressBar x:Name="RunProgress" Minimum="0" Maximum="1" Value="0" />
                             <TextBlock x:Name="RunProgressText" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="0 / 0" />
-                            <Border x:Name="RunResultCard" Visibility="Collapsed" Style="{StaticResource FieldCardStyle}">
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <StackPanel><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="成功" /><TextBlock x:Name="RunResultSuccess" FontSize="24" FontWeight="SemiBold" Text="0" /></StackPanel>
-                                    <StackPanel Grid.Column="1"><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="失败" /><TextBlock x:Name="RunResultFail" FontSize="24" FontWeight="SemiBold" Text="0" /></StackPanel>
-                                    <StackPanel Grid.Column="2"><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="合计" /><TextBlock x:Name="RunResultTotal" FontSize="24" FontWeight="SemiBold" Text="0" /></StackPanel>
-                                </Grid>
-                            </Border>
+                            <StackPanel x:Name="RunResultCard" Visibility="Collapsed" Spacing="0">
+                                <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="成功" /><TextBlock x:Name="RunResultSuccess" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="0" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="失败" /><TextBlock x:Name="RunResultFail" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="0" /></Grid>
+                                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <Grid MinHeight="40"><TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="合计" /><TextBlock x:Name="RunResultTotal" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="0" /></Grid>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="PauseButton" Content="暂停" IsEnabled="False" Click="OnPauseRun" /><Button x:Name="ResumeButton" Content="继续" IsEnabled="False" Click="OnResumeRun" /><Button x:Name="StopButton" Content="停止" IsEnabled="False" Click="OnStopRun" /><Button x:Name="ExportResultButton" Visibility="Collapsed" Content="导出结果" Click="OnExportResult" /></StackPanel>
                             <InfoBar x:Name="RunExportStatus" IsOpen="False" IsClosable="False" />
                             <Border Style="{StaticResource FieldCardStyle}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="240" /></Grid.RowDefinitions><Grid><TextBlock VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="实时日志" /><Button x:Name="ExportLogsButton" Visibility="Collapsed" HorizontalAlignment="Right" Content="导出日志" Click="OnExportLogs" /></Grid><ListView x:Name="RunLogs" Grid.Row="1" Margin="0,8,0,0" /></Grid></Border>

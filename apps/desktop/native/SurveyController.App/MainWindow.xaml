@@ -15,16 +15,12 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="138" />
             </Grid.ColumnDefinitions>
             <Image Width="30" Height="30" Margin="14,0,12,0" Source="ms-appx:///Assets/appicon.png" />
             <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="SurveyController" />
             <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="5.0.0" />
-            <Border Grid.Column="3" Margin="8,0,0,0" Padding="7,2" VerticalAlignment="Center" Background="{ThemeResource ControlFillColorSecondaryBrush}" CornerRadius="5">
-                <TextBlock FontSize="12" Text="未知" />
-            </Border>
         </Grid>
 
         <NavigationView
@@ -53,7 +49,13 @@
                     <NavigationViewItem.Icon><SymbolIcon Symbol="More" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
-            <Frame x:Name="ContentFrame" Background="Transparent" />
+            <Frame x:Name="ContentFrame" Background="Transparent">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition />
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
         </NavigationView>
     </Grid>
 </Window>

@@ -25,6 +25,7 @@ namespace winrt::SurveyController::App::implementation
         ConnectBackend();
         AppWindow().Closing({ this, &MainWindow::OnWindowClosing });
         ShellNavigation().SelectionChanged({ this, &MainWindow::OnNavigationSelectionChanged });
+        Content().as<Microsoft::UI::Xaml::FrameworkElement>().SizeChanged({ this, &MainWindow::OnRootSizeChanged });
         ShowPage(L"task");
     }
 
@@ -66,18 +67,15 @@ namespace winrt::SurveyController::App::implementation
 
         auto settings = JsonObject::Parse(json);
         auto theme = settings.GetNamedString(L"themeMode", L"system");
-        if (auto root = Content().try_as<FrameworkElement>())
+        auto root = Content().try_as<FrameworkElement>();
+        if (root)
         {
             root.RequestedTheme(theme == L"light" ? ElementTheme::Light
                 : theme == L"dark" ? ElementTheme::Dark : ElementTheme::Default);
         }
 
-        auto showText = settings.GetNamedBoolean(L"showNavigationText", true);
-        ShellNavigation().PaneDisplayMode(showText
-            ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Left
-            : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
-        ShellNavigation().OpenPaneLength(96);
-        ShellNavigation().IsPaneOpen(showText);
+        m_showNavigationText = settings.GetNamedBoolean(L"showNavigationText", true);
+        UpdateNavigationLayout(root ? root.ActualWidth() : 0);
 
         ConfigureBackdrop(settings.GetNamedBoolean(L"micaEnabled", true));
         m_askSaveOnClose = settings.GetNamedBoolean(L"askSaveOnClose", true);
@@ -158,23 +156,31 @@ namespace winrt::SurveyController::App::implementation
 
         auto appWindow = AppWindow();
         auto const dpi = ::GetDpiForWindow(m_hwnd);
-        appWindow.Resize({
-            ::MulDiv(1180, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI),
-            ::MulDiv(720, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI)
-        });
         appWindow.SetIcon(L"Assets\\SurveyController.ico");
 
         auto displayArea = Microsoft::UI::Windowing::DisplayArea::GetFromWindowId(
             appWindow.Id(), Microsoft::UI::Windowing::DisplayAreaFallback::Nearest);
+        auto width = ::MulDiv(1180, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+        auto height = ::MulDiv(720, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
         if (displayArea)
         {
             auto workArea = displayArea.WorkArea();
+            auto const maxWidth = workArea.Width > 64 ? workArea.Width - 64 : workArea.Width;
+            auto const maxHeight = workArea.Height > 64 ? workArea.Height - 64 : workArea.Height;
+            width = width < maxWidth ? width : maxWidth;
+            height = height < maxHeight ? height : maxHeight;
+            appWindow.Resize({ width, height });
             auto size = appWindow.Size();
             appWindow.Move({
                 workArea.X + (workArea.Width - size.Width) / 2,
                 workArea.Y + (workArea.Height - size.Height) / 2
             });
         }
+        else
+        {
+            appWindow.Resize({ width, height });
+        }
+        ContentFrame().CacheSize(4);
     }
 
     bool MainWindow::IsWindows11OrGreater()
@@ -199,27 +205,59 @@ namespace winrt::SurveyController::App::implementation
         ShowPage(tag);
     }
 
+    void MainWindow::OnRootSizeChanged(IInspectable const& sender,
+        Microsoft::UI::Xaml::SizeChangedEventArgs const&)
+    {
+        UpdateNavigationLayout(sender.as<Microsoft::UI::Xaml::FrameworkElement>().ActualWidth());
+    }
+
+    void MainWindow::UpdateNavigationLayout(double width)
+    {
+        auto const showLabels = m_showNavigationText && width >= 980;
+        ShellNavigation().PaneDisplayMode(showLabels
+            ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Left
+            : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
+        ShellNavigation().OpenPaneLength(240);
+        ShellNavigation().IsPaneOpen(showLabels);
+    }
+
     void MainWindow::ShowPage(hstring const& tag)
     {
+        using namespace Microsoft::UI::Xaml::Media::Animation;
+
+        int32_t const targetIndex = tag == L"task" ? 0 : tag == L"settings" ? 1 : tag == L"community" ? 2 : 3;
+        if (m_hasNavigated && targetIndex == m_currentPageIndex) return;
+
+        auto transition = SlideNavigationTransitionInfo{};
+        transition.Effect(targetIndex > m_currentPageIndex
+            ? SlideNavigationTransitionEffect::FromRight
+            : SlideNavigationTransitionEffect::FromLeft);
+
         if (tag == L"task")
         {
-            if (!m_taskPage) m_taskPage = winrt::make<implementation::TaskPage>();
-            ContentFrame().Content(m_taskPage);
+            if (m_hasNavigated)
+            {
+                ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr, transition);
+            }
+            else
+            {
+                ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr,
+                    SuppressNavigationTransitionInfo{});
+            }
         }
         else if (tag == L"settings")
         {
-            if (!m_settingsPage) m_settingsPage = winrt::make<implementation::SettingsPage>();
-            ContentFrame().Content(m_settingsPage);
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::SettingsPage>(), nullptr, transition);
         }
         else if (tag == L"community")
         {
-            if (!m_communityPage) m_communityPage = winrt::make<implementation::CommunityPage>();
-            ContentFrame().Content(m_communityPage);
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::CommunityPage>(), nullptr, transition);
         }
         else if (tag == L"more")
         {
-            if (!m_morePage) m_morePage = winrt::make<implementation::MorePage>();
-            ContentFrame().Content(m_morePage);
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::MorePage>(), nullptr, transition);
         }
+        m_currentPageIndex = targetIndex;
+        m_hasNavigated = true;
     }
 }

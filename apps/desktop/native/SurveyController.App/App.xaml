@@ -10,6 +10,45 @@
             </ResourceDictionary.MergedDictionaries>
             <x:Double x:Key="ShellTitleBarHeight">48</x:Double>
             <x:Double x:Key="ShellNavigationWidth">76</x:Double>
+            <x:Double x:Key="PageGutter">24</x:Double>
+
+            <Style x:Key="SettingsCardStyle" TargetType="Border">
+                <Setter Property="MinHeight" Value="84" />
+                <Setter Property="Padding" Value="20,16" />
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+            </Style>
+            <Style x:Key="SettingsDescriptionStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
+            <Style TargetType="Button">
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+            <Style TargetType="TextBox">
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+            <Style TargetType="PasswordBox">
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+            <Style TargetType="ComboBox">
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+            <Style TargetType="NumberBox">
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+            <Style TargetType="ContentDialog">
+                <Setter Property="CornerRadius" Value="10" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

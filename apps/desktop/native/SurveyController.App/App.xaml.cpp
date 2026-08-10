@@ -6,8 +6,6 @@ namespace winrt::SurveyController::App::implementation
 {
     App::App()
     {
-        RequestedTheme(Microsoft::UI::Xaml::ApplicationTheme::Dark);
-
 #if defined _DEBUG && !defined DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION
         UnhandledException([](IInspectable const&, Microsoft::UI::Xaml::UnhandledExceptionEventArgs const& args)
         {

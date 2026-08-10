@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Desktop Backend"
+  short_description: "Pipe RPC backend and app services"
+  default_prompt: "Use $go-desktop-backend for SurveyController desktop Go services, pipe RPC, storage, task lifecycle, or backend process changes."
