@@ -51,8 +51,7 @@ git clone https://github.com/SurveyController/SurveyController.git
 cd SurveyController
 go test ./packages/proxycore/... ./packages/surveycore/...
 cd apps/desktop
-./build/native.ps1 -Action build -Configuration Debug
-./native/x64/Debug/SurveyController.App/SurveyController.exe
+./build/native.ps1 -Action preview
 
 # 构建安装包
 ./build/native.ps1 -Action package

@@ -37,8 +37,7 @@ go test ./...
 
 ```powershell
 cd apps/desktop
-./build/native.ps1 -Action build -Configuration Debug
-./native/x64/Debug/SurveyController.App/SurveyController.exe
+./build/native.ps1 -Action preview
 
 # 发布安装包
 ./build/native.ps1 -Action package

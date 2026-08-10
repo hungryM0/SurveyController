@@ -18,4 +18,4 @@ go test ./...
 .\build\native.ps1 -Action build -Configuration Release
 ```
 
-本地预览使用 `native.ps1 -Action build -Configuration Debug` 后运行 `native/x64/Debug/SurveyController.App/SurveyController.exe`。发布打包运行 `native.ps1 -Action package`。不使用 Wails、React、WebView 或浏览器自动化。
+本地预览运行 `native.ps1 -Action preview`。发布打包运行 `native.ps1 -Action package`。不使用 Wails、React、WebView 或浏览器自动化。

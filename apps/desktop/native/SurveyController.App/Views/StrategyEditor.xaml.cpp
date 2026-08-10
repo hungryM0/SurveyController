@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iomanip>
 #include <limits>
 #include <optional>
 #include <sstream>
@@ -151,30 +150,6 @@ namespace winrt::SurveyController::App::implementation
             return hstring{ output.str() };
         }
 
-        JsonArray ParseWeights(hstring const& text)
-        {
-            std::wstring normalized{ text };
-            for (auto& character : normalized) if (character == L',' || character == L';') character = L' ';
-            std::wistringstream input(normalized);
-            JsonArray result;
-            double value = 0;
-            while (input >> value) if (value >= 0) result.Append(JsonValue::CreateNumberValue(value));
-            return result;
-        }
-
-        hstring FormatWeights(JsonObject const& strategy)
-        {
-            auto values = strategy.GetNamedObject(L"custom_weights", JsonObject{}).GetNamedArray(L"options", JsonArray{});
-            std::wostringstream output;
-            output << std::setprecision(15);
-            for (uint32_t index = 0; index < values.Size(); ++index)
-            {
-                if (index) output << L", ";
-                output << values.GetNumberAt(index);
-            }
-            return hstring{ output.str() };
-        }
-
         std::optional<int32_t> OptionalOneBasedIndex(hstring const& text)
         {
             auto value = Trim(std::wstring{ text });
@@ -230,8 +205,10 @@ namespace winrt::SurveyController::App::implementation
             + std::wstring{ question.GetNamedString(L"provider_type", question.GetNamedString(L"type_code", L"")) }
             + (question.GetNamedBoolean(L"required", false) ? L" · 必答" : L"") });
         Dimension().Text(strategy.GetNamedString(L"dimension", L""));
+        m_syncingWeights = true;
         SelectTag(Bias(), strategy.GetNamedString(L"psycho_bias", L"custom"));
-        Weights().Text(FormatWeights(strategy));
+        m_syncingWeights = false;
+        RebuildWeightEditor(question, strategy);
         AIEnabled().IsOn(strategy.GetNamedBoolean(L"ai_enabled", false));
         FillableOptions().Text(FormatIntList(strategy.GetNamedArray(L"fillable_option_indices", JsonArray{})));
         OptionFillTexts().Text(FormatStrings(strategy.GetNamedArray(L"option_fill_texts", JsonArray{})));
@@ -259,12 +236,17 @@ namespace winrt::SurveyController::App::implementation
             changes.SetNamedValue(L"dimension", JsonValue::CreateStringValue(Dimension().Text()));
             changes.SetNamedValue(L"psycho_bias", JsonValue::CreateStringValue(SelectedTag(Bias(), L"custom")));
             changes.SetNamedValue(L"ai_enabled", JsonValue::CreateBooleanValue(AIEnabled().IsOn()));
-            auto weights = ParseWeights(Weights().Text());
+            auto weights = WeightValues();
             if (weights.Size())
             {
+                double total = 0;
+                for (auto const& value : weights) total += value.GetNumber();
+                if (total <= 0) throw hresult_invalid_argument(L"选项配比不能全为 0。");
                 JsonObject table;
                 table.SetNamedValue(L"options", weights);
                 changes.SetNamedValue(L"custom_weights", table);
+                changes.SetNamedValue(L"probabilities", table);
+                changes.SetNamedValue(L"distribution_mode", JsonValue::CreateStringValue(L"custom"));
             }
             else changes.SetNamedValue(L"custom_weights", JsonValue::CreateNullValue());
             changes.SetNamedValue(L"fillable_option_indices", ParseIntList(FillableOptions().Text()));

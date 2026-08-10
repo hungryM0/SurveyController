@@ -3,19 +3,55 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid MinHeight="430">
+    <Grid MinHeight="520">
         <TabView IsAddTabButtonVisible="False">
             <TabViewItem Header="逐题设置" IsClosable="False">
-                <Grid Padding="0,10,0,0" ColumnSpacing="14">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="0.36*" /><ColumnDefinition Width="0.64*" /></Grid.ColumnDefinitions>
-                    <ListView x:Name="QuestionList" SelectionChanged="OnQuestionSelected" />
-                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="2,0,10,12" Spacing="10">
+                <Grid x:Name="QuestionEditorLayout" Padding="0,10,0,0" ColumnSpacing="14" RowSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="QuestionListColumn" Width="*" />
+                        <ColumnDefinition x:Name="QuestionDetailColumn" Width="0" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="QuestionListRow" Height="220" />
+                        <RowDefinition x:Name="QuestionDetailRow" Height="*" />
+                    </Grid.RowDefinitions>
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup>
+                            <VisualState x:Name="CompactQuestionEditor" />
+                            <VisualState x:Name="WideQuestionEditor">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="720" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="QuestionListColumn.Width" Value="0.3*" />
+                                    <Setter Target="QuestionDetailColumn.Width" Value="0.7*" />
+                                    <Setter Target="QuestionListRow.Height" Value="*" />
+                                    <Setter Target="QuestionDetailRow.Height" Value="0" />
+                                    <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="0" />
+                                    <Setter Target="QuestionDetailScroll.(Grid.Column)" Value="1" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+
+                    <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <ListView x:Name="QuestionList" SelectionChanged="OnQuestionSelected" />
+                    </Border>
+                    <ScrollViewer x:Name="QuestionDetailScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Padding="4,0,10,12" Spacing="12">
                             <TextBlock x:Name="QuestionTitle" FontSize="17" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" />
                             <TextBlock x:Name="QuestionMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                            <TextBox x:Name="Dimension" Header="题目维度" PlaceholderText="输入维度名称" />
-                            <ComboBox x:Name="Bias" Header="倾向预设" SelectedIndex="0"><ComboBoxItem Content="自定义" Tag="custom" /><ComboBoxItem Content="偏左" Tag="left" /><ComboBoxItem Content="居中" Tag="center" /><ComboBoxItem Content="偏右" Tag="right" /></ComboBox>
-                            <TextBox x:Name="Weights" Header="自定义权重" PlaceholderText="用逗号或空格分隔" />
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBox x:Name="Dimension" Header="题目维度" PlaceholderText="输入维度名称" />
+                                <ComboBox x:Name="Bias" Grid.Column="1" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged"><ComboBoxItem Content="自定义" Tag="custom" /><ComboBoxItem Content="偏左" Tag="left" /><ComboBoxItem Content="居中" Tag="center" /><ComboBoxItem Content="偏右" Tag="right" /></ComboBox>
+                            </Grid>
+                            <StackPanel x:Name="OptionWeightsSection" Spacing="10">
+                                <TextBlock FontWeight="SemiBold" Text="选项比例" />
+                                <StackPanel x:Name="OptionWeightRows" Spacing="14" />
+                                <TextBlock x:Name="RatioPreview" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
                             <ToggleSwitch x:Name="AIEnabled" Header="AI 填空" OffContent="关" OnContent="开" />
                             <Expander Header="题型高级设置">
                                 <StackPanel Padding="0,10,0,2" Spacing="10">

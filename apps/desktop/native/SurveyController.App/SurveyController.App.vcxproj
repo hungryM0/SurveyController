@@ -129,6 +129,7 @@
     <ClCompile Include="Views\TaskPage.xaml.cpp"><DependentUpon>TaskPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\TaskPage.Proxy.cpp" />
     <ClCompile Include="Views\TaskPage.Run.cpp" />
+    <ClCompile Include="Views\StrategyEditor.Weights.cpp" />
     <ClCompile Include="Views\StrategyEditor.xaml.cpp"><DependentUpon>StrategyEditor.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\SettingsPage.xaml.cpp"><DependentUpon>SettingsPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\CommunityPage.xaml.cpp"><DependentUpon>CommunityPage.xaml</DependentUpon></ClCompile>

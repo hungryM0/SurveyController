@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('restore', 'build', 'rebuild', 'clean', 'package')]
+    [ValidateSet('restore', 'build', 'rebuild', 'clean', 'package', 'preview')]
     [string]$Action = 'build',
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug'
@@ -37,7 +37,7 @@ if ($Action -eq 'package') {
     $Configuration = 'Release'
 }
 
-if ($Action -in @('build', 'rebuild', 'package')) {
+if ($Action -in @('build', 'rebuild', 'package', 'preview')) {
     $backendOutput = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.App\SurveyController.Backend.exe"
     New-Item -ItemType Directory -Path (Split-Path -Parent $backendOutput) -Force | Out-Null
     $goArguments = @('build', '-buildvcs=false', '-o', $backendOutput)
@@ -62,8 +62,21 @@ $target = switch ($Action) {
 }
 
 & $msbuild $solution /restore /t:$target /p:Configuration=$Configuration /p:Platform=x64 /m
-if ($LASTEXITCODE -ne 0 -or $Action -ne 'package') {
+if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
+}
+
+if ($Action -eq 'preview') {
+    $previewExecutable = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.App\SurveyController.exe"
+    if (-not (Test-Path -LiteralPath $previewExecutable)) {
+        throw "未找到原生预览程序：$previewExecutable"
+    }
+    Start-Process -FilePath $previewExecutable
+    exit 0
+}
+
+if ($Action -ne 'package') {
+    exit 0
 }
 
 if (-not (Test-Path -LiteralPath $releaseOutput)) {

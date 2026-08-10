@@ -12,6 +12,7 @@ namespace winrt::SurveyController::App::implementation
 
         void OnQuestionSelected(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnSaveQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnBiasChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnTextModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnRuleSelected(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnNewRule(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -23,8 +24,19 @@ namespace winrt::SurveyController::App::implementation
         Services::WizardDocument& m_document;
         int32_t m_ruleIndex{ -1 };
         bool m_initialized{};
+        bool m_syncingWeights{};
+        bool m_multipleWeights{};
+        std::vector<Microsoft::UI::Xaml::Controls::Slider> m_weightSliders;
+        std::vector<Microsoft::UI::Xaml::Controls::NumberBox> m_weightInputs;
+        std::vector<hstring> m_weightLabels;
 
         void LoadQuestion();
+        void RebuildWeightEditor(Windows::Data::Json::JsonObject const& question,
+            Windows::Data::Json::JsonObject const& strategy);
+        void SetWeightValue(uint32_t index, double value, bool selectCustomBias);
+        void ApplyBiasPreset(hstring const& bias);
+        void UpdateRatioPreview();
+        Windows::Data::Json::JsonArray WeightValues() const;
         void LoadRule();
         void LoadRules();
         void LoadDimensions();
