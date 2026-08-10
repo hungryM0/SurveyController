@@ -38,7 +38,7 @@
 
 ### 从源码运行
 
-**环境要求：** Windows 10 22H2 或 Windows 11，Visual Studio Build Tools 2026（MSVC v145、MSBuild、Windows SDK 10.0.26100），Go 1.26.5+，Git，Bun
+**环境要求：** Windows 10 22H2 或 Windows 11，Visual Studio Build Tools 2026（MSVC v145、MSBuild、Windows SDK 10.0.26100），Go 1.26.5+，Git
 
 当前只维护 Windows 桌面端和 Windows 安装包。
 
@@ -51,8 +51,11 @@ git clone https://github.com/SurveyController/SurveyController.git
 cd SurveyController
 go test ./packages/proxycore/... ./packages/surveycore/...
 cd apps/desktop
-bun run desktop:build
-bun run desktop:package
+./build/native.ps1 -Action build -Configuration Debug
+./native/x64/Debug/SurveyController.App/SurveyController.exe
+
+# 构建安装包
+./build/native.ps1 -Action package
 ```
 
 </details>

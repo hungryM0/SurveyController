@@ -12,7 +12,6 @@
 - Go 1.26.5 或更新版本
 - Git
 - Visual Studio Build Tools 2026，包含 MSVC v145、MSBuild 和 Windows SDK 10.0.26100
-- Bun（用于桌面构建脚本）
 
 当前只维护 Windows 桌面端和 Windows 安装包。
 
@@ -34,15 +33,18 @@ cd ../../packages/surveycore
 go test ./...
 ```
 
-桌面端开发和发布使用：
+桌面端开发、预览和发布使用：
 
-```bash
+```powershell
 cd apps/desktop
-bun run desktop:build
-bun run desktop:package
+./build/native.ps1 -Action build -Configuration Debug
+./native/x64/Debug/SurveyController.App/SurveyController.exe
+
+# 发布安装包
+./build/native.ps1 -Action package
 ```
 
-桌面构建由 `apps/desktop/build/` 下的 Bun TypeScript 脚本和 PowerShell 脚本负责。`apps/desktop/build/config.yml` 保存版本和发布元数据。
+桌面构建只由 `apps/desktop/build/native.ps1` 编排 Go 后端、MSBuild 和 NSIS。`apps/desktop/build/config.yml` 保存版本和发布元数据。
 
 ## 目录边界
 

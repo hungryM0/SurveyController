@@ -17,4 +17,4 @@ Set-Location apps/desktop
 go test ./...
 ```
 
-改变后端可执行文件、RPC 进程协议或交付物时追加 `bun run desktop:build`。
+改变后端可执行文件、RPC 进程协议或交付物时追加 `build/native.ps1 -Action build -Configuration Release`。

@@ -10,7 +10,6 @@ permissions:
 
 env:
   GO_VERSION: "1.26.5"
-  BUN_VERSION: "1.3.14"
   R2_RELEASE_PREFIX: "surveycontroller/win/stable"
 
 concurrency:
@@ -35,11 +34,6 @@ jobs:
             packages/surveycore/go.sum
             apps/desktop/go.sum
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
       - name: Install NSIS
         shell: powershell
         run: |
@@ -51,7 +45,8 @@ jobs:
 
       - name: Build Windows package
         working-directory: apps/desktop
-        run: bun run desktop:package
+        shell: pwsh
+        run: ./build/native.ps1 -Action package
 
       - name: Resolve release metadata
         id: release_meta
