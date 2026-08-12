@@ -10,9 +10,11 @@ namespace winrt::SurveyController::App::implementation
         void OnSave(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnPageSizeChanged(IInspectable const&, Microsoft::UI::Xaml::SizeChangedEventArgs const&);
 
     private:
         Windows::Data::Json::JsonObject m_settings{ nullptr };
+        bool m_layoutReady{};
         void LoadSettings(winrt::hstring const& json);
         winrt::hstring BuildSaveRequest();
     };

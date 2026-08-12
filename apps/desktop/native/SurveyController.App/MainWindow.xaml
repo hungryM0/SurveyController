@@ -49,13 +49,7 @@
                     <NavigationViewItem.Icon><SymbolIcon Symbol="More" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
-            <Frame x:Name="ContentFrame" Background="Transparent">
-                <Frame.ContentTransitions>
-                    <TransitionCollection>
-                        <NavigationThemeTransition />
-                    </TransitionCollection>
-                </Frame.ContentTransitions>
-            </Frame>
+            <Frame x:Name="ContentFrame" Background="Transparent" />
         </NavigationView>
     </Grid>
 </Window>

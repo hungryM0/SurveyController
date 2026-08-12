@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid MinHeight="520">
+    <Grid MinHeight="440" SizeChanged="OnEditorSizeChanged">
         <TabView IsAddTabButtonVisible="False">
             <TabViewItem Header="逐题设置" IsClosable="False">
                 <Grid x:Name="QuestionEditorLayout" Padding="0,10,0,0" ColumnSpacing="14" RowSpacing="14">
@@ -19,9 +19,6 @@
                         <VisualStateGroup>
                             <VisualState x:Name="CompactQuestionEditor" />
                             <VisualState x:Name="WideQuestionEditor">
-                                <VisualState.StateTriggers>
-                                    <AdaptiveTrigger MinWindowWidth="720" />
-                                </VisualState.StateTriggers>
                                 <VisualState.Setters>
                                     <Setter Target="QuestionListColumn.Width" Value="0.3*" />
                                     <Setter Target="QuestionDetailColumn.Width" Value="0.7*" />
@@ -74,10 +71,26 @@
             </TabViewItem>
 
             <TabViewItem Header="条件规则" IsClosable="False">
-                <Grid Padding="0,10,0,0" ColumnSpacing="14">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="0.36*" /><ColumnDefinition Width="0.64*" /></Grid.ColumnDefinitions>
+                <Grid x:Name="RuleEditorLayout" Padding="0,10,0,0" ColumnSpacing="14" RowSpacing="14">
+                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="RuleListColumn" Width="*" /><ColumnDefinition x:Name="RuleDetailColumn" Width="0" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition x:Name="RuleListRow" Height="220" /><RowDefinition x:Name="RuleDetailRow" Height="*" /></Grid.RowDefinitions>
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup>
+                            <VisualState x:Name="CompactRuleEditor" />
+                            <VisualState x:Name="WideRuleEditor">
+                                <VisualState.Setters>
+                                    <Setter Target="RuleListColumn.Width" Value="0.36*" />
+                                    <Setter Target="RuleDetailColumn.Width" Value="0.64*" />
+                                    <Setter Target="RuleListRow.Height" Value="*" />
+                                    <Setter Target="RuleDetailRow.Height" Value="0" />
+                                    <Setter Target="RuleDetailScroll.(Grid.Row)" Value="0" />
+                                    <Setter Target="RuleDetailScroll.(Grid.Column)" Value="1" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
                     <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><StackPanel Orientation="Horizontal" Spacing="8"><Button Content="新增规则" Click="OnNewRule" /><Button Content="删除规则" Click="OnDeleteRule" /></StackPanel><ListView x:Name="RuleList" Grid.Row="1" Margin="0,10,0,0" SelectionChanged="OnRuleSelected" /></Grid>
-                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="RuleDetailScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel Padding="2,0,10,12" Spacing="10">
                             <TextBlock FontSize="17" FontWeight="SemiBold" Text="条件与动作" />
                             <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="ConditionQuestion" Header="条件题号" Minimum="1" SpinButtonPlacementMode="Compact" /><ComboBox x:Name="ConditionMode" Grid.Column="1" Header="条件" SelectedIndex="0"><ComboBoxItem Content="已选中" Tag="selected" /><ComboBoxItem Content="未选中" Tag="not_selected" /></ComboBox></Grid>

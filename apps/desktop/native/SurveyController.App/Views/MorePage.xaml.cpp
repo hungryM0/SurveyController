@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "MorePage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/JsonHelpers.h"
+#include "Services/ResponsiveLayout.h"
 
 #if __has_include("MorePage.g.cpp")
 #include "MorePage.g.cpp"
@@ -12,10 +14,25 @@ namespace winrt::SurveyController::App::implementation
 {
     namespace
     {
-        void Open(wchar_t const* url) { ShellExecuteW(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL); }
+        void Open(wchar_t const* url)
+        {
+            auto result = reinterpret_cast<INT_PTR>(
+                ShellExecuteW(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL));
+            if (result <= 32) throw hresult_error(HRESULT_FROM_WIN32(ERROR_OPEN_FAILED), L"无法打开系统浏览器");
+        }
     }
 
-    MorePage::MorePage() { InitializeComponent(); }
+    MorePage::MorePage()
+    {
+        InitializeComponent();
+        m_layoutReady = true;
+        Services::ApplySettingsRows(*this, ActualWidth() < 760);
+    }
+    void MorePage::OnPageSizeChanged(IInspectable const& sender, Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        if (!m_layoutReady) return;
+        Services::ApplySettingsRows(sender.as<Microsoft::UI::Xaml::DependencyObject>(), args.NewSize().Width < 760);
+    }
     void MorePage::OnOpenDownload(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(m_downloadUrl.c_str()); }
     fire_and_forget MorePage::OnCheckUpdate(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
@@ -40,7 +57,13 @@ namespace winrt::SurveyController::App::implementation
                 lifetime->UpdateStatus().Text(L"检查更新失败：" + error);
                 return;
             }
-            auto state = Windows::Data::Json::JsonObject::Parse(result);
+            Windows::Data::Json::JsonObject state;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(result, state, parseError))
+            {
+                lifetime->UpdateStatus().Text(parseError);
+                return;
+            }
             lifetime->UpdateStatus().Text(state.GetNamedString(L"message", L"无法识别远端版本"));
             lifetime->m_downloadUrl = state.GetNamedString(L"downloadUrl", lifetime->m_downloadUrl);
         });

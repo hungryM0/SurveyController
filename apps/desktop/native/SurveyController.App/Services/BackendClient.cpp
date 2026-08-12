@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "BackendClient.h"
+#include "JsonHelpers.h"
 
 #include <array>
 #include <filesystem>
@@ -142,7 +143,12 @@ namespace winrt::SurveyController::App::Services
         }
         std::string responsePayload(responseSize, '\0');
         ReadExact(m_stdoutRead.get(), responsePayload.data(), responseSize);
-        auto response = winrt::Windows::Data::Json::JsonObject::Parse(winrt::to_hstring(responsePayload));
+        winrt::Windows::Data::Json::JsonObject response;
+        winrt::hstring parseError;
+        if (!TryParseJsonObject(winrt::to_hstring(responsePayload), response, parseError))
+        {
+            throw winrt::hresult_error(E_FAIL, parseError);
+        }
         auto responseId = static_cast<std::uint64_t>(response.GetNamedNumber(L"id"));
         if (responseId != requestId)
         {

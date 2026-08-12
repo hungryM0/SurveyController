@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/NativeResource.h"
+#include "Services/JsonHelpers.h"
 #include "Services/TaskNotification.h"
 
 #include <algorithm>
@@ -79,11 +81,9 @@ namespace winrt::SurveyController::App::implementation
         if (dialog->Show(GetActiveWindow()) != S_OK) return L"";
         com_ptr<IShellItem> item;
         check_hresult(dialog->GetResult(item.put()));
-        PWSTR path = nullptr;
-        check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, &path));
-        hstring result{ path };
-        CoTaskMemFree(path);
-        return result;
+        Services::CoTaskMemString path;
+        check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
+        return hstring{ path.get() };
     }
 
     Windows::Foundation::IAsyncAction TaskPage::ExportLinesAsync(hstring const& path, JsonArray const& lines, hstring const& successMessage)
@@ -108,7 +108,13 @@ namespace winrt::SurveyController::App::implementation
 
     void TaskPage::ApplyRunState(hstring const& json)
     {
-        auto state = JsonObject::Parse(json);
+        JsonObject state;
+        hstring error;
+        if (!Services::TryParseJsonObject(json, state, error))
+        {
+            SetFooterError(error);
+            return;
+        }
         auto nextRunId = state.GetNamedString(L"runId", m_runId);
         if (!nextRunId.empty() && nextRunId != m_runId)
         {

@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidateSet('restore', 'build', 'rebuild', 'clean', 'package', 'preview')]
     [string]$Action = 'build',
@@ -71,7 +71,17 @@ if ($Action -eq 'preview') {
     if (-not (Test-Path -LiteralPath $previewExecutable)) {
         throw "未找到原生预览程序：$previewExecutable"
     }
-    Start-Process -FilePath $previewExecutable
+    $developmentRoot = Join-Path $env:LOCALAPPDATA 'SurveyController\Development'
+    $previousConfigHome = $env:SURVEYCONTROLLER_CONFIG_HOME
+    $previousLocalDataHome = $env:SURVEYCONTROLLER_LOCAL_DATA_HOME
+    try {
+        $env:SURVEYCONTROLLER_CONFIG_HOME = Join-Path $developmentRoot 'Config'
+        $env:SURVEYCONTROLLER_LOCAL_DATA_HOME = Join-Path $developmentRoot 'LocalData'
+        Start-Process -FilePath $previewExecutable
+    } finally {
+        $env:SURVEYCONTROLLER_CONFIG_HOME = $previousConfigHome
+        $env:SURVEYCONTROLLER_LOCAL_DATA_HOME = $previousLocalDataHome
+    }
     exit 0
 }
 

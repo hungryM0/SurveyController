@@ -78,7 +78,7 @@
       <AdditionalOptions>%(AdditionalOptions) /bigobj /Zc:__cplusplus /utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>shell32.lib;ole32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shell32.lib;ole32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -118,6 +118,9 @@
     <ClInclude Include="Views\CommunityPage.xaml.h"><DependentUpon>CommunityPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\MorePage.xaml.h"><DependentUpon>MorePage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Services\BackendClient.h" />
+    <ClInclude Include="Services\JsonHelpers.h" />
+    <ClInclude Include="Services\NativeResource.h" />
+    <ClInclude Include="Services\ResponsiveLayout.h" />
     <ClInclude Include="Services\ShellSettings.h" />
     <ClInclude Include="Services\TaskNotification.h" />
     <ClInclude Include="Services\WizardDocument.h" />

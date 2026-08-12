@@ -5,6 +5,7 @@
 #include "Views/CommunityPage.xaml.h"
 #include "Views/MorePage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
 #include "Services/WizardDocument.h"
 
@@ -13,6 +14,7 @@
 #endif
 
 #include <microsoft.ui.xaml.window.h>
+#include <commctrl.h>
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -65,7 +67,12 @@ namespace winrt::SurveyController::App::implementation
         using namespace Microsoft::UI::Xaml;
         using namespace Windows::Data::Json;
 
-        auto settings = JsonObject::Parse(json);
+        JsonObject settings;
+        hstring parseError;
+        if (!Services::TryParseJsonObject(json, settings, parseError))
+        {
+            return;
+        }
         auto theme = settings.GetNamedString(L"themeMode", L"system");
         auto root = Content().try_as<FrameworkElement>();
         if (root)
@@ -153,6 +160,7 @@ namespace winrt::SurveyController::App::implementation
     {
         Microsoft::UI::Xaml::Window window = *this;
         window.as<::IWindowNative>()->get_WindowHandle(&m_hwnd);
+        check_bool(::SetWindowSubclass(m_hwnd, WindowSubclassProc, 1, reinterpret_cast<DWORD_PTR>(this)));
 
         auto appWindow = AppWindow();
         auto const dpi = ::GetDpiForWindow(m_hwnd);
@@ -181,6 +189,24 @@ namespace winrt::SurveyController::App::implementation
             appWindow.Resize({ width, height });
         }
         ContentFrame().CacheSize(4);
+    }
+
+    LRESULT CALLBACK MainWindow::WindowSubclassProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam,
+        UINT_PTR subclassId, DWORD_PTR)
+    {
+        if (message == WM_GETMINMAXINFO)
+        {
+            auto info = reinterpret_cast<MINMAXINFO*>(lParam);
+            auto const dpi = ::GetDpiForWindow(window);
+            info->ptMinTrackSize.x = ::MulDiv(760, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+            info->ptMinTrackSize.y = ::MulDiv(560, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+            return 0;
+        }
+        if (message == WM_NCDESTROY)
+        {
+            ::RemoveWindowSubclass(window, WindowSubclassProc, subclassId);
+        }
+        return ::DefSubclassProc(window, message, wParam, lParam);
     }
 
     bool MainWindow::IsWindows11OrGreater()

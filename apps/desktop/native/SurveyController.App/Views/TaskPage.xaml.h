@@ -9,6 +9,9 @@ namespace winrt::SurveyController::App::implementation
     {
         TaskPage();
 
+        void OnOpenConfiguration(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnCloseConfiguration(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnPageSizeChanged(IInspectable const&, Microsoft::UI::Xaml::SizeChangedEventArgs const&);
         winrt::fire_and_forget OnPrimary(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBack(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnStepClicked(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -53,6 +56,7 @@ namespace winrt::SurveyController::App::implementation
 
         void InitializeState();
         void PopulateControls();
+        void UpdateDashboardSummary();
         void SyncControlsToDocument();
         void UpdateNetworkVisibility();
         winrt::fire_and_forget LoadProxyAreaOptions();

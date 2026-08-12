@@ -19,6 +19,7 @@ namespace winrt::SurveyController::App::implementation
         void OnDeleteRule(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSaveRule(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSaveDimensions(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnEditorSizeChanged(IInspectable const&, Microsoft::UI::Xaml::SizeChangedEventArgs const&);
 
     private:
         Services::WizardDocument& m_document;

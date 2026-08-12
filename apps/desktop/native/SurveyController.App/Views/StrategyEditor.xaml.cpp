@@ -169,6 +169,17 @@ namespace winrt::SurveyController::App::implementation
         InitializeComponent();
         m_initialized = true;
         Refresh();
+        auto const wide = ActualWidth() >= 720;
+        VisualStateManager::GoToState(*this, wide ? L"WideQuestionEditor" : L"CompactQuestionEditor", false);
+        VisualStateManager::GoToState(*this, wide ? L"WideRuleEditor" : L"CompactRuleEditor", false);
+    }
+
+    void StrategyEditor::OnEditorSizeChanged(IInspectable const&, SizeChangedEventArgs const& args)
+    {
+        if (!m_initialized) return;
+        auto const wide = args.NewSize().Width >= 720;
+        VisualStateManager::GoToState(*this, wide ? L"WideQuestionEditor" : L"CompactQuestionEditor", true);
+        VisualStateManager::GoToState(*this, wide ? L"WideRuleEditor" : L"CompactRuleEditor", true);
     }
 
     void StrategyEditor::Refresh()

@@ -34,6 +34,8 @@ namespace winrt::SurveyController::App::implementation
         void UpdateNavigationLayout(double width);
         void ShowPage(hstring const& tag);
         winrt::fire_and_forget ConfirmCloseAsync();
+        static LRESULT CALLBACK WindowSubclassProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam,
+            UINT_PTR subclassId, DWORD_PTR referenceData);
         static bool IsWindows11OrGreater();
     };
 }

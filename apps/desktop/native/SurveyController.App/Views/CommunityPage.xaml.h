@@ -8,6 +8,9 @@ namespace winrt::SurveyController::App::implementation
         CommunityPage();
         void OnOpenIssues(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnOpenLicense(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnPageSizeChanged(IInspectable const&, Microsoft::UI::Xaml::SizeChangedEventArgs const&);
+    private:
+        bool m_layoutReady{};
     };
 }
 namespace winrt::SurveyController::App::factory_implementation

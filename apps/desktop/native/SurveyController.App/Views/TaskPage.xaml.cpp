@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/NativeResource.h"
+#include "Services/JsonHelpers.h"
 
 #if __has_include("TaskPage.g.cpp")
 #include "TaskPage.g.cpp"
@@ -57,7 +59,11 @@ namespace winrt::SurveyController::App::implementation
         {
             auto& backend = Services::BackendClient::Current();
             backend.Start();
-            m_settings = JsonObject::Parse(backend.Call(L"GetAppSettings"));
+            hstring parseError;
+            if (!Services::TryParseJsonObject(backend.Call(L"GetAppSettings"), m_settings, parseError))
+            {
+                throw hresult_error(E_FAIL, parseError);
+            }
             if (!m_document.Initialized())
             {
                 m_document.LoadConfigState(backend.Call(L"LoadConfig", L"{}"));
@@ -110,6 +116,64 @@ namespace winrt::SurveyController::App::implementation
         UpdateNetworkVisibility();
         LoadProxyAreaOptions();
         UpdateReview();
+        UpdateDashboardSummary();
+    }
+
+    void TaskPage::UpdateDashboardSummary()
+    {
+        if (!m_parsed)
+        {
+            DashboardSurveyTitle().Text(L"尚未配置问卷");
+            DashboardSurveyMeta().Text(L"打开配置向导添加问卷");
+            DashboardConfigStatus().Text(L"需要配置问卷");
+            return;
+        }
+
+        auto title = m_document.Title();
+        DashboardSurveyTitle().Text(title.empty() ? L"未命名问卷" : title);
+
+        auto provider = m_document.Provider();
+        auto providerName = provider == L"qq" ? L"腾讯问卷" : provider == L"credamo" ? L"见数" : L"问卷星";
+        DashboardSurveyMeta().Text(hstring{ std::wstring{ providerName } + L" · "
+            + std::to_wstring(m_document.QuestionCount()) + L" 道题" });
+
+        auto network = m_document.ProxyMode();
+        auto networkName = network == L"fixed" ? L"固定代理" : network == L"random" ? L"随机 IP" : L"直连";
+        DashboardConfigStatus().Text(hstring{ std::to_wstring(m_document.Target()) + L" 份 · "
+            + std::to_wstring(m_document.Threads()) + L" 路并发 · " + networkName });
+    }
+
+    void TaskPage::OnOpenConfiguration(IInspectable const&, RoutedEventArgs const&)
+    {
+        DashboardPanel().Visibility(Visibility::Collapsed);
+        WizardShell().Visibility(Visibility::Visible);
+        UpdateStepVisuals();
+    }
+
+    void TaskPage::OnCloseConfiguration(IInspectable const&, RoutedEventArgs const&)
+    {
+        SyncControlsToDocument();
+        UpdateDashboardSummary();
+        WizardShell().Visibility(Visibility::Collapsed);
+        DashboardPanel().Visibility(Visibility::Visible);
+    }
+
+    void TaskPage::OnPageSizeChanged(IInspectable const&, SizeChangedEventArgs const& args)
+    {
+        if (!m_initialized) return;
+        auto const compact = args.NewSize().Width < 720;
+        DashboardActionColumn().Width(compact ? GridLengthHelper::FromPixels(0) : GridLengthHelper::Auto());
+        DashboardActionRow().Height(compact ? GridLengthHelper::Auto() : GridLengthHelper::FromPixels(0));
+        Grid::SetColumn(OpenConfigurationButton(), compact ? 0 : 1);
+        Grid::SetRow(OpenConfigurationButton(), compact ? 1 : 0);
+        OpenConfigurationButton().Margin(compact ? Thickness{ 0, 12, 0, 0 } : Thickness{});
+        OpenConfigurationButton().HorizontalAlignment(compact ? HorizontalAlignment::Left : HorizontalAlignment::Stretch);
+
+        DashboardStatusColumn().Width(compact ? GridLengthHelper::FromPixels(0) : GridLengthHelper::FromValueAndType(1, GridUnitType::Star));
+        DashboardStatusRow().Height(compact ? GridLengthHelper::Auto() : GridLengthHelper::FromPixels(0));
+        Grid::SetColumn(DashboardNextStep(), compact ? 0 : 1);
+        Grid::SetRow(DashboardNextStep(), compact ? 1 : 0);
+        DashboardNextStep().Margin(compact ? Thickness{ 0, 8, 0, 0 } : Thickness{});
     }
 
     void TaskPage::PopulateAIControls()
@@ -230,9 +294,19 @@ namespace winrt::SurveyController::App::implementation
             if (method == L"CheckTask")
             {
                 savedSettings = Services::BackendClient::Current().Call(L"SaveAppSettings", settingsRequest);
+                JsonObject savedSettingsObject;
+                hstring parseError;
+                if (!Services::TryParseJsonObject(savedSettings, savedSettingsObject, parseError))
+                {
+                    throw hresult_error(E_FAIL, parseError);
+                }
                 result = Services::BackendClient::Current().Call(method,
-                    lifetime->m_document.CheckRequest(JsonObject::Parse(savedSettings)));
-                auto check = JsonObject::Parse(result);
+                    lifetime->m_document.CheckRequest(savedSettingsObject));
+                JsonObject check;
+                if (!Services::TryParseJsonObject(result, check, parseError))
+                {
+                    throw hresult_error(E_FAIL, parseError);
+                }
                 if (check.GetNamedString(L"status", L"blocked") != L"blocked")
                 {
                     saved = Services::BackendClient::Current().Call(L"SaveConfig", lifetime->m_document.SaveRequest());
@@ -257,7 +331,14 @@ namespace winrt::SurveyController::App::implementation
             }
             if (!savedSettings.empty())
             {
-                lifetime->m_settings = JsonObject::Parse(savedSettings);
+                JsonObject parsedSettings;
+                hstring parseError;
+                if (!Services::TryParseJsonObject(savedSettings, parsedSettings, parseError))
+                {
+                    lifetime->SetFooterError(parseError);
+                    return;
+                }
+                lifetime->m_settings = parsedSettings;
                 lifetime->PopulateAIControls();
             }
             if (method == L"CreateSurveyDocument")
@@ -315,6 +396,7 @@ namespace winrt::SurveyController::App::implementation
         SurveyStatus().Message(L"需要重新解析问卷。");
         SurveyStatus().Severity(InfoBarSeverity::Warning);
         SurveyStatus().IsOpen(true);
+        UpdateDashboardSummary();
         UpdateStepVisuals();
     }
 
@@ -351,20 +433,30 @@ namespace winrt::SurveyController::App::implementation
         SetBusy(true, L"正在识别二维码");
         hstring parsed;
         hstring decoded;
+        hstring url;
         hstring error;
         co_await resume_background();
         try
         {
             decoded = Services::BackendClient::Current().Call(L"DecodeQRCode", L"{\"path\":" + EscapeJsonString(path) + L"}");
-            auto url = JsonObject::Parse(decoded).GetNamedString(L"text", L"");
+            JsonObject decodedObject;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(decoded, decodedObject, parseError))
+            {
+                throw hresult_error(E_FAIL, parseError);
+            }
+            url = decodedObject.GetNamedString(L"text", L"");
+            if (url.empty())
+            {
+                throw hresult_error(E_INVALIDARG, L"二维码没有识别出问卷链接");
+            }
             parsed = Services::BackendClient::Current().Call(L"CreateSurveyDocument", L"{\"url\":" + EscapeJsonString(url) + L"}");
         }
         catch (hresult_error const& value) { error = value.message(); }
-        dispatcher.TryEnqueue([lifetime, parsed, decoded, error]()
+        dispatcher.TryEnqueue([lifetime, parsed, url, error]()
         {
             lifetime->SetBusy(false);
             if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            auto url = JsonObject::Parse(decoded).GetNamedString(L"text", L"");
             lifetime->m_document.SetParsedConfig(parsed);
             lifetime->m_document.SetSurveyURL(url);
             lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
@@ -405,7 +497,12 @@ namespace winrt::SurveyController::App::implementation
         try
         {
             savedSettings = Services::BackendClient::Current().Call(L"SaveAppSettings", settingsRequest);
-            auto settings = JsonObject::Parse(savedSettings);
+            JsonObject settings;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(savedSettings, settings, parseError))
+            {
+                throw hresult_error(E_FAIL, parseError);
+            }
             JsonObject request;
             request.SetNamedValue(L"aiProfile", settings.GetNamedObject(L"aiProfile", JsonObject{}));
             result = Services::BackendClient::Current().Call(L"TestAIConnection", request.Stringify());
@@ -419,7 +516,17 @@ namespace winrt::SurveyController::App::implementation
             lifetime->SetBusy(false);
             if (!savedSettings.empty())
             {
-                lifetime->m_settings = JsonObject::Parse(savedSettings);
+                JsonObject parsedSettings;
+                hstring parseError;
+                if (!Services::TryParseJsonObject(savedSettings, parsedSettings, parseError))
+                {
+                    lifetime->AIStatus().Severity(InfoBarSeverity::Error);
+                    lifetime->AIStatus().Title(L"AI 设置响应无效");
+                    lifetime->AIStatus().Message(parseError);
+                    lifetime->AIStatus().IsOpen(true);
+                    return;
+                }
+                lifetime->m_settings = parsedSettings;
                 lifetime->PopulateAIControls();
             }
             lifetime->AIStatus().IsOpen(true);
@@ -430,7 +537,15 @@ namespace winrt::SurveyController::App::implementation
                 lifetime->AIStatus().Message(error);
                 return;
             }
-            auto state = JsonObject::Parse(result);
+            JsonObject state;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(result, state, parseError))
+            {
+                lifetime->AIStatus().Severity(InfoBarSeverity::Error);
+                lifetime->AIStatus().Title(L"AI 响应无效");
+                lifetime->AIStatus().Message(parseError);
+                return;
+            }
             auto success = state.GetNamedBoolean(L"success", false);
             lifetime->AIStatus().Severity(success ? InfoBarSeverity::Success : InfoBarSeverity::Error);
             lifetime->AIStatus().Title(success ? L"AI 连接正常" : L"AI 连接失败");
@@ -469,8 +584,12 @@ namespace winrt::SurveyController::App::implementation
         {
             panels[index].Visibility(index == m_step ? Visibility::Visible : Visibility::Collapsed);
             buttons[index].IsEnabled(!m_busy && index <= m_highestStep);
-            buttons[index].Opacity(index == m_step ? 1.0 : index <= m_highestStep ? 0.82 : 0.48);
+            buttons[index].Opacity(index == m_step ? 1.0 : index <= m_highestStep ? 0.86 : 0.52);
             circles[index].BorderThickness(index == m_step ? Thickness{ 2 } : Thickness{ 1 });
+        }
+        if (WizardShell().Visibility() == Visibility::Visible && buttons[m_step].XamlRoot())
+        {
+            buttons[m_step].StartBringIntoView();
         }
         auto const firstStep = m_step == 0;
         FooterRow().Height(GridLengthHelper::FromPixels(firstStep ? 0 : 64));
@@ -516,11 +635,9 @@ namespace winrt::SurveyController::App::implementation
         if (dialog->Show(GetActiveWindow()) != S_OK) return L"";
         com_ptr<IShellItem> item;
         check_hresult(dialog->GetResult(item.put()));
-        PWSTR path = nullptr;
-        check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, &path));
-        hstring result{ path };
-        CoTaskMemFree(path);
-        return result;
+        Services::CoTaskMemString path;
+        check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
+        return hstring{ path.get() };
     }
 
     hstring TaskPage::SelectedTag(ComboBox const& combo, hstring const& fallback) const
@@ -545,7 +662,13 @@ namespace winrt::SurveyController::App::implementation
 
     void TaskPage::ApplyCheckState(hstring const& json)
     {
-        auto state = JsonObject::Parse(json);
+        JsonObject state;
+        hstring error;
+        if (!Services::TryParseJsonObject(json, state, error))
+        {
+            SetFooterError(error);
+            return;
+        }
         auto status = state.GetNamedString(L"status", L"blocked");
         CheckStatus().Severity(SeverityForStatus(status));
         CheckStatus().Title(status == L"ready" ? L"配置可以启动" : status == L"warning" ? L"配置需要注意" : L"暂时无法启动");

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "WizardDocument.h"
+#include "JsonHelpers.h"
 
 #include <charconv>
 #include <sstream>
@@ -12,12 +13,16 @@ namespace winrt::SurveyController::App::Services
 
         JsonObject Object(JsonObject const& parent, wchar_t const* name)
         {
-            return parent.GetNamedObject(name, JsonObject{});
+            if (!parent || !parent.HasKey(name)) return JsonObject{};
+            auto value = parent.GetNamedValue(name);
+            return value.ValueType() == JsonValueType::Object ? value.GetObject() : JsonObject{};
         }
 
         JsonArray Array(JsonObject const& parent, wchar_t const* name)
         {
-            return parent.GetNamedArray(name, JsonArray{});
+            if (!parent || !parent.HasKey(name)) return JsonArray{};
+            auto value = parent.GetNamedValue(name);
+            return value.ValueType() == JsonValueType::Array ? value.GetArray() : JsonArray{};
         }
 
         JsonArray NumberPair(int32_t left, int32_t right)
@@ -105,16 +110,27 @@ namespace winrt::SurveyController::App::Services
 
     void WizardDocument::LoadConfigState(hstring const& json)
     {
-        auto state = JsonObject::Parse(json);
+        JsonObject state;
+        hstring parseError;
+        if (!TryParseJsonObject(json, state, parseError))
+        {
+            throw hresult_error(E_FAIL, parseError);
+        }
         m_path = state.GetNamedString(L"path", L"");
-        m_config = state.GetNamedObject(L"config", JsonObject{});
+        m_config = Object(state, L"config");
         m_initialized = true;
         m_dirty = false;
     }
 
     void WizardDocument::SetParsedConfig(hstring const& json)
     {
-        m_config = JsonObject::Parse(json);
+        JsonObject parsed;
+        hstring parseError;
+        if (!TryParseJsonObject(json, parsed, parseError))
+        {
+            throw hresult_error(E_FAIL, parseError);
+        }
+        m_config = parsed;
         m_initialized = true;
         m_dirty = true;
     }

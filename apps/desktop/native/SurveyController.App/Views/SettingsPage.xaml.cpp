@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "SettingsPage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
+#include "Services/NativeResource.h"
+#include "Services/ResponsiveLayout.h"
 
 #if __has_include("SettingsPage.g.cpp")
 #include "SettingsPage.g.cpp"
@@ -32,11 +35,25 @@ namespace winrt::SurveyController::App::implementation
         {
             StatusText().Text(error.message());
         }
+        m_layoutReady = true;
+        Services::ApplySettingsRows(*this, ActualWidth() < 760);
+    }
+
+    void SettingsPage::OnPageSizeChanged(IInspectable const& sender, Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        if (!m_layoutReady) return;
+        Services::ApplySettingsRows(sender.as<Microsoft::UI::Xaml::DependencyObject>(), args.NewSize().Width < 760);
     }
 
     void SettingsPage::LoadSettings(hstring const& json)
     {
-        m_settings = Windows::Data::Json::JsonObject::Parse(json);
+        Windows::Data::Json::JsonObject parsed;
+        hstring parseError;
+        if (!Services::TryParseJsonObject(json, parsed, parseError))
+        {
+            throw hresult_error(E_FAIL, parseError);
+        }
+        m_settings = parsed;
         auto theme = m_settings.GetNamedString(L"themeMode", L"system");
         for (uint32_t index = 0; index < ThemeMode().Items().Size(); ++index)
         {
@@ -135,10 +152,9 @@ namespace winrt::SurveyController::App::implementation
         {
             com_ptr<IShellItem> item;
             check_hresult(dialog->GetResult(item.put()));
-            PWSTR path = nullptr;
-            check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, &path));
-            ConfigDirectory().Text(path);
-            CoTaskMemFree(path);
+            Services::CoTaskMemString path;
+            check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
+            ConfigDirectory().Text(path.get());
         }
     }
 }

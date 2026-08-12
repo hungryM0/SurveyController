@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/JsonHelpers.h"
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -94,7 +95,13 @@ namespace winrt::SurveyController::App::implementation
 
     void TaskPage::ApplyProxyAreaOptions(hstring const& json, hstring const& source)
     {
-        auto state = JsonObject::Parse(json);
+        JsonObject state;
+        hstring error;
+        if (!Services::TryParseJsonObject(json, state, error))
+        {
+            SetFooterError(error);
+            return;
+        }
         m_proxyAreaOptions = state;
         auto provinces = state.GetNamedArray(L"provinces", JsonArray{});
         m_updatingProxyAreas = true;
@@ -166,7 +173,13 @@ namespace winrt::SurveyController::App::implementation
         {
             lifetime->SetBusy(false);
             if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            auto state = JsonObject::Parse(result);
+            JsonObject state;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(result, state, parseError))
+            {
+                lifetime->SetFooterError(parseError);
+                return;
+            }
             auto success = state.GetNamedBoolean(L"success", false);
             lifetime->NetworkStatus().Title(success ? L"固定代理可用" : L"固定代理不可用");
             lifetime->NetworkStatus().Message(state.GetNamedString(L"message", L""));
@@ -191,7 +204,13 @@ namespace winrt::SurveyController::App::implementation
         {
             lifetime->SetBusy(false);
             if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            auto state = JsonObject::Parse(result);
+            JsonObject state;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(result, state, parseError))
+            {
+                lifetime->SetFooterError(parseError);
+                return;
+            }
             auto success = state.GetNamedBoolean(L"success", false);
             lifetime->NetworkStatus().Title(success ? L"代理 API 可用" : L"代理 API 不可用");
             lifetime->NetworkStatus().Message(state.GetNamedString(L"message", L""));
@@ -217,7 +236,14 @@ namespace winrt::SurveyController::App::implementation
         {
             lifetime->SetBusy(false);
             if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            lifetime->ApplyProxyStatus(JsonObject::Parse(result));
+            JsonObject state;
+            hstring parseError;
+            if (!Services::TryParseJsonObject(result, state, parseError))
+            {
+                lifetime->SetFooterError(parseError);
+                return;
+            }
+            lifetime->ApplyProxyStatus(state);
         });
     }
 
