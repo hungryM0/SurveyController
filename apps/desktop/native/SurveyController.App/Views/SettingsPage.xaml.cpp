@@ -47,6 +47,7 @@ namespace winrt::SurveyController::App::implementation
 
     void SettingsPage::LoadSettings(hstring const& json)
     {
+        m_loadingSettings = true;
         Windows::Data::Json::JsonObject parsed;
         hstring parseError;
         if (!Services::TryParseJsonObject(json, parsed, parseError))
@@ -83,6 +84,7 @@ namespace winrt::SurveyController::App::implementation
                 break;
             }
         }
+        m_loadingSettings = false;
     }
 
     hstring SettingsPage::BuildSaveRequest()
@@ -110,19 +112,31 @@ namespace winrt::SurveyController::App::implementation
         return request.Stringify();
     }
 
-    void SettingsPage::OnSave(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    void SettingsPage::SaveSettings()
     {
+        if (m_loadingSettings) return;
         try
         {
             auto saved = Services::BackendClient::Current().Call(L"SaveAppSettings", BuildSaveRequest());
             LoadSettings(saved);
             Services::ShellSettings::Current().Update(saved);
-            StatusText().Text(L"设置已保存");
+            StatusText().Text(L"已保存");
         }
         catch (hresult_error const& error)
         {
             StatusText().Text(error.message());
         }
+    }
+
+    void SettingsPage::OnSettingToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        SaveSettings();
+    }
+
+    void SettingsPage::OnSettingSelectionChanged(IInspectable const&,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&)
+    {
+        SaveSettings();
     }
 
     void SettingsPage::OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
@@ -155,6 +169,7 @@ namespace winrt::SurveyController::App::implementation
             Services::CoTaskMemString path;
             check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
             ConfigDirectory().Text(path.get());
+            SaveSettings();
         }
     }
 }

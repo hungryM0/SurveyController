@@ -243,7 +243,7 @@ namespace winrt::SurveyController::App::implementation
         ShellNavigation().PaneDisplayMode(showLabels
             ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Left
             : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
-        ShellNavigation().OpenPaneLength(240);
+        ShellNavigation().OpenPaneLength(220);
         ShellNavigation().IsPaneOpen(showLabels);
     }
 

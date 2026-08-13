@@ -26,7 +26,7 @@
     </Page.Resources>
 
     <Grid Padding="20">
-        <ScrollViewer x:Name="DashboardPanel" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="DashboardPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel MaxWidth="1180" Margin="0,8,0,24" HorizontalAlignment="Stretch" Spacing="16">
                 <StackPanel Spacing="4">
                     <TextBlock FontSize="28" FontWeight="SemiBold" Text="任务" />
@@ -69,7 +69,7 @@
             </StackPanel>
         </ScrollViewer>
 
-        <Grid x:Name="WizardShell" Visibility="Collapsed">
+        <Grid x:Name="WizardShell">
         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>

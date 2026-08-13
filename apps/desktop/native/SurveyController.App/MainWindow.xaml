@@ -27,7 +27,7 @@
             x:Name="ShellNavigation"
             Grid.Row="1"
             Background="Transparent"
-            CompactPaneLength="76"
+            CompactPaneLength="68"
             IsBackButtonVisible="Collapsed"
             IsPaneOpen="False"
             IsPaneToggleButtonVisible="False"

@@ -71,7 +71,7 @@ namespace winrt::SurveyController::App::implementation
             m_parsed = m_document.HasRealSurvey();
             m_highestStep = m_parsed ? 4 : 0;
             PopulateControls();
-            if (m_parsed) MoveToStep(4, true);
+            MoveToStep(0, true);
         }
         catch (hresult_error const& error)
         {
