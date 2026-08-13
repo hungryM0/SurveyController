@@ -116,64 +116,6 @@ namespace winrt::SurveyController::App::implementation
         UpdateNetworkVisibility();
         LoadProxyAreaOptions();
         UpdateReview();
-        UpdateDashboardSummary();
-    }
-
-    void TaskPage::UpdateDashboardSummary()
-    {
-        if (!m_parsed)
-        {
-            DashboardSurveyTitle().Text(L"尚未配置问卷");
-            DashboardSurveyMeta().Text(L"打开配置向导添加问卷");
-            DashboardConfigStatus().Text(L"需要配置问卷");
-            return;
-        }
-
-        auto title = m_document.Title();
-        DashboardSurveyTitle().Text(title.empty() ? L"未命名问卷" : title);
-
-        auto provider = m_document.Provider();
-        auto providerName = provider == L"qq" ? L"腾讯问卷" : provider == L"credamo" ? L"见数" : L"问卷星";
-        DashboardSurveyMeta().Text(hstring{ std::wstring{ providerName } + L" · "
-            + std::to_wstring(m_document.QuestionCount()) + L" 道题" });
-
-        auto network = m_document.ProxyMode();
-        auto networkName = network == L"fixed" ? L"固定代理" : network == L"random" ? L"随机 IP" : L"直连";
-        DashboardConfigStatus().Text(hstring{ std::to_wstring(m_document.Target()) + L" 份 · "
-            + std::to_wstring(m_document.Threads()) + L" 路并发 · " + networkName });
-    }
-
-    void TaskPage::OnOpenConfiguration(IInspectable const&, RoutedEventArgs const&)
-    {
-        DashboardPanel().Visibility(Visibility::Collapsed);
-        WizardShell().Visibility(Visibility::Visible);
-        UpdateStepVisuals();
-    }
-
-    void TaskPage::OnCloseConfiguration(IInspectable const&, RoutedEventArgs const&)
-    {
-        SyncControlsToDocument();
-        UpdateDashboardSummary();
-        WizardShell().Visibility(Visibility::Collapsed);
-        DashboardPanel().Visibility(Visibility::Visible);
-    }
-
-    void TaskPage::OnPageSizeChanged(IInspectable const&, SizeChangedEventArgs const& args)
-    {
-        if (!m_initialized) return;
-        auto const compact = args.NewSize().Width < 720;
-        DashboardActionColumn().Width(compact ? GridLengthHelper::FromPixels(0) : GridLengthHelper::Auto());
-        DashboardActionRow().Height(compact ? GridLengthHelper::Auto() : GridLengthHelper::FromPixels(0));
-        Grid::SetColumn(OpenConfigurationButton(), compact ? 0 : 1);
-        Grid::SetRow(OpenConfigurationButton(), compact ? 1 : 0);
-        OpenConfigurationButton().Margin(compact ? Thickness{ 0, 12, 0, 0 } : Thickness{});
-        OpenConfigurationButton().HorizontalAlignment(compact ? HorizontalAlignment::Left : HorizontalAlignment::Stretch);
-
-        DashboardStatusColumn().Width(compact ? GridLengthHelper::FromPixels(0) : GridLengthHelper::FromValueAndType(1, GridUnitType::Star));
-        DashboardStatusRow().Height(compact ? GridLengthHelper::Auto() : GridLengthHelper::FromPixels(0));
-        Grid::SetColumn(DashboardNextStep(), compact ? 0 : 1);
-        Grid::SetRow(DashboardNextStep(), compact ? 1 : 0);
-        DashboardNextStep().Margin(compact ? Thickness{ 0, 8, 0, 0 } : Thickness{});
     }
 
     void TaskPage::PopulateAIControls()
@@ -396,7 +338,6 @@ namespace winrt::SurveyController::App::implementation
         SurveyStatus().Message(L"需要重新解析问卷。");
         SurveyStatus().Severity(InfoBarSeverity::Warning);
         SurveyStatus().IsOpen(true);
-        UpdateDashboardSummary();
         UpdateStepVisuals();
     }
 

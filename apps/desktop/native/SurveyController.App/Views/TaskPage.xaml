@@ -3,8 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SurveyController.App"
-    NavigationCacheMode="Required"
-    SizeChanged="OnPageSizeChanged">
+    NavigationCacheMode="Required">
 
     <Page.Resources>
         <Style x:Key="StepButtonStyle" TargetType="Button">
@@ -26,49 +25,6 @@
     </Page.Resources>
 
     <Grid Padding="20">
-        <ScrollViewer x:Name="DashboardPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel MaxWidth="1180" Margin="0,8,0,24" HorizontalAlignment="Stretch" Spacing="16">
-                <StackPanel Spacing="4">
-                    <TextBlock FontSize="28" FontWeight="SemiBold" Text="任务" />
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="准备问卷、调整参数，然后启动任务。" />
-                </StackPanel>
-
-                <Border Style="{StaticResource SectionCardStyle}">
-                    <Grid ColumnSpacing="24" RowSpacing="16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition x:Name="DashboardActionColumn" Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="DashboardActionRow" Height="0" /></Grid.RowDefinitions>
-                        <StackPanel Spacing="6">
-                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="当前问卷" />
-                            <TextBlock x:Name="DashboardSurveyTitle" FontSize="22" FontWeight="SemiBold" Text="尚未配置问卷" TextWrapping="Wrap" />
-                            <TextBlock x:Name="DashboardSurveyMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="打开配置向导添加问卷" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <Button x:Name="OpenConfigurationButton" Grid.Column="1" MinWidth="148" VerticalAlignment="Center" Style="{StaticResource AccentButtonStyle}" Content="打开配置向导" Click="OnOpenConfiguration" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource SectionCardStyle}">
-                    <Grid ColumnSpacing="20" RowSpacing="16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition x:Name="DashboardStatusColumn" Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="DashboardStatusRow" Height="0" /></Grid.RowDefinitions>
-                        <StackPanel Spacing="6">
-                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="配置状态" />
-                            <TextBlock x:Name="DashboardConfigStatus" FontSize="18" FontWeight="SemiBold" Text="需要配置问卷" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <StackPanel x:Name="DashboardNextStep" Grid.Column="1" Spacing="6">
-                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="下一步" />
-                            <TextBlock Text="使用配置向导完成答案、任务和网络设置。" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
-
         <Grid x:Name="WizardShell">
         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
             <Grid>
@@ -80,8 +36,7 @@
                     <RowDefinition x:Name="FooterRow" Height="64" />
                 </Grid.RowDefinitions>
 
-                <Grid Margin="12,0,8,0" ColumnSpacing="8">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Grid Margin="12,0,8,0">
                     <ScrollViewer x:Name="ProgressHeader" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollBarVisibility="Disabled">
                     <StackPanel Orientation="Horizontal" Spacing="2">
                         <Button x:Name="StepButton1" Tag="0" AutomationProperties.Name="步骤 1：问卷" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle1" Width="28" Height="28" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="1" /></Border><TextBlock x:Name="StepLabel1" VerticalAlignment="Center" FontWeight="SemiBold" Text="问卷" /></StackPanel></Button>
@@ -92,9 +47,6 @@
                         <Button x:Name="StepButton6" Tag="5" AutomationProperties.Name="步骤 6：运行" Style="{StaticResource StepButtonStyle}" Click="OnStepClicked"><StackPanel Orientation="Horizontal" Spacing="8"><Border x:Name="StepCircle6" Width="28" Height="28" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="14"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="6" /></Border><TextBlock x:Name="StepLabel6" VerticalAlignment="Center" FontWeight="SemiBold" Text="运行" /></StackPanel></Button>
                     </StackPanel>
                     </ScrollViewer>
-                    <Button Grid.Column="1" VerticalAlignment="Center" ToolTipService.ToolTip="返回任务概览" AutomationProperties.Name="返回任务概览" Click="OnCloseConfiguration">
-                        <SymbolIcon Symbol="Cancel" />
-                    </Button>
                 </Grid>
                 <Rectangle Grid.Row="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
