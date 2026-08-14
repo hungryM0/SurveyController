@@ -4,7 +4,6 @@
 #include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
 #include "Services/NativeResource.h"
-#include "Services/ResponsiveLayout.h"
 
 #if __has_include("SettingsPage.g.cpp")
 #include "SettingsPage.g.cpp"
@@ -35,14 +34,6 @@ namespace winrt::SurveyController::App::implementation
         {
             StatusText().Text(error.message());
         }
-        m_layoutReady = true;
-        Services::ApplySettingsRows(*this, ActualWidth() < 760);
-    }
-
-    void SettingsPage::OnPageSizeChanged(IInspectable const& sender, Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
-    {
-        if (!m_layoutReady) return;
-        Services::ApplySettingsRows(sender.as<Microsoft::UI::Xaml::DependencyObject>(), args.NewSize().Width < 760);
     }
 
     void SettingsPage::LoadSettings(hstring const& json)

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "CommunityPage.xaml.h"
-#include "Services/ResponsiveLayout.h"
 
 #if __has_include("CommunityPage.g.cpp")
 #include "CommunityPage.g.cpp"
@@ -23,14 +22,6 @@ namespace winrt::SurveyController::App::implementation
     CommunityPage::CommunityPage()
     {
         InitializeComponent();
-        m_layoutReady = true;
-        Services::ApplySettingsRows(*this, ActualWidth() < 760);
-    }
-
-    void CommunityPage::OnPageSizeChanged(IInspectable const& sender, Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
-    {
-        if (!m_layoutReady) return;
-        Services::ApplySettingsRows(sender.as<Microsoft::UI::Xaml::DependencyObject>(), args.NewSize().Width < 760);
     }
 
     void CommunityPage::OnOpenIssues(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)

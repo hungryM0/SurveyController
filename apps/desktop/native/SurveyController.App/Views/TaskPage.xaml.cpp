@@ -513,7 +513,7 @@ namespace winrt::SurveyController::App::implementation
     void TaskPage::UpdateStepVisuals()
     {
         std::array<UIElement, 6> panels{ SurveyPanel(), AnswersPanel(), TaskPanel(), NetworkPanel(), ReviewPanel(), RunPanel() };
-        std::array<Button, 6> buttons{ StepButton1(), StepButton2(), StepButton3(), StepButton4(), StepButton5(), StepButton6() };
+        std::array<FrameworkElement, 6> indicators{ StepIndicator1(), StepIndicator2(), StepIndicator3(), StepIndicator4(), StepIndicator5(), StepIndicator6() };
         std::array<Border, 6> circles{ StepCircle1(), StepCircle2(), StepCircle3(), StepCircle4(), StepCircle5(), StepCircle6() };
         std::array<TextBlock, 6> numbers{ StepNumber1(), StepNumber2(), StepNumber3(), StepNumber4(), StepNumber5(), StepNumber6() };
         std::array<SymbolIcon, 6> completionIcons{ StepComplete1(), StepComplete2(), StepComplete3(), StepComplete4(), StepComplete5(), StepComplete6() };
@@ -526,8 +526,7 @@ namespace winrt::SurveyController::App::implementation
         for (int32_t index = 0; index < 6; ++index)
         {
             Services::SetVisibility(panels[index], index == m_step);
-            buttons[index].IsEnabled(true);
-            buttons[index].Opacity(index <= m_step ? 1.0 : 0.58);
+            indicators[index].Opacity(index <= m_step ? 1.0 : 0.58);
             circles[index].Background(index <= m_step ? accentBrush : nullptr);
             circles[index].BorderBrush(index <= m_step ? accentBrush : inactiveBrush);
             circles[index].BorderThickness(index <= m_step ? Thickness{ 0 } : Thickness{ 2 });
@@ -540,9 +539,9 @@ namespace winrt::SurveyController::App::implementation
         {
             connectors[index].Background(index < m_step ? accentBrush : inactiveBrush);
         }
-        if (WizardShell().Visibility() == Visibility::Visible && buttons[m_step].XamlRoot())
+        if (WizardShell().Visibility() == Visibility::Visible && indicators[m_step].XamlRoot())
         {
-            buttons[m_step].StartBringIntoView();
+            indicators[m_step].StartBringIntoView();
         }
         auto const firstStep = m_step == 0;
         Services::SetInfoBarOpen(AnswerCoverageStatus(), m_step == 1);

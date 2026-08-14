@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid MinHeight="440" SizeChanged="OnEditorSizeChanged">
+    <Grid MinHeight="440">
         <TabView IsAddTabButtonVisible="False">
             <TabViewItem Header="逐题设置" IsClosable="False">
                 <Grid x:Name="QuestionEditorLayout" Padding="0,12,0,0" ColumnSpacing="16" RowSpacing="16">
@@ -19,6 +19,9 @@
                         <VisualStateGroup>
                             <VisualState x:Name="CompactQuestionEditor" />
                             <VisualState x:Name="WideQuestionEditor">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
+                                </VisualState.StateTriggers>
                                 <VisualState.Setters>
                                     <Setter Target="QuestionListColumn.Width" Value="0.3*" />
                                     <Setter Target="QuestionDetailColumn.Width" Value="0.7*" />
@@ -80,6 +83,9 @@
                         <VisualStateGroup>
                             <VisualState x:Name="CompactRuleEditor" />
                             <VisualState x:Name="WideRuleEditor">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
+                                </VisualState.StateTriggers>
                                 <VisualState.Setters>
                                     <Setter Target="RuleListColumn.Width" Value="0.36*" />
                                     <Setter Target="RuleDetailColumn.Width" Value="0.64*" />

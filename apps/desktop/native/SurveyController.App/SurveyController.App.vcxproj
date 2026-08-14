@@ -120,7 +120,6 @@
     <ClInclude Include="Services\BackendClient.h" />
     <ClInclude Include="Services\JsonHelpers.h" />
     <ClInclude Include="Services\NativeResource.h" />
-    <ClInclude Include="Services\ResponsiveLayout.h" />
     <ClInclude Include="Services\ShellSettings.h" />
     <ClInclude Include="Services\TaskNotification.h" />
     <ClInclude Include="Services\UiMotion.h" />

@@ -29,10 +29,11 @@
             Background="Transparent"
             CompactPaneLength="{StaticResource ShellNavigationWidth}"
             IsBackButtonVisible="Collapsed"
-            IsPaneOpen="False"
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="False"
-            PaneDisplayMode="LeftCompact">
+            CompactModeThresholdWidth="0"
+            OpenPaneLength="{StaticResource ShellNavigationOpenWidth}"
+            PaneDisplayMode="Auto">
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="TaskNavigationItem" Content="任务" IsSelected="True" Tag="task">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon>

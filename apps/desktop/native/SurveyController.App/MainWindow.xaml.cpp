@@ -28,7 +28,6 @@ namespace winrt::SurveyController::App::implementation
         ConnectBackend();
         AppWindow().Closing({ this, &MainWindow::OnWindowClosing });
         ShellNavigation().SelectionChanged({ this, &MainWindow::OnNavigationSelectionChanged });
-        Content().as<Microsoft::UI::Xaml::FrameworkElement>().SizeChanged({ this, &MainWindow::OnRootSizeChanged });
         ShowPage(L"task");
     }
 
@@ -82,8 +81,9 @@ namespace winrt::SurveyController::App::implementation
                 : theme == L"dark" ? ElementTheme::Dark : ElementTheme::Default);
         }
 
-        m_showNavigationText = settings.GetNamedBoolean(L"showNavigationText", true);
-        UpdateNavigationLayout(root ? root.ActualWidth() : 0);
+        ShellNavigation().PaneDisplayMode(settings.GetNamedBoolean(L"showNavigationText", true)
+            ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Auto
+            : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
 
         ConfigureBackdrop(settings.GetNamedBoolean(L"micaEnabled", true));
         m_askSaveOnClose = settings.GetNamedBoolean(L"askSaveOnClose", true);
@@ -230,22 +230,6 @@ namespace winrt::SurveyController::App::implementation
         }
         auto tag = unbox_value_or<hstring>(item.Tag(), L"");
         ShowPage(tag);
-    }
-
-    void MainWindow::OnRootSizeChanged(IInspectable const& sender,
-        Microsoft::UI::Xaml::SizeChangedEventArgs const&)
-    {
-        UpdateNavigationLayout(sender.as<Microsoft::UI::Xaml::FrameworkElement>().ActualWidth());
-    }
-
-    void MainWindow::UpdateNavigationLayout(double width)
-    {
-        auto const showLabels = m_showNavigationText && width >= 980;
-        ShellNavigation().PaneDisplayMode(showLabels
-            ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Left
-            : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
-        ShellNavigation().OpenPaneLength(220);
-        ShellNavigation().IsPaneOpen(showLabels);
     }
 
     void MainWindow::ShowPage(hstring const& tag)

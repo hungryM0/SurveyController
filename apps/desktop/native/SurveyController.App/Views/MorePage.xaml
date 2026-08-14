@@ -2,25 +2,43 @@
     x:Class="SurveyController.App.MorePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    NavigationCacheMode="Required"
-    SizeChanged="OnPageSizeChanged">
+    NavigationCacheMode="Required">
     <ScrollViewer HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="{StaticResource PageContentMaxWidth}" Margin="24,24,24,32" HorizontalAlignment="Stretch" Spacing="12">
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup>
+                    <VisualState x:Name="WideAboutLayout">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="UpdateActionColumn.Width" Value="Auto" />
+                            <Setter Target="UpdateActions.(Grid.Column)" Value="2" />
+                            <Setter Target="UpdateActions.(Grid.Row)" Value="0" />
+                            <Setter Target="UpdateActions.Margin" Value="0" />
+                            <Setter Target="AboutActionColumn.Width" Value="Auto" />
+                            <Setter Target="AboutActions.(Grid.Column)" Value="2" />
+                            <Setter Target="AboutActions.(Grid.Row)" Value="0" />
+                            <Setter Target="AboutActions.Margin" Value="0" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
             <StackPanel.ChildrenTransitions><TransitionCollection><EntranceThemeTransition FromVerticalOffset="8" /><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
             <TextBlock FontSize="28" FontWeight="SemiBold" Text="关于" />
 
             <Border Style="{StaticResource SettingsCardStyle}">
-                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition x:Name="UpdateActionColumn" Width="0" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <SymbolIcon VerticalAlignment="Center" Symbol="Sync" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="更新" /><TextBlock x:Name="UpdateStatus" Style="{StaticResource SettingsDescriptionStyle}" Text="点击检查新版本" /></StackPanel>
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Content="下载安装包" Click="OnOpenDownload" /><Button Content="重新检查" Click="OnCheckUpdate" /></StackPanel>
+                    <StackPanel x:Name="UpdateActions" Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Content="下载安装包" Click="OnOpenDownload" /><Button Content="重新检查" Click="OnCheckUpdate" /></StackPanel>
                 </Grid>
             </Border>
             <Border Style="{StaticResource SettingsCardStyle}">
-                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition x:Name="AboutActionColumn" Width="0" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <SymbolIcon VerticalAlignment="Center" Symbol="Document" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="SurveyController" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="版本 5.0.0 · GPL-3.0" /></StackPanel>
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Content="查看文档" Click="OnOpenDocs" /><Button Content="查看协议" Click="OnOpenTerms" /></StackPanel>
+                    <StackPanel x:Name="AboutActions" Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Content="查看文档" Click="OnOpenDocs" /><Button Content="查看协议" Click="OnOpenTerms" /></StackPanel>
                 </Grid>
             </Border>
             <Expander Header="赞助支持" Margin="0,12,0,0">

@@ -2,7 +2,6 @@
 #include "MorePage.xaml.h"
 #include "Services/BackendClient.h"
 #include "Services/JsonHelpers.h"
-#include "Services/ResponsiveLayout.h"
 
 #if __has_include("MorePage.g.cpp")
 #include "MorePage.g.cpp"
@@ -25,13 +24,6 @@ namespace winrt::SurveyController::App::implementation
     MorePage::MorePage()
     {
         InitializeComponent();
-        m_layoutReady = true;
-        Services::ApplySettingsRows(*this, ActualWidth() < 760);
-    }
-    void MorePage::OnPageSizeChanged(IInspectable const& sender, Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
-    {
-        if (!m_layoutReady) return;
-        Services::ApplySettingsRows(sender.as<Microsoft::UI::Xaml::DependencyObject>(), args.NewSize().Width < 760);
     }
     void MorePage::OnOpenDownload(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(m_downloadUrl.c_str()); }
     fire_and_forget MorePage::OnCheckUpdate(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)

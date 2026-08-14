@@ -12,9 +12,6 @@ namespace winrt::SurveyController::App::implementation
         void OnWindowClosing(
             Microsoft::UI::Windowing::AppWindow const& sender,
             Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args);
-        void OnRootSizeChanged(IInspectable const& sender,
-            Microsoft::UI::Xaml::SizeChangedEventArgs const& args);
-
     private:
         HWND m_hwnd{ nullptr };
         hstring m_settingsJson;
@@ -22,7 +19,6 @@ namespace winrt::SurveyController::App::implementation
         int32_t m_currentPageIndex{};
         bool m_hasNavigated{};
         bool m_askSaveOnClose{ true };
-        bool m_showNavigationText{ true };
         bool m_confirmingClose{};
         bool m_closeConfirmed{};
 
@@ -31,7 +27,6 @@ namespace winrt::SurveyController::App::implementation
         void ConfigureTitleBar();
         void ConfigureWindow();
         void ApplyShellSettings(hstring const& json);
-        void UpdateNavigationLayout(double width);
         void ShowPage(hstring const& tag);
         winrt::fire_and_forget ConfirmCloseAsync();
         static LRESULT CALLBACK WindowSubclassProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam,
