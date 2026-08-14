@@ -8,36 +8,9 @@ source_of_truth: apps/desktop/native/SurveyController.App/Views/ and XAML resour
 breakpoints:
   compact: '< 720px'
   desktop: '>= 720px'
-colors:
-  surface: 'rgba(255,255,255,.58)'
-  surface-strong: 'rgba(255,255,255,.78)'
-  surface-soft: 'rgba(255,255,255,.42)'
-  control: 'rgba(255,255,255,.66)'
-  control-hover: 'rgba(255,255,255,.82)'
-  text: '#1F1F1F'
-  text-muted: '#606060'
-  border: 'rgba(0,0,0,.09)'
-  primary: '#0067C0'
-  primary-soft: 'rgba(0,103,192,.12)'
-  success: '#0F7B0F'
-  warning: '#9D5D00'
-  danger: '#C42B1C'
-dark_colors:
-  surface: 'rgba(36,36,36,.58)'
-  surface-strong: 'rgba(42,42,42,.72)'
-  surface-soft: 'rgba(255,255,255,.07)'
-  control: 'rgba(255,255,255,.08)'
-  control-hover: 'rgba(255,255,255,.12)'
-  text: '#F5F5F5'
-  text-muted: '#B8B8B8'
-  border: 'rgba(255,255,255,.12)'
-  primary: '#60CDFF'
-  primary-soft: 'rgba(96,205,255,.14)'
-  success: '#6CCB5F'
-  warning: '#F0B45F'
-  danger: '#FF7A70'
+colors: WinUI 3 ThemeResource
 typography:
-  family: 'Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, SCInter, sans-serif'
+  family: 'Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, SCInter'
   page-title: '24px / 1.2 / 700'
   section-title: '20px / 1.3 / 650'
   body: '14px / 1.4 / 400'
@@ -94,30 +67,27 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 ### 4. 单一来源
 
-颜色、字体、圆角、阴影、动效和控件状态必须来自本文件、`src/style.css` 和 `src/styles/`。业务组件不能另造一套相近 CSS。
+颜色、字体、圆角、动效和控件状态必须来自本文件、`apps/desktop/native/SurveyController.App/App.xaml` 及其 WinUI 3 `ThemeResource`。页面不能另建相近的局部样式体系。
 
 ### 5. 原生语义，统一表面
 
-保留键盘、焦点、选择和指针语义。对无法统一视觉的浏览器原生控件，用自定义表面承载真实值，不牺牲可访问性。
+保留 WinUI 控件的键盘、焦点、选择和指针语义。用样式资源统一表面，不以自绘控件替代原生交互。
 
 ## 颜色 Token
 
 ### 基础 Token
 
-| Token | Light | Dark | 用途 |
-| --- | --- | --- | --- |
-| `surface` | `rgba(255,255,255,.58)` | `rgba(36,36,36,.58)` | 卡片、面板 |
-| `surface-strong` | `rgba(255,255,255,.78)` | `rgba(42,42,42,.72)` | 弹层、重点面板 |
-| `surface-soft` | `rgba(255,255,255,.42)` | `rgba(255,255,255,.07)` | 次级区域 |
-| `control` | `rgba(255,255,255,.66)` | `rgba(255,255,255,.08)` | 输入、下拉、按钮 |
-| `control-hover` | `rgba(255,255,255,.82)` | `rgba(255,255,255,.12)` | 控件悬停 |
-| `text` | `#1F1F1F` | `#F5F5F5` | 主文字 |
-| `text-muted` | `#606060` | `#B8B8B8` | 说明、辅助信息 |
-| `border` | `rgba(0,0,0,.09)` | `rgba(255,255,255,.12)` | 边框、分隔线 |
-| `primary` | `#0067C0` | `#60CDFF` | 主操作、选中、焦点 |
-| `success` | `#0F7B0F` | `#6CCB5F` | 成功、已连接 |
-| `warning` | `#9D5D00` | `#F0B45F` | 等待、风险提示 |
-| `danger` | `#C42B1C` | `#FF7A70` | 失败、危险操作 |
+| Token | WinUI 3 资源或控件语义 | 用途 |
+| --- | --- | --- |
+| `surface` | `CardBackgroundFillColorDefaultBrush` | 卡片、面板 |
+| `control` | `ControlFillColorDefaultBrush` | 输入、下拉、按钮 |
+| `text` | `TextFillColorPrimaryBrush` | 主文字 |
+| `text-muted` | `TextFillColorSecondaryBrush` | 说明、辅助信息 |
+| `border` | `CardStrokeColorDefaultBrush` 或 `ControlStrokeColorDefaultBrush` | 边框、分隔线 |
+| `primary` | `AccentFillColorDefaultBrush` | 主操作、选中、焦点 |
+| `success` | `InfoBar` 的 `Severity="Success"` | 成功、已连接 |
+| `warning` | `InfoBar` 的 `Severity="Warning"` | 等待、风险提示 |
+| `danger` | `InfoBar` 的 `Severity="Error"` | 失败、危险操作 |
 
 操作层只保留一个主色系。状态色不能单独承担语义，必须配合文字、图标或结构变化。
 
@@ -125,12 +95,12 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 - 不新增紫色渐变。
 - 不使用 Emoji 作为功能图标。
-- 不使用默认浏览器控件外观作为最终视觉。
+- 不用网页卡片、CSS 皮肤或模拟控件替代 WinUI 3 控件。
 - 不使用大面积高饱和色块、厚重黑色投影或彩色玻璃堆叠。
 
 ## 字体与文字
 
-主字体使用 `Segoe UI Variable Text`，回退到 `Segoe UI`、`Microsoft YaHei UI`、`SCInter` 和系统 sans-serif。
+主字体使用 `Segoe UI Variable Text`，回退到 `Segoe UI`、`Microsoft YaHei UI` 和 `SCInter`。
 
 | 层级 | 字号 / 行高 | 用途 |
 | --- | --- | --- |
@@ -140,7 +110,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 | `body-sm` | `13px / 1.45` | 字段说明、状态辅助文字 |
 | `caption` | `12px / 1.45` | 次要元信息 |
 
-标题使用 `650–700` 字重。数字、时间、进度和任务量使用 `tabular-nums`。中文文案用短句，标签描述用户能做的事，不暴露内部字段名。
+标题使用 `650–700` 字重。数字、时间、进度和任务量使用等宽数字字形。中文文案用短句，标签描述用户能做的事，不暴露内部字段名。
 
 ## 布局规则
 
@@ -156,7 +126,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 - 表单按“标签与说明 / 控件”分栏。
 - 桌面端控件右对齐，窄窗口自动切为单列。
 - 不用固定宽度把输入框、下拉和按钮挤出视口。
-- 条件字段隐藏时卸载，不保留空白占位。
+- 条件字段使用 `Visibility="Collapsed"` 隐藏，不保留空白占位；不再需要时解除事件和异步引用。
 
 ### 弹层
 
@@ -169,14 +139,14 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 ### Button
 
 - 普通按钮复用 WinUI 3 `Button` 和现有样式资源。
-- 主操作使用现有 primary 变体，次级操作使用 subtle 或 outline 变体。
+- 主操作使用 `AccentButtonStyle`，次级操作使用默认 `Button` 样式。
 - 同一组按钮只保留一个主操作。
-- 按钮必须定义默认、悬停、按下、禁用、忙碌和 `focus-visible` 状态。
-- 悬停只改变颜色、边框或阴影，不使用造成布局位移的缩放。
+- 按钮必须保持默认、悬停、按下、禁用、忙碌和键盘焦点状态。
+- 不用缩放或位置变化伪造悬停反馈。
 
 ### Input
 
-- 每个输入都有可见标签或等价 `aria-label`。
+- 每个输入都有可见标签或 `AutomationProperties.Name`。
 - Placeholder 不能代替标签。
 - 输入高度和圆角跟随 WinUI 3 `TextBox` 样式资源，不在页面 XAML 中重复定义。
 - 错误状态同时使用边框、文字和可访问通知。
@@ -191,19 +161,19 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 ### Switch 与 Slider
 
 - 复用 WinUI 3 `ToggleSwitch`、`Slider` 和 `ProgressBar`。
-- 受控 value 更新不能通过变化的 `key` 重建组件，否则会丢失焦点和指针捕获。
+- 值更新直接写入现有控件，不重建控件树，避免丢失焦点和指针捕获。
 - 滑块必须显示当前值或范围，不能只显示一条没有解释的线。
 
 ### Card 与 Dialog
 
-- 普通卡片使用 `surface`、`border` 和 `--shadow`。
-- 弹窗使用现有 Dialog 封装，标题、关闭按钮、内容区和操作区保持固定结构。
+- 普通卡片复用 `SectionCardStyle`、`SettingsCardStyle` 或 `FormRowCardStyle`。
+- 弹窗使用 WinUI 3 `ContentDialog`，标题、关闭按钮、内容区和操作区保持固定结构。
 - 弹窗内容最大高度不能遮蔽窗口操作；窄窗口要能滚动。
 
 ### Icon
 
 - 图标统一使用 WinUI 3 `SymbolIcon`、`FontIcon` 或项目资源图标。
-- 纯图标按钮必须有 `aria-label` 或 `title`。
+- 纯图标按钮必须设置 `AutomationProperties.Name` 或 `ToolTipService.ToolTip`。
 - 图标尺寸和描边要跟邻近控件一致，不用字符画或临时 SVG。
 
 ## 任务状态
@@ -227,18 +197,18 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 - 页面切换时长 `200–280ms`。
 - 窗口退场约 `160ms`。
 - 进入使用缓出，退出使用缓入，禁止线性缓动。
-- 动画只作用于 `transform`、`opacity`、颜色或阴影，不改变布局尺寸。
-- 下拉、弹窗、日期选择器和提示条必须有进入动画；隐藏时卸载，不留空白区域。
-- 必须实现 `prefers-reduced-motion: reduce`，减少位移、缩放、旋转和等待。
+- 动画只使用 WinUI `ThemeTransition` 或 Composition 的位移、透明度和颜色变化，不改变布局尺寸。
+- 下拉、弹窗、日期选择器和提示条按 WinUI 3 默认过渡显示；隐藏时用 `Visibility="Collapsed"`，不留空白区域。
+- 遵循系统动画效果和辅助功能设置，减少位移、缩放、旋转和等待。
 
 ## 可访问性
 
 - 所有可交互元素支持键盘操作。
-- 保留 `focus-visible` 焦点样式，不直接移除焦点反馈。
-- 鼠标点击不显示系统默认焦点框，但必须保留键盘焦点反馈。
+- 保留 WinUI 的焦点可视化，不直接移除焦点反馈。
+- 鼠标和键盘操作都不应破坏系统焦点行为。
 - 正常文字对比度至少 4.5:1，大文字至少 3:1。
 - 交互区域不小于 32px，文字不能被裁切。
-- 错误、成功和登录失效提示使用 `role="alert"` 或 `aria-live`。
+- 错误、成功和登录失效提示使用 `AutomationProperties.LiveSetting`。
 - 不把颜色作为唯一状态信号。
 - 深色模式、窄窗口和 DPI 缩放属于同一个验收范围。
 
@@ -250,4 +220,4 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 - Go 后端通过匿名管道 JSON RPC 与原生壳通信。
 - UI 只负责展示、交互和编排。网络、文件 IO、代理验活和问卷运行走服务层。
 - 业务组件不得直接写十六进制颜色、新字体、新圆角或新阴影体系。
-- 新增组件前先搜索现有 `src/components/ui/` 和 `src/components/`，能组合就不平行造轮子。
+- 新增页面或控件前先检查 `Views/`、`Services/` 和 `App.xaml` 的现有实现，能组合就不平行造轮子。
