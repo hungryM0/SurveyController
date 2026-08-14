@@ -7,17 +7,16 @@
 #include "MorePage.g.cpp"
 #endif
 
-#include <shellapi.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.System.h>
 
 namespace winrt::SurveyController::App::implementation
 {
     namespace
     {
-        void Open(wchar_t const* url)
+        fire_and_forget Open(wchar_t const* url)
         {
-            auto result = reinterpret_cast<INT_PTR>(
-                ShellExecuteW(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL));
-            if (result <= 32) throw hresult_error(HRESULT_FROM_WIN32(ERROR_OPEN_FAILED), L"无法打开系统浏览器");
+            co_await Windows::System::Launcher::LaunchUriAsync(Windows::Foundation::Uri(url));
         }
     }
 
@@ -25,7 +24,7 @@ namespace winrt::SurveyController::App::implementation
     {
         InitializeComponent();
     }
-    void MorePage::OnOpenDownload(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(m_downloadUrl.c_str()); }
+    fire_and_forget MorePage::OnOpenDownload(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(m_downloadUrl.c_str()); co_return; }
     fire_and_forget MorePage::OnCheckUpdate(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
@@ -60,6 +59,6 @@ namespace winrt::SurveyController::App::implementation
             lifetime->m_downloadUrl = state.GetNamedString(L"downloadUrl", lifetime->m_downloadUrl);
         });
     }
-    void MorePage::OnOpenDocs(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(L"https://surveydoc.hungrym0.com/"); }
-    void MorePage::OnOpenTerms(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(L"https://github.com/SurveyController/SurveyController/blob/main/LICENSE"); }
+    fire_and_forget MorePage::OnOpenDocs(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(L"https://surveydoc.hungrym0.com/"); co_return; }
+    fire_and_forget MorePage::OnOpenTerms(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&) { Open(L"https://github.com/SurveyController/SurveyController/blob/main/LICENSE"); co_return; }
 }

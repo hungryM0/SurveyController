@@ -2,8 +2,8 @@
 #include "TaskPage.xaml.h"
 #include "Services/BackendClient.h"
 #include "Services/NativeResource.h"
+#include "Services/WindowContext.h"
 #include "Services/JsonHelpers.h"
-#include "Services/UiMotion.h"
 
 #if __has_include("TaskPage.g.cpp")
 #include "TaskPage.g.cpp"
@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <shobjidl.h>
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -94,8 +93,8 @@ namespace winrt::SurveyController::App::implementation
         SubmitIntervalMin().Value(interval[0]);
         SubmitIntervalMax().Value(interval[1]);
         auto window = m_document.AnswerWindow();
-        WindowStart().Text(window[0]);
-        WindowEnd().Text(window[1]);
+        WindowStartDate().Tag(box_value(window[0]));
+        WindowEndDate().Tag(box_value(window[1]));
         FailStop().IsOn(m_document.FailStop());
         PauseCaptcha().IsOn(m_document.PauseCaptcha());
         SelectTag(ProxyMode(), m_document.ProxyMode());
@@ -136,11 +135,11 @@ namespace winrt::SurveyController::App::implementation
     {
         auto providerMode = SelectedTag(AIMode(), L"free") == L"provider";
         auto customProvider = SelectedTag(AIProvider(), L"deepseek") == L"custom";
-        Services::SetVisibility(AIProviderRow(), providerMode);
-        Services::SetVisibility(AIBaseURLRow(), providerMode && customProvider);
-        Services::SetVisibility(AIModelRow(), providerMode);
-        Services::SetVisibility(AICredentialRow(), providerMode);
-        Services::SetVisibility(AITestRow(), providerMode);
+        AIProviderRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        AIBaseURLRow().Visibility(providerMode && customProvider ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        AIModelRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        AICredentialRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        AITestRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
     }
 
     hstring TaskPage::BuildAISettingsRequest()
@@ -176,7 +175,8 @@ namespace winrt::SurveyController::App::implementation
         auto intervalMin = NumberValue(SubmitIntervalMin(), 0, 0, 1800);
         auto intervalMax = (std::max)(intervalMin, NumberValue(SubmitIntervalMax(), 0, 0, 1800));
         m_document.SetExecution(target, threads, intervalMin, intervalMax, durationMin, durationMax,
-            WindowStart().Text(), WindowEnd().Text(), FailStop().IsOn(), PauseCaptcha().IsOn());
+            unbox_value_or<hstring>(WindowStartDate().Tag(), L""),
+            unbox_value_or<hstring>(WindowEndDate().Tag(), L""), FailStop().IsOn(), PauseCaptcha().IsOn());
         m_document.SetNetwork(SelectedTag(ProxyMode(), L"direct"), FixedProxyAddress().Text(),
             SelectedTag(ProxySource(), L"default"), CustomProxyApi().Text(), m_proxyAreaCode, RandomUA().IsOn());
         m_document.SetReverseFill(ReverseFillEnabled().IsOn(), m_reverseFillPath);
@@ -297,7 +297,7 @@ namespace winrt::SurveyController::App::implementation
                 lifetime->SurveyStatus().Title(L"问卷解析完成");
                 lifetime->SurveyStatus().Message(lifetime->m_document.Title());
                 lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
-                Services::SetInfoBarOpen(lifetime->SurveyStatus(), true);
+                lifetime->SurveyStatus().IsOpen(true);
                 lifetime->MoveToStep(1, true);
             }
             else if (method == L"CheckTask")
@@ -331,14 +331,14 @@ namespace winrt::SurveyController::App::implementation
         SurveyStatus().Title(L"链接已修改");
         SurveyStatus().Message(L"需要重新解析问卷。");
         SurveyStatus().Severity(InfoBarSeverity::Warning);
-        Services::SetInfoBarOpen(SurveyStatus(), true);
+        SurveyStatus().IsOpen(true);
         UpdateStepVisuals();
     }
 
     fire_and_forget TaskPage::OnImportConfig(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
-        auto path = ChooseFile(false);
+        auto path = co_await ChooseFile(false);
         if (path.empty()) co_return;
         auto dispatcher = DispatcherQueue();
         SetBusy(true, L"正在导入配置");
@@ -362,7 +362,7 @@ namespace winrt::SurveyController::App::implementation
     fire_and_forget TaskPage::OnChooseQRCode(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
-        auto path = ChooseFile(true);
+        auto path = co_await ChooseFile(true);
         if (path.empty()) co_return;
         auto dispatcher = DispatcherQueue();
         SetBusy(true, L"正在识别二维码");
@@ -400,15 +400,15 @@ namespace winrt::SurveyController::App::implementation
             lifetime->SurveyStatus().Title(L"二维码已识别");
             lifetime->SurveyStatus().Message(lifetime->m_document.Title());
             lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
-            Services::SetInfoBarOpen(lifetime->SurveyStatus(), true);
+            lifetime->SurveyStatus().IsOpen(true);
             lifetime->MoveToStep(1, true);
         });
     }
 
-    void TaskPage::OnChooseReverseFill(IInspectable const&, RoutedEventArgs const&)
+    fire_and_forget TaskPage::OnChooseReverseFill(IInspectable const&, RoutedEventArgs const&)
     {
-        auto path = ChooseFile(false, true);
-        if (path.empty()) return;
+        auto path = co_await ChooseFile(false, true);
+        if (path.empty()) co_return;
         m_reverseFillPath = path;
         ReverseFillEnabled().IsOn(true);
         ReverseFillButton().Content(box_value(L"更换 Excel"));
@@ -458,13 +458,13 @@ namespace winrt::SurveyController::App::implementation
                     lifetime->AIStatus().Severity(InfoBarSeverity::Error);
                     lifetime->AIStatus().Title(L"AI 设置响应无效");
                     lifetime->AIStatus().Message(parseError);
-                    Services::SetInfoBarOpen(lifetime->AIStatus(), true);
+                    lifetime->AIStatus().IsOpen(true);
                     return;
                 }
                 lifetime->m_settings = parsedSettings;
                 lifetime->PopulateAIControls();
             }
-            Services::SetInfoBarOpen(lifetime->AIStatus(), true);
+            lifetime->AIStatus().IsOpen(true);
             if (!error.empty())
             {
                 lifetime->AIStatus().Severity(InfoBarSeverity::Error);
@@ -513,47 +513,23 @@ namespace winrt::SurveyController::App::implementation
     void TaskPage::UpdateStepVisuals()
     {
         std::array<UIElement, 6> panels{ SurveyPanel(), AnswersPanel(), TaskPanel(), NetworkPanel(), ReviewPanel(), RunPanel() };
-        std::array<FrameworkElement, 6> indicators{ StepIndicator1(), StepIndicator2(), StepIndicator3(), StepIndicator4(), StepIndicator5(), StepIndicator6() };
-        std::array<Border, 6> circles{ StepCircle1(), StepCircle2(), StepCircle3(), StepCircle4(), StepCircle5(), StepCircle6() };
-        std::array<TextBlock, 6> numbers{ StepNumber1(), StepNumber2(), StepNumber3(), StepNumber4(), StepNumber5(), StepNumber6() };
-        std::array<SymbolIcon, 6> completionIcons{ StepComplete1(), StepComplete2(), StepComplete3(), StepComplete4(), StepComplete5(), StepComplete6() };
-        std::array<Border, 5> connectors{ GuideConnector1(), GuideConnector2(), GuideConnector3(), GuideConnector4(), GuideConnector5() };
-        auto const resources = Application::Current().Resources();
-        auto const accentBrush = resources.Lookup(box_value(hstring{ L"AccentFillColorDefaultBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
-        auto const inactiveBrush = resources.Lookup(box_value(hstring{ L"ControlStrokeColorDefaultBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
-        auto const textBrush = resources.Lookup(box_value(hstring{ L"TextFillColorPrimaryBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
-        auto const onAccentTextBrush = resources.Lookup(box_value(hstring{ L"TextOnAccentFillColorPrimaryBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
         for (int32_t index = 0; index < 6; ++index)
         {
-            Services::SetVisibility(panels[index], index == m_step);
-            indicators[index].Opacity(index <= m_step ? 1.0 : 0.58);
-            circles[index].Background(index <= m_step ? accentBrush : nullptr);
-            circles[index].BorderBrush(index <= m_step ? accentBrush : inactiveBrush);
-            circles[index].BorderThickness(index <= m_step ? Thickness{ 0 } : Thickness{ 2 });
-            numbers[index].Foreground(index <= m_step ? onAccentTextBrush : textBrush);
-            Services::SetVisibility(numbers[index], index >= m_step);
-            completionIcons[index].Foreground(onAccentTextBrush);
-            Services::SetVisibility(completionIcons[index], index < m_step);
+            panels[index].Visibility(index == m_step ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
         }
-        for (int32_t index = 0; index < 5; ++index)
-        {
-            connectors[index].Background(index < m_step ? accentBrush : inactiveBrush);
-        }
-        if (WizardShell().Visibility() == Visibility::Visible && indicators[m_step].XamlRoot())
-        {
-            indicators[m_step].StartBringIntoView();
-        }
+        StepProgress().Value(m_step);
+        static const std::array<hstring, 6> labels{ L"问卷", L"答案", L"任务", L"网络", L"检查", L"运行" };
+        StepSummary().Text(hstring{ L"第 " } + to_hstring(m_step + 1) + L"/6 步：" + labels[m_step]);
         auto const firstStep = m_step == 0;
-        Services::SetInfoBarOpen(AnswerCoverageStatus(), m_step == 1);
-        Services::SetInfoBarOpen(NetworkStatus(), m_step == 3);
-        Services::SetInfoBarOpen(CheckStatus(), m_step == 4);
-        Services::SetInfoBarOpen(RunStatus(), m_step == 5);
-        if (m_step != 0) Services::SetInfoBarOpen(SurveyStatus(), false);
-        if (m_step != 1) Services::SetInfoBarOpen(AIStatus(), false);
-        if (m_step != 5) Services::SetInfoBarOpen(RunExportStatus(), false);
-        FooterRow().Height(GridLengthHelper::FromPixels(firstStep ? 0 : 72));
-        Services::SetVisibility(FooterDivider(), !firstStep);
-        Services::SetVisibility(FooterBar(), !firstStep);
+        AnswerCoverageStatus().IsOpen(m_step == 1);
+        NetworkStatus().IsOpen(m_step == 3);
+        CheckStatus().IsOpen(m_step == 4);
+        RunStatus().IsOpen(m_step == 5);
+        if (m_step != 0) SurveyStatus().IsOpen(false);
+        if (m_step != 1) AIStatus().IsOpen(false);
+        if (m_step != 5) RunExportStatus().IsOpen(false);
+        FooterDivider().Visibility(!firstStep ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        FooterBar().Visibility(!firstStep ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
         SurveyPrimaryButton().Content(box_value(m_parsed ? L"继续" : L"解析并继续"));
         SurveyPrimaryButton().IsEnabled(!m_busy);
         BackButton().IsEnabled(!m_busy && m_step > 0);
@@ -578,25 +554,19 @@ namespace winrt::SurveyController::App::implementation
             SurveyStatus().Title(L"无法继续");
             SurveyStatus().Message(message);
             SurveyStatus().Severity(InfoBarSeverity::Error);
-            Services::SetInfoBarOpen(SurveyStatus(), true);
+            SurveyStatus().IsOpen(true);
         }
     }
 
-    hstring TaskPage::ChooseFile(bool image, bool spreadsheet)
+    Windows::Foundation::IAsyncOperation<hstring> TaskPage::ChooseFile(bool image, bool spreadsheet)
     {
-        com_ptr<IFileOpenDialog> dialog;
-        check_hresult(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put())));
-        COMDLG_FILTERSPEC imageFilters[] = { { L"图片", L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp" }, { L"所有文件", L"*.*" } };
-        COMDLG_FILTERSPEC sheetFilters[] = { { L"Excel 工作簿", L"*.xlsx;*.xls" }, { L"所有文件", L"*.*" } };
-        COMDLG_FILTERSPEC configFilters[] = { { L"SurveyController 配置", L"*.json" }, { L"所有文件", L"*.*" } };
-        auto filters = image ? imageFilters : spreadsheet ? sheetFilters : configFilters;
-        check_hresult(dialog->SetFileTypes(2, filters));
-        if (dialog->Show(GetActiveWindow()) != S_OK) return L"";
-        com_ptr<IShellItem> item;
-        check_hresult(dialog->GetResult(item.put()));
-        Services::CoTaskMemString path;
-        check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
-        return hstring{ path.get() };
+        Microsoft::Windows::Storage::Pickers::FileOpenPicker picker(Services::MainWindowId());
+        auto types = picker.FileTypeFilter();
+        if (image) { types.Append(L".png"); types.Append(L".jpg"); types.Append(L".jpeg"); types.Append(L".bmp"); }
+        else if (spreadsheet) { types.Append(L".xlsx"); types.Append(L".xls"); }
+        else { types.Append(L".json"); }
+        auto file = co_await picker.PickSingleFileAsync();
+        co_return file ? file.Path() : hstring{};
     }
 
     hstring TaskPage::SelectedTag(ComboBox const& combo, hstring const& fallback) const

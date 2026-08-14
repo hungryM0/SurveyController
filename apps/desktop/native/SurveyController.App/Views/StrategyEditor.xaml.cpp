@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
-#include "Services/UiMotion.h"
 
 #if __has_include("StrategyEditor.g.cpp")
 #include "StrategyEditor.g.cpp"
@@ -172,6 +171,19 @@ namespace winrt::SurveyController::App::implementation
         Refresh();
     }
 
+    void StrategyEditor::OnEditorModeChanged(IInspectable const&, SelectorBarSelectionChangedEventArgs const&)
+    {
+        int32_t index = 0;
+        auto selected = EditorModeSelector().SelectedItem();
+        for (uint32_t i = 0; i < EditorModeSelector().Items().Size(); ++i)
+        {
+            if (EditorModeSelector().Items().GetAt(i) == selected) { index = static_cast<int32_t>(i); break; }
+        }
+        QuestionEditorPanel().Visibility(index == 0 ? Visibility::Visible : Visibility::Collapsed);
+        RuleEditorPanel().Visibility(index == 1 ? Visibility::Visible : Visibility::Collapsed);
+        DimensionEditorPanel().Visibility(index == 2 ? Visibility::Visible : Visibility::Collapsed);
+    }
+
     void StrategyEditor::Refresh()
     {
         auto selected = QuestionList().SelectedIndex();
@@ -224,7 +236,7 @@ namespace winrt::SurveyController::App::implementation
         auto attached = strategy.GetNamedArray(L"attached_option_selects", JsonArray{});
         AttachedOptionSelects().Text(attached.Size() ? attached.Stringify() : L"");
         UpdateTextModeVisibility();
-        Services::SetInfoBarOpen(QuestionStatus(), false);
+        QuestionStatus().IsOpen(false);
     }
 
     void StrategyEditor::OnSaveQuestion(IInspectable const&, RoutedEventArgs const&)
@@ -287,14 +299,14 @@ namespace winrt::SurveyController::App::implementation
             QuestionStatus().Severity(InfoBarSeverity::Success);
             QuestionStatus().Title(L"题目设置已保存");
             QuestionStatus().Message(L"");
-            Services::SetInfoBarOpen(QuestionStatus(), true);
+            QuestionStatus().IsOpen(true);
         }
         catch (hresult_error const& error)
         {
             QuestionStatus().Severity(InfoBarSeverity::Error);
             QuestionStatus().Title(L"题目设置格式错误");
             QuestionStatus().Message(error.message());
-            Services::SetInfoBarOpen(QuestionStatus(), true);
+            QuestionStatus().IsOpen(true);
         }
     }
 
@@ -306,7 +318,8 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::UpdateTextModeVisibility()
     {
-        Services::SetVisibility(TextRangeRow(), SelectedTag(TextRandomMode(), L"") == L"integer");
+        TextRangeRow().Visibility(SelectedTag(TextRandomMode(), L"") == L"integer"
+            ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
     }
 
     void StrategyEditor::LoadRules()
@@ -350,7 +363,7 @@ namespace winrt::SurveyController::App::implementation
         auto targetRow = rule.GetNamedValue(L"target_row_index", nullptr);
         TargetRow().Text(targetRow && targetRow.ValueType() == JsonValueType::Number
             ? hstring{ std::to_wstring(static_cast<int32_t>(targetRow.GetNumber()) + 1) } : L"");
-        Services::SetInfoBarOpen(RuleStatus(), false);
+        RuleStatus().IsOpen(false);
     }
 
     void StrategyEditor::OnNewRule(IInspectable const&, RoutedEventArgs const&)
@@ -365,7 +378,7 @@ namespace winrt::SurveyController::App::implementation
         SelectTag(ActionMode(), L"must_select");
         TargetOptions().Text(L"1");
         TargetRow().Text(L"");
-        Services::SetInfoBarOpen(RuleStatus(), false);
+        RuleStatus().IsOpen(false);
     }
 
     void StrategyEditor::OnDeleteRule(IInspectable const&, RoutedEventArgs const&)
@@ -385,7 +398,7 @@ namespace winrt::SurveyController::App::implementation
         {
             RuleStatus().Severity(InfoBarSeverity::Error);
             RuleStatus().Title(L"条件和目标至少选择一个选项");
-            Services::SetInfoBarOpen(RuleStatus(), true);
+            RuleStatus().IsOpen(true);
             return;
         }
         JsonObject rule;
@@ -405,7 +418,7 @@ namespace winrt::SurveyController::App::implementation
         RuleStatus().Severity(InfoBarSeverity::Success);
         RuleStatus().Title(L"条件规则已保存");
         RuleStatus().Message(L"");
-        Services::SetInfoBarOpen(RuleStatus(), true);
+        RuleStatus().IsOpen(true);
     }
 
     void StrategyEditor::LoadDimensions()
@@ -440,7 +453,7 @@ namespace winrt::SurveyController::App::implementation
         LoadDimensions();
         DimensionStatus().Severity(InfoBarSeverity::Success);
         DimensionStatus().Title(L"维度分组已保存");
-        Services::SetInfoBarOpen(DimensionStatus(), true);
+        DimensionStatus().IsOpen(true);
     }
 
     hstring StrategyEditor::SelectedTag(ComboBox const& combo, hstring const& fallback) const

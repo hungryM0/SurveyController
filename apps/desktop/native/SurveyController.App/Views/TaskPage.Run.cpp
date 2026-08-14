@@ -1,13 +1,12 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
-#include "Services/UiMotion.h"
 #include "Services/BackendClient.h"
 #include "Services/NativeResource.h"
 #include "Services/JsonHelpers.h"
 #include "Services/TaskNotification.h"
+#include "Services/WindowContext.h"
 
 #include <algorithm>
-#include <shobjidl.h>
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -48,7 +47,7 @@ namespace winrt::SurveyController::App::implementation
 
     fire_and_forget TaskPage::OnExportLogs(IInspectable const&, RoutedEventArgs const&)
     {
-        auto path = ChooseSaveFile(false);
+        auto path = co_await ChooseSaveFile(false);
         if (path.empty()) co_return;
         JsonArray lines;
         for (auto const& line : m_logLines) lines.Append(JsonValue::CreateStringValue(line));
@@ -58,7 +57,7 @@ namespace winrt::SurveyController::App::implementation
     fire_and_forget TaskPage::OnExportResult(IInspectable const&, RoutedEventArgs const&)
     {
         if (!m_runResult) co_return;
-        auto path = ChooseSaveFile(true);
+        auto path = co_await ChooseSaveFile(true);
         if (path.empty()) co_return;
         JsonObject payload;
         payload.SetNamedValue(L"result", m_runResult);
@@ -70,21 +69,17 @@ namespace winrt::SurveyController::App::implementation
         co_await ExportLinesAsync(path, lines, L"任务结果已导出");
     }
 
-    hstring TaskPage::ChooseSaveFile(bool json)
+    Windows::Foundation::IAsyncOperation<hstring> TaskPage::ChooseSaveFile(bool json)
     {
-        com_ptr<IFileSaveDialog> dialog;
-        check_hresult(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put())));
-        COMDLG_FILTERSPEC jsonFilter[] = { { L"JSON 文件", L"*.json" } };
-        COMDLG_FILTERSPEC logFilter[] = { { L"日志文件", L"*.log;*.txt" } };
-        check_hresult(dialog->SetFileTypes(1, json ? jsonFilter : logFilter));
-        check_hresult(dialog->SetDefaultExtension(json ? L"json" : L"log"));
-        check_hresult(dialog->SetFileName(json ? L"surveycontroller-result.json" : L"surveycontroller-runtime.log"));
-        if (dialog->Show(GetActiveWindow()) != S_OK) return L"";
-        com_ptr<IShellItem> item;
-        check_hresult(dialog->GetResult(item.put()));
-        Services::CoTaskMemString path;
-        check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
-        return hstring{ path.get() };
+        Microsoft::Windows::Storage::Pickers::FileSavePicker picker(Services::MainWindowId());
+        picker.SuggestedFileName(json ? L"surveycontroller-result" : L"surveycontroller-runtime");
+        picker.DefaultFileExtension(json ? L".json" : L".log");
+        auto choices = picker.FileTypeChoices();
+        Windows::Foundation::Collections::IVector<hstring> extensions = winrt::single_threaded_vector<hstring>();
+        extensions.Append(json ? L".json" : L".log");
+        choices.Insert(json ? L"JSON 文件" : L"日志文件", extensions);
+        auto file = co_await picker.PickSaveFileAsync();
+        co_return file ? file.Path() : hstring{};
     }
 
     Windows::Foundation::IAsyncAction TaskPage::ExportLinesAsync(hstring const& path, JsonArray const& lines, hstring const& successMessage)
@@ -103,7 +98,7 @@ namespace winrt::SurveyController::App::implementation
             lifetime->RunExportStatus().Severity(error.empty() ? InfoBarSeverity::Success : InfoBarSeverity::Error);
             lifetime->RunExportStatus().Title(error.empty() ? successMessage : L"导出失败");
             lifetime->RunExportStatus().Message(error);
-            Services::SetInfoBarOpen(lifetime->RunExportStatus(), true);
+            lifetime->RunExportStatus().IsOpen(true);
         });
     }
 
@@ -122,10 +117,10 @@ namespace winrt::SurveyController::App::implementation
             RunLogs().Items().Clear();
             m_logLines.clear();
             m_runResult = nullptr;
-            Services::SetVisibility(RunResultCard(), false);
-            Services::SetVisibility(ExportResultButton(), false);
-            Services::SetVisibility(ExportLogsButton(), false);
-            Services::SetInfoBarOpen(RunExportStatus(), false);
+            RunResultCard().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            ExportResultButton().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            ExportLogsButton().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            RunExportStatus().IsOpen(false);
         }
         m_runId = nextRunId;
         m_afterSequence = static_cast<uint64_t>(state.GetNamedNumber(L"nextSequence", static_cast<double>(m_afterSequence)));
@@ -165,10 +160,11 @@ namespace winrt::SurveyController::App::implementation
             RunResultSuccess().Text(hstring{ std::to_wstring(success) });
             RunResultFail().Text(hstring{ std::to_wstring(fail) });
             RunResultTotal().Text(hstring{ std::to_wstring(success + fail) });
-            Services::SetVisibility(RunResultCard(), true);
-            Services::SetVisibility(ExportResultButton(), true);
+            RunResultCard().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
+            ExportResultButton().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
         }
-        Services::SetVisibility(ExportLogsButton(), !m_logLines.empty());
+        ExportLogsButton().Visibility(m_logLines.empty()
+            ? Microsoft::UI::Xaml::Visibility::Collapsed : Microsoft::UI::Xaml::Visibility::Visible);
         auto stateError = state.GetNamedString(L"error", L"");
         if (!stateError.empty()) RunStatus().Message(stateError);
         auto active = status == L"running" || status == L"paused" || status == L"canceling";

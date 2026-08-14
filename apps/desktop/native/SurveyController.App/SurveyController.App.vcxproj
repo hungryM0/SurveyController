@@ -117,12 +117,13 @@
     <ClInclude Include="Views\SettingsPage.xaml.h"><DependentUpon>SettingsPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\CommunityPage.xaml.h"><DependentUpon>CommunityPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\MorePage.xaml.h"><DependentUpon>MorePage.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="ViewModels\OptionWeight.h" />
     <ClInclude Include="Services\BackendClient.h" />
     <ClInclude Include="Services\JsonHelpers.h" />
     <ClInclude Include="Services\NativeResource.h" />
+    <ClInclude Include="Services\WindowContext.h" />
     <ClInclude Include="Services\ShellSettings.h" />
     <ClInclude Include="Services\TaskNotification.h" />
-    <ClInclude Include="Services\UiMotion.h" />
     <ClInclude Include="Services\WizardDocument.h" />
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +138,7 @@
     <ClCompile Include="Views\SettingsPage.xaml.cpp"><DependentUpon>SettingsPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\CommunityPage.xaml.cpp"><DependentUpon>CommunityPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\MorePage.xaml.cpp"><DependentUpon>MorePage.xaml</DependentUpon></ClCompile>
+    <ClCompile Include="ViewModels\OptionWeight.cpp" />
     <ClCompile Include="Services\BackendClient.cpp" />
     <ClCompile Include="Services\ShellSettings.cpp" />
     <ClCompile Include="Services\TaskNotification.cpp" />

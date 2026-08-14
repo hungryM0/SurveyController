@@ -2,6 +2,7 @@
 
 #include "StrategyEditor.g.h"
 #include "Services/WizardDocument.h"
+#include "ViewModels/OptionWeight.h"
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -9,8 +10,10 @@ namespace winrt::SurveyController::App::implementation
     {
         StrategyEditor();
         void Refresh();
+        Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> WeightOptions();
 
         void OnQuestionSelected(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
+        void OnEditorModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectorBarSelectionChangedEventArgs const&);
         void OnSaveQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBiasChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnTextModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
@@ -26,14 +29,12 @@ namespace winrt::SurveyController::App::implementation
         bool m_initialized{};
         bool m_syncingWeights{};
         bool m_multipleWeights{};
-        std::vector<Microsoft::UI::Xaml::Controls::Slider> m_weightSliders;
-        std::vector<Microsoft::UI::Xaml::Controls::NumberBox> m_weightInputs;
+        Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> m_weightOptions;
         std::vector<hstring> m_weightLabels;
 
         void LoadQuestion();
         void RebuildWeightEditor(Windows::Data::Json::JsonObject const& question,
             Windows::Data::Json::JsonObject const& strategy);
-        void SetWeightValue(uint32_t index, double value, bool selectCustomBias);
         void ApplyBiasPreset(hstring const& bias);
         void UpdateRatioPreview();
         Windows::Data::Json::JsonArray WeightValues() const;

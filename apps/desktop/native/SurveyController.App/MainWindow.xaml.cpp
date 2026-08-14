@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "MainWindow.xaml.h"
+#include "Services/WindowContext.h"
 #include "Views/TaskPage.xaml.h"
 #include "Views/SettingsPage.xaml.h"
 #include "Views/CommunityPage.xaml.h"
@@ -7,7 +8,6 @@
 #include "Services/BackendClient.h"
 #include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
-#include "Services/UiMotion.h"
 #include "Services/WizardDocument.h"
 
 #if __has_include("MainWindow.g.cpp")
@@ -15,13 +15,13 @@
 #endif
 
 #include <microsoft.ui.xaml.window.h>
-#include <commctrl.h>
 
 namespace winrt::SurveyController::App::implementation
 {
     MainWindow::MainWindow()
     {
         InitializeComponent();
+        Services::SetMainWindowId(AppWindow().Id());
         Title(L"SurveyController");
         ConfigureTitleBar();
         ConfigureWindow();
@@ -88,8 +88,10 @@ namespace winrt::SurveyController::App::implementation
         ConfigureBackdrop(settings.GetNamedBoolean(L"micaEnabled", true));
         m_askSaveOnClose = settings.GetNamedBoolean(L"askSaveOnClose", true);
         auto topmost = settings.GetNamedBoolean(L"topmost", false);
-        ::SetWindowPos(m_hwnd, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        if (auto presenter = AppWindow().Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())
+        {
+            presenter.IsAlwaysOnTop(topmost);
+        }
     }
 
     void MainWindow::OnWindowClosing(
@@ -161,11 +163,15 @@ namespace winrt::SurveyController::App::implementation
     {
         Microsoft::UI::Xaml::Window window = *this;
         window.as<::IWindowNative>()->get_WindowHandle(&m_hwnd);
-        check_bool(::SetWindowSubclass(m_hwnd, WindowSubclassProc, 1, reinterpret_cast<DWORD_PTR>(this)));
-
         auto appWindow = AppWindow();
         auto const dpi = ::GetDpiForWindow(m_hwnd);
         appWindow.SetIcon(L"Assets\\SurveyController.ico");
+
+        if (auto presenter = appWindow.Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())
+        {
+            presenter.PreferredMinimumWidth(::MulDiv(760, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI));
+            presenter.PreferredMinimumHeight(::MulDiv(560, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI));
+        }
 
         auto displayArea = Microsoft::UI::Windowing::DisplayArea::GetFromWindowId(
             appWindow.Id(), Microsoft::UI::Windowing::DisplayAreaFallback::Nearest);
@@ -190,24 +196,6 @@ namespace winrt::SurveyController::App::implementation
             appWindow.Resize({ width, height });
         }
         ContentFrame().CacheSize(4);
-    }
-
-    LRESULT CALLBACK MainWindow::WindowSubclassProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam,
-        UINT_PTR subclassId, DWORD_PTR)
-    {
-        if (message == WM_GETMINMAXINFO)
-        {
-            auto info = reinterpret_cast<MINMAXINFO*>(lParam);
-            auto const dpi = ::GetDpiForWindow(window);
-            info->ptMinTrackSize.x = ::MulDiv(760, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
-            info->ptMinTrackSize.y = ::MulDiv(560, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
-            return 0;
-        }
-        if (message == WM_NCDESTROY)
-        {
-            ::RemoveWindowSubclass(window, WindowSubclassProc, subclassId);
-        }
-        return ::DefSubclassProc(window, message, wParam, lParam);
     }
 
     bool MainWindow::IsWindows11OrGreater()
@@ -239,15 +227,7 @@ namespace winrt::SurveyController::App::implementation
         int32_t const targetIndex = tag == L"task" ? 0 : tag == L"settings" ? 1 : tag == L"community" ? 2 : 3;
         if (m_hasNavigated && targetIndex == m_currentPageIndex) return;
 
-        NavigationTransitionInfo transition{ nullptr };
-        if (Services::AnimationsEnabled())
-        {
-            transition = EntranceNavigationTransitionInfo{};
-        }
-        else
-        {
-            transition = SuppressNavigationTransitionInfo{};
-        }
+        NavigationTransitionInfo transition = EntranceNavigationTransitionInfo{};
 
         if (tag == L"task")
         {

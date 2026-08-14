@@ -10,29 +10,16 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="138" />
-            </Grid.ColumnDefinitions>
-            <Image Width="32" Height="32" Margin="16,0,12,0" Source="ms-appx:///Assets/appicon.png" />
-            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="SurveyController" />
-            <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="5.0.0" />
-        </Grid>
+        <TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="SurveyController" Subtitle="5.0.0" />
 
         <NavigationView
             x:Name="ShellNavigation"
             Grid.Row="1"
             Background="Transparent"
-            CompactPaneLength="{StaticResource ShellNavigationWidth}"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="False"
             CompactModeThresholdWidth="0"
-            OpenPaneLength="{StaticResource ShellNavigationOpenWidth}"
             PaneDisplayMode="Auto">
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="TaskNavigationItem" Content="任务" IsSelected="True" Tag="task">

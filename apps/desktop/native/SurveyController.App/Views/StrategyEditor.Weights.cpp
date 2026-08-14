@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
-#include "Services/UiMotion.h"
-
-#include <winrt/Microsoft.UI.Xaml.Automation.h>
+#include "ViewModels/OptionWeight.h"
 
 #include <algorithm>
 #include <cmath>
@@ -40,13 +38,8 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::RebuildWeightEditor(JsonObject const& question, JsonObject const& strategy)
     {
-        using namespace Microsoft::UI::Xaml;
-        using namespace Microsoft::UI::Xaml::Controls;
-
         m_syncingWeights = true;
-        OptionWeightRows().Children().Clear();
-        m_weightSliders.clear();
-        m_weightInputs.clear();
+        m_weightOptions.Clear();
         m_weightLabels.clear();
 
         auto questionType = strategy.GetNamedString(L"question_type", L"");
@@ -61,12 +54,15 @@ namespace winrt::SurveyController::App::implementation
         if (isTextQuestion) optionCount = 0;
 
         m_multipleWeights = questionType == L"multiple";
-        Services::SetVisibility(OptionWeightsSection(), optionCount > 0);
-        Services::SetVisibility(OptionWeightEmpty(), optionCount == 0);
+        OptionWeightsSection().Visibility(optionCount > 0
+            ? Microsoft::UI::Xaml::Visibility::Visible
+            : Microsoft::UI::Xaml::Visibility::Collapsed);
+        OptionWeightEmpty().Visibility(optionCount == 0
+            ? Microsoft::UI::Xaml::Visibility::Visible
+            : Microsoft::UI::Xaml::Visibility::Collapsed);
 
         auto maximum = m_multipleWeights ? 100.0 : 50.0;
         auto defaultValue = m_multipleWeights ? 50.0 : 1.0;
-        auto weak = get_weak();
         for (uint32_t optionIndex = 0; optionIndex < optionCount; ++optionIndex)
         {
             auto label = optionIndex < optionTexts.Size()
@@ -74,74 +70,28 @@ namespace winrt::SurveyController::App::implementation
                 : hstring{ L"选项 " + std::to_wstring(optionIndex + 1) };
             if (label.empty()) label = hstring{ L"选项 " + std::to_wstring(optionIndex + 1) };
             m_weightLabels.push_back(label);
-
-            StackPanel row;
-            row.Spacing(6);
-
-            TextBlock optionLabel;
-            optionLabel.Text(hstring{ std::to_wstring(optionIndex + 1) + L". " + std::wstring{ label } });
-            optionLabel.TextWrapping(TextWrapping::Wrap);
-            row.Children().Append(optionLabel);
-
-            Grid controls;
-            Slider slider;
-            slider.Minimum(0);
-            slider.Maximum(maximum);
-            slider.StepFrequency(1);
-            slider.SmallChange(1);
-            slider.LargeChange(5);
-            slider.Margin(Thickness{ 0, 0, 104, 0 });
-            slider.HorizontalAlignment(HorizontalAlignment::Stretch);
-            Automation::AutomationProperties::SetName(slider, hstring{ std::wstring{ label } + L"比例" });
-
-            NumberBox input;
-            input.Width(92);
-            input.HorizontalAlignment(HorizontalAlignment::Right);
-            input.Minimum(0);
-            input.Maximum(maximum);
-            input.SmallChange(1);
-            input.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
-            Automation::AutomationProperties::SetName(input, hstring{ std::wstring{ label } + L"比例数值" });
-
             auto value = optionIndex < weights.Size() ? weights.GetNumberAt(optionIndex) : defaultValue;
             value = (std::max)(0.0, (std::min)(maximum, std::round(value)));
-            slider.Value(value);
-            input.Value(value);
-            m_weightSliders.push_back(slider);
-            m_weightInputs.push_back(input);
-
-            slider.ValueChanged([weak, optionIndex](auto const&, auto const& args)
+            auto option = winrt::make<implementation::OptionWeight>(label, value, maximum);
+            auto weak = get_weak();
+            option.PropertyChanged([weak](auto const&, auto const&)
             {
-                if (auto self = weak.get()) self->SetWeightValue(optionIndex, args.NewValue(), true);
-            });
-            input.ValueChanged([weak, optionIndex](auto const&, auto const& args)
-            {
-                if (auto self = weak.get(); self && !std::isnan(args.NewValue()))
+                if (auto self = weak.get(); self && !self->m_syncingWeights)
                 {
-                    self->SetWeightValue(optionIndex, args.NewValue(), true);
+                    self->SelectTag(self->Bias(), L"custom");
+                    self->UpdateRatioPreview();
                 }
             });
-
-            controls.Children().Append(slider);
-            controls.Children().Append(input);
-            row.Children().Append(controls);
-            OptionWeightRows().Children().Append(row);
+            m_weightOptions.Append(option);
         }
         m_syncingWeights = false;
         UpdateRatioPreview();
     }
 
-    void StrategyEditor::SetWeightValue(uint32_t index, double value, bool selectCustomBias)
+    Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight>
+        StrategyEditor::WeightOptions()
     {
-        if (m_syncingWeights || index >= m_weightSliders.size()) return;
-        m_syncingWeights = true;
-        auto maximum = m_weightSliders[index].Maximum();
-        auto normalized = (std::max)(0.0, (std::min)(maximum, std::round(value)));
-        m_weightSliders[index].Value(normalized);
-        m_weightInputs[index].Value(normalized);
-        if (selectCustomBias) SelectTag(Bias(), L"custom");
-        m_syncingWeights = false;
-        UpdateRatioPreview();
+        return m_weightOptions;
     }
 
     void StrategyEditor::OnBiasChanged(IInspectable const&,
@@ -154,7 +104,7 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::ApplyBiasPreset(hstring const& bias)
     {
-        auto count = m_weightSliders.size();
+        auto count = m_weightOptions.Size();
         if (count == 0) return;
         std::vector<double> raw(count, 1.0);
         if (count > 1)
@@ -173,16 +123,16 @@ namespace winrt::SurveyController::App::implementation
         for (uint32_t index = 0; index < count; ++index)
         {
             auto value = maximum > 0 ? std::round(raw[index] / maximum * scale) : std::round(scale / count);
-            SetWeightValue(index, value, false);
+            m_weightOptions.GetAt(index).Value(value);
         }
     }
 
     Windows::Data::Json::JsonArray StrategyEditor::WeightValues() const
     {
         Windows::Data::Json::JsonArray values;
-        for (auto const& input : m_weightInputs)
+        for (auto const& option : m_weightOptions)
         {
-            auto value = input.Value();
+            auto value = option.Value();
             values.Append(Windows::Data::Json::JsonValue::CreateNumberValue(
                 std::isnan(value) ? 0 : (std::max)(0.0, value)));
         }
@@ -191,17 +141,17 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::UpdateRatioPreview()
     {
-        if (m_weightInputs.empty())
+        if (m_weightOptions.Size() == 0)
         {
             RatioPreview().Text(L"");
             return;
         }
         std::vector<double> values;
-        values.reserve(m_weightInputs.size());
+        values.reserve(m_weightOptions.Size());
         double total = 0;
-        for (auto const& input : m_weightInputs)
+        for (auto const& option : m_weightOptions)
         {
-            auto value = std::isnan(input.Value()) ? 0 : (std::max)(0.0, input.Value());
+            auto value = std::isnan(option.Value()) ? 0 : (std::max)(0.0, option.Value());
             values.push_back(value);
             total += value;
         }

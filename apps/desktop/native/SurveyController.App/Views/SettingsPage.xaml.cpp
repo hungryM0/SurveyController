@@ -4,12 +4,12 @@
 #include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
 #include "Services/NativeResource.h"
+#include "Services/WindowContext.h"
 
 #if __has_include("SettingsPage.g.cpp")
 #include "SettingsPage.g.cpp"
 #endif
 
-#include <shobjidl.h>
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -145,21 +145,13 @@ namespace winrt::SurveyController::App::implementation
         }
     }
 
-    void SettingsPage::OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    fire_and_forget SettingsPage::OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
-        com_ptr<IFileDialog> dialog;
-        check_hresult(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put())));
-        DWORD options = 0;
-        check_hresult(dialog->GetOptions(&options));
-        check_hresult(dialog->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM));
-        HWND owner = GetActiveWindow();
-        if (SUCCEEDED(dialog->Show(owner)))
+        Microsoft::Windows::Storage::Pickers::FolderPicker picker(Services::MainWindowId());
+        auto folder = co_await picker.PickSingleFolderAsync();
+        if (folder)
         {
-            com_ptr<IShellItem> item;
-            check_hresult(dialog->GetResult(item.put()));
-            Services::CoTaskMemString path;
-            check_hresult(item->GetDisplayName(SIGDN_FILESYSPATH, path.put()));
-            ConfigDirectory().Text(path.get());
+            ConfigDirectory().Text(folder.Path());
             SaveSettings();
         }
     }

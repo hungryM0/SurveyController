@@ -10,7 +10,7 @@ namespace winrt::SurveyController::App::implementation
         void OnSettingToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSettingSelectionChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
-        void OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        winrt::fire_and_forget OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
 
     private:
         Windows::Data::Json::JsonObject m_settings{ nullptr };

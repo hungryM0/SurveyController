@@ -5,17 +5,16 @@
 #include "CommunityPage.g.cpp"
 #endif
 
-#include <shellapi.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.System.h>
 
 namespace winrt::SurveyController::App::implementation
 {
     namespace
     {
-        void OpenUrl(wchar_t const* url)
+        fire_and_forget OpenUrl(wchar_t const* url)
         {
-            auto result = reinterpret_cast<INT_PTR>(
-                ShellExecuteW(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL));
-            if (result <= 32) throw hresult_error(HRESULT_FROM_WIN32(ERROR_OPEN_FAILED), L"无法打开系统浏览器");
+            co_await Windows::System::Launcher::LaunchUriAsync(Windows::Foundation::Uri(url));
         }
     }
 
@@ -24,13 +23,15 @@ namespace winrt::SurveyController::App::implementation
         InitializeComponent();
     }
 
-    void CommunityPage::OnOpenIssues(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    fire_and_forget CommunityPage::OnOpenIssues(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
         OpenUrl(L"https://github.com/SurveyController/SurveyController/issues/new");
+        co_return;
     }
 
-    void CommunityPage::OnOpenLicense(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    fire_and_forget CommunityPage::OnOpenLicense(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
         OpenUrl(L"https://github.com/SurveyController/SurveyController/blob/main/LICENSE");
+        co_return;
     }
 }

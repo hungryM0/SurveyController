@@ -1,5 +1,13 @@
 namespace SurveyController.App
 {
+    runtimeclass OptionWeight : Microsoft.UI.Xaml.Data.INotifyPropertyChanged
+    {
+        OptionWeight(String label, Double initialValue, Double maximum);
+        String Label { get; };
+        Double Value;
+        Double Maximum { get; };
+    }
+
     [default_interface]
     runtimeclass MainWindow : Microsoft.UI.Xaml.Window
     {
@@ -17,6 +25,7 @@ namespace SurveyController.App
     {
         StrategyEditor();
         void Refresh();
+        Windows.Foundation.Collections.IObservableVector<OptionWeight> WeightOptions { get; };
     }
 
     [default_interface]

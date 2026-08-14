@@ -31,24 +31,24 @@
             <StackPanel.ChildrenTransitions><TransitionCollection><EntranceThemeTransition FromVerticalOffset="8" /><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
             <TextBlock FontSize="28" FontWeight="SemiBold" Text="社区" />
 
-            <Border Style="{StaticResource SettingsCardStyle}">
+            <Border>
                 <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition x:Name="CommunityQrColumn" Width="0" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <SymbolIcon VerticalAlignment="Center" Symbol="Message" />
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="QQ 群交流" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="扫描二维码加入群聊" /></StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="QQ 群交流" /><TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="扫描二维码加入群聊" /></StackPanel>
                     <Image x:Name="CommunityQr" Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" Width="128" Height="128" HorizontalAlignment="Left" Source="ms-appx:///Assets/community_qr.png" Stretch="Uniform" />
                 </Grid>
             </Border>
-            <Border Style="{StaticResource SettingsCardStyle}">
+            <Border>
                 <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition x:Name="IssueActionColumn" Width="0" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <SymbolIcon VerticalAlignment="Center" Symbol="Message" />
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="问题反馈" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="提交可复现的问题" /></StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="问题反馈" /><TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="提交可复现的问题" /></StackPanel>
                     <Button x:Name="IssueAction" Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Content="提交 Issue" Click="OnOpenIssues" />
                 </Grid>
             </Border>
-            <Border Style="{StaticResource SettingsCardStyle}">
+            <Border>
                 <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition x:Name="LicenseActionColumn" Width="0" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <SymbolIcon VerticalAlignment="Center" Symbol="Document" />
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="开源许可" /><TextBlock Style="{StaticResource SettingsDescriptionStyle}" Text="GPL-3.0" /></StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"><TextBlock FontSize="16" Text="开源许可" /><TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="GPL-3.0" /></StackPanel>
                     <Button x:Name="LicenseAction" Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Content="查看许可证" Click="OnOpenLicense" />
                 </Grid>
             </Border>

@@ -95,7 +95,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 - 不新增紫色渐变。
 - 不使用 Emoji 作为功能图标。
-- 不用网页卡片、CSS 皮肤或模拟控件替代 WinUI 3 控件。
+- 不用网页卡片、模拟皮肤或模拟控件替代 WinUI 3 控件。
 - 不使用大面积高饱和色块、厚重黑色投影或彩色玻璃堆叠。
 
 ## 字体与文字
@@ -166,7 +166,7 @@ SurveyController 是 Windows 问卷自动化工具，不是营销页，也不是
 
 ### Card 与 Dialog
 
-- 普通卡片复用 `SectionCardStyle`、`SettingsCardStyle` 或 `FormRowCardStyle`。
+- 页面直接组合原生控件和布局容器，不定义页面级控件皮肤。
 - 弹窗使用 WinUI 3 `ContentDialog`，标题、关闭按钮、内容区和操作区保持固定结构。
 - 弹窗内容最大高度不能遮蔽窗口操作；窄窗口要能滚动。
 

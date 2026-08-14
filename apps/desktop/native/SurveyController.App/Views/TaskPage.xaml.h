@@ -14,7 +14,7 @@ namespace winrt::SurveyController::App::implementation
         void OnSurveyUrlChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::TextChangedEventArgs const&);
         winrt::fire_and_forget OnImportConfig(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnChooseQRCode(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
-        void OnChooseReverseFill(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        winrt::fire_and_forget OnChooseReverseFill(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnProxyModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnProxySourceChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnProxyProvinceChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
@@ -66,8 +66,8 @@ namespace winrt::SurveyController::App::implementation
         void MoveToStep(int32_t step, bool force = false);
         void SetBusy(bool busy, hstring const& message = L"");
         void SetFooterError(hstring const& message);
-        hstring ChooseFile(bool image, bool spreadsheet = false);
-        hstring ChooseSaveFile(bool json);
+        Windows::Foundation::IAsyncOperation<hstring> ChooseFile(bool image, bool spreadsheet = false);
+        Windows::Foundation::IAsyncOperation<hstring> ChooseSaveFile(bool json);
         Windows::Foundation::IAsyncAction ExportLinesAsync(hstring const& path, Windows::Data::Json::JsonArray const& lines, hstring const& successMessage);
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::ComboBox const& combo, hstring const& fallback) const;
         void SelectTag(Microsoft::UI::Xaml::Controls::ComboBox const& combo, hstring const& value);

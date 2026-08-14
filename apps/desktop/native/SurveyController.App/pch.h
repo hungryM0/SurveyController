@@ -26,6 +26,7 @@
 #include <winrt/Microsoft.UI.Xaml.Media.Animation.h>
 #include <winrt/Microsoft.UI.Xaml.Navigation.h>
 #include <winrt/Microsoft.Windows.AppNotifications.h>
+#include <winrt/Microsoft.Windows.Storage.Pickers.h>
 
 #include <atomic>
 #include <array>
