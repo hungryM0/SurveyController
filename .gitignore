@@ -1,42 +1,15 @@
-# 开发环境
-*.code-workspace
-.claude/
-.playwright-mcp/
-.local-private/
-.agent/
+# 本机代理状态
+.claude/settings.local.json
 .codex/environments/
-.trellis/workspace/
-.trellis/.runtime/
-.trellis/tasks/
-/output/
 desktop.ini
+*.code-workspace
 AGENTS.md
 CLAUDE.md
 
-# 本地缓存
-__pycache__/
-*.pyc
-.pytest_cache/
-.pytest_tmp/
-.pytest_tmp_async_runtime_loop_large/
-.ruff_cache/
-.venv/
-.uv-cache/
-
-# Go
-*.test
-coverage.out
-
-# 编译环境
-/build/
-/dist/
+# 本地问卷与运行数据
+/configs/
 /Releases/
 
-# 运行环境
-%SystemDrive%/
-/assets/promo-video/
-/configs/
-/logs/
-/worker/.dev.vars
-/worker/.env
-/worker/.wrangler/
+# Go 测试产物
+*.test
+coverage.out

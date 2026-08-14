@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regression Verification"
+  short_description: "Targeted Go and native build verification"
+  default_prompt: "Use $regression-verification to choose and run SurveyController tests and build checks after a change."

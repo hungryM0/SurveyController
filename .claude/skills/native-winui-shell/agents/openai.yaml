@@ -1,0 +1,4 @@
+interface:
+  display_name: "Native WinUI Shell"
+  short_description: "WinUI 3 desktop shell changes"
+  default_prompt: "Use $native-winui-shell for SurveyController WinUI 3 pages, XAML, C++/WinRT shell services, or native UI interactions."

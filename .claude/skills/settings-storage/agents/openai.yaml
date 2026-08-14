@@ -1,0 +1,4 @@
+interface:
+  display_name: "Settings and Storage"
+  short_description: "Desktop settings and configuration persistence"
+  default_prompt: "Use $settings-storage for SurveyController settings, config files, credentials, data paths, or migration compatibility changes."

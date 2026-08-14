@@ -1,0 +1,4 @@
+interface:
+  display_name: "Survey HTTP Core"
+  short_description: "Go survey and proxy HTTP core"
+  default_prompt: "Use $survey-http-core for SurveyController proxycore, surveycore, platform adapters, or HTTP submission changes."
