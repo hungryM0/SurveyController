@@ -11,7 +11,6 @@ namespace winrt::SurveyController::App::implementation
 
         winrt::fire_and_forget OnPrimary(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBack(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
-        void OnStepClicked(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSurveyUrlChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::TextChangedEventArgs const&);
         winrt::fire_and_forget OnImportConfig(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnChooseQRCode(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);

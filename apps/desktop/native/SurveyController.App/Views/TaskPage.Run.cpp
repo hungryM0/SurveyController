@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
+#include "Services/UiMotion.h"
 #include "Services/BackendClient.h"
 #include "Services/NativeResource.h"
 #include "Services/JsonHelpers.h"
@@ -102,7 +103,7 @@ namespace winrt::SurveyController::App::implementation
             lifetime->RunExportStatus().Severity(error.empty() ? InfoBarSeverity::Success : InfoBarSeverity::Error);
             lifetime->RunExportStatus().Title(error.empty() ? successMessage : L"导出失败");
             lifetime->RunExportStatus().Message(error);
-            lifetime->RunExportStatus().IsOpen(true);
+            Services::SetInfoBarOpen(lifetime->RunExportStatus(), true);
         });
     }
 
@@ -121,10 +122,10 @@ namespace winrt::SurveyController::App::implementation
             RunLogs().Items().Clear();
             m_logLines.clear();
             m_runResult = nullptr;
-            RunResultCard().Visibility(Visibility::Collapsed);
-            ExportResultButton().Visibility(Visibility::Collapsed);
-            ExportLogsButton().Visibility(Visibility::Collapsed);
-            RunExportStatus().IsOpen(false);
+            Services::SetVisibility(RunResultCard(), false);
+            Services::SetVisibility(ExportResultButton(), false);
+            Services::SetVisibility(ExportLogsButton(), false);
+            Services::SetInfoBarOpen(RunExportStatus(), false);
         }
         m_runId = nextRunId;
         m_afterSequence = static_cast<uint64_t>(state.GetNamedNumber(L"nextSequence", static_cast<double>(m_afterSequence)));
@@ -164,10 +165,10 @@ namespace winrt::SurveyController::App::implementation
             RunResultSuccess().Text(hstring{ std::to_wstring(success) });
             RunResultFail().Text(hstring{ std::to_wstring(fail) });
             RunResultTotal().Text(hstring{ std::to_wstring(success + fail) });
-            RunResultCard().Visibility(Visibility::Visible);
-            ExportResultButton().Visibility(Visibility::Visible);
+            Services::SetVisibility(RunResultCard(), true);
+            Services::SetVisibility(ExportResultButton(), true);
         }
-        ExportLogsButton().Visibility(m_logLines.empty() ? Visibility::Collapsed : Visibility::Visible);
+        Services::SetVisibility(ExportLogsButton(), !m_logLines.empty());
         auto stateError = state.GetNamedString(L"error", L"");
         if (!stateError.empty()) RunStatus().Message(stateError);
         auto active = status == L"running" || status == L"paused" || status == L"canceling";

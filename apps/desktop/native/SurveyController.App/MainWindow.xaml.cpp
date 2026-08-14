@@ -7,6 +7,7 @@
 #include "Services/BackendClient.h"
 #include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
+#include "Services/UiMotion.h"
 #include "Services/WizardDocument.h"
 
 #if __has_include("MainWindow.g.cpp")
@@ -254,22 +255,19 @@ namespace winrt::SurveyController::App::implementation
         int32_t const targetIndex = tag == L"task" ? 0 : tag == L"settings" ? 1 : tag == L"community" ? 2 : 3;
         if (m_hasNavigated && targetIndex == m_currentPageIndex) return;
 
-        auto transition = SlideNavigationTransitionInfo{};
-        transition.Effect(targetIndex > m_currentPageIndex
-            ? SlideNavigationTransitionEffect::FromRight
-            : SlideNavigationTransitionEffect::FromLeft);
+        NavigationTransitionInfo transition{ nullptr };
+        if (Services::AnimationsEnabled())
+        {
+            transition = EntranceNavigationTransitionInfo{};
+        }
+        else
+        {
+            transition = SuppressNavigationTransitionInfo{};
+        }
 
         if (tag == L"task")
         {
-            if (m_hasNavigated)
-            {
-                ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr, transition);
-            }
-            else
-            {
-                ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr,
-                    SuppressNavigationTransitionInfo{});
-            }
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr, transition);
         }
         else if (tag == L"settings")
         {

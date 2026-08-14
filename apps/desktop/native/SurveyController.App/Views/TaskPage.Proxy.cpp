@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
+#include "Services/UiMotion.h"
 #include "Services/BackendClient.h"
 #include "Services/JsonHelpers.h"
 
@@ -286,11 +287,11 @@ namespace winrt::SurveyController::App::implementation
     {
         auto mode = SelectedTag(ProxyMode(), L"direct");
         auto source = SelectedTag(ProxySource(), L"default");
-        FixedProxyRow().Visibility(mode == L"fixed" ? Visibility::Visible : Visibility::Collapsed);
-        ProxySourceRow().Visibility(mode == L"random" ? Visibility::Visible : Visibility::Collapsed);
-        CustomProxyRow().Visibility(mode == L"random" && source == L"custom" ? Visibility::Visible : Visibility::Collapsed);
-        ProxyAreaRow().Visibility(mode == L"random" && source != L"custom" ? Visibility::Visible : Visibility::Collapsed);
-        SyncProxyButton().Visibility(mode == L"random" && source != L"custom" ? Visibility::Visible : Visibility::Collapsed);
+        Services::SetVisibility(FixedProxyRow(), mode == L"fixed");
+        Services::SetVisibility(ProxySourceRow(), mode == L"random");
+        Services::SetVisibility(CustomProxyRow(), mode == L"random" && source == L"custom");
+        Services::SetVisibility(ProxyAreaRow(), mode == L"random" && source != L"custom");
+        Services::SetVisibility(SyncProxyButton(), mode == L"random" && source != L"custom");
         if (mode == L"direct")
         {
             NetworkStatus().Title(L"直连");

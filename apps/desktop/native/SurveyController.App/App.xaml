@@ -14,13 +14,26 @@
             <x:Double x:Key="PageContentMaxWidth">1180</x:Double>
             <CornerRadius x:Key="ControlCornerRadius">6</CornerRadius>
             <CornerRadius x:Key="OverlayCornerRadius">8</CornerRadius>
+            <CornerRadius x:Key="DialogCornerRadius">10</CornerRadius>
+            <CornerRadius x:Key="CardCornerRadius">12</CornerRadius>
+            <CornerRadius x:Key="PillCornerRadius">9999</CornerRadius>
+
+            <Style x:Key="MotionElementStyle" TargetType="FrameworkElement">
+                <Setter Property="Transitions">
+                    <Setter.Value>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromVerticalOffset="8" />
+                        </TransitionCollection>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
             <Style x:Key="SectionCardStyle" TargetType="Border">
                 <Setter Property="Padding" Value="20" />
                 <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
                 <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="CornerRadius" Value="{ThemeResource CardCornerRadius}" />
             </Style>
             <Style x:Key="SettingsCardStyle" TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
                 <Setter Property="MinHeight" Value="84" />
@@ -31,7 +44,7 @@
                 <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
                 <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
             </Style>
             <Style x:Key="SettingsDescriptionStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -41,26 +54,35 @@
             <Style TargetType="Button">
                 <Setter Property="MinHeight" Value="32" />
                 <Setter Property="Padding" Value="12,8" />
-                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             </Style>
             <Style TargetType="TextBox">
                 <Setter Property="MinHeight" Value="36" />
-                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             </Style>
             <Style TargetType="PasswordBox">
                 <Setter Property="MinHeight" Value="36" />
-                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             </Style>
             <Style TargetType="ComboBox">
                 <Setter Property="MinHeight" Value="36" />
-                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             </Style>
             <Style TargetType="NumberBox">
                 <Setter Property="MinHeight" Value="36" />
-                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             </Style>
-            <Style TargetType="ContentDialog">
-                <Setter Property="CornerRadius" Value="10" />
+            <Style TargetType="NavigationViewItem">
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+            </Style>
+            <Style TargetType="Expander">
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+            </Style>
+            <Style TargetType="InfoBar">
+                <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
+            </Style>
+            <Style TargetType="ContentDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
+                <Setter Property="CornerRadius" Value="{ThemeResource DialogCornerRadius}" />
             </Style>
         </ResourceDictionary>
     </Application.Resources>

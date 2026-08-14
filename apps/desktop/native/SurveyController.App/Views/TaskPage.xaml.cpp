@@ -3,6 +3,7 @@
 #include "Services/BackendClient.h"
 #include "Services/NativeResource.h"
 #include "Services/JsonHelpers.h"
+#include "Services/UiMotion.h"
 
 #if __has_include("TaskPage.g.cpp")
 #include "TaskPage.g.cpp"
@@ -135,11 +136,11 @@ namespace winrt::SurveyController::App::implementation
     {
         auto providerMode = SelectedTag(AIMode(), L"free") == L"provider";
         auto customProvider = SelectedTag(AIProvider(), L"deepseek") == L"custom";
-        AIProviderRow().Visibility(providerMode ? Visibility::Visible : Visibility::Collapsed);
-        AIBaseURLRow().Visibility(providerMode && customProvider ? Visibility::Visible : Visibility::Collapsed);
-        AIModelRow().Visibility(providerMode ? Visibility::Visible : Visibility::Collapsed);
-        AICredentialRow().Visibility(providerMode ? Visibility::Visible : Visibility::Collapsed);
-        AITestRow().Visibility(providerMode ? Visibility::Visible : Visibility::Collapsed);
+        Services::SetVisibility(AIProviderRow(), providerMode);
+        Services::SetVisibility(AIBaseURLRow(), providerMode && customProvider);
+        Services::SetVisibility(AIModelRow(), providerMode);
+        Services::SetVisibility(AICredentialRow(), providerMode);
+        Services::SetVisibility(AITestRow(), providerMode);
     }
 
     hstring TaskPage::BuildAISettingsRequest()
@@ -296,7 +297,7 @@ namespace winrt::SurveyController::App::implementation
                 lifetime->SurveyStatus().Title(L"问卷解析完成");
                 lifetime->SurveyStatus().Message(lifetime->m_document.Title());
                 lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
-                lifetime->SurveyStatus().IsOpen(true);
+                Services::SetInfoBarOpen(lifetime->SurveyStatus(), true);
                 lifetime->MoveToStep(1, true);
             }
             else if (method == L"CheckTask")
@@ -321,13 +322,6 @@ namespace winrt::SurveyController::App::implementation
         if (!m_busy && m_step > 0) MoveToStep(m_step - 1, true);
     }
 
-    void TaskPage::OnStepClicked(IInspectable const& sender, RoutedEventArgs const&)
-    {
-        auto button = sender.as<Button>();
-        auto requested = std::stoi(std::wstring{ unbox_value_or<hstring>(button.Tag(), L"0") });
-        if (!m_busy && requested <= m_highestStep) MoveToStep(requested, true);
-    }
-
     void TaskPage::OnSurveyUrlChanged(IInspectable const&, TextChangedEventArgs const&)
     {
         if (!m_document.HasRealSurvey() || SurveyUrl().Text() == m_document.URL()) return;
@@ -337,7 +331,7 @@ namespace winrt::SurveyController::App::implementation
         SurveyStatus().Title(L"链接已修改");
         SurveyStatus().Message(L"需要重新解析问卷。");
         SurveyStatus().Severity(InfoBarSeverity::Warning);
-        SurveyStatus().IsOpen(true);
+        Services::SetInfoBarOpen(SurveyStatus(), true);
         UpdateStepVisuals();
     }
 
@@ -406,7 +400,7 @@ namespace winrt::SurveyController::App::implementation
             lifetime->SurveyStatus().Title(L"二维码已识别");
             lifetime->SurveyStatus().Message(lifetime->m_document.Title());
             lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
-            lifetime->SurveyStatus().IsOpen(true);
+            Services::SetInfoBarOpen(lifetime->SurveyStatus(), true);
             lifetime->MoveToStep(1, true);
         });
     }
@@ -464,13 +458,13 @@ namespace winrt::SurveyController::App::implementation
                     lifetime->AIStatus().Severity(InfoBarSeverity::Error);
                     lifetime->AIStatus().Title(L"AI 设置响应无效");
                     lifetime->AIStatus().Message(parseError);
-                    lifetime->AIStatus().IsOpen(true);
+                    Services::SetInfoBarOpen(lifetime->AIStatus(), true);
                     return;
                 }
                 lifetime->m_settings = parsedSettings;
                 lifetime->PopulateAIControls();
             }
-            lifetime->AIStatus().IsOpen(true);
+            Services::SetInfoBarOpen(lifetime->AIStatus(), true);
             if (!error.empty())
             {
                 lifetime->AIStatus().Severity(InfoBarSeverity::Error);
@@ -521,21 +515,46 @@ namespace winrt::SurveyController::App::implementation
         std::array<UIElement, 6> panels{ SurveyPanel(), AnswersPanel(), TaskPanel(), NetworkPanel(), ReviewPanel(), RunPanel() };
         std::array<Button, 6> buttons{ StepButton1(), StepButton2(), StepButton3(), StepButton4(), StepButton5(), StepButton6() };
         std::array<Border, 6> circles{ StepCircle1(), StepCircle2(), StepCircle3(), StepCircle4(), StepCircle5(), StepCircle6() };
+        std::array<TextBlock, 6> numbers{ StepNumber1(), StepNumber2(), StepNumber3(), StepNumber4(), StepNumber5(), StepNumber6() };
+        std::array<SymbolIcon, 6> completionIcons{ StepComplete1(), StepComplete2(), StepComplete3(), StepComplete4(), StepComplete5(), StepComplete6() };
+        std::array<Border, 5> connectors{ GuideConnector1(), GuideConnector2(), GuideConnector3(), GuideConnector4(), GuideConnector5() };
+        auto const resources = Application::Current().Resources();
+        auto const accentBrush = resources.Lookup(box_value(hstring{ L"AccentFillColorDefaultBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
+        auto const inactiveBrush = resources.Lookup(box_value(hstring{ L"ControlStrokeColorDefaultBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
+        auto const textBrush = resources.Lookup(box_value(hstring{ L"TextFillColorPrimaryBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
+        auto const onAccentTextBrush = resources.Lookup(box_value(hstring{ L"TextOnAccentFillColorPrimaryBrush" })).as<Microsoft::UI::Xaml::Media::Brush>();
         for (int32_t index = 0; index < 6; ++index)
         {
-            panels[index].Visibility(index == m_step ? Visibility::Visible : Visibility::Collapsed);
-            buttons[index].IsEnabled(!m_busy && index <= m_highestStep);
-            buttons[index].Opacity(index == m_step ? 1.0 : index <= m_highestStep ? 0.86 : 0.52);
-            circles[index].BorderThickness(index == m_step ? Thickness{ 2 } : Thickness{ 1 });
+            Services::SetVisibility(panels[index], index == m_step);
+            buttons[index].IsEnabled(true);
+            buttons[index].Opacity(index <= m_step ? 1.0 : 0.58);
+            circles[index].Background(index <= m_step ? accentBrush : nullptr);
+            circles[index].BorderBrush(index <= m_step ? accentBrush : inactiveBrush);
+            circles[index].BorderThickness(index <= m_step ? Thickness{ 0 } : Thickness{ 2 });
+            numbers[index].Foreground(index <= m_step ? onAccentTextBrush : textBrush);
+            Services::SetVisibility(numbers[index], index >= m_step);
+            completionIcons[index].Foreground(onAccentTextBrush);
+            Services::SetVisibility(completionIcons[index], index < m_step);
+        }
+        for (int32_t index = 0; index < 5; ++index)
+        {
+            connectors[index].Background(index < m_step ? accentBrush : inactiveBrush);
         }
         if (WizardShell().Visibility() == Visibility::Visible && buttons[m_step].XamlRoot())
         {
             buttons[m_step].StartBringIntoView();
         }
         auto const firstStep = m_step == 0;
-        FooterRow().Height(GridLengthHelper::FromPixels(firstStep ? 0 : 64));
-        FooterDivider().Visibility(firstStep ? Visibility::Collapsed : Visibility::Visible);
-        FooterBar().Visibility(firstStep ? Visibility::Collapsed : Visibility::Visible);
+        Services::SetInfoBarOpen(AnswerCoverageStatus(), m_step == 1);
+        Services::SetInfoBarOpen(NetworkStatus(), m_step == 3);
+        Services::SetInfoBarOpen(CheckStatus(), m_step == 4);
+        Services::SetInfoBarOpen(RunStatus(), m_step == 5);
+        if (m_step != 0) Services::SetInfoBarOpen(SurveyStatus(), false);
+        if (m_step != 1) Services::SetInfoBarOpen(AIStatus(), false);
+        if (m_step != 5) Services::SetInfoBarOpen(RunExportStatus(), false);
+        FooterRow().Height(GridLengthHelper::FromPixels(firstStep ? 0 : 72));
+        Services::SetVisibility(FooterDivider(), !firstStep);
+        Services::SetVisibility(FooterBar(), !firstStep);
         SurveyPrimaryButton().Content(box_value(m_parsed ? L"继续" : L"解析并继续"));
         SurveyPrimaryButton().IsEnabled(!m_busy);
         BackButton().IsEnabled(!m_busy && m_step > 0);
@@ -560,7 +579,7 @@ namespace winrt::SurveyController::App::implementation
             SurveyStatus().Title(L"无法继续");
             SurveyStatus().Message(message);
             SurveyStatus().Severity(InfoBarSeverity::Error);
-            SurveyStatus().IsOpen(true);
+            Services::SetInfoBarOpen(SurveyStatus(), true);
         }
     }
 

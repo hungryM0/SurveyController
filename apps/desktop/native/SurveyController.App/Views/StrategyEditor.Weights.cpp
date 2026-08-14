@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
+#include "Services/UiMotion.h"
 
 #include <winrt/Microsoft.UI.Xaml.Automation.h>
 
@@ -60,8 +61,8 @@ namespace winrt::SurveyController::App::implementation
         if (isTextQuestion) optionCount = 0;
 
         m_multipleWeights = questionType == L"multiple";
-        OptionWeightsSection().Visibility(optionCount > 0 ? Visibility::Visible : Visibility::Collapsed);
-        OptionWeightEmpty().Visibility(optionCount > 0 ? Visibility::Collapsed : Visibility::Visible);
+        Services::SetVisibility(OptionWeightsSection(), optionCount > 0);
+        Services::SetVisibility(OptionWeightEmpty(), optionCount == 0);
 
         auto maximum = m_multipleWeights ? 100.0 : 50.0;
         auto defaultValue = m_multipleWeights ? 50.0 : 1.0;

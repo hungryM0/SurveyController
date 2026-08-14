@@ -123,6 +123,7 @@
     <ClInclude Include="Services\ResponsiveLayout.h" />
     <ClInclude Include="Services\ShellSettings.h" />
     <ClInclude Include="Services\TaskNotification.h" />
+    <ClInclude Include="Services\UiMotion.h" />
     <ClInclude Include="Services\WizardDocument.h" />
   </ItemGroup>
   <ItemGroup>

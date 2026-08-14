@@ -6,7 +6,7 @@
 
     <Grid Background="Transparent">
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
+            <RowDefinition Height="{StaticResource ShellTitleBarHeight}" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -27,7 +27,7 @@
             x:Name="ShellNavigation"
             Grid.Row="1"
             Background="Transparent"
-            CompactPaneLength="68"
+            CompactPaneLength="{StaticResource ShellNavigationWidth}"
             IsBackButtonVisible="Collapsed"
             IsPaneOpen="False"
             IsPaneToggleButtonVisible="False"
@@ -49,7 +49,17 @@
                     <NavigationViewItem.Icon><SymbolIcon Symbol="More" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
-            <Frame x:Name="ContentFrame" Background="Transparent" />
+            <Frame x:Name="ContentFrame" Background="Transparent">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition>
+                            <NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                                <EntranceNavigationTransitionInfo />
+                            </NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                        </NavigationThemeTransition>
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
         </NavigationView>
     </Grid>
 </Window>
