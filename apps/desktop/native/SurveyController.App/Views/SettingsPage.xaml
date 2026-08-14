@@ -6,8 +6,8 @@
     SizeChanged="OnPageSizeChanged">
 
     <ScrollViewer HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-        <Grid Margin="36,28,36,40">
-            <StackPanel MaxWidth="1180" HorizontalAlignment="Stretch" Spacing="8">
+        <Grid Margin="24,24,24,32">
+            <StackPanel MaxWidth="{StaticResource PageContentMaxWidth}" HorizontalAlignment="Stretch" Spacing="12">
                 <TextBlock Margin="0,0,0,12" FontSize="28" FontWeight="SemiBold" Text="设置" />
 
                 <TextBlock Margin="0,0,0,4" FontSize="18" FontWeight="SemiBold" Text="界面外观" />

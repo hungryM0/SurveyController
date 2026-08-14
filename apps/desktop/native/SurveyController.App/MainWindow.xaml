@@ -18,7 +18,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="138" />
             </Grid.ColumnDefinitions>
-            <Image Width="30" Height="30" Margin="14,0,12,0" Source="ms-appx:///Assets/appicon.png" />
+            <Image Width="32" Height="32" Margin="16,0,12,0" Source="ms-appx:///Assets/appicon.png" />
             <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="SurveyController" />
             <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="5.0.0" />
         </Grid>
