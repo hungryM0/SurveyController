@@ -721,7 +721,7 @@ func TestAppServiceSettingsRoundTripUsesConfigHome(t *testing.T) {
 	if loaded.ThemeMode != "dark" || loaded.ShowNavigationText || saved.AutosaveLogCount != 10 {
 		t.Fatalf("settings = %#v saved = %#v", loaded, saved)
 	}
-	if loaded.AskSaveOnClose || loaded.PreventSleepDuringRun || loaded.TaskResultNotification || loaded.SubmissionReportTelemetry || loaded.AutoCheckUpdate || loaded.AutoSaveLogs {
+	if loaded.AskSaveOnClose || loaded.PreventSleepDuringRun || loaded.TaskResultNotification || loaded.SubmissionReportTelemetry || loaded.AutoCheckUpdate || !loaded.AutoSaveLogs {
 		t.Fatalf("settings = %#v saved = %#v", loaded, saved)
 	}
 }
@@ -734,7 +734,6 @@ func TestAppServiceResetAppSettingsRestoresDefaults(t *testing.T) {
 		ConfigDirectory:    "D:/custom",
 		ThemeMode:          "dark",
 		ShowNavigationText: false,
-		MicaEnabled:        false,
 		Topmost:            true,
 		AskSaveOnClose:     false,
 		AutoSaveLogs:       false,
@@ -751,7 +750,7 @@ func TestAppServiceResetAppSettingsRestoresDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reset.ThemeMode != "system" || !reset.ShowNavigationText || !reset.MicaEnabled || reset.Topmost || reset.AutosaveLogCount != 10 {
+	if reset.ThemeMode != "system" || !reset.ShowNavigationText || reset.Topmost || reset.AutosaveLogCount != 10 {
 		t.Fatalf("reset = %#v", reset)
 	}
 	if !reset.AskSaveOnClose || !reset.PreventSleepDuringRun || !reset.TaskResultNotification || !reset.SubmissionReportTelemetry || !reset.AutoCheckUpdate || !reset.AutoSaveLogs {

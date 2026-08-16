@@ -35,7 +35,6 @@ type AppSettings struct {
 	ConfigDirectory           string            `json:"configDirectory"`
 	ThemeMode                 string            `json:"themeMode"`
 	ShowNavigationText        bool              `json:"showNavigationText"`
-	MicaEnabled               bool              `json:"micaEnabled"`
 	Topmost                   bool              `json:"topmost"`
 	AskSaveOnClose            bool              `json:"askSaveOnClose"`
 	PreventSleepDuringRun     bool              `json:"preventSleepDuringRun"`
@@ -54,7 +53,6 @@ func defaultAppSettings() AppSettings {
 		ConfigDirectory:           defaultConfigDirectory(),
 		ThemeMode:                 "system",
 		ShowNavigationText:        true,
-		MicaEnabled:               true,
 		AskSaveOnClose:            true,
 		PreventSleepDuringRun:     true,
 		TaskResultNotification:    true,
@@ -72,6 +70,7 @@ func defaultAppSettings() AppSettings {
 
 func normalizeAppSettings(settings AppSettings) AppSettings {
 	settings.SchemaVersion = AppSettingsSchemaVersion
+	settings.AutoSaveLogs = true
 	if strings.TrimSpace(settings.ConfigDirectory) == "" {
 		settings.ConfigDirectory = defaultConfigDirectory()
 	}

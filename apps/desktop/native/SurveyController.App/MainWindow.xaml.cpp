@@ -25,6 +25,7 @@ namespace winrt::SurveyController::App::implementation
         Title(L"SurveyController");
         ConfigureTitleBar();
         ConfigureWindow();
+        ConfigureBackdrop();
         ConnectBackend();
         AppWindow().Closing({ this, &MainWindow::OnWindowClosing });
         ShellNavigation().SelectionChanged({ this, &MainWindow::OnNavigationSelectionChanged });
@@ -46,14 +47,9 @@ namespace winrt::SurveyController::App::implementation
         Services::ShellSettings::Current().Update(m_settingsJson);
     }
 
-    void MainWindow::ConfigureBackdrop(bool enabled)
+    void MainWindow::ConfigureBackdrop()
     {
         using namespace Microsoft::UI::Xaml::Media;
-        if (!enabled)
-        {
-            SystemBackdrop(nullptr);
-            return;
-        }
         if (IsWindows11OrGreater())
         {
             SystemBackdrop(MicaBackdrop{});
@@ -85,7 +81,6 @@ namespace winrt::SurveyController::App::implementation
             ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Auto
             : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
 
-        ConfigureBackdrop(settings.GetNamedBoolean(L"micaEnabled", true));
         m_askSaveOnClose = settings.GetNamedBoolean(L"askSaveOnClose", true);
         auto topmost = settings.GetNamedBoolean(L"topmost", false);
         if (auto presenter = AppWindow().Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())

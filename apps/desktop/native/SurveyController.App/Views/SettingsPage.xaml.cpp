@@ -69,13 +69,11 @@ namespace winrt::SurveyController::App::implementation
             }
         }
         ShowNavigationText().IsOn(JsonBool(m_settings, L"showNavigationText", true));
-        MicaEnabled().IsOn(JsonBool(m_settings, L"micaEnabled", true));
         Topmost().IsOn(JsonBool(m_settings, L"topmost"));
         AskSaveOnClose().IsOn(JsonBool(m_settings, L"askSaveOnClose", true));
         PreventSleep().IsOn(JsonBool(m_settings, L"preventSleepDuringRun", true));
         TaskNotification().IsOn(JsonBool(m_settings, L"taskResultNotification", true));
         Telemetry().IsOn(JsonBool(m_settings, L"submissionReportTelemetry", true));
-        AutoSaveLogs().IsOn(JsonBool(m_settings, L"autoSaveLogs", true));
         AutoCheckUpdate().IsOn(JsonBool(m_settings, L"autoCheckUpdate", true));
         ConfigDirectory().Text(m_settings.GetNamedString(L"configDirectory", L""));
         auto count = static_cast<int32_t>(m_settings.GetNamedNumber(L"autosaveLogCount", 10));
@@ -96,13 +94,12 @@ namespace winrt::SurveyController::App::implementation
         auto selectedTheme = ThemeMode().SelectedItem().try_as<Microsoft::UI::Xaml::Controls::ComboBoxItem>();
         m_settings.SetNamedValue(L"themeMode", Windows::Data::Json::JsonValue::CreateStringValue(selectedTheme ? unbox_value_or<hstring>(selectedTheme.Tag(), L"system") : L"system"));
         m_settings.SetNamedValue(L"showNavigationText", Windows::Data::Json::JsonValue::CreateBooleanValue(ShowNavigationText().IsOn()));
-        m_settings.SetNamedValue(L"micaEnabled", Windows::Data::Json::JsonValue::CreateBooleanValue(MicaEnabled().IsOn()));
         m_settings.SetNamedValue(L"topmost", Windows::Data::Json::JsonValue::CreateBooleanValue(Topmost().IsOn()));
         m_settings.SetNamedValue(L"askSaveOnClose", Windows::Data::Json::JsonValue::CreateBooleanValue(AskSaveOnClose().IsOn()));
         m_settings.SetNamedValue(L"preventSleepDuringRun", Windows::Data::Json::JsonValue::CreateBooleanValue(PreventSleep().IsOn()));
         m_settings.SetNamedValue(L"taskResultNotification", Windows::Data::Json::JsonValue::CreateBooleanValue(TaskNotification().IsOn()));
         m_settings.SetNamedValue(L"submissionReportTelemetry", Windows::Data::Json::JsonValue::CreateBooleanValue(Telemetry().IsOn()));
-        m_settings.SetNamedValue(L"autoSaveLogs", Windows::Data::Json::JsonValue::CreateBooleanValue(AutoSaveLogs().IsOn()));
+        m_settings.SetNamedValue(L"autoSaveLogs", Windows::Data::Json::JsonValue::CreateBooleanValue(true));
         m_settings.SetNamedValue(L"autoCheckUpdate", Windows::Data::Json::JsonValue::CreateBooleanValue(AutoCheckUpdate().IsOn()));
         m_settings.SetNamedValue(L"configDirectory", Windows::Data::Json::JsonValue::CreateStringValue(ConfigDirectory().Text()));
         auto selectedCount = LogCount().SelectedItem().try_as<Microsoft::UI::Xaml::Controls::ComboBoxItem>();

@@ -23,7 +23,7 @@ namespace winrt::SurveyController::App::implementation
         bool m_closeConfirmed{};
 
         void ConnectBackend();
-        void ConfigureBackdrop(bool enabled);
+        void ConfigureBackdrop();
         void ConfigureTitleBar();
         void ConfigureWindow();
         void ApplyShellSettings(hstring const& json);
