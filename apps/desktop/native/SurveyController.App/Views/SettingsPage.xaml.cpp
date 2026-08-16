@@ -19,6 +19,18 @@ namespace winrt::SurveyController::App::implementation
         {
             return value.GetNamedBoolean(key, fallback);
         }
+
+        int32_t LogCountValue(Microsoft::UI::Xaml::Controls::ComboBoxItem const& item)
+        {
+            try
+            {
+                return std::stoi(unbox_value_or<hstring>(item.Tag(), L"10").c_str());
+            }
+            catch (...)
+            {
+                return 10;
+            }
+        }
     }
 
     SettingsPage::SettingsPage()
@@ -69,7 +81,8 @@ namespace winrt::SurveyController::App::implementation
         auto count = static_cast<int32_t>(m_settings.GetNamedNumber(L"autosaveLogCount", 10));
         for (uint32_t index = 0; index < LogCount().Items().Size(); ++index)
         {
-            if (unbox_value<int32_t>(LogCount().Items().GetAt(index)) == count)
+            auto item = LogCount().Items().GetAt(index).as<Microsoft::UI::Xaml::Controls::ComboBoxItem>();
+            if (LogCountValue(item) == count)
             {
                 LogCount().SelectedIndex(static_cast<int32_t>(index));
                 break;
@@ -92,7 +105,8 @@ namespace winrt::SurveyController::App::implementation
         m_settings.SetNamedValue(L"autoSaveLogs", Windows::Data::Json::JsonValue::CreateBooleanValue(AutoSaveLogs().IsOn()));
         m_settings.SetNamedValue(L"autoCheckUpdate", Windows::Data::Json::JsonValue::CreateBooleanValue(AutoCheckUpdate().IsOn()));
         m_settings.SetNamedValue(L"configDirectory", Windows::Data::Json::JsonValue::CreateStringValue(ConfigDirectory().Text()));
-        auto count = unbox_value_or<int32_t>(LogCount().SelectedItem(), 10);
+        auto selectedCount = LogCount().SelectedItem().try_as<Microsoft::UI::Xaml::Controls::ComboBoxItem>();
+        auto count = selectedCount ? LogCountValue(selectedCount) : 10;
         m_settings.SetNamedValue(L"autosaveLogCount", Windows::Data::Json::JsonValue::CreateNumberValue(count));
 
         Windows::Data::Json::JsonObject credential;
@@ -130,8 +144,21 @@ namespace winrt::SurveyController::App::implementation
         SaveSettings();
     }
 
-    void SettingsPage::OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
+    fire_and_forget SettingsPage::OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
+        Microsoft::UI::Xaml::Controls::ContentDialog dialog;
+        dialog.XamlRoot(Content().XamlRoot());
+        dialog.Title(box_value(L"恢复默认设置"));
+        dialog.Content(box_value(L"确定要恢复默认设置吗？这将还原所有设置项到初始状态。"));
+        dialog.PrimaryButtonText(L"恢复");
+        dialog.CloseButtonText(L"取消");
+        dialog.DefaultButton(Microsoft::UI::Xaml::Controls::ContentDialogButton::Primary);
+        auto result = co_await dialog.ShowAsync();
+        if (result != Microsoft::UI::Xaml::Controls::ContentDialogResult::Primary)
+        {
+            co_return;
+        }
+
         try
         {
             auto saved = Services::BackendClient::Current().Call(L"ResetAppSettings");
@@ -143,6 +170,7 @@ namespace winrt::SurveyController::App::implementation
         {
             StatusText().Text(error.message());
         }
+        co_return;
     }
 
     fire_and_forget SettingsPage::OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)

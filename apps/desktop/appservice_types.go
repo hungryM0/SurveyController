@@ -34,6 +34,28 @@ type AICredentialUpdate struct {
 	APIKey    string                `json:"apiKey,omitempty"`
 }
 
+type SendContactRequest struct {
+	Message     string `json:"message"`
+	MessageType string `json:"messageType"`
+	IssueTitle  string `json:"issueTitle,omitempty"`
+	Email       string `json:"email,omitempty"`
+}
+
+type CommunityStatus struct {
+	Online  *bool  `json:"online,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+type IPUsageRecord struct {
+	Label string `json:"label"`
+	Total int    `json:"total"`
+}
+
+type IPUsageSummary struct {
+	Records     []IPUsageRecord `json:"records"`
+	RemainingIP *int            `json:"remainingIp"`
+}
+
 type SaveSettingsRequest struct {
 	Settings     AppSettings        `json:"settings"`
 	AICredential AICredentialUpdate `json:"aiCredential"`

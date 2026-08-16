@@ -8,6 +8,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+            <GridLength x:Key="ShellTitleBarHeight">48</GridLength>
+            <x:Double x:Key="PageContentMaxWidth">1180</x:Double>
             <x:Double x:Key="DesktopBreakpointWidth">720</x:Double>
         </ResourceDictionary>
     </Application.Resources>

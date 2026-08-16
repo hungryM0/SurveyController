@@ -9,7 +9,7 @@ namespace winrt::SurveyController::App::implementation
         SettingsPage();
         void OnSettingToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSettingSelectionChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
-        void OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        winrt::fire_and_forget OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
 
     private:

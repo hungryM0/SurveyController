@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	stableManifestURL = "https://dl.hungrym0.com/surveycontroller/win/stable/latest.json"
-	latestSetupURL    = "https://dl.hungrym0.com/SurveyController_latest_setup.exe"
+	stableReleaseFeedURL    = "https://dl.hungrym0.com/surveycontroller/win/stable/releases.stable.json"
+	githubReleaseByTagURL   = "https://api.github.com/repos/SurveyController/SurveyController/releases/tags"
+	githubReleaseTagPageURL = "https://github.com/SurveyController/SurveyController/releases/tag"
+	githubReleasesPageURL   = "https://github.com/SurveyController/SurveyController/releases"
 )
 
 type checkUpdateRequest struct {
@@ -27,22 +29,49 @@ type updateCheckState struct {
 	ReleaseNotes  string `json:"releaseNotes,omitempty"`
 }
 
-type stableReleaseManifest struct {
-	Version      string `json:"version"`
-	Tag          string `json:"tag"`
-	InstallerURL string `json:"installer_url"`
-	Notes        string `json:"notes"`
-	Body         string `json:"body"`
+type stableReleaseFeed struct {
+	Assets []stableReleaseAsset `json:"Assets"`
+}
+
+type stableReleaseAsset struct {
+	Version string `json:"Version"`
+	Type    string `json:"Type"`
+}
+
+type githubRelease struct {
+	Body    string `json:"body"`
+	HTMLURL string `json:"html_url"`
 }
 
 func checkForUpdate(ctx context.Context, request checkUpdateRequest) (updateCheckState, error) {
+	return checkForUpdateWithClient(
+		ctx,
+		request,
+		http.DefaultClient,
+		stableReleaseFeedURL,
+		githubReleaseByTagURL,
+		githubReleaseTagPageURL,
+	)
+}
+
+func checkForUpdateWithClient(
+	ctx context.Context,
+	request checkUpdateRequest,
+	client *http.Client,
+	feedURL string,
+	releaseByTagURL string,
+	releaseTagPageURL string,
+) (updateCheckState, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	ctx, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, stableManifestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return updateCheckState{}, err
 	}
-	response, err := http.DefaultClient.Do(req)
+	response, err := client.Do(req)
 	if err != nil {
 		return updateCheckState{}, err
 	}
@@ -50,22 +79,33 @@ func checkForUpdate(ctx context.Context, request checkUpdateRequest) (updateChec
 	if response.StatusCode != http.StatusOK {
 		return updateCheckState{}, fmt.Errorf("更新源返回 %d", response.StatusCode)
 	}
-	var manifest stableReleaseManifest
-	if err := json.NewDecoder(response.Body).Decode(&manifest); err != nil {
+	var feed stableReleaseFeed
+	if err := json.NewDecoder(response.Body).Decode(&feed); err != nil {
 		return updateCheckState{}, err
 	}
-	latest := normalizeVersion(manifest.Version)
+	latest := latestStableReleaseVersion(feed.Assets)
 	if latest == "" {
-		latest = normalizeVersion(manifest.Tag)
+		return updateCheckState{
+			Status:      "unknown",
+			Message:     "远端未提供可用版本",
+			DownloadURL: githubReleasesPageURL,
+		}, nil
 	}
-	downloadURL := strings.TrimSpace(manifest.InstallerURL)
-	if downloadURL == "" {
-		downloadURL = latestSetupURL
+
+	downloadURL := strings.TrimRight(releaseTagPageURL, "/") + "/v" + latest
+	releaseNotes := ""
+	if release, err := fetchGithubRelease(ctx, client, releaseByTagURL, latest); err == nil {
+		if value := strings.TrimSpace(release.HTMLURL); value != "" {
+			downloadURL = value
+		}
+		releaseNotes = strings.TrimSpace(release.Body)
 	}
-	state := updateCheckState{Status: "unknown", Message: "无法识别远端版本", LatestVersion: latest, DownloadURL: downloadURL}
-	state.ReleaseNotes = strings.TrimSpace(manifest.Notes)
-	if state.ReleaseNotes == "" {
-		state.ReleaseNotes = strings.TrimSpace(manifest.Body)
+	state := updateCheckState{
+		Status:        "unknown",
+		Message:       "无法识别远端版本",
+		LatestVersion: latest,
+		DownloadURL:   downloadURL,
+		ReleaseNotes:  releaseNotes,
 	}
 	comparison := compareVersions(latest, normalizeVersion(request.CurrentVersion))
 	switch {
@@ -80,6 +120,47 @@ func checkForUpdate(ctx context.Context, request checkUpdateRequest) (updateChec
 		state.Message = "当前已是最新版本 v" + latest
 	}
 	return state, nil
+}
+
+func latestStableReleaseVersion(assets []stableReleaseAsset) string {
+	latest := ""
+	for _, asset := range assets {
+		if !strings.EqualFold(strings.TrimSpace(asset.Type), "full") {
+			continue
+		}
+		version := normalizeVersion(asset.Version)
+		if version == "" || (latest != "" && compareVersions(version, latest) <= 0) {
+			continue
+		}
+		latest = version
+	}
+	return latest
+}
+
+func fetchGithubRelease(ctx context.Context, client *http.Client, endpoint string, version string) (githubRelease, error) {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		strings.TrimRight(endpoint, "/")+"/v"+normalizeVersion(version),
+		nil,
+	)
+	if err != nil {
+		return githubRelease{}, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	response, err := client.Do(req)
+	if err != nil {
+		return githubRelease{}, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return githubRelease{}, fmt.Errorf("发行版说明返回 %d", response.StatusCode)
+	}
+	var release githubRelease
+	if err := json.NewDecoder(response.Body).Decode(&release); err != nil {
+		return githubRelease{}, err
+	}
+	return release, nil
 }
 
 func normalizeVersion(value string) string {

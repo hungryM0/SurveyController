@@ -31,6 +31,9 @@ const (
 	rpcMethodPreviewReverseFill = "PreviewReverseFill"
 	rpcMethodExportLogLines     = "ExportLogLines"
 	rpcMethodCheckUpdate        = "CheckUpdate"
+	rpcMethodSendContact        = "SendContact"
+	rpcMethodGetCommunityStatus = "GetCommunityStatus"
+	rpcMethodGetIPUsageSummary  = "GetIPUsageSummary"
 )
 
 type rpcStringRequest struct {
@@ -170,6 +173,16 @@ func (h *rpcHandler) Handle(ctx context.Context, method string, params json.RawM
 			return nil, desktoprpc.InvalidParams(err)
 		}
 		return checkForUpdate(ctx, request)
+	case rpcMethodSendContact:
+		var request SendContactRequest
+		if err := unmarshalRPCParams(params, &request); err != nil {
+			return nil, desktoprpc.InvalidParams(err)
+		}
+		return h.service.SendContact(ctx, request)
+	case rpcMethodGetCommunityStatus:
+		return h.service.GetCommunityStatus(ctx)
+	case rpcMethodGetIPUsageSummary:
+		return h.service.GetIPUsageSummary(ctx)
 	default:
 		return nil, desktoprpc.MethodNotFound(method)
 	}
