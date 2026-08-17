@@ -2,6 +2,7 @@
 #include "CommunityPage.xaml.h"
 #include "Services/BackendClient.h"
 #include "Services/JsonHelpers.h"
+#include "Services/DialogStyling.h"
 
 #if __has_include("CommunityPage.g.cpp")
 #include "CommunityPage.g.cpp"
@@ -84,7 +85,7 @@ namespace winrt::SurveyController::App::implementation
         IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-        dialog.XamlRoot(Content().XamlRoot());
+        Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"QQ 群二维码"));
 
         Microsoft::UI::Xaml::Controls::Image image;
@@ -131,7 +132,7 @@ namespace winrt::SurveyController::App::implementation
         form.Children().Append(message);
 
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-        dialog.XamlRoot(Content().XamlRoot());
+        Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"联系开发者"));
         dialog.Content(form);
         dialog.PrimaryButtonText(L"发送");
@@ -146,7 +147,7 @@ namespace winrt::SurveyController::App::implementation
         if (message.Text().empty())
         {
             Microsoft::UI::Xaml::Controls::ContentDialog validation;
-            validation.XamlRoot(Content().XamlRoot());
+            Services::PrepareContentDialog(validation, Content().XamlRoot());
             validation.Title(box_value(L"无法发送"));
             validation.Content(box_value(L"请输入消息内容。"));
             validation.CloseButtonText(L"返回");

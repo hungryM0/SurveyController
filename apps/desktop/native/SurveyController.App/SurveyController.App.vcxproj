@@ -119,6 +119,7 @@
     <ClInclude Include="Views\MorePage.xaml.h"><DependentUpon>MorePage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="ViewModels\OptionWeight.h" />
     <ClInclude Include="Services\BackendClient.h" />
+    <ClInclude Include="Services\DialogStyling.h" />
     <ClInclude Include="Services\JsonHelpers.h" />
     <ClInclude Include="Services\NativeResource.h" />
     <ClInclude Include="Services\WindowContext.h" />

@@ -22,7 +22,7 @@
         </VisualStateManager.VisualStateGroups>
 
         <ScrollViewer x:Name="MoreScrollViewer" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Width="{x:Bind MoreScrollViewer.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+            <StackPanel Width="{x:Bind MoreScrollViewer.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
             <StackPanel.ChildrenTransitions>
                 <TransitionCollection>
                     <EntranceThemeTransition FromVerticalOffset="8" />

@@ -34,7 +34,7 @@
                 <Rectangle Grid.Row="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
                 <Grid Grid.Row="2">
                     <ScrollViewer x:Name="SurveyPanel" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Width="{x:Bind SurveyPanel.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left">
+                        <StackPanel Width="{x:Bind SurveyPanel.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left">
                             <Grid RowSpacing="20">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid><TextBlock FontSize="28" FontWeight="SemiBold" Text="添加要填写的问卷" /><Button HorizontalAlignment="Right" Content="导入已有配置" Click="OnImportConfig" /></Grid>
@@ -48,7 +48,7 @@
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="AnswersPanel" Visibility="Collapsed" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Width="{x:Bind AnswersPanel.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+                        <StackPanel Width="{x:Bind AnswersPanel.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
                             <StackPanel.ChildrenTransitions><TransitionCollection><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
                              <TextBlock FontSize="26" FontWeight="SemiBold" Text="设置作答方式" />
                              <Expander Header="填空题答案">
@@ -73,7 +73,7 @@
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="TaskPanel" Visibility="Collapsed" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Width="{x:Bind TaskPanel.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+                        <StackPanel Width="{x:Bind TaskPanel.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="设置本次任务" />
                             <Border><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="目标份数" /><NumberBox x:Name="TargetCount" Width="180" HorizontalAlignment="Right" AutomationProperties.Name="目标份数" Minimum="1" Maximum="999999" SpinButtonPlacementMode="Compact" /></Grid></Border>
                             <Border><Grid><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="并发数" /><NumberBox x:Name="ThreadCount" Width="180" HorizontalAlignment="Right" AutomationProperties.Name="并发数" Minimum="1" Maximum="128" SpinButtonPlacementMode="Compact" /></Grid></Border>
@@ -83,7 +83,7 @@
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="NetworkPanel" Visibility="Collapsed" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Width="{x:Bind NetworkPanel.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+                        <StackPanel Width="{x:Bind NetworkPanel.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
                             <StackPanel.ChildrenTransitions><TransitionCollection><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="设置网络方式" />
                             <StackPanel Spacing="0">
@@ -104,7 +104,7 @@
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="ReviewPanel" Visibility="Collapsed" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Width="{x:Bind ReviewPanel.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+                        <StackPanel Width="{x:Bind ReviewPanel.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
                             <StackPanel.ChildrenTransitions><TransitionCollection><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="检查配置" />
                             <ListView x:Name="CheckProblems" />
@@ -127,7 +127,7 @@
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="RunPanel" Visibility="Collapsed" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Width="{x:Bind RunPanel.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+                        <StackPanel Width="{x:Bind RunPanel.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
                             <StackPanel.ChildrenTransitions><TransitionCollection><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
                             <TextBlock FontSize="26" FontWeight="SemiBold" Text="运行任务" />
                             <ProgressBar x:Name="RunProgress" Minimum="0" Maximum="1" Value="0" />

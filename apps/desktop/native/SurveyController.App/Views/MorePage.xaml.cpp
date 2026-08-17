@@ -2,6 +2,7 @@
 #include "MorePage.xaml.h"
 #include "Services/BackendClient.h"
 #include "Services/JsonHelpers.h"
+#include "Services/DialogStyling.h"
 
 #if __has_include("MorePage.g.cpp")
 #include "MorePage.g.cpp"
@@ -24,7 +25,7 @@ namespace winrt::SurveyController::App::implementation
         fire_and_forget ShowTerms(Microsoft::UI::Xaml::XamlRoot const& root)
         {
             Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-            dialog.XamlRoot(root);
+            Services::PrepareContentDialog(dialog, root);
             dialog.Title(box_value(L"服务条款与隐私声明"));
 
             auto text = Microsoft::UI::Xaml::Controls::TextBlock();
