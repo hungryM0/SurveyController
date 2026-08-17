@@ -9,6 +9,7 @@ CLAUDE.md
 # 本地问卷与运行数据
 /configs/
 /Releases/
+/Setup/
 
 # Go 测试产物
 *.test
