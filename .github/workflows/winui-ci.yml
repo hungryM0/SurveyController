@@ -1,0 +1,34 @@
+name: WinUI CI
+
+on:
+  push:
+    branches: [main, refactor/go]
+  pull_request:
+
+env:
+  GO_VERSION: "1.26.5"
+
+permissions:
+  contents: read
+
+jobs:
+  winui-test:
+    name: WinUI build and native tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: Build native WinUI shell
+        working-directory: apps/desktop
+        shell: pwsh
+        run: ./build/native.ps1 -Action build -Configuration Release
+
+      - name: Test native WinUI services
+        working-directory: apps/desktop
+        shell: pwsh
+        run: ./build/native.ps1 -Action test -Configuration Release

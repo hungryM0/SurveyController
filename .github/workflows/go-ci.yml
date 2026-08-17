@@ -8,6 +8,9 @@ on:
 env:
   GO_VERSION: "1.26.5"
 
+permissions:
+  contents: read
+
 jobs:
   go-test:
     name: Go tests
@@ -29,8 +32,3 @@ jobs:
       - name: Test desktop module
         working-directory: apps/desktop
         run: go test ./...
-
-      - name: Build native WinUI shell
-        working-directory: apps/desktop
-        shell: pwsh
-        run: ./build/native.ps1 -Action build -Configuration Release

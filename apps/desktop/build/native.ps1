@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [ValidateSet('restore', 'build', 'rebuild', 'clean', 'package', 'preview')]
+    [ValidateSet('restore', 'build', 'rebuild', 'clean', 'package', 'preview', 'test')]
     [string]$Action = 'build',
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug'
@@ -10,6 +10,8 @@ $ErrorActionPreference = 'Stop'
 
 $desktopRoot = Split-Path -Parent $PSScriptRoot
 $solution = Join-Path $desktopRoot 'native\SurveyController.sln'
+$testProject = Join-Path $desktopRoot 'native\tests\SurveyController.Native.Tests\SurveyController.Native.Tests.vcxproj'
+$testOutput = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.Native.Tests\SurveyController.Native.Tests.exe"
 $releaseOutput = Join-Path $desktopRoot 'native\x64\Release\SurveyController.App'
 $packageRoot = Join-Path $desktopRoot 'bin\native-x64'
 $installerOutput = Join-Path $desktopRoot 'bin\SurveyController-amd64-installer.exe'
@@ -30,6 +32,18 @@ $env:LIB = ''
 
 if ($Action -eq 'restore') {
     & $msbuild $solution /t:Restore /m
+    exit $LASTEXITCODE
+}
+
+if ($Action -eq 'test') {
+    & $msbuild $testProject /restore /t:Build /p:Configuration=$Configuration /p:Platform=x64 /m
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+    if (-not (Test-Path -LiteralPath $testOutput)) {
+        throw "未找到原生测试程序：$testOutput"
+    }
+    & $testOutput
     exit $LASTEXITCODE
 }
 
