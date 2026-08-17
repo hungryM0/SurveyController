@@ -21,14 +21,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: apps/desktop/go.sum
+          cache-dependency-path: desktop/go.sum
 
       - name: Build native WinUI shell
-        working-directory: apps/desktop
+        working-directory: desktop
         shell: pwsh
         run: ./build/native.ps1 -Action build -Configuration Release
 
       - name: Test native WinUI services
-        working-directory: apps/desktop
+        working-directory: desktop
         shell: pwsh
         run: ./build/native.ps1 -Action test -Configuration Release

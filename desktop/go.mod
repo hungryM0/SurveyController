@@ -1,4 +1,4 @@
-module github.com/hungrym0/SurveyController/apps/desktop
+module github.com/hungrym0/SurveyController/desktop
 
 go 1.26
 
@@ -10,9 +10,9 @@ require (
 	surveycontroller/surveycore v0.0.0
 )
 
-replace surveycontroller/proxycore => ../../packages/proxycore
+replace surveycontroller/proxycore => ../packages/proxycore
 
-replace surveycontroller/surveycore => ../../packages/surveycore
+replace surveycontroller/surveycore => ../packages/surveycore
 
 require (
 	github.com/richardlehane/mscfb v1.0.6 // indirect

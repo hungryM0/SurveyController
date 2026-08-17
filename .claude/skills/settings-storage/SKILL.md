@@ -1,6 +1,6 @@
 ---
 name: settings-storage
-description: 面向 SurveyController Windows 桌面端设置、配置、凭据和本地持久化兼容的开发技能。用于修改 `apps/desktop/` 中的应用设置、配置仓库、路径、凭据存储、原子写入、schema、默认值和迁移代码。
+description: 面向 SurveyController Windows 桌面端设置、配置、凭据和本地持久化兼容的开发技能。用于修改 `desktop/` 中的应用设置、配置仓库、路径、凭据存储、原子写入、schema、默认值和迁移代码。
 ---
 
 # Settings and Storage
@@ -13,6 +13,6 @@ description: 面向 SurveyController Windows 桌面端设置、配置、凭据�
 6. 先运行相邻测试；存储改动至少运行：
 
 ```powershell
-Set-Location apps/desktop
+Set-Location desktop
 go test ./...
 ```

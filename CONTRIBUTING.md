@@ -36,21 +36,21 @@ go test ./...
 桌面端开发、预览和发布使用：
 
 ```powershell
-cd apps/desktop
+cd desktop
 ./build/native.ps1 -Action preview
 
 # 发布安装包
 ./build/native.ps1 -Action package
 ```
 
-桌面构建只由 `apps/desktop/build/native.ps1` 编排 Go 后端、MSBuild 和 NSIS。`apps/desktop/build/config.yml` 保存版本和发布元数据。
+桌面构建只由 `desktop/build/native.ps1` 编排 Go 后端、MSBuild 和 NSIS。`desktop/build/config.yml` 保存版本和发布元数据。
 
 ## 目录边界
 
 | 目标 | 目录 |
 | --- | --- |
 | 代理核心 | `packages/proxycore/` |
-| Go 原生桌面 UI 前端壳 | `apps/desktop/` |
+| Go 原生桌面 UI 前端壳 | `desktop/` |
 | 问卷核心和公开门面 API | `packages/surveycore/` |
 | Credamo Go 实现 | `packages/surveycore/credamo/` |
 | 腾讯问卷 Go 实现 | `packages/surveycore/tencent/` |

@@ -24,11 +24,11 @@ jobs:
           cache-dependency-path: |
             packages/proxycore/go.sum
             packages/surveycore/go.sum
-            apps/desktop/go.sum
+            desktop/go.sum
 
       - name: Test core modules
         run: go test ./packages/proxycore/... ./packages/surveycore/...
 
       - name: Test desktop module
-        working-directory: apps/desktop
+        working-directory: desktop
         run: go test ./...

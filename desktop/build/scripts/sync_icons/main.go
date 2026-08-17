@@ -16,7 +16,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	repoRoot := filepath.Clean(filepath.Join(desktopRoot, "..", ".."))
+	repoRoot := filepath.Clean(filepath.Join(desktopRoot, ".."))
 	assetsDir := filepath.Join(repoRoot, "assets")
 	buildDir := filepath.Join(desktopRoot, "build")
 

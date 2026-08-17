@@ -1,6 +1,6 @@
 ---
 name: native-winui-shell
-description: 面向 SurveyController 当前 C++20、C++/WinRT、WinUI 3 原生桌面壳的开发与修复技能。用于修改 `apps/desktop/native/SurveyController.App/` 的 XAML 页面、窗口、原生服务、导航、表单、弹层、无障碍、缩放和 Go 后端 RPC 调用。
+description: 面向 SurveyController 当前 C++20、C++/WinRT、WinUI 3 原生桌面壳的开发与修复技能。用于修改 `desktop/native/SurveyController.App/` 的 XAML 页面、窗口、原生服务、导航、表单、弹层、无障碍、缩放和 Go 后端 RPC 调用。
 ---
 
 # Native WinUI Shell
@@ -14,7 +14,7 @@ description: 面向 SurveyController 当前 C++20、C++/WinRT、WinUI 3 原生�
 7. 变更后至少检查相关 C++/XAML 编译影响；壳、资源或交互改动运行：
 
 ```powershell
-Set-Location apps/desktop
+Set-Location desktop
 go test ./...
 .\build\native.ps1 -Action build -Configuration Release
 ```
