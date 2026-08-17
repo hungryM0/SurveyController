@@ -4,6 +4,40 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid MinHeight="440" RowSpacing="12">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="CompactQuestionEditor" />
+                <VisualState x:Name="WideQuestionEditor">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="QuestionListColumn.Width" Value="0.3*" />
+                        <Setter Target="QuestionDetailColumn.Width" Value="0.7*" />
+                        <Setter Target="QuestionListRow.Height" Value="*" />
+                        <Setter Target="QuestionDetailRow.Height" Value="0" />
+                        <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="0" />
+                        <Setter Target="QuestionDetailScroll.(Grid.Column)" Value="1" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+            <VisualStateGroup>
+                <VisualState x:Name="CompactRuleEditor" />
+                <VisualState x:Name="WideRuleEditor">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="RuleListColumn.Width" Value="0.36*" />
+                        <Setter Target="RuleDetailColumn.Width" Value="0.64*" />
+                        <Setter Target="RuleListRow.Height" Value="*" />
+                        <Setter Target="RuleDetailRow.Height" Value="0" />
+                        <Setter Target="RuleDetailScroll.(Grid.Row)" Value="0" />
+                        <Setter Target="RuleDetailScroll.(Grid.Column)" Value="1" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <Grid RowSpacing="12">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -22,25 +56,6 @@
                         <RowDefinition x:Name="QuestionListRow" Height="220" />
                         <RowDefinition x:Name="QuestionDetailRow" Height="*" />
                     </Grid.RowDefinitions>
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup>
-                            <VisualState x:Name="CompactQuestionEditor" />
-                            <VisualState x:Name="WideQuestionEditor">
-                                <VisualState.StateTriggers>
-                                    <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
-                                </VisualState.StateTriggers>
-                                <VisualState.Setters>
-                                    <Setter Target="QuestionListColumn.Width" Value="0.3*" />
-                                    <Setter Target="QuestionDetailColumn.Width" Value="0.7*" />
-                                    <Setter Target="QuestionListRow.Height" Value="*" />
-                                    <Setter Target="QuestionDetailRow.Height" Value="0" />
-                                    <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="0" />
-                                    <Setter Target="QuestionDetailScroll.(Grid.Column)" Value="1" />
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
-
                     <Grid>
                         <ListView x:Name="QuestionList" SelectionChanged="OnQuestionSelected" />
                     </Grid>
@@ -86,24 +101,6 @@
                 <Grid x:Name="RuleEditorLayout" Padding="0,12,0,0" ColumnSpacing="16" RowSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition x:Name="RuleListColumn" Width="*" /><ColumnDefinition x:Name="RuleDetailColumn" Width="0" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition x:Name="RuleListRow" Height="220" /><RowDefinition x:Name="RuleDetailRow" Height="*" /></Grid.RowDefinitions>
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup>
-                            <VisualState x:Name="CompactRuleEditor" />
-                            <VisualState x:Name="WideRuleEditor">
-                                <VisualState.StateTriggers>
-                                    <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
-                                </VisualState.StateTriggers>
-                                <VisualState.Setters>
-                                    <Setter Target="RuleListColumn.Width" Value="0.36*" />
-                                    <Setter Target="RuleDetailColumn.Width" Value="0.64*" />
-                                    <Setter Target="RuleListRow.Height" Value="*" />
-                                    <Setter Target="RuleDetailRow.Height" Value="0" />
-                                    <Setter Target="RuleDetailScroll.(Grid.Row)" Value="0" />
-                                    <Setter Target="RuleDetailScroll.(Grid.Column)" Value="1" />
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
                     <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><StackPanel Orientation="Horizontal" Spacing="8"><Button Content="新增规则" Click="OnNewRule" /><Button Content="删除规则" Click="OnDeleteRule" /></StackPanel><ListView x:Name="RuleList" Grid.Row="1" Margin="0,12,0,0" SelectionChanged="OnRuleSelected" /></Grid>
                     <ScrollViewer x:Name="RuleDetailScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel Padding="4,0,12,16" Spacing="12">

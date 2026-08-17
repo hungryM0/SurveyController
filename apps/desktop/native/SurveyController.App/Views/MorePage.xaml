@@ -4,15 +4,31 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     NavigationCacheMode="Required">
 
-    <ScrollViewer HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="{StaticResource PageContentMaxWidth}" Margin="24,24,24,32" Spacing="16">
+    <Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="CompactDonationLayout" />
+                <VisualState x:Name="WideDonationLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="DonationRightColumn.Width" Value="*" />
+                        <Setter Target="DonationRightGroup.(Grid.Row)" Value="0" />
+                        <Setter Target="DonationRightGroup.(Grid.Column)" Value="1" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <ScrollViewer x:Name="MoreScrollViewer" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Width="{x:Bind MoreScrollViewer.ViewportWidth, Mode=OneWay}" MaxWidth="{StaticResource PageContentMaxWidth}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
             <StackPanel.ChildrenTransitions>
                 <TransitionCollection>
                     <EntranceThemeTransition FromVerticalOffset="8" />
                     <RepositionThemeTransition />
                 </TransitionCollection>
             </StackPanel.ChildrenTransitions>
-
             <TextBlock FontSize="28" FontWeight="SemiBold" Text="更多" />
 
             <Border Padding="20" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
@@ -99,7 +115,7 @@
             </Border>
 
             <TextBlock Margin="0,8,0,0" FontSize="18" FontWeight="SemiBold" Text="更多入口" />
-            <Expander Header="打开更多功能">
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Header="打开更多功能">
                 <StackPanel Padding="0,8,0,4" Spacing="8">
                     <Button HorizontalContentAlignment="Left" Content="更新日志" Click="OnOpenChangelog" />
                     <Button HorizontalContentAlignment="Left" Content="使用教程" Click="OnOpenTutorial" />
@@ -108,19 +124,23 @@
                 </StackPanel>
             </Expander>
 
-            <Expander x:Name="DonationExpander" Header="支持作者">
+            <Expander x:Name="DonationExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Header="支持作者">
                 <StackPanel Padding="0,12,0,4" Spacing="16">
                     <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="如果这个项目对你有帮助，欢迎请作者喝杯奶茶。" TextWrapping="Wrap" />
-                    <Grid ColumnSpacing="16">
+                    <Grid x:Name="DonationLayout" ColumnSpacing="16" RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition x:Name="DonationLeftColumn" Width="*" />
+                            <ColumnDefinition x:Name="DonationRightColumn" Width="0" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Spacing="8">
+                        <StackPanel x:Name="DonationLeftGroup" Spacing="8">
                             <TextBlock FontWeight="SemiBold" Text="微信赞赏" />
                             <Image Width="220" Height="220" HorizontalAlignment="Left" Source="ms-appx:///Assets/WeDonate.png" Stretch="Uniform" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="8">
+                        <StackPanel x:Name="DonationRightGroup" Grid.Row="1" Spacing="8">
                             <TextBlock FontWeight="SemiBold" Text="支付宝" />
                             <Image Width="220" Height="220" HorizontalAlignment="Left" Source="ms-appx:///Assets/AliDonate.jpg" Stretch="Uniform" />
                         </StackPanel>
@@ -141,6 +161,7 @@
             </Expander>
 
             <TextBlock HorizontalAlignment="Center" Margin="0,8,0,0" Style="{StaticResource CaptionTextBlockStyle}" Text="Copyright © 2026 HUNGRY_M0. All rights reserved." />
-        </StackPanel>
-    </ScrollViewer>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Page>

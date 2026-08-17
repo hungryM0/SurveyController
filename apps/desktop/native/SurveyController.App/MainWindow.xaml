@@ -17,9 +17,10 @@
             Grid.Row="1"
             Background="Transparent"
             IsBackButtonVisible="Collapsed"
-            IsPaneToggleButtonVisible="False"
+            IsPaneToggleButtonVisible="True"
             IsSettingsVisible="False"
-            CompactModeThresholdWidth="0"
+            CompactModeThresholdWidth="641"
+            ExpandedModeThresholdWidth="1008"
             CompactPaneLength="56"
             OpenPaneLength="192"
             PaneDisplayMode="Auto">
