@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/credamo"
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/tencent"
-	"surveycontroller/surveycore/wjx"
+	"github.com/SurveyController/SurveyController/packages/surveycore/credamo"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/tencent"
+	"github.com/SurveyController/SurveyController/packages/surveycore/wjx"
 )
 
 type EventHandler func(Event)

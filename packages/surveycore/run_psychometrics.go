@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"surveycontroller/surveycore/internal/psychometrics"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/psychometrics"
 )
 
 func (c *Client) preparePsychometricExecution(ctx context.Context, cfg *RunRequest, options ExecutionOptions) (*RunRequest, ExecutionOptions, error) {

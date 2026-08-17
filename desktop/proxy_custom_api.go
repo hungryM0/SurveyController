@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"surveycontroller/proxycore"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
 )
 
 func testCustomProxyAPI(ctx context.Context, endpoint string) CustomProxyAPITestState {

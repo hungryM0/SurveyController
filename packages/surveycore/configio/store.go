@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 var replaceConfigFile = atomicReplace

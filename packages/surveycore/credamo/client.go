@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func (p Parser) Parse(ctx context.Context, surveyURL string) (model.SurveyDefinition, error) {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func TestBuildSubmitDataAppliesAnswerRules(t *testing.T) {

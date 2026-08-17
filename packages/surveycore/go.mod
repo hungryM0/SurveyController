@@ -1,4 +1,4 @@
-module surveycontroller/surveycore
+module github.com/SurveyController/SurveyController/packages/surveycore
 
 go 1.26
 

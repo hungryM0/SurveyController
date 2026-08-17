@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/internal/httpjson"
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/proxyhttp"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/httpjson"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/proxyhttp"
 )
 
 func (r Runner) submitAnswers(ctx context.Context, request *model.SubmissionRequest, surveyID string, hashValue string, pageURL string, answerSessionID string, body map[string]any) error {

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/runerror"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/runerror"
 )
 
 func buildSubmitBody(request *model.SubmissionRequest, surveyID string, hashValue string, rawQuestions []map[string]any, userAgent string) (map[string]any, error) {

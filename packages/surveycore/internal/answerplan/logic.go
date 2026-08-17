@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 var terminateJumpKeywords = []string{"结束作答", "结束答题", "结束填写", "终止作答", "停止作答"}

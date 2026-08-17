@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 var (

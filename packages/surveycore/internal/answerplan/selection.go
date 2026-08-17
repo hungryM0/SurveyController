@@ -3,7 +3,7 @@ package answerplan
 import (
 	"math/rand"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func SelectedIndex(entry model.QuestionStrategy, count int) int {

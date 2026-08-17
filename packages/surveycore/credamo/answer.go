@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/runerror"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/runerror"
 )
 
 func buildAnswerItems(rawQuestions []map[string]any, request *model.SubmissionRequest) ([]map[string]any, error) {

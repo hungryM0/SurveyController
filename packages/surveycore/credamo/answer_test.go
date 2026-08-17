@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func TestBuildAnswerItemsMatchesEntryByProviderQuestionID(t *testing.T) {

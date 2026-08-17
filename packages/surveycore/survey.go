@@ -3,7 +3,7 @@ package surveycore
 import (
 	"context"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 const (

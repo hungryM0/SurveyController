@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func (c *Client) prepareAIExecution(ctx context.Context, cfg *RunRequest, options ExecutionOptions) (*RunRequest, ExecutionOptions, error) {

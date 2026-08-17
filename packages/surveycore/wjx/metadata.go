@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	nethtml "golang.org/x/net/html"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func textInputLabels(div *nethtml.Node) []string {

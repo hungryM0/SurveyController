@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"surveycontroller/proxycore"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
 )
 
 func (s *AppService) GetProxyStatus() ProxyStatus {

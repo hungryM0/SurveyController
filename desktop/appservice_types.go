@@ -3,9 +3,9 @@ package main
 import (
 	"time"
 
-	"surveycontroller/proxycore"
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 type ParseSurveyRequest struct {

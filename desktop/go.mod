@@ -1,18 +1,18 @@
-module github.com/hungrym0/SurveyController/desktop
+module github.com/SurveyController/SurveyController/desktop
 
 go 1.26
 
 require (
+	github.com/SurveyController/SurveyController/packages/proxycore v0.0.0
+	github.com/SurveyController/SurveyController/packages/surveycore v0.0.0
 	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/xuri/excelize/v2 v2.10.1
 	golang.org/x/sys v0.47.0
-	surveycontroller/proxycore v0.0.0
-	surveycontroller/surveycore v0.0.0
 )
 
-replace surveycontroller/proxycore => ../packages/proxycore
+replace github.com/SurveyController/SurveyController/packages/proxycore => ../packages/proxycore
 
-replace surveycontroller/surveycore => ../packages/surveycore
+replace github.com/SurveyController/SurveyController/packages/surveycore => ../packages/surveycore
 
 require (
 	github.com/richardlehane/mscfb v1.0.6 // indirect

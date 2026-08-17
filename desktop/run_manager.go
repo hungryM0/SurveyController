@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 var runIDCounter atomic.Uint64

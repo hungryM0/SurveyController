@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func TestRunLogSinkStreamsEveryEvent(t *testing.T) {

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/internal/httpjson"
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/proxyhttp"
-	"surveycontroller/surveycore/internal/runerror"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/httpjson"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/proxyhttp"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/runerror"
 )
 
 const resolution = "1920px*1080px"

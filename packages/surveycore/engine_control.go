@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func waitSubmitInterval(ctx context.Context, interval [2]int, state *executionState, workerIndex int, workerName string) {

@@ -4,7 +4,7 @@ import (
 	"math"
 	"strings"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 var reverseFillFormats = map[string]bool{

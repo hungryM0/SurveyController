@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/reversefill"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/reversefill"
 )
 
 func (c *Client) prepareReverseFillExecution(ctx context.Context, cfg *RunRequest, provider string, options ExecutionOptions) (*RunRequest, ExecutionOptions, error) {

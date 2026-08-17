@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"surveycontroller/proxycore"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
 )
 
 func TestCustomProxyAPITestState(t *testing.T) {

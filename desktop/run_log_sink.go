@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 const runLogBufferSize = 32 * 1024

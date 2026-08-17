@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func (c *Client) DefaultConfig(ctx context.Context, surveyURL string) (*RunRequest, error) {

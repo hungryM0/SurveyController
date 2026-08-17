@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"surveycontroller/surveycore/credamo"
-	"surveycontroller/surveycore/tencent"
-	"surveycontroller/surveycore/wjx"
+	"github.com/SurveyController/SurveyController/packages/surveycore/credamo"
+	"github.com/SurveyController/SurveyController/packages/surveycore/tencent"
+	"github.com/SurveyController/SurveyController/packages/surveycore/wjx"
 )
 
 func resultFromTencent(result tencent.Result) *RunResult {

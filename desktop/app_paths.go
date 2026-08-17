@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 func defaultConfigDocumentPath() string {

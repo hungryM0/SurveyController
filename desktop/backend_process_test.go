@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	desktoprpc "github.com/hungrym0/SurveyController/desktop/internal/rpc"
-	"surveycontroller/surveycore"
+	desktoprpc "github.com/SurveyController/SurveyController/desktop/internal/rpc"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func TestBackendProcessServesSettingsAndDefaultConfig(t *testing.T) {

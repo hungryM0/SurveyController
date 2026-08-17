@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/xuri/excelize/v2"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 type PreviewOptions struct {

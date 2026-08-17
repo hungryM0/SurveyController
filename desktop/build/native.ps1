@@ -9,12 +9,14 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $desktopRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = Split-Path -Parent $desktopRoot
 $solution = Join-Path $desktopRoot 'native\SurveyController.sln'
 $testProject = Join-Path $desktopRoot 'native\tests\SurveyController.Native.Tests\SurveyController.Native.Tests.vcxproj'
 $testOutput = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.Native.Tests\SurveyController.Native.Tests.exe"
 $releaseOutput = Join-Path $desktopRoot 'native\x64\Release\SurveyController.App'
 $packageRoot = Join-Path $desktopRoot 'bin\native-x64'
 $installerOutput = Join-Path $desktopRoot 'bin\SurveyController-amd64-installer.exe'
+$installerIcon = Join-Path $repoRoot 'assets\icon.ico'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 
 if (-not (Test-Path -LiteralPath $vswhere)) {
@@ -142,6 +144,9 @@ $makensis = (Get-Command makensis -ErrorAction SilentlyContinue).Source
 if (-not $makensis) {
     throw '未找到 NSIS makensis。'
 }
+if (-not (Test-Path -LiteralPath $installerIcon)) {
+    throw "未找到安装程序图标：$installerIcon"
+}
 
 & $makensis `
     '/INPUTCHARSET' `
@@ -152,5 +157,6 @@ if (-not $makensis) {
     '-DINFO_COPYRIGHT=(c) 2026, HUNGRY_M0' `
     "-DARG_NATIVE_PAYLOAD=$resolvedPackageRoot" `
     "-DARG_INSTALLER_OUTPUT=$installerOutput" `
+    "-DARG_INSTALLER_ICON=$installerIcon" `
     (Join-Path $desktopRoot 'build\windows\nsis\project.nsi')
 exit $LASTEXITCODE

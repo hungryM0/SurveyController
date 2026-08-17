@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"surveycontroller/surveycore/internal/httpjson"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/httpjson"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 type ParseError struct {

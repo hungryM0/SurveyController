@@ -2,7 +2,7 @@
 
 开始前请先阅读 [行为准则](CODE_OF_CONDUCT.md)。
 
-本分支以 Go 后端 + C++/WinUI 3 原生桌面壳为主线。旧 Python、Wails 和 React 前端链路已移除。
+当前项目使用 Go 后端与 C++/WinUI 3 原生桌面壳。
 
 ## 开发环境
 
@@ -50,13 +50,13 @@ cd desktop
 | 目标 | 目录 |
 | --- | --- |
 | 代理核心 | `packages/proxycore/` |
-| Go 原生桌面 UI 前端壳 | `desktop/` |
+| 桌面应用层与原生壳 | `desktop/` |
 | 问卷核心和公开门面 API | `packages/surveycore/` |
 | Credamo Go 实现 | `packages/surveycore/credamo/` |
 | 腾讯问卷 Go 实现 | `packages/surveycore/tencent/` |
 | 问卷星 Go 实现 | `packages/surveycore/wjx/` |
 | 手动验证命令 | `packages/surveycore/cmd/` |
-| README 和图片资源 | `assets/` |
+| 桌面与文档图片资源 | `assets/` |
 
 不要把平台实现塞进通用根包。
 不要把桌面服务、任务持久化、代理池混进 `surveycore`。
@@ -80,7 +80,7 @@ PR 描述写清楚：
 - 跑过哪些检查。
 - 是否有用户可见变化。
 
-提交信息使遵循 Conventional Commits 规范：
+提交信息应遵循 Conventional Commits 规范：
 
 ```text
 feat: 增加 Credamo 提交事件
@@ -94,9 +94,8 @@ docs: 更新 Go 迁移说明
 ```text
 .
 ├── .github/                 # GitHub Actions
-├── assets/                  # README、图标、图片资源
-├── apps/                    # 应用入口
-│   └── desktop/
+├── assets/                  # 桌面与文档图片资源
+├── desktop/                 # 桌面应用层与原生壳
 ├── packages/                # 可复用核心包
 │   ├── proxycore/
 │   └── surveycore/

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	desktoprpc "github.com/hungrym0/SurveyController/desktop/internal/rpc"
+	desktoprpc "github.com/SurveyController/SurveyController/desktop/internal/rpc"
 )
 
 func main() {

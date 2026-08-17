@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 const idCardChecksumChars = "10X98765432"

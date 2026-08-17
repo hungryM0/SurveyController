@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func TestSaveAppSettingsCredentialOperations(t *testing.T) {

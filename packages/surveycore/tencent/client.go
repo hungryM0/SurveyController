@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 var locales = []string{"zhs", "zht", "zh", "en"}

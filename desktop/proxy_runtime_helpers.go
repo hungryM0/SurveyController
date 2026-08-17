@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"surveycontroller/proxycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 func normalizeDesktopNetworkMode(network configio.NetworkSettings) string {

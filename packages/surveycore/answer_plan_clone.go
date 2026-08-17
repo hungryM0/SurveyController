@@ -1,8 +1,8 @@
 package surveycore
 
 import (
-	"surveycontroller/surveycore/internal/answerplan"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/answerplan"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func cloneRunRequest(cfg *RunRequest) RunRequest {

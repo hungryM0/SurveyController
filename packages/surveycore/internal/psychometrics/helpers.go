@@ -1,6 +1,6 @@
 package psychometrics
 
-import "surveycontroller/surveycore/internal/model"
+import "github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 
 func cloneEntries(src []model.QuestionStrategy) []model.QuestionStrategy {
 	return model.CloneQuestionStrategies(src)

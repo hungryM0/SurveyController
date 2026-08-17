@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore/internal/proxyhttp"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/proxyhttp"
 )
 
 const defaultUserAgent = "Mozilla/5.0 (Linux; Android 12; SurveyController) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36 MicroMessenger/8.0"

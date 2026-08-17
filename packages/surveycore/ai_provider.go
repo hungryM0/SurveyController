@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func (c *Client) callProviderAI(ctx context.Context, profile model.AIProfile, persona *model.Persona, request AITextRequest) ([]string, error) {

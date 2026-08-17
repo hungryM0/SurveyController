@@ -3,8 +3,8 @@ package psychometrics
 import (
 	"strings"
 
-	"surveycontroller/surveycore/internal/answerplan"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/answerplan"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func buildBlueprint(cfg *model.RunRequest) map[string][]Item {

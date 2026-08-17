@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func (m *runManager) launch(

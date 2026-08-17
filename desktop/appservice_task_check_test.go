@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 func TestCheckTaskEmptyConfigIsBlocked(t *testing.T) {

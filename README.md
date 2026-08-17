@@ -80,7 +80,7 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-  participant F as 前端
+  participant F as WinUI 原生壳
   participant A as AppService
   participant P as packages/proxycore
   participant S as packages/surveycore

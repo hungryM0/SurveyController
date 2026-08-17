@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 type configFile struct {

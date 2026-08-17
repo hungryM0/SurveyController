@@ -3,7 +3,7 @@ package tencent
 import (
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func attachLogicMetadata(rawQuestions []map[string]any, questions []model.QuestionMeta) []model.QuestionMeta {

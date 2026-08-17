@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func TestSubmitAnswersUsesActiveProxy(t *testing.T) {

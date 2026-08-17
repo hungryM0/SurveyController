@@ -4,7 +4,7 @@ import (
 	"math"
 	"strconv"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func inferOrdinalOptionMapping(optionTexts []string) ([]int, bool) {

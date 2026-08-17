@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 func coreRunRequest(document configio.ConfigDocument) (surveycore.RunRequest, error) {

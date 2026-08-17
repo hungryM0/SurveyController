@@ -1,7 +1,8 @@
 package main
 
 // benefitProxyAreaNames maps supported area codes to the city names required by the benefit upstream.
-// Data is generated from main:software/assets/area.txt and area_codes_2022.json.
+// This static snapshot was introduced from the legacy area datasets.
+// Update the map directly and run the proxy-area tests when the upstream area list changes.
 var benefitProxyAreaNames = map[string]string{
 	"110100": "北京",
 	"120100": "天津",

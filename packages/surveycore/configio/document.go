@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 const (

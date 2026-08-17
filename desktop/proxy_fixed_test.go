@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func TestAppServiceTestFixedProxyUsesRealHealthCheck(t *testing.T) {

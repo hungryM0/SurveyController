@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 func (s *AppService) CreateSurveyDocument(ctx context.Context, request ParseSurveyRequest) (configio.ConfigDocument, error) {

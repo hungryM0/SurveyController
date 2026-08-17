@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"surveycontroller/surveycore/internal/model"
-	"surveycontroller/surveycore/internal/runerror"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/runerror"
 )
 
 func (r Runner) Run(ctx context.Context, request *model.SubmissionRequest, handler EventHandler) (Result, error) {

@@ -3,7 +3,7 @@ package answerplan
 import (
 	"strconv"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func ProbabilityValues(raw model.WeightTable) []float64 {

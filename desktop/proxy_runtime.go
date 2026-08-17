@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"surveycontroller/proxycore"
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 type proxyRuntime struct {

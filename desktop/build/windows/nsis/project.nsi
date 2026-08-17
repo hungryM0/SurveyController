@@ -12,11 +12,14 @@ Unicode true
 !ifndef ARG_INSTALLER_OUTPUT
     !error "ARG_INSTALLER_OUTPUT is required"
 !endif
+!ifndef ARG_INSTALLER_ICON
+    !error "ARG_INSTALLER_ICON is required"
+!endif
 
 !define PRODUCT_EXECUTABLE "SurveyController.exe"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\SurveyController"
-!define MUI_ICON "..\icon.ico"
-!define MUI_UNICON "..\icon.ico"
+!define MUI_ICON "${ARG_INSTALLER_ICON}"
+!define MUI_UNICON "${ARG_INSTALLER_ICON}"
 !define MUI_ABORTWARNING
 
 Name "${INFO_PRODUCTNAME}"

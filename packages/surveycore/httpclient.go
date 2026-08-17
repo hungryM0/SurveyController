@@ -1,5 +1,5 @@
 package surveycore
 
-import "surveycontroller/surveycore/internal/httpjson"
+import "github.com/SurveyController/SurveyController/packages/surveycore/internal/httpjson"
 
 type HTTPClient = httpjson.Client

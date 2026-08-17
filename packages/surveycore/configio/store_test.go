@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func TestConfigDocumentV2RoundTrip(t *testing.T) {

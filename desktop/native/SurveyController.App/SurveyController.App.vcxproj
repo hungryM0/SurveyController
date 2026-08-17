@@ -147,20 +147,23 @@
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\build\appicon.png">
+    <Image Include="..\..\..\assets\icon.png">
       <Link>Assets\appicon.png</Link>
     </Image>
-    <Content Include="..\..\build\windows\icon.ico">
+    <Content Include="..\..\..\assets\icon.ico">
       <Link>Assets\SurveyController.ico</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Assets\community_qr.png">
+    <Content Include="..\..\..\assets\community_qr.png">
+      <Link>Assets\community_qr.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Assets\WeDonate.png">
+    <Content Include="..\..\..\assets\WeDonate.png">
+      <Link>Assets\WeDonate.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Assets\AliDonate.jpg">
+    <Content Include="..\..\..\assets\AliDonate.jpg">
+      <Link>Assets\AliDonate.jpg</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

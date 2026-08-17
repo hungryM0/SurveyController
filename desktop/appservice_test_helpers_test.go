@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 type memoryCredentialStore struct {

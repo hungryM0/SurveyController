@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func runEventLogLine(event surveycore.Event) string {

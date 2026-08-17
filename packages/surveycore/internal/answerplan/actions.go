@@ -1,8 +1,8 @@
 package answerplan
 
 import (
-	"surveycontroller/surveycore/internal/defaults"
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/defaults"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 type BuildOptions struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	desktoprpc "github.com/hungrym0/SurveyController/desktop/internal/rpc"
+	desktoprpc "github.com/SurveyController/SurveyController/desktop/internal/rpc"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"surveycontroller/surveycore/internal/model"
+	"github.com/SurveyController/SurveyController/packages/surveycore/internal/model"
 )
 
 func TestParseAndDefaultConfig(t *testing.T) {

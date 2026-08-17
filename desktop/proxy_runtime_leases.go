@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"surveycontroller/proxycore"
-	"surveycontroller/surveycore"
-	"surveycontroller/surveycore/configio"
+	"github.com/SurveyController/SurveyController/packages/proxycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
 )
 
 func (r *proxyRuntime) customLeaseManager(_ context.Context, network configio.NetworkSettings, source string, options surveycore.ExecutionOptions) (surveycore.LeaseManager, error) {

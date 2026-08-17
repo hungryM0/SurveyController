@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"surveycontroller/surveycore"
+	"github.com/SurveyController/SurveyController/packages/surveycore"
 )
 
 func SerializeConfigDocument(document ConfigDocument) (map[string]any, error) {
