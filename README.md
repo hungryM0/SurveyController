@@ -6,8 +6,7 @@
   ![Downloads](https://img.shields.io/github/downloads/SurveyController/SurveyController/total?style=flat&logo=github&color=green)
   [![License](https://img.shields.io/github/license/SurveyController/SurveyController?style=flat&color=orange)](./LICENSE)
   [![Go](https://img.shields.io/badge/Go-1.26.5%2B-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
-  [![WinUI](https://img.shields.io/badge/WinUI%203-native-0078D4?style=flat)](https://learn.microsoft.com/windows/apps/winui/)
-  [![C%2B%2B](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat&logo=cplusplus&logoColor=white)](https://isocpp.org/)
+  [![WinUI 3](https://img.shields.io/badge/WinUI-3-0078D4?style=flat)](https://learn.microsoft.com/windows/apps/winui/)
 
   <p><strong>一站式问卷自动化处理程序，适配问卷星、腾讯问卷、Credamo见数平台</strong></p>
   <p>支持指定ip填写地区、信度系数、作答时长与分布比例</p>
@@ -21,43 +20,17 @@
 
 ## 主要特性
 
-1. **多平台支持** - 同时支持问卷星、腾讯问卷、Credamo见数平台，一套工具搞定三个平台
-2. **Fluent 界面** - 无需复杂配置，通过可视化UI完成所有操作
-3. **支持二维码解析** - 拖入问卷二维码图片自动转链接
+1. **多平台支持** - 同时支持问卷星、腾讯问卷、Credamo见数三大平台
+2. **Fluent 界面** - 通过可视化 UI 向导完成所有操作
+3. **支持二维码解析** - 拖入问卷二维码图片自动转换为链接
 4. **定制答案比例** - 支持自定义各选项权重与多选题命中概率分布
 5. **指定ip地区** - 支持随机IP或指定特定地区IP提交
 6. **配置导入导出** - 保存配置文件便于后续复用，跨设备同步
-7. **AI 主观题作答** - 填空题自动生成作答内容，提供**免费的 AI 作答**功能。
 
 ## 开始使用
 
 > [!TIP]
-> **安装包：** 前往 [发行版](https://github.com/SurveyController/SurveyController/releases/latest) 下载最新版本 .exe 安装包，安装后直接运行即可
-
-建议配合[教程文档](https://surveydoc.hungrym0.com/)食用。二开可前往 [SurveyCore](https://github.com/SurveyController/SurveyCore)
-
-### 从源码运行
-
-**环境要求：** Windows 10 22H2 或 Windows 11，Visual Studio Build Tools 2026（MSVC v145、MSBuild、Windows SDK 10.0.26100），Go 1.26.5+，Git
-
-当前只维护 Windows 桌面端和 Windows 安装包。
-
-<details>
-<summary>Windows 使用</summary>
-
-克隆、运行测试和原生 WinUI 壳：
-```bash
-git clone https://github.com/SurveyController/SurveyController.git
-cd SurveyController
-go test ./packages/proxycore/... ./packages/surveycore/...
-cd apps/desktop
-./build/native.ps1 -Action preview
-
-# 构建安装包
-./build/native.ps1 -Action package
-```
-
-</details>
+> **下载安装包：** 前往 [Release](https://github.com/SurveyController/SurveyController/releases/latest) 下载最新版本 .exe 安装包，安装后直接运行即可
 
 ## 使用方法
 
