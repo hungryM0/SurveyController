@@ -139,11 +139,13 @@ namespace winrt::SurveyController::App::implementation
             root.RequestedTheme(theme == L"light" ? ElementTheme::Light
                 : theme == L"dark" ? ElementTheme::Dark : ElementTheme::Default);
         }
+        ApplyTitleBarTheme(theme);
 
         ShellNavigation().PaneDisplayMode(settings.GetNamedBoolean(L"showNavigationText", true)
             ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Auto
             : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
 
+        m_askSaveOnClose = settings.GetNamedBoolean(L"askSaveOnClose", true);
         auto topmost = settings.GetNamedBoolean(L"topmost", false);
         if (auto presenter = AppWindow().Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())
         {
@@ -155,14 +157,9 @@ namespace winrt::SurveyController::App::implementation
         Microsoft::UI::Windowing::AppWindow const&,
         Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args)
     {
-        if (m_closing) return;
-        m_closing = true;
-        args.Cancel(false);
-        if (auto taskPage = ContentFrame().Content().try_as<SurveyController::App::TaskPage>())
-        {
-            winrt::get_self<SurveyController::App::implementation::TaskPage>(taskPage)->PrepareForShutdown();
-        }
-        Services::BackendClient::Current().ShutdownImmediate();
+        if (m_closeConfirmed || !m_askSaveOnClose) return;
+        args.Cancel(true);
+        if (!m_confirmingClose) ConfirmCloseAsync();
     }
 
     void MainWindow::OnWindowClosed(
@@ -170,6 +167,57 @@ namespace winrt::SurveyController::App::implementation
         Microsoft::UI::Xaml::WindowEventArgs const&)
     {
         Services::BackendClient::Current().ShutdownImmediate();
+    }
+
+    fire_and_forget MainWindow::ConfirmCloseAsync()
+    {
+        auto lifetime = get_strong();
+        m_confirmingClose = true;
+
+        Microsoft::UI::Xaml::Controls::ContentDialog dialog;
+        auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
+        dialog.Title(box_value(L"保存当前配置？"));
+        dialog.Content(box_value(L"关闭前可以把本次改动写入配置文件。"));
+        dialog.PrimaryButtonText(L"保存并关闭");
+        dialog.SecondaryButtonText(L"不保存并关闭");
+        dialog.CloseButtonText(L"取消");
+        dialog.DefaultButton(Microsoft::UI::Xaml::Controls::ContentDialogButton::Primary);
+
+        auto result = co_await dialog.ShowAsync();
+        if (result == Microsoft::UI::Xaml::Controls::ContentDialogResult::Primary)
+        {
+            hstring saveError;
+            try
+            {
+                auto saved = co_await Services::ConfigService{}.SaveAsync(
+                    Services::WizardDocument::Current().SaveRequest());
+                Services::WizardDocument::Current().LoadConfigState(saved);
+            }
+            catch (hresult_error const& error) { saveError = error.message(); }
+            catch (std::exception const& error) { saveError = to_hstring(error.what()); }
+            catch (...) { saveError = L"保存配置失败。"; }
+
+            if (!saveError.empty())
+            {
+                Microsoft::UI::Xaml::Controls::ContentDialog failure;
+                auto failureThemeRevoker = Services::PrepareContentDialog(failure, Content().XamlRoot());
+                failure.Title(box_value(L"无法保存配置"));
+                failure.Content(box_value(saveError));
+                failure.CloseButtonText(L"返回");
+                co_await failure.ShowAsync();
+                m_confirmingClose = false;
+                co_return;
+            }
+        }
+
+        m_confirmingClose = false;
+        if (result == Microsoft::UI::Xaml::Controls::ContentDialogResult::None) co_return;
+        m_closeConfirmed = true;
+        if (auto taskPage = ContentFrame().Content().try_as<SurveyController::App::TaskPage>())
+        {
+            winrt::get_self<SurveyController::App::implementation::TaskPage>(taskPage)->PrepareForShutdown();
+        }
+        Close();
     }
 
     void MainWindow::ConfigureTitleBar()
@@ -180,6 +228,22 @@ namespace winrt::SurveyController::App::implementation
         auto titleBar = AppWindow().TitleBar();
         titleBar.ButtonBackgroundColor(Windows::UI::Colors::Transparent());
         titleBar.ButtonInactiveBackgroundColor(Windows::UI::Colors::Transparent());
+        ApplyTitleBarTheme(L"system");
+    }
+
+    void MainWindow::ApplyTitleBarTheme(hstring const& themeMode)
+    {
+        auto titleBar = AppWindow().TitleBar();
+        if (!titleBar.IsCustomizationSupported()) return;
+
+        auto root = Content().try_as<Microsoft::UI::Xaml::FrameworkElement>();
+        auto const dark = themeMode == L"dark" ||
+            (themeMode == L"system" && root && root.ActualTheme() == Microsoft::UI::Xaml::ElementTheme::Dark);
+        auto const foreground = dark ? Windows::UI::Colors::White() : Windows::UI::Colors::Black();
+        titleBar.ButtonForegroundColor(foreground);
+        titleBar.ButtonHoverForegroundColor(foreground);
+        titleBar.ButtonPressedForegroundColor(foreground);
+        titleBar.ButtonInactiveForegroundColor(foreground);
     }
 
     void MainWindow::ConfigureWindow()

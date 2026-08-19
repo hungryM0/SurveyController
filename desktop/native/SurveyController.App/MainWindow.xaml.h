@@ -24,13 +24,18 @@ namespace winrt::SurveyController::App::implementation
         hstring m_configJson;
         int32_t m_currentPageIndex{};
         bool m_hasNavigated{};
+        bool m_askSaveOnClose{ true };
+        bool m_confirmingClose{};
+        bool m_closeConfirmed{};
         bool m_initializing{};
         bool m_initialized{};
         bool m_closing{};
 
         winrt::fire_and_forget InitializeAsync();
+        winrt::fire_and_forget ConfirmCloseAsync();
         void ConfigureBackdrop();
         void ConfigureTitleBar();
+        void ApplyTitleBarTheme(hstring const& themeMode);
         void ConfigureWindow();
         void ApplyShellSettings(hstring const& json);
         void ShowPage(hstring const& tag);

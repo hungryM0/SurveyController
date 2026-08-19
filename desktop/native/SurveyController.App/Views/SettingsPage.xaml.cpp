@@ -119,7 +119,7 @@ namespace winrt::SurveyController::App::implementation
         {
             m_saveTimer = DispatcherQueue().CreateTimer();
             m_saveTimer.IsRepeating(false);
-            m_saveTimer.Interval(std::chrono::milliseconds{ 300 });
+            m_saveTimer.Interval(std::chrono::milliseconds{ 30 });
             m_saveTimer.Tick([weak = get_weak()](auto const&, auto const&)
             {
                 if (auto self = weak.get()) self->SaveSettingsAsync();
@@ -127,7 +127,6 @@ namespace winrt::SurveyController::App::implementation
         }
         m_saveTimer.Stop();
         m_saveTimer.Start();
-        StatusText().Text(L"等待保存");
     }
 
     fire_and_forget SettingsPage::SaveSettingsAsync()
@@ -147,7 +146,6 @@ namespace winrt::SurveyController::App::implementation
                 {
                     LoadSettings(saved);
                     Services::ShellSettings::Current().Update(saved);
-                    StatusText().Text(L"已保存");
                 }
             }
             catch (hresult_error const& error) { StatusText().Text(error.message()); }
