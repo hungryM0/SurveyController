@@ -28,7 +28,7 @@ namespace winrt::SurveyController::App::implementation
         IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-        Services::PrepareContentDialog(dialog, Content().XamlRoot());
+        auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"QQ 群二维码"));
 
         Microsoft::UI::Xaml::Controls::Image image;

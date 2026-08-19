@@ -13,7 +13,7 @@ namespace winrt::SurveyController::App::implementation
             Microsoft::UI::Windowing::AppWindow const& sender,
             Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args);
         void OnWindowClosed(
-            Microsoft::UI::Xaml::Window const& sender,
+            IInspectable const& sender,
             Microsoft::UI::Xaml::WindowEventArgs const& args);
     private:
         HWND m_hwnd{ nullptr };

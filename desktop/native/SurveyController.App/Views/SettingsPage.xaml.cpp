@@ -145,7 +145,7 @@ namespace winrt::SurveyController::App::implementation
     fire_and_forget SettingsPage::OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-        Services::PrepareContentDialog(dialog, Content().XamlRoot());
+        auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"恢复默认设置"));
         dialog.Content(box_value(L"确定要恢复默认设置吗？这将还原所有设置项到初始状态。"));
         dialog.PrimaryButtonText(L"恢复");

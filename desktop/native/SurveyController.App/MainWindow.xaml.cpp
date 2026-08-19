@@ -125,7 +125,7 @@ namespace winrt::SurveyController::App::implementation
     }
 
     void MainWindow::OnWindowClosed(
-        Microsoft::UI::Xaml::Window const&,
+        IInspectable const&,
         Microsoft::UI::Xaml::WindowEventArgs const&)
     {
         Services::BackendClient::Current().Shutdown();
@@ -137,7 +137,7 @@ namespace winrt::SurveyController::App::implementation
         m_confirmingClose = true;
 
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-        Services::PrepareContentDialog(dialog, Content().XamlRoot());
+        auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"保存当前配置？"));
         dialog.Content(box_value(L"关闭前可以把本次改动写入配置文件。"));
         dialog.PrimaryButtonText(L"保存并关闭");
@@ -162,7 +162,7 @@ namespace winrt::SurveyController::App::implementation
             if (!saveError.empty())
             {
                 Microsoft::UI::Xaml::Controls::ContentDialog failure;
-                Services::PrepareContentDialog(failure, Content().XamlRoot());
+                auto failureThemeRevoker = Services::PrepareContentDialog(failure, Content().XamlRoot());
                 failure.Title(box_value(L"无法保存配置"));
                 failure.Content(box_value(saveError));
                 failure.CloseButtonText(L"返回");

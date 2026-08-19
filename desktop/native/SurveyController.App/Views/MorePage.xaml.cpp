@@ -25,7 +25,7 @@ namespace winrt::SurveyController::App::implementation
         fire_and_forget ShowTerms(Microsoft::UI::Xaml::XamlRoot const& root)
         {
             Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-            Services::PrepareContentDialog(dialog, root);
+            auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, root);
             dialog.Title(box_value(L"服务条款与隐私声明"));
 
             auto text = Microsoft::UI::Xaml::Controls::TextBlock();
