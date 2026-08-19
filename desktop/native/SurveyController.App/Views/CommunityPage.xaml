@@ -2,7 +2,7 @@
     x:Class="SurveyController.App.CommunityPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    NavigationCacheMode="Required">
+    >
 
     <ScrollViewer x:Name="CommunityScrollViewer" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Width="{x:Bind CommunityScrollViewer.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">

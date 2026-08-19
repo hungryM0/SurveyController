@@ -120,7 +120,9 @@
     <ClInclude Include="Views\CommunityPage.xaml.h"><DependentUpon>CommunityPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\MorePage.xaml.h"><DependentUpon>MorePage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="ViewModels\OptionWeight.h" />
+    <ClInclude Include="ViewModels\IPUsageRow.h" />
     <ClInclude Include="Services\BackendClient.h" />
+    <ClInclude Include="Services\RpcServices.h" />
     <ClInclude Include="Services\DialogStyling.h" />
     <ClInclude Include="Services\JsonHelpers.h" />
     <ClInclude Include="Services\NativeResource.h" />
@@ -142,7 +144,9 @@
     <ClCompile Include="Views\CommunityPage.xaml.cpp"><DependentUpon>CommunityPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\MorePage.xaml.cpp"><DependentUpon>MorePage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="ViewModels\OptionWeight.cpp" />
+    <ClCompile Include="ViewModels\IPUsageRow.cpp" />
     <ClCompile Include="Services\BackendClient.cpp" />
+    <ClCompile Include="Services\RpcServices.cpp" />
     <ClCompile Include="Services\ShellSettings.cpp" />
     <ClCompile Include="Services\TaskNotification.cpp" />
     <ClCompile Include="Services\WizardDocument.cpp" />

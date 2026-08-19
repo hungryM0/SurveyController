@@ -8,6 +8,9 @@ namespace winrt::SurveyController::App::implementation
     struct TaskPage : TaskPageT<TaskPage>
     {
         TaskPage();
+        void OnLoaded(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnUnloaded(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void PrepareForShutdown() noexcept;
 
         winrt::fire_and_forget OnPrimary(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBack(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -49,10 +52,13 @@ namespace winrt::SurveyController::App::implementation
         bool m_polling{};
         bool m_updatingProxyAreas{};
         bool m_initialized{};
+        bool m_isLoaded{};
+        uint64_t m_pageGeneration{};
+        uint32_t m_pollFailures{};
 
         void InitializeState();
         void PopulateControls();
-        void SyncControlsToDocument();
+        bool SyncControlsToDocument();
         void UpdateNetworkVisibility();
         winrt::fire_and_forget LoadProxyAreaOptions();
         void ApplyProxyAreaOptions(hstring const& json, hstring const& source);
@@ -74,6 +80,7 @@ namespace winrt::SurveyController::App::implementation
         void ApplyCheckState(hstring const& json);
         void ApplyRunState(hstring const& json);
         void StartPolling();
+        void StopPolling() noexcept;
         Windows::Foundation::IAsyncAction PollRunAsync();
         Windows::Foundation::IAsyncAction RunControlAsync(hstring method, hstring params);
     };

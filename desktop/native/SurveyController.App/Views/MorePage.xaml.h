@@ -6,6 +6,7 @@ namespace winrt::SurveyController::App::implementation
     struct MorePage : MorePageT<MorePage>
     {
         MorePage();
+        Windows::Foundation::Collections::IObservableVector<SurveyController::App::IPUsageRow> UsageItems() const;
         winrt::fire_and_forget OnOpenDownload(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnCheckUpdate(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnOpenRepository(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -27,6 +28,8 @@ namespace winrt::SurveyController::App::implementation
         hstring m_downloadUrl{ L"https://dl.hungrym0.com/SurveyController_latest_setup.exe" };
         bool m_checkingUpdate{};
         bool m_loadingUsage{};
+        Windows::Foundation::Collections::IObservableVector<SurveyController::App::IPUsageRow> m_usageItems{
+            winrt::single_threaded_observable_vector<SurveyController::App::IPUsageRow>() };
     };
 }
 namespace winrt::SurveyController::App::factory_implementation

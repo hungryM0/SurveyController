@@ -6,6 +6,7 @@
 #include "Views/CommunityPage.xaml.h"
 #include "Views/MorePage.xaml.h"
 #include "Services/BackendClient.h"
+#include "Services/RpcServices.h"
 #include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
 #include "Services/WizardDocument.h"
@@ -51,26 +52,62 @@ namespace winrt::SurveyController::App::implementation
         ConfigureTitleBar();
         ConfigureWindow();
         ConfigureBackdrop();
-        ConnectBackend();
+        Activated({ this, &MainWindow::OnWindowActivated });
         AppWindow().Closing({ this, &MainWindow::OnWindowClosing });
         Closed({ this, &MainWindow::OnWindowClosed });
         ShellNavigation().SelectionChanged({ this, &MainWindow::OnNavigationSelectionChanged });
-        ShowPage(L"task");
     }
 
-    void MainWindow::ConnectBackend()
+    void MainWindow::OnWindowActivated(IInspectable const&, Microsoft::UI::Xaml::WindowActivatedEventArgs const&)
     {
-        auto& backend = winrt::SurveyController::App::Services::BackendClient::Current();
-        backend.Start();
-        m_settingsJson = backend.Call(L"GetAppSettings");
-        m_configJson = backend.Call(L"LoadConfig", L"{}");
-        Services::WizardDocument::Current().LoadConfigState(m_configJson);
-        auto weak = get_weak();
-        Services::ShellSettings::Current().SetChangedHandler([weak](hstring const& json)
+        if (!m_initializing && !m_initialized && !m_closing) InitializeAsync();
+    }
+
+    fire_and_forget MainWindow::InitializeAsync()
+    {
+        auto lifetime = get_strong();
+        m_initializing = true;
+        StartupStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Informational);
+        StartupStatus().Title(L"正在启动后端");
+        StartupStatus().Message(L"正在加载设置和配置。");
+        StartupStatus().IsOpen(true);
+        try
         {
-            if (auto self = weak.get()) self->ApplyShellSettings(json);
-        });
-        Services::ShellSettings::Current().Update(m_settingsJson);
+            auto settings = co_await Services::SettingsService{}.LoadAsync();
+            auto config = co_await Services::ConfigService{}.LoadAsync();
+            if (m_closing) co_return;
+            m_settingsJson = settings;
+            m_configJson = config;
+            Services::WizardDocument::Current().LoadConfigState(m_configJson);
+            auto weak = get_weak();
+            Services::ShellSettings::Current().SetChangedHandler([weak](hstring const& json)
+            {
+                if (auto self = weak.get()) self->ApplyShellSettings(json);
+            });
+            Services::ShellSettings::Current().Update(m_settingsJson);
+            if (!m_hasNavigated) ShowPage(L"task");
+            StartupStatus().IsOpen(false);
+            m_initialized = true;
+        }
+        catch (hresult_error const& error)
+        {
+            StartupStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Error);
+            StartupStatus().Title(L"后端启动失败");
+            StartupStatus().Message(error.message());
+        }
+        catch (std::exception const& error)
+        {
+            StartupStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Error);
+            StartupStatus().Title(L"初始化失败");
+            StartupStatus().Message(to_hstring(error.what()));
+        }
+        catch (...)
+        {
+            StartupStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Error);
+            StartupStatus().Title(L"初始化失败");
+            StartupStatus().Message(L"发生未知错误。");
+        }
+        m_initializing = false;
     }
 
     void MainWindow::ConfigureBackdrop()
@@ -107,7 +144,6 @@ namespace winrt::SurveyController::App::implementation
             ? Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::Auto
             : Microsoft::UI::Xaml::Controls::NavigationViewPaneDisplayMode::LeftCompact);
 
-        m_askSaveOnClose = settings.GetNamedBoolean(L"askSaveOnClose", true);
         auto topmost = settings.GetNamedBoolean(L"topmost", false);
         if (auto presenter = AppWindow().Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())
         {
@@ -119,63 +155,21 @@ namespace winrt::SurveyController::App::implementation
         Microsoft::UI::Windowing::AppWindow const&,
         Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args)
     {
-        if (m_closeConfirmed || !m_askSaveOnClose) return;
-        args.Cancel(true);
-        if (!m_confirmingClose) ConfirmCloseAsync();
+        if (m_closing) return;
+        m_closing = true;
+        args.Cancel(false);
+        if (auto taskPage = ContentFrame().Content().try_as<SurveyController::App::TaskPage>())
+        {
+            winrt::get_self<SurveyController::App::implementation::TaskPage>(taskPage)->PrepareForShutdown();
+        }
+        Services::BackendClient::Current().ShutdownImmediate();
     }
 
     void MainWindow::OnWindowClosed(
         IInspectable const&,
         Microsoft::UI::Xaml::WindowEventArgs const&)
     {
-        Services::BackendClient::Current().Shutdown();
-    }
-
-    fire_and_forget MainWindow::ConfirmCloseAsync()
-    {
-        auto lifetime = get_strong();
-        m_confirmingClose = true;
-
-        Microsoft::UI::Xaml::Controls::ContentDialog dialog;
-        auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
-        dialog.Title(box_value(L"保存当前配置？"));
-        dialog.Content(box_value(L"关闭前可以把本次改动写入配置文件。"));
-        dialog.PrimaryButtonText(L"保存并关闭");
-        dialog.SecondaryButtonText(L"不保存并关闭");
-        dialog.CloseButtonText(L"取消");
-        dialog.DefaultButton(Microsoft::UI::Xaml::Controls::ContentDialogButton::Primary);
-
-        auto result = co_await dialog.ShowAsync();
-        if (result == Microsoft::UI::Xaml::Controls::ContentDialogResult::Primary)
-        {
-            hstring saveError;
-            try
-            {
-                auto& document = Services::WizardDocument::Current();
-                auto saved = Services::BackendClient::Current().Call(L"SaveConfig", document.SaveRequest());
-                document.LoadConfigState(saved);
-            }
-            catch (hresult_error const& error)
-            {
-                saveError = error.message();
-            }
-            if (!saveError.empty())
-            {
-                Microsoft::UI::Xaml::Controls::ContentDialog failure;
-                auto failureThemeRevoker = Services::PrepareContentDialog(failure, Content().XamlRoot());
-                failure.Title(box_value(L"无法保存配置"));
-                failure.Content(box_value(saveError));
-                failure.CloseButtonText(L"返回");
-                co_await failure.ShowAsync();
-                m_confirmingClose = false;
-                co_return;
-            }
-        }
-
-        m_confirmingClose = false;
-        if (result == Microsoft::UI::Xaml::Controls::ContentDialogResult::None) co_return;
-        m_closeConfirmed = true;
-        Close();
+        Services::BackendClient::Current().ShutdownImmediate();
     }
 
     void MainWindow::ConfigureTitleBar()
@@ -201,7 +195,7 @@ namespace winrt::SurveyController::App::implementation
 
         if (auto presenter = appWindow.Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())
         {
-            presenter.PreferredMinimumWidth(::MulDiv(760, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI));
+            presenter.PreferredMinimumWidth(::MulDiv(720, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI));
             presenter.PreferredMinimumHeight(::MulDiv(560, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI));
         }
 
@@ -227,7 +221,7 @@ namespace winrt::SurveyController::App::implementation
         {
             appWindow.Resize({ width, height });
         }
-        ContentFrame().CacheSize(4);
+        ContentFrame().CacheSize(2);
     }
 
     bool MainWindow::IsWindows11OrGreater()
@@ -243,6 +237,7 @@ namespace winrt::SurveyController::App::implementation
         Microsoft::UI::Xaml::Controls::NavigationView const&,
         Microsoft::UI::Xaml::Controls::NavigationViewSelectionChangedEventArgs const& args)
     {
+        if (!m_initialized || m_closing) return;
         auto item = args.SelectedItem().try_as<Microsoft::UI::Xaml::Controls::NavigationViewItem>();
         if (!item)
         {

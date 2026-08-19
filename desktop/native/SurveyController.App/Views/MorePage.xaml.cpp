@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MorePage.xaml.h"
-#include "Services/BackendClient.h"
+#include "Services/RpcServices.h"
+#include "ViewModels/IPUsageRow.h"
 #include "Services/JsonHelpers.h"
 #include "Services/DialogStyling.h"
 
@@ -19,7 +20,8 @@ namespace winrt::SurveyController::App::implementation
     {
         fire_and_forget OpenUrl(wchar_t const* url)
         {
-            co_await Windows::System::Launcher::LaunchUriAsync(Windows::Foundation::Uri(url));
+            try { co_await Windows::System::Launcher::LaunchUriAsync(Windows::Foundation::Uri(url)); }
+            catch (...) {}
         }
 
         fire_and_forget ShowTerms(Microsoft::UI::Xaml::XamlRoot const& root)
@@ -42,22 +44,20 @@ namespace winrt::SurveyController::App::implementation
             scroll.MaxHeight(520);
             dialog.Content(scroll);
             dialog.CloseButtonText(L"关闭");
-            co_await dialog.ShowAsync();
+            try { co_await dialog.ShowAsync(); }
+            catch (...) {}
         }
     }
 
     MorePage::MorePage()
     {
         InitializeComponent();
-        try
-        {
-            Services::BackendClient::Current().Start();
-            LoadIPUsage();
-        }
-        catch (hresult_error const& error)
-        {
-            IPUsageStatus().Text(L"IP 使用记录暂不可用：" + error.message());
-        }
+        LoadIPUsage();
+    }
+
+    Windows::Foundation::Collections::IObservableVector<SurveyController::App::IPUsageRow> MorePage::UsageItems() const
+    {
+        return m_usageItems;
     }
 
     fire_and_forget MorePage::OnOpenDownload(
@@ -89,12 +89,14 @@ namespace winrt::SurveyController::App::implementation
         hstring error;
         try
         {
-            result = Services::BackendClient::Current().Call(L"CheckUpdate", L"{\"currentVersion\":\"5.0.0\"}");
+            result = co_await Services::CommunityService{}.CheckUpdateAsync(L"5.0.0");
         }
         catch (hresult_error const& value)
         {
             error = value.message();
         }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"检查更新失败。"; }
 
         dispatcher.TryEnqueue([lifetime, result, error]()
         {
@@ -144,17 +146,19 @@ namespace winrt::SurveyController::App::implementation
         hstring error;
         try
         {
-            result = Services::BackendClient::Current().Call(L"GetIPUsageSummary");
+            result = co_await Services::CommunityService{}.IpUsageAsync();
         }
         catch (hresult_error const& value)
         {
             error = value.message();
         }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"获取 IP 使用记录失败。"; }
 
         dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->m_loadingUsage = false;
-            lifetime->UsageRows().Children().Clear();
+            lifetime->m_usageItems.Clear();
             if (!error.empty())
             {
                 lifetime->IPUsageStatus().Text(L"获取失败：" + error);
@@ -202,35 +206,8 @@ namespace winrt::SurveyController::App::implementation
                 auto label = record.GetNamedString(L"label", L"未知日期");
                 auto total = record.GetNamedNumber(L"total", 0);
 
-                auto row = Microsoft::UI::Xaml::Controls::Grid();
-                row.ColumnSpacing(12);
-                row.Margin(Microsoft::UI::Xaml::Thickness{ 0, 2, 0, 2 });
-                row.ColumnDefinitions().Append(Microsoft::UI::Xaml::Controls::ColumnDefinition{});
-                row.ColumnDefinitions().Append(Microsoft::UI::Xaml::Controls::ColumnDefinition{});
-                row.ColumnDefinitions().Append(Microsoft::UI::Xaml::Controls::ColumnDefinition{});
-                row.ColumnDefinitions().GetAt(0).Width(Microsoft::UI::Xaml::GridLength{ 96, Microsoft::UI::Xaml::GridUnitType::Pixel });
-                row.ColumnDefinitions().GetAt(1).Width(Microsoft::UI::Xaml::GridLength{ 1, Microsoft::UI::Xaml::GridUnitType::Star });
-                row.ColumnDefinitions().GetAt(2).Width(Microsoft::UI::Xaml::GridLength{ 72, Microsoft::UI::Xaml::GridUnitType::Pixel });
-
-                auto date = Microsoft::UI::Xaml::Controls::TextBlock();
-                date.Text(label);
-                date.VerticalAlignment(Microsoft::UI::Xaml::VerticalAlignment::Center);
-                row.Children().Append(date);
-
-                auto bar = Microsoft::UI::Xaml::Controls::ProgressBar();
-                bar.Maximum(maxTotal);
-                bar.Value(total);
-                bar.VerticalAlignment(Microsoft::UI::Xaml::VerticalAlignment::Center);
-                Microsoft::UI::Xaml::Controls::Grid::SetColumn(bar, 1);
-                row.Children().Append(bar);
-
-                auto count = Microsoft::UI::Xaml::Controls::TextBlock();
-                count.Text(hstring{ std::to_wstring(static_cast<int>(total)) + L" 个" });
-                count.HorizontalAlignment(Microsoft::UI::Xaml::HorizontalAlignment::Right);
-                count.VerticalAlignment(Microsoft::UI::Xaml::VerticalAlignment::Center);
-                Microsoft::UI::Xaml::Controls::Grid::SetColumn(count, 2);
-                row.Children().Append(count);
-                lifetime->UsageRows().Children().Append(row);
+                lifetime->m_usageItems.Append(winrt::make<SurveyController::App::implementation::IPUsageRow>(
+                    label, total, maxTotal));
             }
             lifetime->IPUsageStatus().Text(L"每日提取 IP 数");
         });

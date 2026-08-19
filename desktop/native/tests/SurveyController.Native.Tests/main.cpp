@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Services/ShellSettings.h"
 #include "Services/WizardDocument.h"
+#include "Services/BackendClient.h"
 
 #include <functional>
 #include <iostream>
@@ -11,6 +12,7 @@ namespace
 {
     using winrt::SurveyController::App::Services::ShellSettings;
     using winrt::SurveyController::App::Services::WizardDocument;
+    using winrt::SurveyController::App::Services::BackendClient;
     using namespace winrt::Windows::Data::Json;
 
     void Expect(bool condition, std::string_view message)
@@ -123,6 +125,31 @@ namespace
         Expect(threw, "WizardDocument must reject invalid JSON");
     }
 
+    void TestRpcEnvelopeValidation()
+    {
+        auto request = JsonObject::Parse(winrt::to_hstring(
+            BackendClient::BuildRequestPayload(7, L"LoadConfig", L"{}")));
+        Expect(request.GetNamedNumber(L"id") == 7, "RPC request id must be serialized");
+        Expect(request.GetNamedString(L"method") == L"LoadConfig", "RPC method must be serialized");
+        Expect(request.GetNamedObject(L"params").Size() == 0, "RPC params must remain JSON");
+
+        Expect(BackendClient::ParseResponsePayload(7, R"({"id":7,"result":{"ok":true},"error":null})")
+            == LR"({"ok":true})", "RPC result must be returned as JSON");
+
+        for (auto const& payload : {
+            R"({"id":8,"result":null})",
+            R"({"id":7})",
+            R"({"id":"7","result":null})",
+            R"({"id":7,"error":"broken"})",
+            R"(not-json)" })
+        {
+            bool threw = false;
+            try { BackendClient::ParseResponsePayload(7, payload); }
+            catch (winrt::hresult_error const&) { threw = true; }
+            Expect(threw, "Malformed RPC response must be rejected");
+        }
+    }
+
     int RunTest(std::string_view name, std::function<void()> const& test)
     {
         try
@@ -151,6 +178,7 @@ int wmain()
     failures += RunTest("ShellSettings notifications", TestShellSettingsNotifications);
     failures += RunTest("WizardDocument state and mutations", TestWizardDocumentStateAndMutations);
     failures += RunTest("WizardDocument invalid JSON", TestWizardDocumentRejectsInvalidJson);
+    failures += RunTest("RPC envelope validation", TestRpcEnvelopeValidation);
     std::cout << "Native tests: " << (failures == 0 ? "PASS" : "FAIL") << '\n';
     return failures == 0 ? 0 : 1;
 }

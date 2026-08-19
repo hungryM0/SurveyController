@@ -60,5 +60,16 @@
                 </Frame.ContentTransitions>
             </Frame>
         </NavigationView>
+
+        <InfoBar
+            x:Name="StartupStatus"
+            Grid.Row="1"
+            Margin="16"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            MaxWidth="720"
+            IsClosable="True"
+            IsOpen="False"
+            AutomationProperties.LiveSetting="Assertive" />
     </Grid>
 </Window>

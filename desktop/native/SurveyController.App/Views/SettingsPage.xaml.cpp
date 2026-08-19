@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "SettingsPage.xaml.h"
-#include "Services/BackendClient.h"
+#include "Services/RpcServices.h"
 #include "Services/JsonHelpers.h"
 #include "Services/ShellSettings.h"
 #include "Services/NativeResource.h"
@@ -37,12 +37,7 @@ namespace winrt::SurveyController::App::implementation
     SettingsPage::SettingsPage()
     {
         InitializeComponent();
-        try
-        {
-            auto& backend = Services::BackendClient::Current();
-            backend.Start();
-            LoadSettings(backend.Call(L"GetAppSettings"));
-        }
+        try { LoadSettings(Services::ShellSettings::Current().Json()); }
         catch (hresult_error const& error)
         {
             StatusText().Text(error.message());
@@ -115,35 +110,67 @@ namespace winrt::SurveyController::App::implementation
         return request.Stringify();
     }
 
-    void SettingsPage::SaveSettings()
+    void SettingsPage::ScheduleSave()
     {
         if (m_loadingSettings) return;
-        try
+        ++m_saveGeneration;
+        m_savePending = true;
+        if (!m_saveTimer)
         {
-            auto saved = Services::BackendClient::Current().Call(L"SaveAppSettings", BuildSaveRequest());
-            LoadSettings(saved);
-            Services::ShellSettings::Current().Update(saved);
-            StatusText().Text(L"已保存");
+            m_saveTimer = DispatcherQueue().CreateTimer();
+            m_saveTimer.IsRepeating(false);
+            m_saveTimer.Interval(std::chrono::milliseconds{ 300 });
+            m_saveTimer.Tick([weak = get_weak()](auto const&, auto const&)
+            {
+                if (auto self = weak.get()) self->SaveSettingsAsync();
+            });
         }
-        catch (hresult_error const& error)
+        m_saveTimer.Stop();
+        m_saveTimer.Start();
+        StatusText().Text(L"等待保存");
+    }
+
+    fire_and_forget SettingsPage::SaveSettingsAsync()
+    {
+        auto lifetime = get_strong();
+        if (m_saving) co_return;
+        m_saving = true;
+        while (m_savePending)
         {
-            StatusText().Text(error.message());
+            m_savePending = false;
+            auto const generation = m_saveGeneration;
+            auto request = BuildSaveRequest();
+            try
+            {
+                auto saved = co_await Services::SettingsService{}.SaveAsync(request);
+                if (generation == m_saveGeneration)
+                {
+                    LoadSettings(saved);
+                    Services::ShellSettings::Current().Update(saved);
+                    StatusText().Text(L"已保存");
+                }
+            }
+            catch (hresult_error const& error) { StatusText().Text(error.message()); }
+            catch (std::exception const& error) { StatusText().Text(to_hstring(error.what())); }
+            catch (...) { StatusText().Text(L"保存设置失败。"); }
         }
+        m_saving = false;
     }
 
     void SettingsPage::OnSettingToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
-        SaveSettings();
+        ScheduleSave();
     }
 
     void SettingsPage::OnSettingSelectionChanged(IInspectable const&,
         Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&)
     {
-        SaveSettings();
+        ScheduleSave();
     }
 
     fire_and_forget SettingsPage::OnReset(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
+        auto lifetime = get_strong();
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
         auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"恢复默认设置"));
@@ -157,9 +184,12 @@ namespace winrt::SurveyController::App::implementation
             co_return;
         }
 
+        ++m_saveGeneration;
+        m_savePending = false;
+        if (m_saveTimer) m_saveTimer.Stop();
         try
         {
-            auto saved = Services::BackendClient::Current().Call(L"ResetAppSettings");
+            auto saved = co_await Services::SettingsService{}.ResetAsync();
             LoadSettings(saved);
             Services::ShellSettings::Current().Update(saved);
             StatusText().Text(L"已恢复默认设置");
@@ -168,17 +198,24 @@ namespace winrt::SurveyController::App::implementation
         {
             StatusText().Text(error.message());
         }
+        catch (...) { StatusText().Text(L"恢复默认设置失败。"); }
         co_return;
     }
 
     fire_and_forget SettingsPage::OnChooseDirectory(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
-        Microsoft::Windows::Storage::Pickers::FolderPicker picker(Services::MainWindowId());
-        auto folder = co_await picker.PickSingleFolderAsync();
-        if (folder)
+        auto lifetime = get_strong();
+        try
         {
-            ConfigDirectory().Text(folder.Path());
-            SaveSettings();
+            Microsoft::Windows::Storage::Pickers::FolderPicker picker(Services::MainWindowId());
+            auto folder = co_await picker.PickSingleFolderAsync();
+            if (folder)
+            {
+                ConfigDirectory().Text(folder.Path());
+                ScheduleSave();
+            }
         }
+        catch (hresult_error const& error) { StatusText().Text(error.message()); }
+        catch (...) { StatusText().Text(L"选择配置目录失败。"); }
     }
 }

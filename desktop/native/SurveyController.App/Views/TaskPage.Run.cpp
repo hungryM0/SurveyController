@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
-#include "Services/BackendClient.h"
+#include "Services/RpcServices.h"
 #include "Services/NativeResource.h"
 #include "Services/JsonHelpers.h"
 #include "Services/TaskNotification.h"
@@ -32,41 +32,62 @@ namespace winrt::SurveyController::App::implementation
 
     fire_and_forget TaskPage::OnPauseRun(IInspectable const&, RoutedEventArgs const&)
     {
-        co_await RunControlAsync(L"PauseRun", L"{\"value\":\"用户暂停\"}");
+        auto lifetime = get_strong();
+        try { co_await RunControlAsync(L"PauseRun", L"{\"value\":\"用户暂停\"}"); }
+        catch (hresult_error const& error) { SetFooterError(error.message()); }
+        catch (...) { SetFooterError(L"暂停任务失败。"); }
     }
 
     fire_and_forget TaskPage::OnResumeRun(IInspectable const&, RoutedEventArgs const&)
     {
-        co_await RunControlAsync(L"ResumeRun", L"null");
+        auto lifetime = get_strong();
+        try { co_await RunControlAsync(L"ResumeRun", L"null"); }
+        catch (hresult_error const& error) { SetFooterError(error.message()); }
+        catch (...) { SetFooterError(L"恢复任务失败。"); }
     }
 
     fire_and_forget TaskPage::OnStopRun(IInspectable const&, RoutedEventArgs const&)
     {
-        co_await RunControlAsync(L"CancelRun", L"null");
+        auto lifetime = get_strong();
+        try { co_await RunControlAsync(L"CancelRun", L"null"); }
+        catch (hresult_error const& error) { SetFooterError(error.message()); }
+        catch (...) { SetFooterError(L"停止任务失败。"); }
     }
 
     fire_and_forget TaskPage::OnExportLogs(IInspectable const&, RoutedEventArgs const&)
     {
-        auto path = co_await ChooseSaveFile(false);
-        if (path.empty()) co_return;
-        JsonArray lines;
-        for (auto const& line : m_logLines) lines.Append(JsonValue::CreateStringValue(line));
-        co_await ExportLinesAsync(path, lines, L"日志已导出");
+        auto lifetime = get_strong();
+        try
+        {
+            auto path = co_await ChooseSaveFile(false);
+            if (path.empty()) co_return;
+            JsonArray lines;
+            for (auto const& line : m_logLines) lines.Append(JsonValue::CreateStringValue(line));
+            co_await ExportLinesAsync(path, lines, L"日志已导出");
+        }
+        catch (hresult_error const& error) { SetFooterError(error.message()); }
+        catch (...) { SetFooterError(L"导出日志失败。"); }
     }
 
     fire_and_forget TaskPage::OnExportResult(IInspectable const&, RoutedEventArgs const&)
     {
+        auto lifetime = get_strong();
         if (!m_runResult) co_return;
-        auto path = co_await ChooseSaveFile(true);
-        if (path.empty()) co_return;
-        JsonObject payload;
-        payload.SetNamedValue(L"result", m_runResult);
-        JsonArray logs;
-        for (auto const& line : m_logLines) logs.Append(JsonValue::CreateStringValue(line));
-        payload.SetNamedValue(L"logs", logs);
-        JsonArray lines;
-        lines.Append(JsonValue::CreateStringValue(payload.Stringify()));
-        co_await ExportLinesAsync(path, lines, L"任务结果已导出");
+        try
+        {
+            auto path = co_await ChooseSaveFile(true);
+            if (path.empty()) co_return;
+            JsonObject payload;
+            payload.SetNamedValue(L"result", m_runResult);
+            JsonArray logs;
+            for (auto const& line : m_logLines) logs.Append(JsonValue::CreateStringValue(line));
+            payload.SetNamedValue(L"logs", logs);
+            JsonArray lines;
+            lines.Append(JsonValue::CreateStringValue(payload.Stringify()));
+            co_await ExportLinesAsync(path, lines, L"任务结果已导出");
+        }
+        catch (hresult_error const& error) { SetFooterError(error.message()); }
+        catch (...) { SetFooterError(L"导出任务结果失败。"); }
     }
 
     Windows::Foundation::IAsyncOperation<hstring> TaskPage::ChooseSaveFile(bool json)
@@ -91,7 +112,7 @@ namespace winrt::SurveyController::App::implementation
         auto dispatcher = DispatcherQueue();
         hstring error;
         co_await resume_background();
-        try { Services::BackendClient::Current().Call(L"ExportLogLines", request.Stringify()); }
+        try { co_await Services::TaskService{}.ExportAsync(path, lines); }
         catch (hresult_error const& value) { error = value.message(); }
         dispatcher.TryEnqueue([lifetime, error, successMessage]()
         {
@@ -192,6 +213,7 @@ namespace winrt::SurveyController::App::implementation
 
     void TaskPage::StartPolling()
     {
+        if (!m_isLoaded || m_runId.empty()) return;
         if (!m_pollTimer)
         {
             m_pollTimer = DispatcherQueue().CreateTimer();
@@ -201,43 +223,71 @@ namespace winrt::SurveyController::App::implementation
                 if (auto self = weak.get()) self->PollRunAsync();
             });
         }
+        m_pollFailures = 0;
+        m_pollTimer.Interval(std::chrono::milliseconds(700));
         m_pollTimer.Start();
+    }
+
+    void TaskPage::StopPolling() noexcept
+    {
+        if (m_pollTimer) m_pollTimer.Stop();
+        m_polling = false;
     }
 
     Windows::Foundation::IAsyncAction TaskPage::PollRunAsync()
     {
         auto lifetime = get_strong();
-        if (m_polling || m_runId.empty()) co_return;
+        if (m_polling || m_runId.empty() || !m_isLoaded) co_return;
         m_polling = true;
-        auto dispatcher = DispatcherQueue();
-        auto params = L"{\"runId\":" + EscapeRunJsonString(m_runId) + L",\"afterSequence\":" + hstring{ std::to_wstring(m_afterSequence) } + L"}";
+        auto const generation = m_pageGeneration;
+        auto const runId = m_runId;
         hstring result, error;
-        co_await resume_background();
-        try { result = Services::BackendClient::Current().Call(L"GetRunTaskState", params); }
+        try { result = co_await Services::TaskService{}.StateAsync(runId, m_afterSequence); }
         catch (hresult_error const& value) { error = value.message(); }
-        dispatcher.TryEnqueue([lifetime, result, error]()
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"查询任务状态失败。"; }
+        if (!m_isLoaded || generation != m_pageGeneration || runId != m_runId)
         {
-            lifetime->m_polling = false;
-            if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            lifetime->ApplyRunState(result);
-        });
+            // The stale request must release the guard, otherwise a later poll is blocked forever.
+            m_polling = false;
+            co_return;
+        }
+        m_polling = false;
+        if (!error.empty())
+        {
+            ++m_pollFailures;
+            if (m_pollFailures >= 3)
+            {
+                StopPolling();
+                SetFooterError(L"后端连接已中断，请重新进入任务页后重试：" + error);
+                co_return;
+            }
+            m_pollTimer.Interval(std::chrono::milliseconds(700 * (1 << m_pollFailures)));
+            co_return;
+        }
+        m_pollFailures = 0;
+        m_pollTimer.Interval(std::chrono::milliseconds(700));
+        ApplyRunState(result);
     }
 
     Windows::Foundation::IAsyncAction TaskPage::RunControlAsync(hstring method, hstring params)
     {
         auto lifetime = get_strong();
         if (m_busy) co_return;
-        auto dispatcher = DispatcherQueue();
         SetBusy(true, L"正在更新任务状态");
         hstring result, error;
-        co_await resume_background();
-        try { result = Services::BackendClient::Current().Call(method, params); }
-        catch (hresult_error const& value) { error = value.message(); }
-        dispatcher.TryEnqueue([lifetime, result, error]()
+        try
         {
-            lifetime->SetBusy(false);
-            if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            lifetime->ApplyRunState(result);
-        });
+            if (method == L"PauseRun") result = co_await Services::TaskService{}.PauseAsync(L"用户暂停");
+            else if (method == L"ResumeRun") result = co_await Services::TaskService{}.ResumeAsync();
+            else if (method == L"CancelRun") result = co_await Services::TaskService{}.StopAsync();
+            else throw hresult_error(E_INVALIDARG, L"不支持的任务控制操作");
+        }
+        catch (hresult_error const& value) { error = value.message(); }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"更新任务状态失败。"; }
+        SetBusy(false);
+        if (!error.empty()) { SetFooterError(error); co_return; }
+        ApplyRunState(result);
     }
 }

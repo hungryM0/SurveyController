@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
-#include "Services/BackendClient.h"
+#include "Services/RpcServices.h"
 #include "Services/JsonHelpers.h"
 
 namespace winrt::SurveyController::App::implementation
@@ -72,13 +72,14 @@ namespace winrt::SurveyController::App::implementation
         co_await resume_background();
         try
         {
-            result = Services::BackendClient::Current().Call(
-                L"GetProxyAreaOptions", L"{\"value\":" + ProxyJsonString(source) + L"}");
+            result = co_await Services::ProxyService{}.AreasAsync(source);
         }
         catch (hresult_error const& value)
         {
             error = value.message();
         }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"地区列表读取失败。"; }
         dispatcher.TryEnqueue([lifetime, result, error, source]()
         {
             if (source != lifetime->SelectedTag(lifetime->ProxySource(), L"default")) return;
@@ -167,8 +168,10 @@ namespace winrt::SurveyController::App::implementation
         SetBusy(true, L"正在测试固定代理");
         hstring result, error;
         co_await resume_background();
-        try { result = Services::BackendClient::Current().Call(L"TestFixedProxy", L"{\"address\":" + ProxyJsonString(address) + L"}"); }
+        try { result = co_await Services::ProxyService{}.TestFixedAsync(address); }
         catch (hresult_error const& value) { error = value.message(); }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"固定代理测试失败。"; }
         dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);
@@ -198,8 +201,10 @@ namespace winrt::SurveyController::App::implementation
         SetBusy(true, L"正在测试代理 API");
         hstring result, error;
         co_await resume_background();
-        try { result = Services::BackendClient::Current().Call(L"TestCustomProxyAPI", L"{\"url\":" + ProxyJsonString(url) + L"}"); }
+        try { result = co_await Services::ProxyService{}.TestCustomAsync(url); }
         catch (hresult_error const& value) { error = value.message(); }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"代理 API 测试失败。"; }
         dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);
@@ -230,8 +235,10 @@ namespace winrt::SurveyController::App::implementation
         SetBusy(true, L"正在同步代理状态");
         hstring result, error;
         co_await resume_background();
-        try { result = Services::BackendClient::Current().Call(L"SyncProxyStatus", L"{\"value\":" + ProxyJsonString(source) + L"}"); }
+        try { result = co_await Services::ProxyService{}.SyncAsync(source); }
         catch (hresult_error const& value) { error = value.message(); }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"同步代理状态失败。"; }
         dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);

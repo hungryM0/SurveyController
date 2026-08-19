@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TaskPage.xaml.h"
-#include "Services/BackendClient.h"
+#include "Services/RpcServices.h"
+#include "Services/ShellSettings.h"
 #include "Services/NativeResource.h"
 #include "Services/WindowContext.h"
 #include "Services/JsonHelpers.h"
@@ -11,6 +12,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -44,6 +48,59 @@ namespace winrt::SurveyController::App::implementation
             if (status == L"blocked" || status == L"failed") return InfoBarSeverity::Error;
             return InfoBarSeverity::Informational;
         }
+
+        bool ParseWindowValue(hstring const& value, CalendarDatePicker const& datePicker, TimePicker const& timePicker)
+        {
+            if (value.empty())
+            {
+                datePicker.Date(nullptr);
+                timePicker.SelectedTime(nullptr);
+                return true;
+            }
+            std::tm parsed{};
+            std::wistringstream stream{ std::wstring{ value } };
+            stream >> std::get_time(&parsed, L"%Y-%m-%d %H:%M:%S");
+            if (stream.fail()) return false;
+            parsed.tm_isdst = -1;
+            auto timestamp = std::mktime(&parsed);
+            if (timestamp == -1) return false;
+            auto date = winrt::clock::from_time_t(timestamp);
+            auto time = std::chrono::hours{ parsed.tm_hour } + std::chrono::minutes{ parsed.tm_min } +
+                std::chrono::seconds{ parsed.tm_sec };
+            datePicker.Date(box_value(date).as<Windows::Foundation::IReference<Windows::Foundation::DateTime>>());
+            timePicker.SelectedTime(box_value(Windows::Foundation::TimeSpan{ time }).as<Windows::Foundation::IReference<Windows::Foundation::TimeSpan>>());
+            return true;
+        }
+
+        bool ReadWindowValue(CalendarDatePicker const& datePicker, TimePicker const& timePicker,
+            hstring& value, hstring& error)
+        {
+            auto date = datePicker.Date();
+            auto time = timePicker.SelectedTime();
+            if (!date && !time)
+            {
+                value.clear();
+                return true;
+            }
+            if (!date || !time)
+            {
+                error = L"时间窗口的日期和时间必须同时填写。";
+                return false;
+            }
+            auto timestamp = winrt::clock::to_time_t(date.Value());
+            std::tm local{};
+            localtime_s(&local, &timestamp);
+            auto duration = time.Value();
+            auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+            auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration - hours);
+            auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration - hours - minutes);
+            wchar_t buffer[20]{};
+            swprintf_s(buffer, L"%04d-%02d-%02d %02d:%02d:%02d",
+                local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
+                static_cast<int>(hours.count()), static_cast<int>(minutes.count()), static_cast<int>(seconds.count()));
+            value = buffer;
+            return true;
+        }
     }
 
     TaskPage::TaskPage() : m_document(Services::WizardDocument::Current())
@@ -53,20 +110,35 @@ namespace winrt::SurveyController::App::implementation
         InitializeState();
     }
 
+    void TaskPage::OnLoaded(IInspectable const&, RoutedEventArgs const&)
+    {
+        m_isLoaded = true;
+        ++m_pageGeneration;
+        if (!m_runId.empty()) StartPolling();
+    }
+
+    void TaskPage::OnUnloaded(IInspectable const&, RoutedEventArgs const&)
+    {
+        m_isLoaded = false;
+        ++m_pageGeneration;
+        StopPolling();
+    }
+
+    void TaskPage::PrepareForShutdown() noexcept
+    {
+        m_isLoaded = false;
+        ++m_pageGeneration;
+        StopPolling();
+    }
+
     void TaskPage::InitializeState()
     {
         try
         {
-            auto& backend = Services::BackendClient::Current();
-            backend.Start();
             hstring parseError;
-            if (!Services::TryParseJsonObject(backend.Call(L"GetAppSettings"), m_settings, parseError))
+            if (!Services::TryParseJsonObject(Services::ShellSettings::Current().Json(), m_settings, parseError))
             {
                 throw hresult_error(E_FAIL, parseError);
-            }
-            if (!m_document.Initialized())
-            {
-                m_document.LoadConfigState(backend.Call(L"LoadConfig", L"{}"));
             }
             m_parsed = m_document.HasRealSurvey();
             m_highestStep = m_parsed ? 4 : 0;
@@ -93,8 +165,11 @@ namespace winrt::SurveyController::App::implementation
         SubmitIntervalMin().Value(interval[0]);
         SubmitIntervalMax().Value(interval[1]);
         auto window = m_document.AnswerWindow();
-        WindowStartDate().Tag(box_value(window[0]));
-        WindowEndDate().Tag(box_value(window[1]));
+        if (!ParseWindowValue(window[0], WindowStartDate(), WindowStartTime()) ||
+            !ParseWindowValue(window[1], WindowEndDate(), WindowEndTime()))
+        {
+            SetFooterError(L"配置中的时间窗口格式无效，应为 YYYY-MM-DD HH:mm:ss。请重新填写。");
+        }
         FailStop().IsOn(m_document.FailStop());
         PauseCaptcha().IsOn(m_document.PauseCaptcha());
         SelectTag(ProxyMode(), m_document.ProxyMode());
@@ -166,7 +241,7 @@ namespace winrt::SurveyController::App::implementation
         return request.Stringify();
     }
 
-    void TaskPage::SyncControlsToDocument()
+    bool TaskPage::SyncControlsToDocument()
     {
         auto durationMin = NumberValue(AnswerDurationMin(), 60, 1, 3600);
         auto durationMax = (std::max)(durationMin, NumberValue(AnswerDurationMax(), 120, 1, 3600));
@@ -174,19 +249,36 @@ namespace winrt::SurveyController::App::implementation
         auto threads = (std::min)(target, NumberValue(ThreadCount(), 1, 1, 128));
         auto intervalMin = NumberValue(SubmitIntervalMin(), 0, 0, 1800);
         auto intervalMax = (std::max)(intervalMin, NumberValue(SubmitIntervalMax(), 0, 0, 1800));
+        hstring windowStart, windowEnd, windowError;
+        if (!ReadWindowValue(WindowStartDate(), WindowStartTime(), windowStart, windowError) ||
+            !ReadWindowValue(WindowEndDate(), WindowEndTime(), windowEnd, windowError))
+        {
+            SetFooterError(windowError);
+            return false;
+        }
+        if (windowStart.empty() != windowEnd.empty())
+        {
+            SetFooterError(L"时间窗口必须同时填写开始和结束时间，或全部清空。");
+            return false;
+        }
+        if (!windowStart.empty() && windowStart >= windowEnd)
+        {
+            SetFooterError(L"时间窗口的开始时间必须早于结束时间。");
+            return false;
+        }
         m_document.SetExecution(target, threads, intervalMin, intervalMax, durationMin, durationMax,
-            unbox_value_or<hstring>(WindowStartDate().Tag(), L""),
-            unbox_value_or<hstring>(WindowEndDate().Tag(), L""), FailStop().IsOn(), PauseCaptcha().IsOn());
+            windowStart, windowEnd, FailStop().IsOn(), PauseCaptcha().IsOn());
         m_document.SetNetwork(SelectedTag(ProxyMode(), L"direct"), FixedProxyAddress().Text(),
             SelectedTag(ProxySource(), L"default"), CustomProxyApi().Text(), m_proxyAreaCode, RandomUA().IsOn());
         m_document.SetReverseFill(ReverseFillEnabled().IsOn(), m_reverseFillPath);
+        return true;
     }
 
     fire_and_forget TaskPage::OnPrimary(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
         if (m_busy) co_return;
-        SyncControlsToDocument();
+        if (!SyncControlsToDocument()) co_return;
         if (m_step > 0 && m_step < 4)
         {
             MoveToStep(m_step + 1);
@@ -202,6 +294,7 @@ namespace winrt::SurveyController::App::implementation
         hstring method;
         hstring params;
         hstring settingsRequest;
+        hstring surveyUrl;
         if (m_step == 0)
         {
             auto url = SurveyUrl().Text();
@@ -211,6 +304,7 @@ namespace winrt::SurveyController::App::implementation
                 co_return;
             }
             method = L"CreateSurveyDocument";
+            surveyUrl = url;
             params = L"{\"url\":" + EscapeJsonString(url) + L"}";
             SetBusy(true, L"正在解析问卷");
         }
@@ -236,14 +330,14 @@ namespace winrt::SurveyController::App::implementation
         {
             if (method == L"CheckTask")
             {
-                savedSettings = Services::BackendClient::Current().Call(L"SaveAppSettings", settingsRequest);
+                savedSettings = co_await Services::SettingsService{}.SaveAsync(settingsRequest);
                 JsonObject savedSettingsObject;
                 hstring parseError;
                 if (!Services::TryParseJsonObject(savedSettings, savedSettingsObject, parseError))
                 {
                     throw hresult_error(E_FAIL, parseError);
                 }
-                result = Services::BackendClient::Current().Call(method,
+                result = co_await Services::TaskService{}.CheckAsync(
                     lifetime->m_document.CheckRequest(savedSettingsObject));
                 JsonObject check;
                 if (!Services::TryParseJsonObject(result, check, parseError))
@@ -252,18 +346,27 @@ namespace winrt::SurveyController::App::implementation
                 }
                 if (check.GetNamedString(L"status", L"blocked") != L"blocked")
                 {
-                    saved = Services::BackendClient::Current().Call(L"SaveConfig", lifetime->m_document.SaveRequest());
+                    saved = co_await Services::ConfigService{}.SaveAsync(lifetime->m_document.SaveRequest());
                 }
             }
             else
             {
-                result = Services::BackendClient::Current().Call(method, params);
+                if (method == L"CreateSurveyDocument")
+                {
+                    result = co_await Services::ConfigService{}.CreateSurveyAsync(surveyUrl);
+                }
+                else
+                {
+                    result = co_await Services::TaskService{}.StartAsync(params);
+                }
             }
         }
         catch (hresult_error const& value)
         {
             error = value.message();
         }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"后端调用失败。"; }
         dispatcher.TryEnqueue([lifetime, method, result, saved, savedSettings, error]()
         {
             lifetime->SetBusy(false);
@@ -338,14 +441,17 @@ namespace winrt::SurveyController::App::implementation
     fire_and_forget TaskPage::OnImportConfig(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
-        auto path = co_await ChooseFile(false);
+        hstring path;
+        try { path = co_await ChooseFile(false); }
+        catch (hresult_error const& error) { SetFooterError(error.message()); co_return; }
+        catch (...) { SetFooterError(L"选择配置文件失败。"); co_return; }
         if (path.empty()) co_return;
         auto dispatcher = DispatcherQueue();
         SetBusy(true, L"正在导入配置");
         hstring result;
         hstring error;
         co_await resume_background();
-        try { result = Services::BackendClient::Current().Call(L"LoadConfig", L"{\"path\":" + EscapeJsonString(path) + L"}"); }
+        try { result = co_await Services::ConfigService{}.LoadAsync(path); }
         catch (hresult_error const& value) { error = value.message(); }
         dispatcher.TryEnqueue([lifetime, result, error]()
         {
@@ -362,7 +468,10 @@ namespace winrt::SurveyController::App::implementation
     fire_and_forget TaskPage::OnChooseQRCode(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
-        auto path = co_await ChooseFile(true);
+        hstring path;
+        try { path = co_await ChooseFile(true); }
+        catch (hresult_error const& error) { SetFooterError(error.message()); co_return; }
+        catch (...) { SetFooterError(L"选择二维码图片失败。"); co_return; }
         if (path.empty()) co_return;
         auto dispatcher = DispatcherQueue();
         SetBusy(true, L"正在识别二维码");
@@ -373,7 +482,7 @@ namespace winrt::SurveyController::App::implementation
         co_await resume_background();
         try
         {
-            decoded = Services::BackendClient::Current().Call(L"DecodeQRCode", L"{\"path\":" + EscapeJsonString(path) + L"}");
+            decoded = co_await Services::ConfigService{}.DecodeQrCodeAsync(path);
             JsonObject decodedObject;
             hstring parseError;
             if (!Services::TryParseJsonObject(decoded, decodedObject, parseError))
@@ -385,7 +494,7 @@ namespace winrt::SurveyController::App::implementation
             {
                 throw hresult_error(E_INVALIDARG, L"二维码没有识别出问卷链接");
             }
-            parsed = Services::BackendClient::Current().Call(L"CreateSurveyDocument", L"{\"url\":" + EscapeJsonString(url) + L"}");
+            parsed = co_await Services::ConfigService{}.CreateSurveyAsync(url);
         }
         catch (hresult_error const& value) { error = value.message(); }
         dispatcher.TryEnqueue([lifetime, parsed, url, error]()
@@ -407,11 +516,17 @@ namespace winrt::SurveyController::App::implementation
 
     fire_and_forget TaskPage::OnChooseReverseFill(IInspectable const&, RoutedEventArgs const&)
     {
-        auto path = co_await ChooseFile(false, true);
-        if (path.empty()) co_return;
-        m_reverseFillPath = path;
-        ReverseFillEnabled().IsOn(true);
-        ReverseFillButton().Content(box_value(L"更换 Excel"));
+        auto lifetime = get_strong();
+        try
+        {
+            auto path = co_await ChooseFile(false, true);
+            if (path.empty()) co_return;
+            m_reverseFillPath = path;
+            ReverseFillEnabled().IsOn(true);
+            ReverseFillButton().Content(box_value(L"更换 Excel"));
+        }
+        catch (hresult_error const& error) { SetFooterError(error.message()); }
+        catch (...) { SetFooterError(L"选择 Excel 文件失败。"); }
     }
 
     void TaskPage::OnAIModeChanged(IInspectable const&, SelectionChangedEventArgs const&)
@@ -431,21 +546,22 @@ namespace winrt::SurveyController::App::implementation
         co_await resume_background();
         try
         {
-            savedSettings = Services::BackendClient::Current().Call(L"SaveAppSettings", settingsRequest);
+            savedSettings = co_await Services::SettingsService{}.SaveAsync(settingsRequest);
             JsonObject settings;
             hstring parseError;
             if (!Services::TryParseJsonObject(savedSettings, settings, parseError))
             {
                 throw hresult_error(E_FAIL, parseError);
             }
-            JsonObject request;
-            request.SetNamedValue(L"aiProfile", settings.GetNamedObject(L"aiProfile", JsonObject{}));
-            result = Services::BackendClient::Current().Call(L"TestAIConnection", request.Stringify());
+            result = co_await Services::TaskService{}.TestAiAsync(
+                settings.GetNamedObject(L"aiProfile", JsonObject{}));
         }
         catch (hresult_error const& value)
         {
             error = value.message();
         }
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"AI 连接测试失败。"; }
         dispatcher.TryEnqueue([lifetime, savedSettings, result, error]()
         {
             lifetime->SetBusy(false);
@@ -506,7 +622,11 @@ namespace winrt::SurveyController::App::implementation
         if (step < 0 || step > 5 || (!force && step > m_highestStep + 1)) return;
         m_step = step;
         m_highestStep = (std::max)(m_highestStep, step);
-        if (step == 4) { SyncControlsToDocument(); UpdateReview(); }
+        if (step == 4)
+        {
+            if (!SyncControlsToDocument()) return;
+            UpdateReview();
+        }
         UpdateStepVisuals();
     }
 

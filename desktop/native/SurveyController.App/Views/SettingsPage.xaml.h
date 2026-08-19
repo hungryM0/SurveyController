@@ -15,9 +15,14 @@ namespace winrt::SurveyController::App::implementation
     private:
         Windows::Data::Json::JsonObject m_settings{ nullptr };
         bool m_loadingSettings{ true };
+        bool m_saving{};
+        bool m_savePending{};
+        uint64_t m_saveGeneration{};
+        Microsoft::UI::Dispatching::DispatcherQueueTimer m_saveTimer{ nullptr };
         void LoadSettings(winrt::hstring const& json);
         winrt::hstring BuildSaveRequest();
-        void SaveSettings();
+        void ScheduleSave();
+        winrt::fire_and_forget SaveSettingsAsync();
     };
 }
 

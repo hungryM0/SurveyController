@@ -8,6 +8,15 @@ namespace SurveyController.App
         Double Maximum { get; };
     }
 
+    runtimeclass IPUsageRow
+    {
+        IPUsageRow(String label, Double total, Double maximum);
+        String Label { get; };
+        Double Total { get; };
+        Double Maximum { get; };
+        String CountText { get; };
+    }
+
     [default_interface]
     runtimeclass MainWindow : Microsoft.UI.Xaml.Window
     {
@@ -44,5 +53,6 @@ namespace SurveyController.App
     runtimeclass MorePage : Microsoft.UI.Xaml.Controls.Page
     {
         MorePage();
+        Windows.Foundation.Collections.IObservableVector<IPUsageRow> UsageItems { get; };
     }
 }

@@ -6,6 +6,9 @@ namespace winrt::SurveyController::App::implementation
     struct MainWindow : MainWindowT<MainWindow>
     {
         MainWindow();
+        void OnWindowActivated(
+            IInspectable const& sender,
+            Microsoft::UI::Xaml::WindowActivatedEventArgs const& args);
         void OnNavigationSelectionChanged(
             Microsoft::UI::Xaml::Controls::NavigationView const& sender,
             Microsoft::UI::Xaml::Controls::NavigationViewSelectionChangedEventArgs const& args);
@@ -21,17 +24,16 @@ namespace winrt::SurveyController::App::implementation
         hstring m_configJson;
         int32_t m_currentPageIndex{};
         bool m_hasNavigated{};
-        bool m_askSaveOnClose{ true };
-        bool m_confirmingClose{};
-        bool m_closeConfirmed{};
+        bool m_initializing{};
+        bool m_initialized{};
+        bool m_closing{};
 
-        void ConnectBackend();
+        winrt::fire_and_forget InitializeAsync();
         void ConfigureBackdrop();
         void ConfigureTitleBar();
         void ConfigureWindow();
         void ApplyShellSettings(hstring const& json);
         void ShowPage(hstring const& tag);
-        winrt::fire_and_forget ConfirmCloseAsync();
         static bool IsWindows11OrGreater();
     };
 }

@@ -15,7 +15,8 @@ namespace winrt::SurveyController::App::implementation
     {
         fire_and_forget OpenUrl(wchar_t const* url)
         {
-            co_await Windows::System::Launcher::LaunchUriAsync(Windows::Foundation::Uri(url));
+            try { co_await Windows::System::Launcher::LaunchUriAsync(Windows::Foundation::Uri(url)); }
+            catch (...) {}
         }
     }
 
@@ -27,6 +28,7 @@ namespace winrt::SurveyController::App::implementation
     fire_and_forget CommunityPage::OnOpenQr(
         IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
+        auto lifetime = get_strong();
         Microsoft::UI::Xaml::Controls::ContentDialog dialog;
         auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
         dialog.Title(box_value(L"QQ 群二维码"));
@@ -38,7 +40,8 @@ namespace winrt::SurveyController::App::implementation
         image.Stretch(Microsoft::UI::Xaml::Media::Stretch::Uniform);
         dialog.Content(image);
         dialog.CloseButtonText(L"关闭");
-        co_await dialog.ShowAsync();
+        try { co_await dialog.ShowAsync(); }
+        catch (...) {}
     }
 
     fire_and_forget CommunityPage::OnOpenRepository(
