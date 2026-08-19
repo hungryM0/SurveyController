@@ -17,6 +17,30 @@
 
 #include <microsoft.ui.xaml.window.h>
 
+namespace
+{
+    winrt::hstring ApplicationIconPath()
+    {
+        std::wstring modulePath(32768, L'\0');
+        auto const length = ::GetModuleFileNameW(nullptr, modulePath.data(), static_cast<DWORD>(modulePath.size()));
+        if (length == 0 || length == modulePath.size())
+        {
+            return {};
+        }
+
+        modulePath.resize(length);
+        auto const separator = modulePath.find_last_of(L"\\/");
+        if (separator == std::wstring::npos)
+        {
+            return {};
+        }
+
+        modulePath.resize(separator + 1);
+        modulePath.append(L"Assets\\SurveyController.ico");
+        return winrt::hstring{ modulePath };
+    }
+}
+
 namespace winrt::SurveyController::App::implementation
 {
     MainWindow::MainWindow()
@@ -150,6 +174,7 @@ namespace winrt::SurveyController::App::implementation
     {
         ExtendsContentIntoTitleBar(true);
         SetTitleBar(AppTitleBar());
+
         auto titleBar = AppWindow().TitleBar();
         titleBar.ButtonBackgroundColor(Windows::UI::Colors::Transparent());
         titleBar.ButtonInactiveBackgroundColor(Windows::UI::Colors::Transparent());
@@ -161,7 +186,10 @@ namespace winrt::SurveyController::App::implementation
         window.as<::IWindowNative>()->get_WindowHandle(&m_hwnd);
         auto appWindow = AppWindow();
         auto const dpi = ::GetDpiForWindow(m_hwnd);
-        appWindow.SetIcon(L"Assets\\SurveyController.ico");
+        if (auto const iconPath = ApplicationIconPath(); !iconPath.empty())
+        {
+            appWindow.SetIcon(iconPath);
+        }
 
         if (auto presenter = appWindow.Presenter().try_as<Microsoft::UI::Windowing::OverlappedPresenter>())
         {

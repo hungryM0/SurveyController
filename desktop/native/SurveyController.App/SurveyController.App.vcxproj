@@ -23,6 +23,7 @@
     <AppxPackage>false</AppxPackage>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <ApplicationIcon>..\..\..\assets\icon.ico</ApplicationIcon>
     <EnableMsixTooling>false</EnableMsixTooling>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>

@@ -27,26 +27,9 @@
                     <StackPanel Grid.Column="1" Spacing="8">
                         <TextBlock FontSize="18" FontWeight="SemiBold" Text="QQ 群交流" />
                         <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="扫码加入 QQ 交流群，获取最新版本、反馈问题、交流使用经验和订阅服务状态。" TextWrapping="Wrap" />
-                        <TextBlock x:Name="CommunityStatus" Style="{StaticResource CaptionTextBlockStyle}" Text="作者当前在线状态：查询中..." TextWrapping="Wrap" />
                         <Button HorizontalAlignment="Left" Content="打开二维码" Click="OnOpenQr" />
                     </StackPanel>
                     <Image x:Name="CommunityQrImage" Grid.Column="2" Width="144" Height="144" HorizontalAlignment="Right" VerticalAlignment="Center" Source="ms-appx:///Assets/community_qr.png" Stretch="Uniform" />
-                </Grid>
-            </Border>
-
-            <Border Padding="20" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
-                <Grid ColumnSpacing="20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <SymbolIcon VerticalAlignment="Top" Symbol="Send" />
-                    <StackPanel Grid.Column="1" Spacing="8">
-                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="联系开发者" />
-                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="遇到问题、有建议，或不想加入 QQ 群时，可以直接发送消息。" TextWrapping="Wrap" />
-                        <Button HorizontalAlignment="Left" Content="发送消息" Click="OnOpenContact" />
-                    </StackPanel>
                 </Grid>
             </Border>
 
