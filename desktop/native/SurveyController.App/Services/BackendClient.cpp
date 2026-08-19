@@ -26,9 +26,15 @@ namespace winrt::SurveyController::App::Services
 
     BackendClient::~BackendClient()
     {
+        Shutdown();
+    }
+
+    void BackendClient::Shutdown() noexcept
+    {
         m_stdinWrite.close();
         if (!m_process)
         {
+            m_stdoutRead.close();
             return;
         }
         if (WaitForSingleObject(m_process.get(), 2000) == WAIT_TIMEOUT)
@@ -36,6 +42,8 @@ namespace winrt::SurveyController::App::Services
             TerminateProcess(m_process.get(), ERROR_PROCESS_ABORTED);
             WaitForSingleObject(m_process.get(), 1000);
         }
+        m_stdoutRead.close();
+        m_process.close();
     }
 
     void BackendClient::Start()

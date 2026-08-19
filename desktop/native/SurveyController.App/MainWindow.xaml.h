@@ -12,6 +12,9 @@ namespace winrt::SurveyController::App::implementation
         void OnWindowClosing(
             Microsoft::UI::Windowing::AppWindow const& sender,
             Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args);
+        void OnWindowClosed(
+            Microsoft::UI::Xaml::Window const& sender,
+            Microsoft::UI::Xaml::WindowEventArgs const& args);
     private:
         HWND m_hwnd{ nullptr };
         hstring m_settingsJson;

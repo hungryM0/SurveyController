@@ -14,6 +14,7 @@ namespace winrt::SurveyController::App::Services
         BackendClient& operator=(BackendClient const&) = delete;
 
         void Start();
+        void Shutdown() noexcept;
         winrt::hstring Call(winrt::hstring const& method, winrt::hstring const& params = L"null");
 
     private:

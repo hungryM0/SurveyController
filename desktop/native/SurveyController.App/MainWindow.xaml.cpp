@@ -53,6 +53,7 @@ namespace winrt::SurveyController::App::implementation
         ConfigureBackdrop();
         ConnectBackend();
         AppWindow().Closing({ this, &MainWindow::OnWindowClosing });
+        Closed({ this, &MainWindow::OnWindowClosed });
         ShellNavigation().SelectionChanged({ this, &MainWindow::OnNavigationSelectionChanged });
         ShowPage(L"task");
     }
@@ -121,6 +122,13 @@ namespace winrt::SurveyController::App::implementation
         if (m_closeConfirmed || !m_askSaveOnClose) return;
         args.Cancel(true);
         if (!m_confirmingClose) ConfirmCloseAsync();
+    }
+
+    void MainWindow::OnWindowClosed(
+        Microsoft::UI::Xaml::Window const&,
+        Microsoft::UI::Xaml::WindowEventArgs const&)
+    {
+        Services::BackendClient::Current().Shutdown();
     }
 
     fire_and_forget MainWindow::ConfirmCloseAsync()
