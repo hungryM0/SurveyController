@@ -6,7 +6,7 @@ on:
   pull_request:
 
 env:
-  GO_VERSION: "1.26.5"
+  GO_VERSION: "1.26.7"
 
 permissions:
   contents: read
@@ -17,17 +17,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: |
-            packages/proxycore/go.sum
-            packages/surveycore/go.sum
+            SurveyCore/go.sum
             desktop/go.sum
 
-      - name: Test core modules
-        run: go test ./packages/proxycore/... ./packages/surveycore/...
+      - name: Test SurveyCore
+        working-directory: SurveyCore
+        run: go test ./...
 
       - name: Test desktop module
         working-directory: desktop

@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
 )
 
 const AppSettingsSchemaVersion = 2

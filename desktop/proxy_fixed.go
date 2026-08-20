@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/SurveyController/SurveyController/packages/proxycore"
+	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 )
 
 func testFixedProxy(ctx context.Context, address string, targetURL string) FixedProxyTestState {

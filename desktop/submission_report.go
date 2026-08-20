@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SurveyController/SurveyController/packages/proxycore"
-	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/proxycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
 )
 
 const defaultSubmissionReportEndpoint = "https://api-wjx.hungrym0.com/api/submission/report"

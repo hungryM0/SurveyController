@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: "1.26.5"
+  GO_VERSION: "1.26.7"
   R2_RELEASE_PREFIX: "surveycontroller/win/stable"
 
 concurrency:
@@ -24,14 +24,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: |
-            packages/proxycore/go.sum
-            packages/surveycore/go.sum
+            SurveyCore/go.sum
             desktop/go.sum
 
       - name: Install NSIS

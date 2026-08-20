@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/xuri/excelize/v2"
-	"github.com/SurveyController/SurveyController/packages/proxycore"
-	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/proxycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
 )
 
 func TestAppServiceRejectsEmptySurveyURL(t *testing.T) {

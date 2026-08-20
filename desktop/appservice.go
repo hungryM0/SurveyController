@@ -1,6 +1,6 @@
 package main
 
-import "github.com/SurveyController/SurveyController/packages/surveycore"
+import "github.com/SurveyController/SurveyCore/pkg/surveycore"
 
 type AppService struct {
 	runs        *runManager

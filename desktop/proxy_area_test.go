@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/SurveyController/SurveyController/packages/proxycore"
+	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 )
 
 func TestResolveDesktopProxyArea(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SurveyController/SurveyController/packages/proxycore"
-	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/proxycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
 )
 
 func (r *proxyRuntime) ensureOfficialSession(ctx context.Context, client *proxycore.OfficialClient, source string) (proxycore.RandomIPSession, error) {

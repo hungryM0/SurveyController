@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/SurveyController/SurveyController/packages/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
 )
 
 func TestRunEventWindowKeepsFixedCapacityAfterManyEvents(t *testing.T) {

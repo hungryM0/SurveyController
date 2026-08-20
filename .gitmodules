@@ -1,0 +1,3 @@
+[submodule "SurveyCore"]
+	path = SurveyCore
+	url = https://github.com/SurveyController/SurveyCore.git

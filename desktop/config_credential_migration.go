@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SurveyController/SurveyController/packages/surveycore/configio"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
 )
 
 func (s *AppService) migrateLegacyConfigCredential(ctx context.Context, path string, document configio.ConfigDocument) error {
