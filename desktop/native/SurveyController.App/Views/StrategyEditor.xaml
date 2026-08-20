@@ -52,7 +52,7 @@
                 </Grid>
             </Border>
 
-            <SelectorBar x:Name="EditorModeSelector" Grid.Row="1" SelectionChanged="OnEditorModeChanged" Margin="0,0,0,2"><SelectorBarItem Text="逐题设置" IsSelected="True" /><SelectorBarItem Text="条件规则" /><SelectorBarItem Text="维度分组" /></SelectorBar>
+            <SelectorBar x:Name="EditorModeSelector" Grid.Row="1" SelectionChanged="OnEditorModeChanged" Margin="0,0,0,2"><SelectorBarItem Text="逐题设置" IsSelected="True" /><SelectorBarItem Text="条件规则" /></SelectorBar>
 
             <Grid x:Name="QuestionEditorPanel" Grid.Row="2">
                 <Grid x:Name="QuestionEditorLayout" Padding="0,4,0,0" ColumnSpacing="12" RowSpacing="12">
@@ -74,7 +74,7 @@
                             <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10">
                                 <StackPanel Spacing="14">
                                     <TextBlock FontSize="16" FontWeight="SemiBold" Text="基础策略" />
-                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBox x:Name="Dimension" Header="题目维度" PlaceholderText="输入维度名称" /><ComboBox x:Name="Bias" Grid.Column="1" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged"><ComboBoxItem Content="自定义" Tag="custom" /><ComboBoxItem Content="偏左" Tag="left" /><ComboBoxItem Content="居中" Tag="center" /><ComboBoxItem Content="偏右" Tag="right" /></ComboBox></Grid>
+                                    <ComboBox x:Name="Bias" Width="220" HorizontalAlignment="Left" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged"><ComboBoxItem Content="自定义" Tag="custom" /><ComboBoxItem Content="偏左" Tag="left" /><ComboBoxItem Content="居中" Tag="center" /><ComboBoxItem Content="偏右" Tag="right" /></ComboBox>
                                     <StackPanel x:Name="OptionWeightsSection" Spacing="10">
                                         <Grid><TextBlock FontWeight="SemiBold" Text="选项比例" /><TextBlock HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="拖动滑块调整" /></Grid>
                                         <ItemsControl x:Name="OptionWeightRows" ItemsSource="{x:Bind WeightOptions, Mode=OneWay}">
@@ -127,8 +127,7 @@
                 </Grid>
             </Grid>
 
-            <Grid x:Name="DimensionEditorPanel" Grid.Row="2" Visibility="Collapsed"><Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10"><StackPanel Spacing="12"><TextBlock FontSize="17" FontWeight="SemiBold" Text="维度分组" /><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="每行一个维度。题目保存维度时会继续沿用这里的名称。" TextWrapping="Wrap" /><TextBox x:Name="DimensionsText" AcceptsReturn="True" MinHeight="220" TextWrapping="Wrap" /><Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Content="保存维度分组" Click="OnSaveDimensions" /></StackPanel></Border></Grid>
         </Grid>
-        <StackPanel x:Name="StatusPanel" Grid.Row="1" Spacing="8"><InfoBar x:Name="QuestionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /><InfoBar x:Name="RuleStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /><InfoBar x:Name="DimensionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /></StackPanel>
+        <StackPanel x:Name="StatusPanel" Grid.Row="1" Spacing="8"><InfoBar x:Name="QuestionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /><InfoBar x:Name="RuleStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /></StackPanel>
     </Grid>
 </UserControl>

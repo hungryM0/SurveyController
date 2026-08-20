@@ -181,14 +181,12 @@ namespace winrt::SurveyController::App::implementation
         }
         QuestionEditorPanel().Visibility(index == 0 ? Visibility::Visible : Visibility::Collapsed);
         RuleEditorPanel().Visibility(index == 1 ? Visibility::Visible : Visibility::Collapsed);
-        DimensionEditorPanel().Visibility(index == 2 ? Visibility::Visible : Visibility::Collapsed);
     }
 
     void StrategyEditor::Refresh()
     {
         RebuildQuestionTree(m_questionIndex);
         LoadRules();
-        LoadDimensions();
     }
 
     void StrategyEditor::LoadQuestion()
@@ -202,7 +200,6 @@ namespace winrt::SurveyController::App::implementation
         QuestionMeta().Text(hstring{ L"第 " + std::to_wstring(number) + L" 题 · "
             + std::wstring{ question.GetNamedString(L"provider_type", question.GetNamedString(L"type_code", L"")) }
             + (question.GetNamedBoolean(L"required", false) ? L" · 必答" : L"") });
-        Dimension().Text(strategy.GetNamedString(L"dimension", L""));
         m_syncingWeights = true;
         SelectTag(Bias(), strategy.GetNamedString(L"psycho_bias", L"custom"));
         m_syncingWeights = false;
@@ -231,7 +228,6 @@ namespace winrt::SurveyController::App::implementation
         try
         {
             JsonObject changes;
-            changes.SetNamedValue(L"dimension", JsonValue::CreateStringValue(Dimension().Text()));
             changes.SetNamedValue(L"psycho_bias", JsonValue::CreateStringValue(SelectedTag(Bias(), L"custom")));
             changes.SetNamedValue(L"ai_enabled", JsonValue::CreateBooleanValue(AIEnabled().IsOn()));
             auto weights = WeightValues();
@@ -267,18 +263,6 @@ namespace winrt::SurveyController::App::implementation
                 ? JsonArray{} : JsonArray::Parse(AttachedOptionSelects().Text()));
             m_document.UpdateQuestionStrategy(static_cast<uint32_t>(index), changes);
 
-            auto dimension = Trim(std::wstring{ Dimension().Text() });
-            if (!dimension.empty())
-            {
-                auto dimensions = m_document.Dimensions();
-                bool found = false;
-                for (auto const& value : dimensions) if (value.GetString() == dimension) found = true;
-                if (!found)
-                {
-                    dimensions.Append(JsonValue::CreateStringValue(hstring{ dimension }));
-                    m_document.SetDimensions(dimensions);
-                }
-            }
             Refresh();
             QuestionStatus().Severity(InfoBarSeverity::Success);
             QuestionStatus().Title(L"题目设置已保存");
@@ -403,41 +387,6 @@ namespace winrt::SurveyController::App::implementation
         RuleStatus().Title(L"条件规则已保存");
         RuleStatus().Message(L"");
         RuleStatus().IsOpen(true);
-    }
-
-    void StrategyEditor::LoadDimensions()
-    {
-        std::wstring text;
-        for (auto const& value : m_document.Dimensions())
-        {
-            if (value.ValueType() != JsonValueType::String) continue;
-            if (!text.empty()) text += L"\r\n";
-            text += value.GetString();
-        }
-        DimensionsText().Text(hstring{ text });
-    }
-
-    void StrategyEditor::OnSaveDimensions(IInspectable const&, RoutedEventArgs const&)
-    {
-        JsonArray dimensions;
-        std::unordered_set<std::wstring> seen;
-        std::wstring normalized{ DimensionsText().Text() };
-        for (auto& character : normalized) if (character == L'\r') character = L'\n';
-        std::wstringstream input(normalized);
-        std::wstring line;
-        while (std::getline(input, line))
-        {
-            auto value = Trim(std::move(line));
-            if (!value.empty() && seen.insert(value).second)
-            {
-                dimensions.Append(JsonValue::CreateStringValue(hstring{ value }));
-            }
-        }
-        m_document.SetDimensions(dimensions);
-        LoadDimensions();
-        DimensionStatus().Severity(InfoBarSeverity::Success);
-        DimensionStatus().Title(L"维度分组已保存");
-        DimensionStatus().IsOpen(true);
     }
 
     hstring StrategyEditor::SelectedTag(ComboBox const& combo, hstring const& fallback) const

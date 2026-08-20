@@ -23,7 +23,6 @@ namespace winrt::SurveyController::App::implementation
         void OnNewRule(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnDeleteRule(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSaveRule(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
-        void OnSaveDimensions(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
 
     private:
         Services::WizardDocument& m_document;
@@ -50,7 +49,6 @@ namespace winrt::SurveyController::App::implementation
         Windows::Data::Json::JsonArray WeightValues() const;
         void LoadRule();
         void LoadRules();
-        void LoadDimensions();
         void UpdateTextModeVisibility();
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&) const;
         void SelectTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&);
