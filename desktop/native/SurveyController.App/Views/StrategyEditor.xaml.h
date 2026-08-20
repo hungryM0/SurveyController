@@ -29,7 +29,8 @@ namespace winrt::SurveyController::App::implementation
         bool m_initialized{};
         bool m_syncingWeights{};
         bool m_multipleWeights{};
-        Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> m_weightOptions;
+        Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> m_weightOptions{
+            winrt::single_threaded_observable_vector<SurveyController::App::OptionWeight>() };
         std::vector<hstring> m_weightLabels;
 
         void LoadQuestion();
