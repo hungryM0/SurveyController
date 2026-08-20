@@ -1,20 +1,19 @@
 <UserControl
     x:Class="SurveyController.App.StrategyEditor"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SurveyController.App">
 
-    <Grid MinHeight="440" RowSpacing="12">
+    <Grid MinHeight="520" RowSpacing="12">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup>
                 <VisualState x:Name="CompactQuestionEditor" />
                 <VisualState x:Name="WideQuestionEditor">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
-                    </VisualState.StateTriggers>
+                    <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" /></VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter Target="QuestionListColumn.Width" Value="0.3*" />
-                        <Setter Target="QuestionDetailColumn.Width" Value="0.7*" />
-                        <Setter Target="QuestionListRow.Height" Value="*" />
+                        <Setter Target="QuestionTreeColumn.Width" Value="320" />
+                        <Setter Target="QuestionDetailColumn.Width" Value="*" />
+                        <Setter Target="QuestionTreeRow.Height" Value="*" />
                         <Setter Target="QuestionDetailRow.Height" Value="0" />
                         <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="0" />
                         <Setter Target="QuestionDetailScroll.(Grid.Column)" Value="1" />
@@ -24,12 +23,10 @@
             <VisualStateGroup>
                 <VisualState x:Name="CompactRuleEditor" />
                 <VisualState x:Name="WideRuleEditor">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" />
-                    </VisualState.StateTriggers>
+                    <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" /></VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter Target="RuleListColumn.Width" Value="0.36*" />
-                        <Setter Target="RuleDetailColumn.Width" Value="0.64*" />
+                        <Setter Target="RuleListColumn.Width" Value="320" />
+                        <Setter Target="RuleDetailColumn.Width" Value="*" />
                         <Setter Target="RuleListRow.Height" Value="*" />
                         <Setter Target="RuleDetailRow.Height" Value="0" />
                         <Setter Target="RuleDetailScroll.(Grid.Row)" Value="0" />
@@ -38,58 +35,82 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
+
         <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <Grid RowSpacing="12">
-            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-            <SelectorBar x:Name="EditorModeSelector" SelectionChanged="OnEditorModeChanged">
-                <SelectorBarItem Text="逐题设置" IsSelected="True" />
-                <SelectorBarItem Text="条件规则" />
-                <SelectorBarItem Text="维度分组" />
-            </SelectorBar>
-            <Grid x:Name="QuestionEditorPanel" Grid.Row="1">
-                <Grid x:Name="QuestionEditorLayout" Padding="0,12,0,0" ColumnSpacing="16" RowSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="QuestionListColumn" Width="*" />
-                        <ColumnDefinition x:Name="QuestionDetailColumn" Width="0" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition x:Name="QuestionListRow" Height="220" />
-                        <RowDefinition x:Name="QuestionDetailRow" Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid>
-                        <ListView x:Name="QuestionList" SelectionChanged="OnQuestionSelected" />
-                    </Grid>
-                    <ScrollViewer x:Name="QuestionDetailScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="4,0,12,16" Spacing="12">
-                            <StackPanel.ChildrenTransitions><TransitionCollection><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
-                            <TextBlock x:Name="QuestionTitle" FontSize="17" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" />
-                            <TextBlock x:Name="QuestionMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <TextBox x:Name="Dimension" Header="题目维度" PlaceholderText="输入维度名称" />
-                                <ComboBox x:Name="Bias" Grid.Column="1" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged"><ComboBoxItem Content="自定义" Tag="custom" /><ComboBoxItem Content="偏左" Tag="left" /><ComboBoxItem Content="居中" Tag="center" /><ComboBoxItem Content="偏右" Tag="right" /></ComboBox>
-                            </Grid>
-                            <StackPanel x:Name="OptionWeightsSection" Spacing="12">
-                                <TextBlock FontWeight="SemiBold" Text="选项比例" />
-                                <StackPanel x:Name="OptionWeightRows" Spacing="12">
-                                    <StackPanel.ChildrenTransitions><TransitionCollection><AddDeleteThemeTransition /><RepositionThemeTransition /></TransitionCollection></StackPanel.ChildrenTransitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+
+            <Border Padding="16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10">
+                <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="240" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="配置向导 · 逐题策略" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock x:Name="QuestionCountSummary" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="选择题目查看作答策略" />
+                        <ProgressBar x:Name="QuestionProgress" Height="4" Minimum="0" Maximum="1" Value="0" Margin="0,6,0,0" />
+                    </StackPanel>
+                    <TextBox x:Name="QuestionSearch" Grid.Column="1" Header="查找题目" PlaceholderText="题号、题干或选项" TextChanged="OnQuestionSearchChanged" AutomationProperties.Name="查找题目" />
+                </Grid>
+            </Border>
+
+            <SelectorBar x:Name="EditorModeSelector" Grid.Row="1" SelectionChanged="OnEditorModeChanged" Margin="0,0,0,2"><SelectorBarItem Text="逐题设置" IsSelected="True" /><SelectorBarItem Text="条件规则" /><SelectorBarItem Text="维度分组" /></SelectorBar>
+
+            <Grid x:Name="QuestionEditorPanel" Grid.Row="2">
+                <Grid x:Name="QuestionEditorLayout" Padding="0,4,0,0" ColumnSpacing="12" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="QuestionTreeColumn" Width="*" /><ColumnDefinition x:Name="QuestionDetailColumn" Width="0" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition x:Name="QuestionTreeRow" Height="260" /><RowDefinition x:Name="QuestionDetailRow" Height="*" /></Grid.RowDefinitions>
+
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="8">
+                        <TreeView x:Name="QuestionTree" SelectionMode="Single" SelectionChanged="OnQuestionSelected" ItemInvoked="OnQuestionInvoked"
+                                  ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  AutomationProperties.Name="问卷题目结构" />
+                    </Border>
+
+                    <ScrollViewer x:Name="QuestionDetailScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+                        <StackPanel Padding="4,0,12,20" Spacing="12">
+                            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10">
+                                <StackPanel Spacing="4"><TextBlock x:Name="QuestionTitle" FontSize="21" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" /><TextBlock x:Name="QuestionMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                            </Border>
+
+                            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10">
+                                <StackPanel Spacing="14">
+                                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="基础策略" />
+                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBox x:Name="Dimension" Header="题目维度" PlaceholderText="输入维度名称" /><ComboBox x:Name="Bias" Grid.Column="1" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged"><ComboBoxItem Content="自定义" Tag="custom" /><ComboBoxItem Content="偏左" Tag="left" /><ComboBoxItem Content="居中" Tag="center" /><ComboBoxItem Content="偏右" Tag="right" /></ComboBox></Grid>
+                                    <StackPanel x:Name="OptionWeightsSection" Spacing="10">
+                                        <Grid><TextBlock FontWeight="SemiBold" Text="选项比例" /><TextBlock HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="拖动滑块调整" /></Grid>
+                                        <ItemsControl x:Name="OptionWeightRows" ItemsSource="{x:Bind WeightOptions, Mode=OneWay}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="local:OptionWeight">
+                                                    <Grid ColumnSpacing="10" Margin="0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="140" /><ColumnDefinition Width="*" /><ColumnDefinition Width="74" /></Grid.ColumnDefinitions>
+                                                        <TextBlock VerticalAlignment="Center" Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" />
+                                                        <Slider Grid.Column="1" VerticalAlignment="Center" Minimum="0" Maximum="{x:Bind Maximum}" StepFrequency="1" Value="{x:Bind Value, Mode=TwoWay}" AutomationProperties.Name="选项比例滑块" />
+                                                        <NumberBox Grid.Column="2" Minimum="0" Maximum="{x:Bind Maximum}" SpinButtonPlacementMode="Compact" Value="{x:Bind Value, Mode=TwoWay}" AutomationProperties.Name="选项比例" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock x:Name="RatioPreview" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
+                                    <ToggleSwitch x:Name="AIEnabled" Header="AI 填空" OffContent="关" OnContent="开" />
                                 </StackPanel>
-                                <TextBlock x:Name="RatioPreview" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
-                            <ToggleSwitch x:Name="AIEnabled" Header="AI 填空" OffContent="关" OnContent="开" />
-                            <Expander Header="题型高级设置">
-                                <StackPanel Padding="0,12,0,4" Spacing="12">
-                                    <TextBox x:Name="FillableOptions" Header="可填选项" PlaceholderText="选项序号，例如 1, 3" />
-                                    <TextBox x:Name="OptionFillTexts" Header="附加填空" PlaceholderText="用 | 分隔多个答案" />
-                                    <ComboBox x:Name="TextRandomMode" Header="随机文本模式" SelectedIndex="0" SelectionChanged="OnTextModeChanged"><ComboBoxItem Content="默认答案" Tag="" /><ComboBoxItem Content="随机姓名" Tag="name" /><ComboBoxItem Content="随机手机号" Tag="mobile" /><ComboBoxItem Content="随机身份证号" Tag="id_card" /><ComboBoxItem Content="随机整数" Tag="integer" /></ComboBox>
-                                    <Grid x:Name="TextRangeRow" Visibility="Collapsed" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="TextRangeMin" Header="随机整数最小值" SpinButtonPlacementMode="Compact" /><NumberBox x:Name="TextRangeMax" Grid.Column="1" Header="随机整数最大值" SpinButtonPlacementMode="Compact" /></Grid>
-                                    <TextBox x:Name="LocationParts" Header="地区选择" PlaceholderText="省份 | 城市 | 区县" />
-                                    <TextBox x:Name="MultiTextModes" Header="多项填空模式" PlaceholderText="每个填空一项，用 | 分隔" />
-                                    <TextBox x:Name="MultiTextAIFlags" Header="多项填空 AI" PlaceholderText="例如 0, 1, 0" />
-                                    <TextBox x:Name="MultiTextRanges" Header="多项填空整数范围" PlaceholderText="例如 1-10 | 20-30" />
-                                    <TextBox x:Name="AttachedOptionSelects" Header="嵌入式下拉" AcceptsReturn="True" MinHeight="72" TextWrapping="Wrap" PlaceholderText="JSON 数组" />
-                                </StackPanel>
+                            </Border>
+
+                            <Expander Header="题型高级设置" IsExpanded="False">
+                                <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel Padding="0,12,0,4" Spacing="12">
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="只显示当前题型相关参数，保存后立即写入配置。" TextWrapping="Wrap" />
+                                        <TextBox x:Name="FillableOptions" Header="可填选项" PlaceholderText="选项序号，例如 1, 3" />
+                                        <TextBox x:Name="OptionFillTexts" Header="附加填空" PlaceholderText="用 | 分隔多个答案" />
+                                        <ComboBox x:Name="TextRandomMode" Header="随机文本模式" SelectedIndex="0" SelectionChanged="OnTextModeChanged"><ComboBoxItem Content="默认答案" Tag="" /><ComboBoxItem Content="随机姓名" Tag="name" /><ComboBoxItem Content="随机手机号" Tag="mobile" /><ComboBoxItem Content="随机身份证号" Tag="id_card" /><ComboBoxItem Content="随机整数" Tag="integer" /></ComboBox>
+                                        <Grid x:Name="TextRangeRow" Visibility="Collapsed" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="TextRangeMin" Header="随机整数最小值" SpinButtonPlacementMode="Compact" /><NumberBox x:Name="TextRangeMax" Grid.Column="1" Header="随机整数最大值" SpinButtonPlacementMode="Compact" /></Grid>
+                                        <TextBox x:Name="LocationParts" Header="地区选择" PlaceholderText="省份 | 城市 | 区县" />
+                                        <TextBox x:Name="MultiTextModes" Header="多项填空模式" PlaceholderText="每个填空一项，用 | 分隔" />
+                                        <TextBox x:Name="MultiTextAIFlags" Header="多项填空 AI" PlaceholderText="例如 0, 1, 0" />
+                                        <TextBox x:Name="MultiTextRanges" Header="多项填空整数范围" PlaceholderText="例如 1-10 | 20-30" />
+                                        <TextBox x:Name="AttachedOptionSelects" Header="嵌入式下拉" AcceptsReturn="True" MinHeight="72" TextWrapping="Wrap" PlaceholderText="JSON 数组" />
+                                    </StackPanel>
+                                </ScrollViewer>
                             </Expander>
                             <Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Content="保存题目设置" Click="OnSaveQuestion" />
                         </StackPanel>
@@ -97,39 +118,17 @@
                 </Grid>
             </Grid>
 
-            <Grid x:Name="RuleEditorPanel" Grid.Row="1" Visibility="Collapsed">
-                <Grid x:Name="RuleEditorLayout" Padding="0,12,0,0" ColumnSpacing="16" RowSpacing="16">
+            <Grid x:Name="RuleEditorPanel" Grid.Row="2" Visibility="Collapsed">
+                <Grid x:Name="RuleEditorLayout" Padding="0,4,0,0" ColumnSpacing="12" RowSpacing="12">
                     <Grid.ColumnDefinitions><ColumnDefinition x:Name="RuleListColumn" Width="*" /><ColumnDefinition x:Name="RuleDetailColumn" Width="0" /></Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions><RowDefinition x:Name="RuleListRow" Height="220" /><RowDefinition x:Name="RuleDetailRow" Height="*" /></Grid.RowDefinitions>
-                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><StackPanel Orientation="Horizontal" Spacing="8"><Button Content="新增规则" Click="OnNewRule" /><Button Content="删除规则" Click="OnDeleteRule" /></StackPanel><ListView x:Name="RuleList" Grid.Row="1" Margin="0,12,0,0" SelectionChanged="OnRuleSelected" /></Grid>
-                    <ScrollViewer x:Name="RuleDetailScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="4,0,12,16" Spacing="12">
-                            <TextBlock FontSize="17" FontWeight="SemiBold" Text="条件与动作" />
-                            <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="ConditionQuestion" Header="条件题号" Minimum="1" SpinButtonPlacementMode="Compact" /><ComboBox x:Name="ConditionMode" Grid.Column="1" Header="条件" SelectedIndex="0"><ComboBoxItem Content="已选中" Tag="selected" /><ComboBoxItem Content="未选中" Tag="not_selected" /></ComboBox></Grid>
-                            <TextBox x:Name="ConditionOptions" Header="条件选项序号" PlaceholderText="例如 1, 3" />
-                            <TextBox x:Name="ConditionRow" Header="条件矩阵行序号" PlaceholderText="非矩阵题留空" />
-                            <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="TargetQuestion" Header="目标题号" Minimum="1" SpinButtonPlacementMode="Compact" /><ComboBox x:Name="ActionMode" Grid.Column="1" Header="动作" SelectedIndex="0"><ComboBoxItem Content="必须选择" Tag="must_select" /><ComboBoxItem Content="不得选择" Tag="must_not_select" /></ComboBox></Grid>
-                            <TextBox x:Name="TargetOptions" Header="目标选项序号" PlaceholderText="例如 2" />
-                            <TextBox x:Name="TargetRow" Header="目标矩阵行序号" PlaceholderText="非矩阵题留空" />
-                            <Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Content="保存条件规则" Click="OnSaveRule" />
-                        </StackPanel>
-                    </ScrollViewer>
+                    <Grid.RowDefinitions><RowDefinition x:Name="RuleListRow" Height="260" /><RowDefinition x:Name="RuleDetailRow" Height="*" /></Grid.RowDefinitions>
+                    <Border Padding="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><StackPanel Orientation="Horizontal" Spacing="8"><Button Content="新增规则" Click="OnNewRule" /><Button Content="删除规则" Click="OnDeleteRule" /></StackPanel><ListView x:Name="RuleList" Grid.Row="1" Margin="0,12,0,0" SelectionChanged="OnRuleSelected" ScrollViewer.VerticalScrollBarVisibility="Visible" /></Grid></Border>
+                    <ScrollViewer x:Name="RuleDetailScroll" Grid.Row="1" VerticalScrollBarVisibility="Visible"><StackPanel Padding="4,0,12,20" Spacing="12"><TextBlock FontSize="17" FontWeight="SemiBold" Text="条件与动作" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="ConditionQuestion" Header="条件题号" Minimum="1" SpinButtonPlacementMode="Compact" /><ComboBox x:Name="ConditionMode" Grid.Column="1" Header="条件" SelectedIndex="0"><ComboBoxItem Content="已选中" Tag="selected" /><ComboBoxItem Content="未选中" Tag="not_selected" /></ComboBox></Grid><TextBox x:Name="ConditionOptions" Header="条件选项序号" PlaceholderText="例如 1, 3" /><TextBox x:Name="ConditionRow" Header="条件矩阵行序号" PlaceholderText="非矩阵题留空" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><NumberBox x:Name="TargetQuestion" Header="目标题号" Minimum="1" SpinButtonPlacementMode="Compact" /><ComboBox x:Name="ActionMode" Grid.Column="1" Header="动作" SelectedIndex="0"><ComboBoxItem Content="必须选择" Tag="must_select" /><ComboBoxItem Content="不得选择" Tag="must_not_select" /></ComboBox></Grid><TextBox x:Name="TargetOptions" Header="目标选项序号" PlaceholderText="例如 2" /><TextBox x:Name="TargetRow" Header="目标矩阵行序号" PlaceholderText="非矩阵题留空" /><Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Content="保存条件规则" Click="OnSaveRule" /></StackPanel></ScrollViewer>
                 </Grid>
             </Grid>
 
-            <Grid x:Name="DimensionEditorPanel" Grid.Row="1" Visibility="Collapsed">
-                <StackPanel Padding="16" Spacing="12">
-                    <TextBlock FontSize="17" FontWeight="SemiBold" Text="维度分组" />
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="每行一个维度。题目保存维度时会继续沿用这里的名称。" TextWrapping="Wrap" />
-                    <TextBox x:Name="DimensionsText" AcceptsReturn="True" MinHeight="220" TextWrapping="Wrap" />
-                    <Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Content="保存维度分组" Click="OnSaveDimensions" />
-                </StackPanel>
-            </Grid>
+            <Grid x:Name="DimensionEditorPanel" Grid.Row="2" Visibility="Collapsed"><Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10"><StackPanel Spacing="12"><TextBlock FontSize="17" FontWeight="SemiBold" Text="维度分组" /><TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="每行一个维度。题目保存维度时会继续沿用这里的名称。" TextWrapping="Wrap" /><TextBox x:Name="DimensionsText" AcceptsReturn="True" MinHeight="220" TextWrapping="Wrap" /><Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Content="保存维度分组" Click="OnSaveDimensions" /></StackPanel></Border></Grid>
         </Grid>
-        <StackPanel x:Name="StatusPanel" Grid.Row="1" Spacing="8">
-            <InfoBar x:Name="QuestionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" />
-            <InfoBar x:Name="RuleStatus" IsOpen="False" IsClosable="False" MaxWidth="720" />
-            <InfoBar x:Name="DimensionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" />
-        </StackPanel>
+        <StackPanel x:Name="StatusPanel" Grid.Row="1" Spacing="8"><InfoBar x:Name="QuestionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /><InfoBar x:Name="RuleStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /><InfoBar x:Name="DimensionStatus" IsOpen="False" IsClosable="False" MaxWidth="720" /></StackPanel>
     </Grid>
 </UserControl>

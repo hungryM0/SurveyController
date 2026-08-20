@@ -12,7 +12,9 @@ namespace winrt::SurveyController::App::implementation
         void Refresh();
         Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> WeightOptions();
 
-        void OnQuestionSelected(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
+        void OnQuestionSelected(IInspectable const&, Microsoft::UI::Xaml::Controls::TreeViewSelectionChangedEventArgs const&);
+        void OnQuestionInvoked(IInspectable const&, Microsoft::UI::Xaml::Controls::TreeViewItemInvokedEventArgs const&);
+        void OnQuestionSearchChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::TextChangedEventArgs const&);
         void OnEditorModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectorBarSelectionChangedEventArgs const&);
         void OnSaveQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBiasChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
@@ -29,11 +31,18 @@ namespace winrt::SurveyController::App::implementation
         bool m_initialized{};
         bool m_syncingWeights{};
         bool m_multipleWeights{};
+        bool m_syncingTreeSelection{};
+        int32_t m_questionIndex{ -1 };
+        hstring m_questionSearch;
+        std::vector<Microsoft::UI::Xaml::Controls::TreeViewNode> m_questionNodes;
+        std::vector<std::pair<Microsoft::UI::Xaml::Controls::TreeViewNode, int32_t>> m_treeTargets;
         Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> m_weightOptions{
             winrt::single_threaded_observable_vector<SurveyController::App::OptionWeight>() };
         std::vector<hstring> m_weightLabels;
 
         void LoadQuestion();
+        void RebuildQuestionTree(int32_t selectedIndex);
+        void SelectQuestion(int32_t index);
         void RebuildWeightEditor(Windows::Data::Json::JsonObject const& question,
             Windows::Data::Json::JsonObject const& strategy);
         void ApplyBiasPreset(hstring const& bias);

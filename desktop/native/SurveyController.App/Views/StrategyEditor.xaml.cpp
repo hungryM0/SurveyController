@@ -186,29 +186,14 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::Refresh()
     {
-        auto selected = QuestionList().SelectedIndex();
-        QuestionList().Items().Clear();
-        for (auto const& question : m_document.Questions())
-        {
-            std::wstring label = L"第 " + std::to_wstring(question.number) + L" 题 · ";
-            label += question.title.empty() ? L"未命名题目" : std::wstring{ question.title };
-            label += L"\n" + std::wstring{ question.type };
-            if (!question.dimension.empty()) label += L" · " + std::wstring{ question.dimension };
-            QuestionList().Items().Append(box_value(hstring{ label }));
-        }
-        if (QuestionList().Items().Size() > 0)
-        {
-            QuestionList().SelectedIndex(selected >= 0 && selected < static_cast<int32_t>(QuestionList().Items().Size()) ? selected : 0);
-        }
+        RebuildQuestionTree(m_questionIndex);
         LoadRules();
         LoadDimensions();
     }
 
-    void StrategyEditor::OnQuestionSelected(IInspectable const&, SelectionChangedEventArgs const&) { LoadQuestion(); }
-
     void StrategyEditor::LoadQuestion()
     {
-        auto index = QuestionList().SelectedIndex();
+        auto index = m_questionIndex;
         if (index < 0) return;
         auto question = m_document.QuestionAt(static_cast<uint32_t>(index));
         auto strategy = m_document.StrategyAt(static_cast<uint32_t>(index));
@@ -241,7 +226,7 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::OnSaveQuestion(IInspectable const&, RoutedEventArgs const&)
     {
-        auto index = QuestionList().SelectedIndex();
+        auto index = m_questionIndex;
         if (index < 0) return;
         try
         {
@@ -295,7 +280,6 @@ namespace winrt::SurveyController::App::implementation
                 }
             }
             Refresh();
-            QuestionList().SelectedIndex(index);
             QuestionStatus().Severity(InfoBarSeverity::Success);
             QuestionStatus().Title(L"题目设置已保存");
             QuestionStatus().Message(L"");
