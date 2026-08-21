@@ -8,11 +8,14 @@ description: 面向 SurveyController 当前 C++20、C++/WinRT、WinUI 3 原生�
 1. 先读目标页面、相邻 `.xaml.cpp/.h`、相关 `Services/`、`App.xaml` 和现有资源。界面依据以当前原生实现、WinUI 控件语义和微软官方文档为准。
 2. 开发或修改 WinUI 3、Windows App SDK、C++/WinRT API 和 XAML 行为前，必须显式调用 `microsoft-learn` MCP，核对对应的微软官方文档与版本说明；不得凭记忆或猜测 API、属性、事件和生命周期。先用文档搜索定位，再按需抓取完整页面。
 3. 页面放 `Views/`，窗口级逻辑放 `MainWindow`，可复用壳能力放 `Services/`。页面调用 `RpcServices`，不直接拼 RPC 方法名、JSON 或匿名管道帧。不要把文件 IO、进程管理或长任务堆进 XAML 事件。
-4. WinUI 界面必须按原生 Windows 桌面 UI 设计。禁止套用 Web 开发思路，不使用 DOM/CSS、网页断点、CSS Flex/Grid、网页卡片、Web 组件、CSS token、悬停驱动交互或自绘控件的思维替代 WinUI 语义。
-5. 复用 WinUI 3 原生控件、XAML 视觉树、依赖属性、现有资源、`ThemeResource` 和 Fluent/Mica 视觉。窗口尺寸适配使用 WinUI 布局、VisualState 和窗口机制，不照搬网页响应式规则。保持键盘焦点、无障碍文字、深色模式、窄窗口和 DPI 缩放。
-6. `RpcServices` 提供业务调用，`BackendClient` 只负责匿名管道传输和后端进程生命周期。新增能力同步 Go 服务、RPC 分派、`RpcServices` 和页面错误反馈；禁止伪造成功状态。
-7. 条件界面使用现有 WinUI 导航、`ContentDialog`、`Flyout`、`TeachingTip` 或 `Expander`。不要自制网页式卡片、字符图标或另一套控件皮肤。
-8. 变更后至少检查相关 C++/XAML 编译影响；壳、资源或交互改动运行：
+4. 界面只能使用 WinUI 3 官方原生控件和标准布局元素。禁止自定义控件、第三方控件、Web 控件以及任何手绘样式。
+5. 禁止使用 `Canvas`、`Path`、Win2D、Direct2D、Composition 或其他绘图 API 绘制界面，也禁止用几何图形、位图、字符图标、伪元素或自定义模板伪造控件和装饰；视觉效果只能来自 WinUI 3 官方控件、官方主题资源、控件模板和系统 Fluent/Mica 能力。
+6. WinUI 界面必须按原生 Windows 桌面 UI 设计。禁止套用 Web 开发思路，不使用 DOM/CSS、网页断点、CSS Flex/Grid、网页卡片、Web 组件、CSS token、悬停驱动交互或自绘控件的思维替代 WinUI 语义。
+7. 复用 WinUI 3 原生控件、XAML 视觉树、依赖属性、现有资源、`ThemeResource` 和 Fluent/Mica 视觉。窗口尺寸适配使用 WinUI 布局、VisualState 和窗口机制，不照搬网页响应式规则。保持键盘焦点、无障碍文字、深色模式、窄窗口和 DPI 缩放。
+8. `RpcServices` 提供业务调用，`BackendClient` 只负责匿名管道传输和后端进程生命周期。新增能力同步 Go 服务、RPC 分派、`RpcServices` 和页面错误反馈；禁止伪造成功状态。
+9. C++/WinRT 只负责 WinUI 壳：控件、导航、窗口生命周期、焦点、可访问性、展示 DTO 和轻量编辑草稿。题型、策略、规则、权重、Provider/URL、二维码内容、配置 schema、运行参数校验、持久化和任务编排必须由 Go/SurveyCore 提供；禁止从领域 JSON 推导业务语义、手工拼 RPC 或在页面串联 Check/Save/Start。
+10. 条件界面使用现有 WinUI 导航、`ContentDialog`、`Flyout`、`TeachingTip` 或 `Expander`。不要自制网页式卡片、字符图标或另一套控件皮肤。
+11. 变更后至少检查相关 C++/XAML 编译影响；壳、资源或交互改动运行：
 
 ```powershell
 Set-Location desktop
