@@ -51,6 +51,13 @@ func TestDecodeQRCodeDataURLRejectsInvalidBase64(t *testing.T) {
 	}
 }
 
+func TestDecodeQRCodeDataURLRequiresDataURLBase64Header(t *testing.T) {
+	_, err := decodeQRCodeDataURL("not-a-data-url,abc", "")
+	if err == nil {
+		t.Fatal("expected data URL validation error")
+	}
+}
+
 func TestDecodeQRCodeImageRejectsBlankPath(t *testing.T) {
 	_, err := decodeQRCodeImage(" ")
 	if err == nil || !strings.Contains(err.Error(), "图片路径不能为空") {

@@ -59,6 +59,11 @@ type RunSurveyRequest struct {
 	Config configio.ConfigDocument `json:"config"`
 }
 
+type CheckAndStartRequest struct {
+	Path   string                  `json:"path"`
+	Config configio.ConfigDocument `json:"config"`
+}
+
 type CheckTaskRequest struct {
 	Config    configio.ConfigDocument `json:"config"`
 	AIProfile *AIProfileSettings      `json:"aiProfile,omitempty"`

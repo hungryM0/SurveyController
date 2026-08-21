@@ -15,8 +15,10 @@ const (
 	rpcMethodSaveConfig         = "SaveConfig"
 	rpcMethodCreateSurvey       = "CreateSurveyDocument"
 	rpcMethodDecodeQRCode       = "DecodeQRCode"
+	rpcMethodDecodeQRCodeSurvey = "DecodeQRCodeSurvey"
 	rpcMethodCheckTask          = "CheckTask"
 	rpcMethodStartRun           = "StartRun"
+	rpcMethodCheckAndStart      = "CheckAndStart"
 	rpcMethodGetRunTaskState    = "GetRunTaskState"
 	rpcMethodCancelRun          = "CancelRun"
 	rpcMethodPauseRun           = "PauseRun"
@@ -87,6 +89,12 @@ func (h *rpcHandler) Handle(ctx context.Context, method string, params json.RawM
 			return nil, desktoprpc.InvalidParams(err)
 		}
 		return h.service.DecodeQRCode(ctx, request)
+	case rpcMethodDecodeQRCodeSurvey:
+		var request DecodeQRCodeRequest
+		if err := unmarshalRPCParams(params, &request); err != nil {
+			return nil, desktoprpc.InvalidParams(err)
+		}
+		return h.service.DecodeQRCodeSurvey(ctx, request)
 	case rpcMethodCheckTask:
 		var request CheckTaskRequest
 		if err := unmarshalRPCParams(params, &request); err != nil {
@@ -99,6 +107,12 @@ func (h *rpcHandler) Handle(ctx context.Context, method string, params json.RawM
 			return nil, desktoprpc.InvalidParams(err)
 		}
 		return h.service.StartRun(ctx, request)
+	case rpcMethodCheckAndStart:
+		var request CheckAndStartRequest
+		if err := unmarshalRPCParams(params, &request); err != nil {
+			return nil, desktoprpc.InvalidParams(err)
+		}
+		return h.service.CheckAndStart(ctx, request)
 	case rpcMethodGetRunTaskState:
 		var request RunTaskStateRequest
 		if err := unmarshalRPCParams(params, &request); err != nil {

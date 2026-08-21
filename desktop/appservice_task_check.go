@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	taskCheckStepSurvey  = "survey"
-	taskCheckStepAnswers = "answers"
-	taskCheckStepTask    = "task"
-	taskCheckStepNetwork = "network"
-	answerDatetimeLayout = "2006-01-02 15:04:05"
+	taskCheckStepSurvey      = "survey"
+	taskCheckStepAnswers     = "answers"
+	taskCheckStepTask        = "task"
+	taskCheckStepNetwork     = "network"
+	answerDatetimeLayout     = "2006-01-02 15:04:05"
+	maxAnswerDurationSeconds = 1800
 )
 
 func (s *AppService) CheckTask(_ context.Context, request CheckTaskRequest) TaskCheckState {
@@ -48,6 +49,8 @@ func checkSurvey(config configio.ConfigDocument, problems *[]TaskCheckProblem) {
 	parsed, err := url.ParseRequestURI(parsedURL)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		*problems = append(*problems, TaskCheckProblem{"survey_url_invalid", "问卷链接必须是有效的 HTTP 或 HTTPS 地址", taskCheckStepSurvey, "error"})
+	} else if !surveycore.IsSupportedURL(parsedURL) && !isLocalProviderURL(parsedURL, config.Survey.Provider, config.Survey.Definition.Provider) {
+		*problems = append(*problems, TaskCheckProblem{"survey_url_unsupported", "问卷链接不是受支持的平台地址", taskCheckStepSurvey, "error"})
 	}
 	provider := strings.ToLower(strings.TrimSpace(config.Survey.Provider))
 	if provider == "" {
@@ -56,12 +59,32 @@ func checkSurvey(config configio.ConfigDocument, problems *[]TaskCheckProblem) {
 	if provider != "" && provider != surveycore.ProviderWJX && provider != surveycore.ProviderQQ && provider != surveycore.ProviderCredamo {
 		*problems = append(*problems, TaskCheckProblem{"survey_provider_unsupported", "问卷平台暂不支持", taskCheckStepSurvey, "error"})
 	}
+	if provider != "" && surveycore.IsSupportedURL(parsedURL) {
+		expected := providerForURL(parsedURL)
+		if expected != "" && expected != provider {
+			*problems = append(*problems, TaskCheckProblem{"survey_provider_mismatch", "问卷平台与链接不匹配", taskCheckStepSurvey, "error"})
+		}
+	}
 	if !hasAnswerableQuestions(config.Survey.Definition.Questions) {
 		*problems = append(*problems, TaskCheckProblem{"survey_questions_missing", "问卷尚未完成解析，至少需要一道真实题目", taskCheckStepSurvey, "error"})
 	}
 	if strings.TrimSpace(config.Survey.Title) == "" && strings.TrimSpace(config.Survey.Definition.Title) == "" {
 		*problems = append(*problems, TaskCheckProblem{"survey_title_missing", "问卷标题尚未解析", taskCheckStepSurvey, "warning"})
 	}
+}
+
+func isLocalProviderURL(raw string, providers ...string) bool {
+	parsed, err := url.ParseRequestURI(raw)
+	if err != nil || parsed.Hostname() != "127.0.0.1" && parsed.Hostname() != "localhost" {
+		return false
+	}
+	for _, provider := range providers {
+		switch strings.ToLower(strings.TrimSpace(provider)) {
+		case surveycore.ProviderWJX, surveycore.ProviderQQ, surveycore.ProviderCredamo:
+			return true
+		}
+	}
+	return false
 }
 
 func checkAnswers(config configio.ConfigDocument, problems *[]TaskCheckProblem) {
@@ -78,7 +101,15 @@ func checkAnswers(config configio.ConfigDocument, problems *[]TaskCheckProblem) 
 	covered := make(map[int]struct{}, len(config.Answers.Strategies))
 	for _, strategy := range config.Answers.Strategies {
 		if strategy.QuestionNum != nil {
+			if _, duplicate := covered[*strategy.QuestionNum]; duplicate {
+				*problems = append(*problems, TaskCheckProblem{"answer_strategy_duplicate_question", "同一道题不能配置多个答案策略", taskCheckStepAnswers, "error"})
+			}
 			covered[*strategy.QuestionNum] = struct{}{}
+			if _, ok := questionNumbers[*strategy.QuestionNum]; !ok || *strategy.QuestionNum <= 0 {
+				*problems = append(*problems, TaskCheckProblem{"answer_strategy_unknown_question", "答案策略包含不存在的题号", taskCheckStepAnswers, "error"})
+			}
+		} else {
+			*problems = append(*problems, TaskCheckProblem{"answer_strategy_question_missing", "答案策略缺少题号", taskCheckStepAnswers, "error"})
 		}
 	}
 	for questionNum := range questionNumbers {
@@ -106,7 +137,24 @@ func checkExecution(config configio.ConfigDocument, problems *[]TaskCheckProblem
 	}
 	checkRange(execution.SubmitInterval, "execution_interval_invalid", "提交间隔范围无效，最小值不能大于最大值且不能为负数", problems)
 	checkPositiveRange(execution.AnswerDuration, "execution_duration_invalid", "作答时长范围无效，必须为正数且最小值不能大于最大值", problems)
+	if execution.AnswerDuration[0] > maxAnswerDurationSeconds || execution.AnswerDuration[1] > maxAnswerDurationSeconds {
+		*problems = append(*problems, TaskCheckProblem{"execution_duration_exceeds_maximum", "作答时长不能超过 1800 秒", taskCheckStepTask, "error"})
+	}
 	checkAnswerDatetimeWindow(config, problems)
+}
+
+func providerForURL(raw string) string {
+	lowered := strings.ToLower(raw)
+	switch {
+	case strings.Contains(lowered, "wj.qq.com"):
+		return surveycore.ProviderQQ
+	case strings.Contains(lowered, "credamo.com"), strings.Contains(lowered, "credamo.cn"):
+		return surveycore.ProviderCredamo
+	case strings.Contains(lowered, "wjx.cn"), strings.Contains(lowered, "wjx.com"), strings.Contains(lowered, "wjx.top"):
+		return surveycore.ProviderWJX
+	default:
+		return ""
+	}
 }
 
 func checkAnswerDatetimeWindow(config configio.ConfigDocument, problems *[]TaskCheckProblem) {

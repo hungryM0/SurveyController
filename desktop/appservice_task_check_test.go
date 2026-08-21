@@ -104,6 +104,40 @@ func TestCheckTaskValidConfigIsReady(t *testing.T) {
 	}
 }
 
+func TestCheckTaskRejectsUnsupportedSurveyURL(t *testing.T) {
+	document := validTaskCheckDocument()
+	document.Survey.URL = "https://example.com/survey"
+	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
+	if state.Status != TaskCheckBlocked {
+		t.Fatalf("status = %q, want blocked", state.Status)
+	}
+	requireTaskCheckProblem(t, state, "survey_url_unsupported")
+}
+
+func TestCheckTaskRejectsLongAnswerDuration(t *testing.T) {
+	document := validTaskCheckDocument()
+	document.Execution.AnswerDuration = [2]int{60, 1801}
+	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
+	if state.Status != TaskCheckBlocked {
+		t.Fatalf("status = %q, want blocked", state.Status)
+	}
+	requireTaskCheckProblem(t, state, "execution_duration_exceeds_maximum")
+}
+
+func TestCheckTaskRejectsDuplicateAndUnknownStrategies(t *testing.T) {
+	document := validTaskCheckDocument()
+	unknown := 99
+	document.Answers.Strategies = append(document.Answers.Strategies, surveycore.QuestionStrategy{QuestionNum: &unknown})
+	duplicate := 1
+	document.Answers.Strategies = append(document.Answers.Strategies, surveycore.QuestionStrategy{QuestionNum: &duplicate})
+	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
+	if state.Status != TaskCheckBlocked {
+		t.Fatalf("status = %q, want blocked", state.Status)
+	}
+	requireTaskCheckProblem(t, state, "answer_strategy_unknown_question")
+	requireTaskCheckProblem(t, state, "answer_strategy_duplicate_question")
+}
+
 func TestCheckTaskInvalidCustomProxyIsBlockedWithoutNetworkAccess(t *testing.T) {
 	document := validTaskCheckDocument()
 	document.Network.RandomProxyEnabled = true

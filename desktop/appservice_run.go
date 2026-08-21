@@ -54,6 +54,21 @@ func (s *AppService) StartRun(ctx context.Context, request RunSurveyRequest) (Ru
 	return manager.launch(runID, startedAt, cfg, document.Network.ProxySource, options, settings, s.proxy)
 }
 
+func (s *AppService) CheckAndStart(ctx context.Context, request CheckAndStartRequest) (RunTaskState, error) {
+	settings, err := s.loadAppSettings(ctx)
+	if err != nil {
+		return RunTaskState{}, err
+	}
+	checked := s.CheckTask(ctx, CheckTaskRequest{Config: request.Config, AIProfile: &settings.AIProfile})
+	if checked.Status == TaskCheckBlocked {
+		return RunTaskState{}, taskCheckError(checked)
+	}
+	if _, err := s.SaveConfig(ctx, SaveConfigRequest{Path: request.Path, Config: request.Config}); err != nil {
+		return RunTaskState{}, err
+	}
+	return s.StartRun(ctx, RunSurveyRequest{Config: request.Config})
+}
+
 func (s *AppService) GetRunTaskState(request RunTaskStateRequest) RunTaskState {
 	return s.runs.snapshot(request)
 }

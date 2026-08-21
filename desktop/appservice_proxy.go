@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/SurveyController/SurveyCore/pkg/proxycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
 )
 
 func (s *AppService) GetProxyStatus() ProxyStatus {
@@ -64,4 +67,15 @@ func (s *AppService) DecodeQRCode(_ context.Context, request DecodeQRCodeRequest
 		return decodeQRCodeDataURL(request.DataURL, request.Name)
 	}
 	return decodeQRCodeImage(request.Path)
+}
+
+func (s *AppService) DecodeQRCodeSurvey(ctx context.Context, request DecodeQRCodeRequest) (configio.ConfigDocument, error) {
+	decoded, err := s.DecodeQRCode(ctx, request)
+	if err != nil {
+		return configio.ConfigDocument{}, err
+	}
+	if !surveycore.IsSupportedURL(decoded.Text) {
+		return configio.ConfigDocument{}, fmt.Errorf("二维码内容不是受支持的问卷链接")
+	}
+	return s.CreateSurveyDocument(ctx, ParseSurveyRequest{URL: decoded.Text})
 }
