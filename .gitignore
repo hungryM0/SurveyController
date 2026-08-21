@@ -1,5 +1,6 @@
 # 开发环境
 *.code-workspace
+.DS_Store
 .claude/
 .playwright-mcp/
 .local-private/
@@ -10,6 +11,7 @@
 .trellis/.runtime/
 .trellis/tasks/
 .venv/
+.zcode/
 /output/
 .coverage
 coverage.xml
