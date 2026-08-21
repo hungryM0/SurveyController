@@ -29,6 +29,7 @@ def apply_multiple_constraints(
 ) -> list[int]:
     blocked = set(normalize_selected_indices(blocked_indices, option_count))
     required = normalize_selected_indices(required_indices, option_count)
+    priorities = normalize_selected_indices(positive_priority_indices, option_count)
     selected = [idx for idx in normalize_selected_indices(selected_indices, option_count) if idx not in blocked]
     for idx in required:
         if idx not in selected:
@@ -46,7 +47,7 @@ def apply_multiple_constraints(
             kept.append(idx)
         selected = normalize_selected_indices(kept, option_count)
     if len(selected) < min_required:
-        for idx in list(positive_priority_indices) + list(range(option_count)):
+        for idx in priorities + list(range(option_count)):
             if idx in blocked or idx in selected:
                 continue
             selected.append(idx)
