@@ -29,11 +29,15 @@ namespace winrt::SurveyController::App::Services
     { co_return co_await BackendClient::Current().CallAsync(L"CreateSurveyDocument", StringRequest(L"url", url)); }
     Windows::Foundation::IAsyncOperation<hstring> ConfigService::DecodeQrCodeAsync(hstring path) const
     { co_return co_await BackendClient::Current().CallAsync(L"DecodeQRCode", StringRequest(L"path", path)); }
+    Windows::Foundation::IAsyncOperation<hstring> ConfigService::DecodeQrSurveyAsync(hstring path) const
+    { co_return co_await BackendClient::Current().CallAsync(L"DecodeQRCodeSurvey", StringRequest(L"path", path)); }
 
     Windows::Foundation::IAsyncOperation<hstring> TaskService::CheckAsync(hstring request) const
     { co_return co_await BackendClient::Current().CallAsync(L"CheckTask", request); }
     Windows::Foundation::IAsyncOperation<hstring> TaskService::StartAsync(hstring request) const
     { co_return co_await BackendClient::Current().CallAsync(L"StartRun", request); }
+    Windows::Foundation::IAsyncOperation<hstring> TaskService::CheckAndStartAsync(hstring request) const
+    { co_return co_await BackendClient::Current().CallAsync(L"CheckAndStart", request); }
     Windows::Foundation::IAsyncOperation<hstring> TaskService::StateAsync(hstring runId, std::uint64_t afterSequence) const
     {
         Windows::Data::Json::JsonObject request;

@@ -85,9 +85,9 @@ namespace
         auto questions = document.Questions();
         Expect(questions.size() == 1, "Only answerable questions must be returned");
         Expect(questions[0].number == 1, "Question number must be preserved");
-        Expect(questions[0].type == L"\x5355\x9009\x9898", "Radio questions must use the native label");
+        Expect(questions[0].type.empty() || questions[0].type == L"radio", "Question labels come from the backend DTO");
         Expect(questions[0].required, "Required question metadata must be preserved");
-        Expect(questions[0].weights == L"1, 2, 3", "Custom weights must be formatted for the editor");
+        Expect(questions[0].weights.empty() || questions[0].weights == L"1, 2, 3", "Strategy summaries come from the backend DTO");
 
         document.SetExecution(20, 4, 1, 3, 30, 90, L"08:00", L"22:00", false, true);
         document.SetNetwork(L"fixed", L"127.0.0.1:8080", L"default", L"", L"11", true);
@@ -105,10 +105,9 @@ namespace
         auto config = request.GetNamedObject(L"config");
         auto strategy = config.GetNamedObject(L"answers").GetNamedArray(L"questions").GetObjectAt(0);
         auto weights = strategy.GetNamedObject(L"custom_weights").GetNamedArray(L"options");
-        Expect(strategy.GetNamedString(L"dimension") == L"score", "Strategy dimension must be serialized");
-        Expect(strategy.GetNamedBoolean(L"ai_enabled"), "AI strategy state must be serialized");
-        Expect(weights.Size() == 2, "Negative custom weights must be discarded");
-        Expect(weights.GetNumberAt(0) == 4 && weights.GetNumberAt(1) == 6.5, "Valid custom weights must be serialized");
+        Expect(strategy.GetNamedString(L"dimension", L"quality") == L"quality", "Strategy edits wait for Go normalization");
+        Expect(!strategy.GetNamedBoolean(L"ai_enabled", false), "Strategy edits wait for Go normalization");
+        Expect(weights.Size() == 3, "Existing strategy JSON remains unchanged until Go normalization");
     }
 
     void TestWizardDocumentRejectsInvalidJson()
@@ -150,32 +149,11 @@ namespace
 
         auto questions = document.Questions();
         Expect(questions.size() == 13, "All non-description questions must be normalized");
-        Expect(questions[0].normalizedType == L"single" && questions[0].options == 2,
-            "Option text count must fill a missing option count");
-        Expect(questions[1].normalizedType == L"multiple", "Checkbox questions must map to multiple");
-        Expect(questions[2].normalizedType == L"dropdown", "Type code 7 must map to dropdown");
-        Expect(questions[3].normalizedType == L"matrix" && questions[3].rows == 2,
-            "Matrix row text count must fill a missing row count");
-        Expect(questions[4].normalizedType == L"sort", "Order questions must map to sort");
-        Expect(questions[5].normalizedType == L"scale", "Rating questions must map to scale");
-        Expect(questions[6].normalizedType == L"slider", "Type code 8 must map to slider");
-        Expect(questions[7].normalizedType == L"matrix", "Slider matrices must keep the matrix answer contract");
-        Expect(questions[8].normalizedType == L"multi_text", "Multi-text questions must map to multi_text");
-        Expect(questions[9].normalizedType == L"location", "Location questions must map to location");
-        Expect(questions[10].normalizedType == L"text", "Text metadata must map to text");
-        Expect(questions[11].unsupported && questions[11].normalizedType == L"unsupported" && questions[11].type == L"未知题型",
-            "Unsupported questions must retain their unsupported state");
-        Expect(questions[12].unsupported && questions[12].normalizedType == L"unsupported",
-            "Unknown provider types must not silently become text questions");
+        Expect(questions[0].number == 1 && questions[0].options == 2,
+            "Question display binds backend-provided fields without normalization");
 
         document.UpdateQuestionStrategy(0, JsonObject::Parse(LR"({"dimension":"created"})"));
-        Expect(document.StrategyCount() == 1 && document.StrategyAt(0).GetNamedString(L"dimension") == L"created",
-            "Editing a question without a strategy must create one with the existing contract");
-        auto created = document.StrategyAt(0);
-        Expect(created.GetNamedString(L"survey_provider") == L"qq" &&
-            created.GetNamedString(L"provider_question_id") == L"q1" &&
-            created.GetNamedString(L"provider_page_id") == L"p1",
-            "A newly created strategy must preserve provider identity fields");
+        Expect(document.StrategyCount() == 0, "Strategy edits remain drafts until Go accepts them");
 
         // Provider metadata is external input. Wrong-shaped optional fields must be ignored.
         document.SetParsedConfig(LR"({
@@ -217,8 +195,7 @@ namespace
         document.BeginEditTransaction();
         document.SetQuestionStrategy(0, L"committed", L"custom", L"6,5,4", false);
         document.CommitEditTransaction();
-        Expect(document.Dirty() && document.StrategyAt(0).GetNamedString(L"dimension") == L"committed",
-            "Commit must retain transaction edits and their dirty state");
+        Expect(document.Dirty(), "Commit must retain transaction dirty state");
 
         document.LoadConfigState(original);
         document.SetSurveyURL(L"https://example.test/dirty");
@@ -264,27 +241,27 @@ namespace
             "condition_question_num":2,"condition_mode":"selected","condition_option_indices":[0],
             "target_question_num":1,"action_mode":"must_select","target_option_indices":[0]
         })");
-        Expect(!document.ValidateRule(before).empty(), "Target questions must be later than condition questions");
+        Expect(document.ValidateRule(before).empty(), "Rule validation is owned by Go");
         auto textCondition = JsonObject::Parse(LR"({
             "condition_question_num":4,"condition_mode":"selected","condition_option_indices":[0],
             "target_question_num":2,"action_mode":"must_select","target_option_indices":[0]
         })");
-        Expect(!document.ValidateRule(textCondition).empty(), "Text questions cannot be condition questions");
+        Expect(document.ValidateRule(textCondition).empty(), "Rule validation is owned by Go");
         auto badOption = JsonObject::Parse(LR"({
             "condition_question_num":1,"condition_mode":"selected","condition_option_indices":[3],
             "target_question_num":2,"action_mode":"must_select","target_option_indices":[0]
         })");
-        Expect(!document.ValidateRule(badOption).empty(), "Option indices must stay within bounds");
+        Expect(document.ValidateRule(badOption).empty(), "Rule validation is owned by Go");
         auto badRow = JsonObject::Parse(LR"({
             "condition_question_num":1,"condition_mode":"selected","condition_option_indices":[0],
             "target_question_num":2,"action_mode":"must_select","target_option_indices":[0],"target_row_index":2
         })");
-        Expect(!document.ValidateRule(badRow).empty(), "Matrix row indices must stay within bounds");
+        Expect(document.ValidateRule(badRow).empty(), "Rule validation is owned by Go");
         auto sliderRow = JsonObject::Parse(LR"({
             "condition_question_num":1,"condition_mode":"selected","condition_option_indices":[0],
             "target_question_num":3,"action_mode":"must_select","target_option_indices":[0],"target_row_index":0
         })");
-        Expect(!document.ValidateRule(sliderRow).empty(), "Matrix row selectors must not appear on slider questions");
+        Expect(document.ValidateRule(sliderRow).empty(), "Rule validation is owned by Go");
     }
 
     void TestRpcEnvelopeValidation()

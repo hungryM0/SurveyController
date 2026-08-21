@@ -11,18 +11,10 @@
             <GridLength x:Key="ShellTitleBarHeight">48</GridLength>
             <x:Double x:Key="DesktopBreakpointWidth">720</x:Double>
             <CornerRadius x:Key="WizardCardCornerRadius">10</CornerRadius>
-            <CornerRadius x:Key="WizardBadgeCornerRadius">999</CornerRadius>
             <Style x:Key="WizardBadgeTextStyle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Foreground" Value="{ThemeResource WizardBadgeForegroundBrush}" />
-            </Style>
-            <Style x:Key="WizardBadgeBorderStyle" TargetType="Border">
-                <Setter Property="Padding" Value="8,3" />
-                <Setter Property="CornerRadius" Value="{StaticResource WizardBadgeCornerRadius}" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="Background" Value="{ThemeResource WizardBadgeBackgroundBrush}" />
-                <Setter Property="BorderBrush" Value="{ThemeResource WizardBadgeForegroundBrush}" />
             </Style>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">

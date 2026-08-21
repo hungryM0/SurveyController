@@ -79,7 +79,6 @@ namespace winrt::SurveyController::App::implementation
         Windows::Foundation::IAsyncAction ExportLinesAsync(hstring const& path, Windows::Data::Json::JsonArray const& lines, hstring const& successMessage);
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::ComboBox const& combo, hstring const& fallback) const;
         void SelectTag(Microsoft::UI::Xaml::Controls::ComboBox const& combo, hstring const& value);
-        void ApplyCheckState(hstring const& json);
         void ApplyRunState(hstring const& json);
         void StartPolling();
         void StopPolling() noexcept;

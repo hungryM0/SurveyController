@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
 #include "ViewModels/OptionWeight.h"
+#include "Services/JsonHelpers.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,10 +16,10 @@ namespace winrt::SurveyController::App::implementation
 
         JsonObject ConfiguredWeights(JsonObject const& strategy)
         {
-            auto table = strategy.GetNamedObject(L"custom_weights", JsonObject{});
-            if (table.GetNamedArray(L"options", JsonArray{}).Size() > 0 ||
-                table.GetNamedArray(L"rows", JsonArray{}).Size() > 0) return table;
-            return strategy.GetNamedObject(L"probabilities", JsonObject{});
+            auto table = Services::GetJsonObject(strategy, L"custom_weights");
+            if (Services::GetJsonArray(table, L"options").Size() > 0 ||
+                Services::GetJsonArray(table, L"rows").Size() > 0) return table;
+            return Services::GetJsonObject(strategy, L"probabilities");
         }
 
         hstring PercentText(double value)
@@ -65,10 +66,10 @@ namespace winrt::SurveyController::App::implementation
         m_weightLabels.clear();
 
         auto isTextQuestion = normalizedType == L"text" || normalizedType == L"multi_text" || normalizedType == L"location";
-        auto optionTexts = question.GetNamedArray(L"option_texts", JsonArray{});
+        auto optionTexts = Services::GetJsonArray(question, L"option_texts");
         auto weightTable = ConfiguredWeights(strategy);
-        auto optionWeights = weightTable.GetNamedArray(L"options", JsonArray{});
-        auto rowWeights = weightTable.GetNamedArray(L"rows", JsonArray{});
+        auto optionWeights = Services::GetJsonArray(weightTable, L"options");
+        auto rowWeights = Services::GetJsonArray(weightTable, L"rows");
         auto optionCount = static_cast<uint32_t>((std::max)(0.0,
             strategy.GetNamedNumber(L"option_count", question.GetNamedNumber(L"options", 0))));
         optionCount = (std::max)(optionCount, optionTexts.Size());
@@ -80,7 +81,7 @@ namespace winrt::SurveyController::App::implementation
         if (isTextQuestion || normalizedType == L"unsupported") optionCount = 0;
         if (normalizedType == L"slider") optionCount = 1;
 
-        auto rowTexts = question.GetNamedArray(L"row_texts", JsonArray{});
+        auto rowTexts = Services::GetJsonArray(question, L"row_texts");
         auto rowCount = static_cast<uint32_t>((std::max)(0.0,
             strategy.GetNamedNumber(L"rows", question.GetNamedNumber(L"rows", 0))));
         rowCount = (std::max)(rowCount, rowTexts.Size());

@@ -17,6 +17,7 @@
 #endif
 
 #include <microsoft.ui.xaml.window.h>
+#include <winrt/Microsoft.UI.Interop.h>
 
 namespace
 {
@@ -47,10 +48,11 @@ namespace winrt::SurveyController::App::implementation
     MainWindow::MainWindow()
     {
         InitializeComponent();
-        Services::SetMainWindowId(AppWindow().Id());
         Title(L"SurveyController");
         ConfigureTitleBar();
         ConfigureWindow();
+        // Derive the id from the real HWND after the native window is available.
+        Services::SetMainWindowId(Microsoft::UI::GetWindowIdFromWindow(m_hwnd));
         ConfigureBackdrop();
         Activated({ this, &MainWindow::OnWindowActivated });
         AppWindow().Closing({ this, &MainWindow::OnWindowClosing });

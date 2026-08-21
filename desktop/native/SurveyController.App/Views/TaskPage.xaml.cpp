@@ -10,6 +10,8 @@
 #include "TaskPage.g.cpp"
 #endif
 
+#include <winrt/Microsoft.UI.Interop.h>
+
 #include <algorithm>
 #include <cmath>
 #include <ctime>
@@ -39,14 +41,6 @@ namespace winrt::SurveyController::App::implementation
         hstring EscapeJsonString(hstring const& value)
         {
             return JsonValue::CreateStringValue(value).Stringify();
-        }
-
-        InfoBarSeverity SeverityForStatus(hstring const& status)
-        {
-            if (status == L"ready" || status == L"succeeded") return InfoBarSeverity::Success;
-            if (status == L"warning" || status == L"paused") return InfoBarSeverity::Warning;
-            if (status == L"blocked" || status == L"failed") return InfoBarSeverity::Error;
-            return InfoBarSeverity::Informational;
         }
 
         bool ParseWindowValue(hstring const& value, CalendarDatePicker const& datePicker, TimePicker const& timePicker)
@@ -285,11 +279,6 @@ namespace winrt::SurveyController::App::implementation
         if (m_step == 0)
         {
             auto url = SurveyUrl().Text();
-            if (!(url.starts_with(L"http://") || url.starts_with(L"https://")))
-            {
-                SetFooterError(L"请输入有效的 HTTP 或 HTTPS 问卷链接。");
-                co_return;
-            }
             method = L"CreateSurveyDocument";
             surveyUrl = url;
             params = L"{\"url\":" + EscapeJsonString(url) + L"}";
@@ -298,53 +287,23 @@ namespace winrt::SurveyController::App::implementation
         else if (m_step == 5)
         {
             method = L"CheckAndStart";
+            // The Go application service owns check, persistence, and startup as one transaction.
+            params = m_document.SaveRequest();
             SetBusy(true, L"正在检查配置并启动任务");
-        }
-        else
-        {
-            method = L"StartRun";
-            params = m_document.RunRequest();
-            SetBusy(true, L"正在启动任务");
         }
 
         hstring result;
-        hstring saved;
-        hstring runResult;
         hstring error;
         co_await resume_background();
         try
         {
             if (method == L"CheckAndStart")
             {
-                JsonObject savedSettingsObject;
-                hstring parseError;
-                if (!Services::TryParseJsonObject(Services::ShellSettings::Current().Json(), savedSettingsObject, parseError))
-                {
-                    throw hresult_error(E_FAIL, parseError);
-                }
-                result = co_await Services::TaskService{}.CheckAsync(
-                    lifetime->m_document.CheckRequest(savedSettingsObject));
-                JsonObject check;
-                if (!Services::TryParseJsonObject(result, check, parseError))
-                {
-                    throw hresult_error(E_FAIL, parseError);
-                }
-                if (check.GetNamedString(L"status", L"blocked") != L"blocked")
-                {
-                    saved = co_await Services::ConfigService{}.SaveAsync(lifetime->m_document.SaveRequest());
-                    runResult = co_await Services::TaskService{}.StartAsync(lifetime->m_document.RunRequest());
-                }
+                result = co_await Services::TaskService{}.CheckAndStartAsync(params);
             }
-            else
+            else if (method == L"CreateSurveyDocument")
             {
-                if (method == L"CreateSurveyDocument")
-                {
-                    result = co_await Services::ConfigService{}.CreateSurveyAsync(surveyUrl);
-                }
-                else
-                {
-                    result = co_await Services::TaskService{}.StartAsync(params);
-                }
+                result = co_await Services::ConfigService{}.CreateSurveyAsync(surveyUrl);
             }
         }
         catch (hresult_error const& value)
@@ -353,7 +312,7 @@ namespace winrt::SurveyController::App::implementation
         }
         catch (std::exception const& value) { error = to_hstring(value.what()); }
         catch (...) { error = L"后端调用失败。"; }
-        dispatcher.TryEnqueue([lifetime, method, result, saved, runResult, error]()
+        dispatcher.TryEnqueue([lifetime, method, result, error]()
         {
             lifetime->SetBusy(false);
             if (!error.empty())
@@ -385,18 +344,8 @@ namespace winrt::SurveyController::App::implementation
             }
             else if (method == L"CheckAndStart")
             {
-                lifetime->ApplyCheckState(result);
-                if (!saved.empty() && !runResult.empty())
-                {
-                    lifetime->m_document.LoadConfigState(saved);
-                    lifetime->MoveToStep(6, true);
-                    lifetime->ApplyRunState(runResult);
-                    lifetime->StartPolling();
-                }
-            }
-            else
-            {
                 lifetime->ApplyRunState(result);
+                lifetime->MoveToStep(6, true);
                 lifetime->StartPolling();
             }
         });
@@ -522,39 +471,24 @@ namespace winrt::SurveyController::App::implementation
         auto dispatcher = DispatcherQueue();
         SetBusy(true, L"正在识别二维码");
         hstring parsed;
-        hstring decoded;
-        hstring url;
         hstring error;
         co_await resume_background();
         try
         {
-            decoded = co_await Services::ConfigService{}.DecodeQrCodeAsync(path);
-            JsonObject decodedObject;
-            hstring parseError;
-            if (!Services::TryParseJsonObject(decoded, decodedObject, parseError))
-            {
-                throw hresult_error(E_FAIL, parseError);
-            }
-            url = decodedObject.GetNamedString(L"text", L"");
-            if (url.empty())
-            {
-                throw hresult_error(E_INVALIDARG, L"二维码没有识别出问卷链接");
-            }
-            parsed = co_await Services::ConfigService{}.CreateSurveyAsync(url);
+            parsed = co_await Services::ConfigService{}.DecodeQrSurveyAsync(path);
         }
         catch (hresult_error const& value) { error = value.message(); }
         catch (std::exception const& value) { error = to_hstring(value.what()); }
         catch (...) { error = L"二维码识别失败。"; }
         try
         {
-            if (!dispatcher.TryEnqueue([lifetime, parsed, url, error]()
+            if (!dispatcher.TryEnqueue([lifetime, parsed, error]()
             {
                 try
                 {
                     lifetime->SetBusy(false);
                     if (!error.empty()) { lifetime->SetFooterError(error); return; }
                     lifetime->m_document.SetParsedConfig(parsed);
-                    lifetime->m_document.SetSurveyURL(url);
                     lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
                     if (!lifetime->m_parsed) { lifetime->SetFooterError(L"二维码对应问卷没有真实可作答题目。"); return; }
                     lifetime->PopulateControls();
@@ -683,10 +617,23 @@ namespace winrt::SurveyController::App::implementation
             SurveyStatus().Severity(InfoBarSeverity::Error);
             SurveyStatus().IsOpen(true);
         }
+        else if (m_step == 5)
+        {
+            CheckStatus().Title(L"无法启动任务");
+            CheckStatus().Message(message);
+            CheckStatus().Severity(InfoBarSeverity::Error);
+            CheckStatus().IsOpen(true);
+        }
     }
 
     Windows::Foundation::IAsyncOperation<hstring> TaskPage::ChooseFile(bool image, bool spreadsheet)
     {
+        auto const owner = Microsoft::UI::GetWindowFromWindowId(Services::MainWindowId());
+        if (!owner)
+        {
+            throw hresult_error(E_HANDLE, L"主窗口句柄无效，无法打开文件选择器");
+        }
+
         Microsoft::Windows::Storage::Pickers::FileOpenPicker picker(Services::MainWindowId());
         auto types = picker.FileTypeFilter();
         if (image) { types.Append(L".png"); types.Append(L".jpg"); types.Append(L".jpeg"); types.Append(L".bmp"); }
@@ -714,28 +661,6 @@ namespace winrt::SurveyController::App::implementation
             }
         }
         combo.SelectedIndex(0);
-    }
-
-    void TaskPage::ApplyCheckState(hstring const& json)
-    {
-        JsonObject state;
-        hstring error;
-        if (!Services::TryParseJsonObject(json, state, error))
-        {
-            SetFooterError(error);
-            return;
-        }
-        auto status = state.GetNamedString(L"status", L"blocked");
-        CheckStatus().Severity(SeverityForStatus(status));
-        CheckStatus().Title(status == L"ready" ? L"配置可以启动" : status == L"warning" ? L"配置需要注意" : L"暂时无法启动");
-        CheckStatus().Message(status == L"blocked" ? L"请按问题提示返回修改后再检查。" : L"配置检查完成。");
-        CheckProblems().Items().Clear();
-        auto problems = state.GetNamedArray(L"problems", JsonArray{});
-        for (auto const& value : problems)
-        {
-            CheckProblems().Items().Append(box_value(value.GetObject().GetNamedString(L"message", L"未知问题")));
-        }
-        FooterStatus().Text(status == L"blocked" ? L"配置检查未通过" : L"配置已保存");
     }
 
 }

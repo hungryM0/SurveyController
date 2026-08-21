@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
+#include "Services/JsonHelpers.h"
 
 #if __has_include("StrategyEditor.g.cpp")
 #include "StrategyEditor.g.cpp"
@@ -70,8 +71,8 @@ namespace winrt::SurveyController::App::implementation
         QuestionTypeBadge().Text(summary.type);
         QuestionTypeIcon().Glyph(summary.icon);
         RequiredBadgeBorder().Visibility(question.GetNamedBoolean(L"required", false) ? Visibility::Visible : Visibility::Collapsed);
-        auto hasLogic = question.GetNamedArray(L"jump_rules", JsonArray{}).Size() > 0 ||
-            question.GetNamedArray(L"controls_display_targets", JsonArray{}).Size() > 0;
+        auto hasLogic = Services::GetJsonArray(question, L"jump_rules").Size() > 0 ||
+            Services::GetJsonArray(question, L"controls_display_targets").Size() > 0;
         LogicBadgeBorder().Visibility(hasLogic ? Visibility::Visible : Visibility::Collapsed);
         UnsupportedBadgeBorder().Visibility(summary.unsupported ? Visibility::Visible : Visibility::Collapsed);
         ApplyQuestionTypeBrush(summary.normalizedType);
@@ -84,7 +85,7 @@ namespace winrt::SurveyController::App::implementation
         AIEnabled().IsOn(aiEnabled);
         SelectTag(TextRandomMode(), strategy.GetNamedString(L"text_random_mode", L"none"));
         if (aiEnabled) TextRandomMode().SelectedIndex(0);
-        auto textRange = strategy.GetNamedArray(L"text_random_int_range", JsonArray{});
+        auto textRange = Services::GetJsonArray(strategy, L"text_random_int_range");
         TextRangeMin().Value(textRange.Size() > 0 ? textRange.GetNumberAt(0) : std::numeric_limits<double>::quiet_NaN());
         TextRangeMax().Value(textRange.Size() > 1 ? textRange.GetNumberAt(1) : std::numeric_limits<double>::quiet_NaN());
         Dimension().Text(strategy.GetNamedString(L"dimension", L""));
@@ -110,8 +111,8 @@ namespace winrt::SurveyController::App::implementation
             changes.SetNamedValue(L"psycho_bias", JsonValue::CreateStringValue(SelectedTag(Bias(), L"custom")));
             changes.SetNamedValue(L"ai_enabled", JsonValue::CreateBooleanValue(AIEnabled().IsOn()));
             auto table = WeightTable();
-            auto options = table.GetNamedArray(L"options", JsonArray{});
-            auto rows = table.GetNamedArray(L"rows", JsonArray{});
+            auto options = Services::GetJsonArray(table, L"options");
+            auto rows = Services::GetJsonArray(table, L"rows");
             if (options.Size() || rows.Size())
             {
                 auto validate = [](JsonArray const& values)
@@ -121,7 +122,10 @@ namespace winrt::SurveyController::App::implementation
                     if (total <= 0) throw hresult_invalid_argument(L"选项配比不能全为 0。");
                 };
                 if (options.Size() && !m_sliderValue) validate(options);
-                for (auto const& row : rows) validate(row.GetArray());
+                for (auto const& row : rows)
+                {
+                    if (row.ValueType() == JsonValueType::Array) validate(row.GetArray());
+                }
                 changes.SetNamedValue(L"custom_weights", table);
                 changes.SetNamedValue(L"probabilities", table);
                 changes.SetNamedValue(L"distribution_mode", JsonValue::CreateStringValue(L"custom"));
@@ -195,30 +199,10 @@ namespace winrt::SurveyController::App::implementation
             ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
     }
 
-    hstring StrategyEditor::SelectedTag(ComboBox const& combo, hstring const& fallback) const
-    {
-        auto item = combo.SelectedItem().try_as<ComboBoxItem>();
-        return item ? unbox_value_or<hstring>(item.Tag(), fallback) : fallback;
-    }
-
     hstring StrategyEditor::SelectedTag(RadioButtons const& buttons, hstring const& fallback) const
     {
         auto item = buttons.SelectedItem().try_as<RadioButton>();
         return item ? unbox_value_or<hstring>(item.Tag(), fallback) : fallback;
-    }
-
-    void StrategyEditor::SelectTag(ComboBox const& combo, hstring const& value)
-    {
-        for (uint32_t index = 0; index < combo.Items().Size(); ++index)
-        {
-            auto item = combo.Items().GetAt(index).try_as<ComboBoxItem>();
-            if (item && unbox_value_or<hstring>(item.Tag(), L"") == value)
-            {
-                combo.SelectedIndex(static_cast<int32_t>(index));
-                return;
-            }
-        }
-        combo.SelectedIndex(0);
     }
 
     void StrategyEditor::SelectTag(RadioButtons const& buttons, hstring const& value)

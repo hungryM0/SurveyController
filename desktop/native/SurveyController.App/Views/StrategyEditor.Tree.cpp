@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
+#include "Services/JsonHelpers.h"
 
 #include <algorithm>
 #include <map>
@@ -26,7 +27,7 @@ namespace winrt::SurveyController::App::implementation
 
         hstring OptionLabel(JsonObject const& question, JsonArray const& indices)
         {
-            auto optionTexts = question.GetNamedArray(L"option_texts", JsonArray{});
+            auto optionTexts = Services::GetJsonArray(question, L"option_texts");
             std::wstring result;
             uint32_t count = 0;
             for (auto const& value : indices)
@@ -64,7 +65,7 @@ namespace winrt::SurveyController::App::implementation
             std::transform(needle.begin(), needle.end(), needle.begin(), ::towlower);
             if (needle.empty()) return true;
             std::wstring haystack = std::to_wstring(number) + L" " + std::wstring{ question.GetNamedString(L"title", L"") };
-            auto options = question.GetNamedArray(L"option_texts", JsonArray{});
+            auto options = Services::GetJsonArray(question, L"option_texts");
             for (auto const& value : options)
             {
                 if (value.ValueType() == JsonValueType::String) haystack += L" " + std::wstring{ value.GetString() };
@@ -96,49 +97,68 @@ namespace winrt::SurveyController::App::implementation
             icon.Glyph(question.icon);
             icon.FontSize(14);
             icon.Foreground(foreground);
-            auto badge = Border{};
-            badge.Style(resources.Lookup(box_value(L"WizardBadgeBorderStyle")).as<Style>());
+            auto badge = InfoBadge{};
+            badge.Width(8);
+            badge.Height(8);
+            badge.VerticalAlignment(VerticalAlignment::Center);
             badge.Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
-            badge.BorderBrush(badgeForeground);
             auto type = TextBlock{};
             type.Text(question.type);
             type.FontSize(12);
             type.FontWeight(Windows::UI::Text::FontWeights::SemiBold());
             type.Foreground(badgeForeground);
-            badge.Child(type);
             auto title = TextBlock{};
             title.Text(hstring{ std::to_wstring(question.number) + L". " + std::wstring{ ShortTitle(question.title) } });
             title.TextTrimming(TextTrimming::CharacterEllipsis);
             row.Children().Append(icon);
             row.Children().Append(badge);
+            row.Children().Append(type);
             row.Children().Append(title);
+            auto appendStatus = [&](wchar_t const* label, wchar_t const* brushKey)
+            {
+                auto status = StackPanel{};
+                status.Orientation(Orientation::Horizontal);
+                status.Spacing(5);
+                auto dot = InfoBadge{};
+                dot.Width(8);
+                dot.Height(8);
+                dot.VerticalAlignment(VerticalAlignment::Center);
+                auto color = resources.Lookup(box_value(brushKey)).as<Brush>();
+                dot.Background(color);
+                auto text = TextBlock{};
+                text.Text(label);
+                text.Style(resources.Lookup(box_value(L"WizardBadgeTextStyle")).as<Style>());
+                text.Foreground(color);
+                status.Children().Append(dot);
+                status.Children().Append(text);
+                row.Children().Append(status);
+            };
             if (question.required)
             {
-                auto status = TextBlock{};
-                status.Text(L"必答");
-                status.FontSize(12);
-                status.Foreground(resources.Lookup(box_value(L"RequiredBadgeForegroundBrush")).as<Brush>());
-                row.Children().Append(status);
+                appendStatus(L"必答", L"RequiredBadgeForegroundBrush");
             }
             if (question.hasJump || question.hasDisplayLogic)
             {
-                auto status = TextBlock{};
-                status.Text(L"逻辑");
-                status.FontSize(12);
-                status.Foreground(resources.Lookup(box_value(L"LogicBadgeForegroundBrush")).as<Brush>());
-                row.Children().Append(status);
+                appendStatus(L"逻辑", L"LogicBadgeForegroundBrush");
             }
             if (question.unsupported)
             {
-                auto status = TextBlock{};
-                status.Text(L"不支持");
-                status.FontSize(12);
-                status.Foreground(resources.Lookup(box_value(L"UnsupportedBadgeForegroundBrush")).as<Brush>());
-                row.Children().Append(status);
+                appendStatus(L"不支持", L"UnsupportedBadgeForegroundBrush");
             }
             Automation::AutomationProperties::SetName(row, hstring{ L"第 " + std::to_wstring(question.number) + L" 题，" +
                 std::wstring{ question.type } + L"，" + std::wstring{ question.title } });
             return row;
+        }
+
+        void UpdateTaskbarBadge(uint32_t unsupportedCount)
+        {
+            try
+            {
+                auto manager = Microsoft::Windows::BadgeNotifications::BadgeNotificationManager::Current();
+                if (unsupportedCount == 0) manager.ClearBadge();
+                else manager.SetBadgeAsCount(unsupportedCount);
+            }
+            catch (...) {}
         }
     }
 
@@ -154,10 +174,12 @@ namespace winrt::SurveyController::App::implementation
         if (questions.empty())
         {
             m_questionIndex = -1;
+            UpdateTaskbarBadge(0);
             return;
         }
 
         bool hasUnknownLogic = false;
+        uint32_t unsupportedCount = 0;
         int32_t maxQuestionNumber = 0;
         std::unordered_map<int32_t, int32_t> questionIndices;
         for (uint32_t index = 0; index < questions.size(); ++index)
@@ -167,6 +189,7 @@ namespace winrt::SurveyController::App::implementation
             std::wstring normalized{ status };
             std::transform(normalized.begin(), normalized.end(), normalized.begin(), ::towlower);
             hasUnknownLogic = hasUnknownLogic || normalized == L"unknown";
+            unsupportedCount += questions[index].unsupported ? 1u : 0u;
             maxQuestionNumber = (std::max)(maxQuestionNumber, questions[index].number);
             questionIndices.try_emplace(questions[index].number, static_cast<int32_t>(index));
         }
@@ -206,7 +229,7 @@ namespace winrt::SurveyController::App::implementation
 
             if (hasUnknownLogic) continue;
 
-            auto displayTargets = question.GetNamedArray(L"controls_display_targets", JsonArray{});
+            auto displayTargets = Services::GetJsonArray(question, L"controls_display_targets");
             for (auto const& value : displayTargets)
             {
                 if (value.ValueType() != JsonValueType::Object) continue;
@@ -215,12 +238,12 @@ namespace winrt::SurveyController::App::implementation
                 if (targetNumber <= 0) continue;
                 auto targetIndex = questionIndices.contains(targetNumber)
                     ? questionIndices.at(targetNumber) : static_cast<int32_t>(index);
-                auto options = target.GetNamedArray(L"condition_option_indices", JsonArray{});
+                auto options = Services::GetJsonArray(target, L"condition_option_indices");
                 appendRelation(node, hstring{ L"条件 · 选中" + std::wstring{ OptionLabel(question, options) }
                     + L" → 显示第 " + std::to_wstring(targetNumber) + L" 题" }, targetIndex);
             }
 
-            auto jumpRules = question.GetNamedArray(L"jump_rules", JsonArray{});
+            auto jumpRules = Services::GetJsonArray(question, L"jump_rules");
             for (auto const& value : jumpRules)
             {
                 if (value.ValueType() != JsonValueType::Object) continue;
@@ -244,11 +267,13 @@ namespace winrt::SurveyController::App::implementation
         if (tree.RootNodes().Size() == 0)
         {
             m_questionIndex = -1;
+            UpdateTaskbarBadge(unsupportedCount);
             QuestionTitle().Text(L"没有匹配的题目");
             QuestionMeta().Text(L"清空搜索框后显示全部题目");
             QuestionCountSummary().Text(L"0 / " + std::to_wstring(questions.size()) + L" 题");
             return;
         }
+        UpdateTaskbarBadge(unsupportedCount);
         auto validIndex = selectedIndex >= 0 && selectedIndex < static_cast<int32_t>(questions.size())
             && m_questionNodes[static_cast<size_t>(selectedIndex)]
             ? selectedIndex : -1;

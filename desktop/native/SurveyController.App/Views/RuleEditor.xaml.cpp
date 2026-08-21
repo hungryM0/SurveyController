@@ -40,14 +40,6 @@ namespace winrt::SurveyController::App::implementation
                 L" → 第 " + std::to_wstring(target) + L" 题" + action };
         }
 
-        bool IsRuleQuestion(Services::WizardQuestion const& question)
-        {
-            auto const& type = question.normalizedType;
-            return !question.unsupported && question.options > 0 &&
-                (type == L"single" || type == L"multiple" || type == L"dropdown" || type == L"scale" ||
-                    type == L"matrix" || type == L"slider" || type == L"sort");
-        }
-
         hstring QuestionLabel(Services::WizardQuestion const& question)
         {
             return hstring{ L"第 " + std::to_wstring(question.number) + L" 题 · " + std::wstring{ question.type }
@@ -187,7 +179,7 @@ namespace winrt::SurveyController::App::implementation
         std::transform(needle.begin(), needle.end(), needle.begin(), ::towlower);
         for (auto const& question : m_document.Questions())
         {
-            if (!IsRuleQuestion(question)) continue;
+            if (question.unsupported || question.options <= 0) continue;
             if (target && m_conditionNumber > 0 && question.number <= m_conditionNumber) continue;
             std::wstring label{ QuestionLabel(question) };
             std::wstring haystack{ label };
@@ -247,7 +239,7 @@ namespace winrt::SurveyController::App::implementation
         std::transform(needle.begin(), needle.end(), needle.begin(), ::towlower);
         for (auto const& question : m_document.Questions())
         {
-            if (!IsRuleQuestion(question) || (target && m_conditionNumber > 0 && question.number <= m_conditionNumber)) continue;
+            if (question.unsupported || question.options <= 0 || (target && m_conditionNumber > 0 && question.number <= m_conditionNumber)) continue;
             auto label = QuestionLabel(question);
             std::wstring haystack{ label };
             std::transform(haystack.begin(), haystack.end(), haystack.begin(), ::towlower);
@@ -271,7 +263,7 @@ namespace winrt::SurveyController::App::implementation
         for (auto const& question : m_document.Questions())
         {
             if (question.number != number) continue;
-            if (!IsRuleQuestion(question) || (target && m_conditionNumber > 0 && question.number <= m_conditionNumber)) return false;
+            if (question.unsupported || question.options <= 0 || (target && m_conditionNumber > 0 && question.number <= m_conditionNumber)) return false;
             auto& selectedNumber = target ? m_targetNumber : m_conditionNumber;
             selectedNumber = number;
             for (int32_t index = 0; index < question.options; ++index)
@@ -291,18 +283,9 @@ namespace winrt::SurveyController::App::implementation
                 item.Tag(box_value(index));
                 rows.Items().Append(item);
             }
-            rows.Visibility(question.normalizedType == L"matrix" && question.rows > 0
+            rows.Visibility(question.rows > 0
                 ? Visibility::Visible : Visibility::Collapsed);
             if (rows.Items().Size()) rows.SelectedIndex(0);
-            if (!target && m_targetNumber > 0 && m_targetNumber <= m_conditionNumber)
-            {
-                m_targetNumber = 0;
-                TargetQuestion().Text(L"");
-                TargetOptions().SelectedItems().Clear();
-                TargetOptions().Items().Clear();
-                TargetRow().Items().Clear();
-                TargetRow().Visibility(Visibility::Collapsed);
-            }
             return true;
         }
         return false;
@@ -382,16 +365,19 @@ namespace winrt::SurveyController::App::implementation
         rule.SetNamedValue(L"action_mode", JsonValue::CreateStringValue(SelectedTag(ActionMode(), L"must_select")));
         rule.SetNamedValue(L"target_option_indices", SelectedIndices(TargetOptions()));
         if (TargetRow().Visibility() == Visibility::Visible && TargetRow().SelectedIndex() >= 0) rule.SetNamedValue(L"target_row_index", JsonValue::CreateNumberValue(TargetRow().SelectedIndex()));
-        auto validation = m_document.ValidateRule(rule);
-        if (!validation.empty())
+        // Go owns rule validation; the shell only submits the edited draft.
+        try
+        {
+            m_document.SetRule(m_ruleIndex, rule);
+        }
+        catch (hresult_error const& error)
         {
             RuleStatus().Severity(InfoBarSeverity::Error);
             RuleStatus().Title(L"规则无法保存");
-            RuleStatus().Message(validation);
+            RuleStatus().Message(error.message());
             RuleStatus().IsOpen(true);
             return;
         }
-        m_document.SetRule(m_ruleIndex, rule);
         if (m_ruleIndex < 0) m_ruleIndex = static_cast<int32_t>(m_document.Rules().Size() - 1);
         Refresh();
         RuleStatus().Severity(InfoBarSeverity::Success);

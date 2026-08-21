@@ -95,9 +95,7 @@ namespace winrt::SurveyController::App::implementation
         void SaveAdvancedEditors(Windows::Data::Json::JsonObject const& question,
             hstring const& normalizedType, Windows::Data::Json::JsonObject& changes);
         void ApplyQuestionTypeBrush(hstring const& normalizedType);
-        hstring SelectedTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&) const;
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&) const;
-        void SelectTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&);
         void SelectTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&);
     };
 }

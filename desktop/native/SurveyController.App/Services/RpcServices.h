@@ -15,12 +15,14 @@ namespace winrt::SurveyController::App::Services
         Windows::Foundation::IAsyncOperation<hstring> SaveAsync(hstring request) const;
         Windows::Foundation::IAsyncOperation<hstring> CreateSurveyAsync(hstring url) const;
         Windows::Foundation::IAsyncOperation<hstring> DecodeQrCodeAsync(hstring path) const;
+        Windows::Foundation::IAsyncOperation<hstring> DecodeQrSurveyAsync(hstring path) const;
     };
 
     struct TaskService
     {
         Windows::Foundation::IAsyncOperation<hstring> CheckAsync(hstring request) const;
         Windows::Foundation::IAsyncOperation<hstring> StartAsync(hstring request) const;
+        Windows::Foundation::IAsyncOperation<hstring> CheckAndStartAsync(hstring request) const;
         Windows::Foundation::IAsyncOperation<hstring> StateAsync(hstring runId, std::uint64_t afterSequence) const;
         Windows::Foundation::IAsyncOperation<hstring> PauseAsync(hstring reason) const;
         Windows::Foundation::IAsyncOperation<hstring> ResumeAsync() const;

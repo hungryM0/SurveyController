@@ -95,7 +95,13 @@
                 <RowDefinition x:Name="QuestionDetailRow" Height="0" />
             </Grid.RowDefinitions>
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="{StaticResource WizardCardCornerRadius}" Padding="8">
-                <TreeView x:Name="QuestionTree" SelectionMode="Single" SelectionChanged="OnQuestionSelected" ItemInvoked="OnQuestionInvoked" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="问卷题目结构" />
+                <TreeView x:Name="QuestionTree" SelectionMode="Single" SelectionChanged="OnQuestionSelected" ItemInvoked="OnQuestionInvoked" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="问卷题目结构">
+                    <TreeView.ItemTemplate>
+                        <DataTemplate>
+                            <ContentPresenter Content="{Binding Content}" HorizontalContentAlignment="Stretch" />
+                        </DataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
             </Border>
 
             <ScrollViewer x:Name="QuestionDetailScroll" Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
@@ -106,11 +112,24 @@
                                 <FontIcon x:Name="QuestionTypeIcon" FontSize="18" />
                                 <TextBlock x:Name="QuestionTitle" FontSize="21" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Border x:Name="QuestionTypeBadgeBorder" Style="{StaticResource WizardBadgeBorderStyle}"><StackPanel Orientation="Horizontal" Spacing="5"><FontIcon x:Name="QuestionBadgeIcon" FontSize="12" /><TextBlock x:Name="QuestionTypeBadge" Style="{StaticResource WizardBadgeTextStyle}" Text="题型" /></StackPanel></Border>
-                                <Border x:Name="RequiredBadgeBorder" Style="{StaticResource WizardBadgeBorderStyle}" Background="{ThemeResource RequiredBadgeBackgroundBrush}" BorderBrush="{ThemeResource RequiredBadgeForegroundBrush}" Visibility="Collapsed"><TextBlock x:Name="RequiredBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource RequiredBadgeForegroundBrush}" Text="必答" /></Border>
-                                <Border x:Name="LogicBadgeBorder" Style="{StaticResource WizardBadgeBorderStyle}" Background="{ThemeResource LogicBadgeBackgroundBrush}" BorderBrush="{ThemeResource LogicBadgeForegroundBrush}" Visibility="Collapsed"><TextBlock x:Name="LogicBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource LogicBadgeForegroundBrush}" Text="逻辑" /></Border>
-                                <Border x:Name="UnsupportedBadgeBorder" Style="{StaticResource WizardBadgeBorderStyle}" Background="{ThemeResource UnsupportedBadgeBackgroundBrush}" BorderBrush="{ThemeResource UnsupportedBadgeForegroundBrush}" Visibility="Collapsed"><TextBlock x:Name="UnsupportedBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource UnsupportedBadgeForegroundBrush}" Text="暂不支持" /></Border>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <InfoBadge x:Name="QuestionTypeInfoBadge" Width="8" Height="8" VerticalAlignment="Center" />
+                                    <FontIcon x:Name="QuestionBadgeIcon" FontSize="12" />
+                                    <TextBlock x:Name="QuestionTypeBadge" Style="{StaticResource WizardBadgeTextStyle}" Text="题型" />
+                                </StackPanel>
+                                <StackPanel x:Name="RequiredBadgeBorder" Orientation="Horizontal" Spacing="5" Visibility="Collapsed">
+                                    <InfoBadge x:Name="RequiredBadgeInfo" Width="8" Height="8" VerticalAlignment="Center" Background="{ThemeResource RequiredBadgeForegroundBrush}" />
+                                    <TextBlock x:Name="RequiredBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource RequiredBadgeForegroundBrush}" Text="必答" />
+                                </StackPanel>
+                                <StackPanel x:Name="LogicBadgeBorder" Orientation="Horizontal" Spacing="5" Visibility="Collapsed">
+                                    <InfoBadge x:Name="LogicBadgeInfo" Width="8" Height="8" VerticalAlignment="Center" Background="{ThemeResource LogicBadgeForegroundBrush}" />
+                                    <TextBlock x:Name="LogicBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource LogicBadgeForegroundBrush}" Text="逻辑" />
+                                </StackPanel>
+                                <StackPanel x:Name="UnsupportedBadgeBorder" Orientation="Horizontal" Spacing="5" Visibility="Collapsed">
+                                    <InfoBadge x:Name="UnsupportedBadgeInfo" Width="8" Height="8" VerticalAlignment="Center" Background="{ThemeResource UnsupportedBadgeForegroundBrush}" />
+                                    <TextBlock x:Name="UnsupportedBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource UnsupportedBadgeForegroundBrush}" Text="暂不支持" />
+                                </StackPanel>
                             </StackPanel>
                             <TextBlock x:Name="QuestionMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
@@ -118,12 +137,12 @@
 
                     <StackPanel x:Name="WeightSettingsSection" Spacing="12">
                         <TextBlock FontSize="16" FontWeight="SemiBold" Text="选项比例" />
-                        <ComboBox x:Name="Bias" Width="220" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged">
-                            <ComboBoxItem Content="自定义" Tag="custom" />
-                            <ComboBoxItem Content="偏左" Tag="left" />
-                            <ComboBoxItem Content="居中" Tag="center" />
-                            <ComboBoxItem Content="偏右" Tag="right" />
-                        </ComboBox>
+                        <RadioButtons x:Name="Bias" Header="选项倾向" MaxColumns="4" SelectedIndex="0" SelectionChanged="OnBiasChanged" AutomationProperties.Name="选项倾向">
+                            <RadioButton Content="自定义" Tag="custom" AutomationProperties.Name="自定义倾向" />
+                            <RadioButton Content="偏左" Tag="left" AutomationProperties.Name="偏左倾向" />
+                            <RadioButton Content="居中" Tag="center" AutomationProperties.Name="居中倾向" />
+                            <RadioButton Content="偏右" Tag="right" AutomationProperties.Name="偏右倾向" />
+                        </RadioButtons>
                         <StackPanel x:Name="OptionWeightsSection" Spacing="8">
                             <ItemsRepeater x:Name="OptionWeightRows">
                                 <ItemsRepeater.Layout><StackLayout Spacing="4" /></ItemsRepeater.Layout>
@@ -147,8 +166,9 @@
                         <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
                     </StackPanel>
 
-                    <Expander Header="题型专属填写控制" IsExpanded="True">
-                        <StackPanel Padding="0,12,0,4" Spacing="12">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="{StaticResource WizardCardCornerRadius}">
+                        <StackPanel Padding="16,14,16,16" Spacing="12">
+                            <TextBlock FontWeight="SemiBold" Text="题型专属设置" />
                             <StackPanel x:Name="TextQuestionSection" Spacing="12">
                                 <RadioButtons x:Name="TextRandomMode" Header="填空模式" MaxColumns="3" SelectionChanged="OnTextModeChanged" AutomationProperties.Name="填空模式">
                                     <RadioButton Content="答案文本" Tag="none" />
@@ -179,8 +199,13 @@
                             <StackPanel x:Name="MultiTextSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="多项填空" /><TextBox x:Name="MultiTextAnswers" Header="答案文本组合" PlaceholderText="每行一组，各空用 || 分隔" AcceptsReturn="True" MinHeight="84" TextWrapping="Wrap" TextChanged="OnQuestionTextChanged" AutomationProperties.Name="多项填空答案文本" /><StackPanel x:Name="MultiTextRows" Spacing="8" /></StackPanel>
                             <StackPanel x:Name="AttachedOptionSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="嵌入式下拉" /><StackPanel x:Name="AttachedOptionSelectList" Spacing="8" AutomationProperties.Name="嵌入式下拉选项" /></StackPanel>
                         </StackPanel>
-                    </Expander>
-                    <Expander Header="高级能力" IsExpanded="False"><StackPanel Padding="0,12,0,4" Spacing="12"><TextBox x:Name="Dimension" Header="量表维度" TextChanged="OnQuestionTextChanged" /></StackPanel></Expander>
+                    </Border>
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="{StaticResource WizardCardCornerRadius}">
+                        <StackPanel Padding="16,14,16,16" Spacing="12">
+                            <TextBlock FontWeight="SemiBold" Text="量表维度" />
+                            <TextBox x:Name="Dimension" Header="维度名称" TextChanged="OnQuestionTextChanged" />
+                        </StackPanel>
+                    </Border>
                     <Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Click="OnSaveQuestion" AutomationProperties.Name="保存本题答案"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Save" /><TextBlock Text="保存本题答案" /></StackPanel></Button>
                 </StackPanel>
             </ScrollViewer>

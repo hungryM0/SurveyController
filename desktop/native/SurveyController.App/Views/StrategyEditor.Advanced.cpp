@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "StrategyEditor.xaml.h"
+#include "Services/JsonHelpers.h"
 
 #include <algorithm>
 #include <cmath>
@@ -142,8 +143,8 @@ namespace winrt::SurveyController::App::implementation
 
         JsonArray ArrayValue(JsonObject const& object, wchar_t const* primary, wchar_t const* fallback = nullptr)
         {
-            auto values = object.GetNamedArray(primary, JsonArray{});
-            return values.Size() || !fallback ? values : object.GetNamedArray(fallback, JsonArray{});
+            auto values = Services::GetJsonArray(object, primary);
+            return values.Size() || !fallback ? values : Services::GetJsonArray(object, fallback);
         }
 
         JsonArray ParseTextCandidates(hstring const& value)
@@ -217,8 +218,7 @@ namespace winrt::SurveyController::App::implementation
         QuestionBadgeIcon().Glyph(QuestionTypeIcon().Glyph());
         QuestionBadgeIcon().Foreground(badgeForeground);
         QuestionTypeBadge().Foreground(badgeForeground);
-        QuestionTypeBadgeBorder().BorderBrush(badgeForeground);
-        QuestionTypeBadgeBorder().Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
+        QuestionTypeInfoBadge().Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
     }
 
     void StrategyEditor::LoadAdvancedEditors(JsonObject const& question, JsonObject const& strategy,
@@ -229,22 +229,22 @@ namespace winrt::SurveyController::App::implementation
         LocationSection().Visibility(summary.normalizedType == L"location" ? Visibility::Visible : Visibility::Collapsed);
         MultiTextSection().Visibility(summary.normalizedType == L"multi_text" ? Visibility::Visible : Visibility::Collapsed);
 
-        auto textCandidates = strategy.GetNamedArray(L"texts", JsonArray{});
-        if (textCandidates.Size() == 0) textCandidates = question.GetNamedArray(L"forced_texts", JsonArray{});
+        auto textCandidates = Services::GetJsonArray(strategy, L"texts");
+        if (textCandidates.Size() == 0) textCandidates = Services::GetJsonArray(question, L"forced_texts");
         TextAnswers().Text(FormatTextCandidates(textCandidates));
         MultiTextAnswers().Text(FormatTextCandidates(textCandidates));
 
-        auto locations = strategy.GetNamedArray(L"location_parts", JsonArray{});
+        auto locations = Services::GetJsonArray(strategy, L"location_parts");
         LocationProvince().Text(locations.Size() > 0 && locations.GetAt(0).ValueType() == JsonValueType::String ? locations.GetStringAt(0) : L"");
         LocationCity().Text(locations.Size() > 1 && locations.GetAt(1).ValueType() == JsonValueType::String ? locations.GetStringAt(1) : L"");
         LocationDistrict().Text(locations.Size() > 2 && locations.GetAt(2).ValueType() == JsonValueType::String ? locations.GetStringAt(2) : L"");
 
         m_optionFillControls.clear();
         FillableOptionList().Children().Clear();
-        auto fillable = question.GetNamedArray(L"fillable_options", JsonArray{});
-        if (fillable.Size() == 0) fillable = strategy.GetNamedArray(L"fillable_option_indices", JsonArray{});
-        auto optionTexts = question.GetNamedArray(L"option_texts", JsonArray{});
-        auto savedTexts = strategy.GetNamedArray(L"option_fill_texts", JsonArray{});
+        auto fillable = Services::GetJsonArray(question, L"fillable_options");
+        if (fillable.Size() == 0) fillable = Services::GetJsonArray(strategy, L"fillable_option_indices");
+        auto optionTexts = Services::GetJsonArray(question, L"option_texts");
+        auto savedTexts = Services::GetJsonArray(strategy, L"option_fill_texts");
         for (auto const& value : fillable)
         {
             if (value.ValueType() != JsonValueType::Number) continue;
@@ -326,12 +326,12 @@ namespace winrt::SurveyController::App::implementation
 
         m_multiTextControls.clear();
         MultiTextRows().Children().Clear();
-        auto labels = question.GetNamedArray(L"text_input_labels", JsonArray{});
+        auto labels = Services::GetJsonArray(question, L"text_input_labels");
         auto count = static_cast<uint32_t>((std::max)(0.0, question.GetNamedNumber(L"text_inputs", 0)));
         count = (std::max)(count, labels.Size());
-        auto modes = strategy.GetNamedArray(L"multi_text_blank_modes", JsonArray{});
-        auto aiFlags = strategy.GetNamedArray(L"multi_text_blank_ai_flags", JsonArray{});
-        auto ranges = strategy.GetNamedArray(L"multi_text_blank_int_ranges", JsonArray{});
+        auto modes = Services::GetJsonArray(strategy, L"multi_text_blank_modes");
+        auto aiFlags = Services::GetJsonArray(strategy, L"multi_text_blank_ai_flags");
+        auto ranges = Services::GetJsonArray(strategy, L"multi_text_blank_int_ranges");
         count = (std::max)(count, modes.Size());
         count = (std::max)(count, aiFlags.Size());
         if (summary.normalizedType == L"multi_text" && count == 0) count = 1;
@@ -397,8 +397,8 @@ namespace winrt::SurveyController::App::implementation
 
         m_attachedSelectControls.clear();
         AttachedOptionSelectList().Children().Clear();
-        auto attached = strategy.GetNamedArray(L"attached_option_selects", JsonArray{});
-        if (attached.Size() == 0) attached = question.GetNamedArray(L"attached_option_selects", JsonArray{});
+        auto attached = Services::GetJsonArray(strategy, L"attached_option_selects");
+        if (attached.Size() == 0) attached = Services::GetJsonArray(question, L"attached_option_selects");
         for (auto const& value : attached)
         {
             if (value.ValueType() != JsonValueType::Object) continue;
@@ -409,7 +409,7 @@ namespace winrt::SurveyController::App::implementation
             controls.optionIndex = static_cast<int32_t>(source.GetNamedNumber(L"option_index", 0));
             controls.optionText = source.GetNamedString(L"option_text", L"嵌入式选项");
             controls.source = source;
-            auto configured = source.GetNamedArray(L"weights", JsonArray{});
+            auto configured = Services::GetJsonArray(source, L"weights");
             auto panel = StackPanel{};
             panel.Spacing(8);
             auto title = TextBlock{};
@@ -479,7 +479,7 @@ namespace winrt::SurveyController::App::implementation
         if (normalizedType == L"multi_text") changes.SetNamedValue(L"texts", ParseTextCandidates(MultiTextAnswers().Text()));
 
         auto optionCount = static_cast<uint32_t>((std::max)(0.0, question.GetNamedNumber(L"options", 0)));
-        optionCount = (std::max)(optionCount, question.GetNamedArray(L"option_texts", JsonArray{}).Size());
+        optionCount = (std::max)(optionCount, Services::GetJsonArray(question, L"option_texts").Size());
         JsonArray fillable;
         JsonArray fillTexts;
         for (uint32_t index = 0; index < optionCount; ++index) fillTexts.Append(JsonValue::CreateNullValue());
