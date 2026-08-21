@@ -141,7 +141,7 @@ namespace winrt::SurveyController::App::implementation
                 throw hresult_error(E_FAIL, parseError);
             }
             m_parsed = m_document.HasRealSurvey();
-            m_highestStep = m_parsed ? 4 : 0;
+            m_highestStep = m_parsed ? 5 : 0;
             PopulateControls();
             MoveToStep(0, true);
         }
@@ -155,12 +155,21 @@ namespace winrt::SurveyController::App::implementation
     void TaskPage::PopulateControls()
     {
         SurveyUrl().Text(m_document.URL());
-        PopulateAIControls();
+        SelectTag(ProxyMode(), m_document.ProxyMode());
+        FixedProxyAddress().Text(m_document.FixedProxyAddress());
+        SelectTag(ProxySource(), m_document.ProxySource());
+        CustomProxyApi().Text(m_document.CustomProxyAPI());
+        m_proxyAreaCode = m_document.ProxyAreaCode();
+        RandomUA().IsOn(m_document.RandomUA());
+        m_reverseFillPath = m_document.ReverseFillPath();
+        ReverseFillEnabled().IsOn(m_document.ReverseFillEnabled());
+        ReverseFillButtonLabel().Text(m_reverseFillPath.empty() ? L"选择 Excel" : L"更换 Excel");
+        PsychometricsEnabled().IsOn(m_document.PsychometricsEnabled());
+        TargetAlpha().Value(m_document.TargetAlpha());
+        UpdatePsychometricsVisibility();
         auto duration = m_document.AnswerDuration();
         AnswerDurationMin().Value(duration[0]);
         AnswerDurationMax().Value(duration[1]);
-        TargetCount().Value(m_document.Target());
-        ThreadCount().Value(m_document.Threads());
         auto interval = m_document.SubmitInterval();
         SubmitIntervalMin().Value(interval[0]);
         SubmitIntervalMax().Value(interval[1]);
@@ -172,73 +181,48 @@ namespace winrt::SurveyController::App::implementation
         }
         FailStop().IsOn(m_document.FailStop());
         PauseCaptcha().IsOn(m_document.PauseCaptcha());
-        SelectTag(ProxyMode(), m_document.ProxyMode());
-        FixedProxyAddress().Text(m_document.FixedProxyAddress());
-        SelectTag(ProxySource(), m_document.ProxySource());
-        CustomProxyApi().Text(m_document.CustomProxyAPI());
-        m_proxyAreaCode = m_document.ProxyAreaCode();
-        RandomUA().IsOn(m_document.RandomUA());
-        m_reverseFillPath = m_document.ReverseFillPath();
-        ReverseFillEnabled().IsOn(m_document.ReverseFillEnabled());
-        ReverseFillButton().Content(box_value(m_reverseFillPath.empty() ? L"选择 Excel" : L"更换 Excel"));
-        auto total = m_document.QuestionCount();
-        auto strategies = m_document.StrategyCount();
-        AnswerCoverageStatus().Title(strategies >= total && total > 0
-            ? hstring{ L"已生成 " + std::to_wstring(total) + L" 道题的初始策略" }
-            : hstring{ L"已有 " + std::to_wstring(strategies) + L" / " + std::to_wstring(total) + L" 道题策略" });
-        AnswerCoverageStatus().Severity(strategies >= total && total > 0 ? InfoBarSeverity::Success : InfoBarSeverity::Warning);
-        AnswerStrategyEditor().Refresh();
+        TargetCount().Value(m_document.Target());
+        ThreadCount().Value(m_document.Threads());
+        UpdateAnswerStats();
         UpdateNetworkVisibility();
         LoadProxyAreaOptions();
         UpdateReview();
     }
 
-    void TaskPage::PopulateAIControls()
+    void TaskPage::UpdateAnswerStats()
     {
-        auto profile = m_settings ? m_settings.GetNamedObject(L"aiProfile", JsonObject{}) : JsonObject{};
-        SelectTag(AIMode(), profile.GetNamedString(L"mode", L"free"));
-        SelectTag(AIProvider(), profile.GetNamedString(L"provider", L"deepseek"));
-        AIBaseURL().Text(profile.GetNamedString(L"baseURL", L""));
-        AIModel().Text(profile.GetNamedString(L"model", L""));
-        AIApiKey().Password(L"");
-        AIApiKey().PlaceholderText(profile.GetNamedBoolean(L"hasAPIKey", false)
-            ? L"已保存，留空不修改" : L"输入 API Key");
-        UpdateAIVisibility();
-    }
-
-    void TaskPage::UpdateAIVisibility()
-    {
-        auto providerMode = SelectedTag(AIMode(), L"free") == L"provider";
-        auto customProvider = SelectedTag(AIProvider(), L"deepseek") == L"custom";
-        AIProviderRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-        AIBaseURLRow().Visibility(providerMode && customProvider ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-        AIModelRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-        AICredentialRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-        AITestRow().Visibility(providerMode ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-    }
-
-    hstring TaskPage::BuildAISettingsRequest()
-    {
-        auto profile = m_settings.GetNamedObject(L"aiProfile", JsonObject{});
-        profile.SetNamedValue(L"mode", JsonValue::CreateStringValue(SelectedTag(AIMode(), L"free")));
-        profile.SetNamedValue(L"provider", JsonValue::CreateStringValue(SelectedTag(AIProvider(), L"deepseek")));
-        profile.SetNamedValue(L"baseURL", JsonValue::CreateStringValue(AIBaseURL().Text()));
-        profile.SetNamedValue(L"model", JsonValue::CreateStringValue(AIModel().Text()));
-        if (!profile.HasKey(L"apiProtocol"))
+        auto questions = m_document.Questions();
+        uint32_t configured = 0;
+        uint32_t ai = 0;
+        uint32_t problems = 0;
+        for (auto const& question : questions)
         {
-            profile.SetNamedValue(L"apiProtocol", JsonValue::CreateStringValue(L"auto"));
+            if (question.configured) ++configured;
+            if (question.aiEnabled) ++ai;
+            if (!question.configured || question.unsupported) ++problems;
         }
-        m_settings.SetNamedValue(L"aiProfile", profile);
+        AnswerTotalCount().Text(to_hstring(questions.size()));
+        AnswerConfiguredCount().Text(to_hstring(configured));
+        AnswerAICount().Text(to_hstring(ai));
+        AnswerProblemCount().Text(to_hstring(problems));
+    }
 
-        JsonObject credential;
-        auto apiKey = AIApiKey().Password();
-        credential.SetNamedValue(L"operation", JsonValue::CreateStringValue(apiKey.empty() ? L"keep" : L"replace"));
-        if (!apiKey.empty()) credential.SetNamedValue(L"apiKey", JsonValue::CreateStringValue(apiKey));
+    void TaskPage::ScheduleRuleRefresh()
+    {
+        auto weak = get_weak();
+        DispatcherQueue().TryEnqueue([weak]() {
+            if (auto self = weak.get()) self->RuleEditorView().Refresh();
+        });
+    }
 
-        JsonObject request;
-        request.SetNamedValue(L"settings", m_settings);
-        request.SetNamedValue(L"aiCredential", credential);
-        return request.Stringify();
+    void TaskPage::UpdatePsychometricsVisibility()
+    {
+        PsychometricsRow().Visibility(PsychometricsEnabled().IsOn() ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+    }
+
+    void TaskPage::OnPsychometricsToggled(IInspectable const&, RoutedEventArgs const&)
+    {
+        if (m_initialized) UpdatePsychometricsVisibility();
     }
 
     bool TaskPage::SyncControlsToDocument()
@@ -271,6 +255,10 @@ namespace winrt::SurveyController::App::implementation
         m_document.SetNetwork(SelectedTag(ProxyMode(), L"direct"), FixedProxyAddress().Text(),
             SelectedTag(ProxySource(), L"default"), CustomProxyApi().Text(), m_proxyAreaCode, RandomUA().IsOn());
         m_document.SetReverseFill(ReverseFillEnabled().IsOn(), m_reverseFillPath);
+        auto alphaValue = TargetAlpha().Value();
+        if (std::isnan(alphaValue)) alphaValue = 0.85;
+        alphaValue = std::clamp(alphaValue, 0.5, 0.99);
+        m_document.SetPsychometrics(PsychometricsEnabled().IsOn(), alphaValue);
         return true;
     }
 
@@ -279,7 +267,7 @@ namespace winrt::SurveyController::App::implementation
         auto lifetime = get_strong();
         if (m_busy) co_return;
         if (!SyncControlsToDocument()) co_return;
-        if (m_step > 0 && m_step < 4)
+        if (m_step > 0 && m_step < 5)
         {
             MoveToStep(m_step + 1);
             co_return;
@@ -293,7 +281,6 @@ namespace winrt::SurveyController::App::implementation
         auto dispatcher = DispatcherQueue();
         hstring method;
         hstring params;
-        hstring settingsRequest;
         hstring surveyUrl;
         if (m_step == 0)
         {
@@ -308,11 +295,10 @@ namespace winrt::SurveyController::App::implementation
             params = L"{\"url\":" + EscapeJsonString(url) + L"}";
             SetBusy(true, L"正在解析问卷");
         }
-        else if (m_step == 4)
+        else if (m_step == 5)
         {
-            method = L"CheckTask";
-            settingsRequest = BuildAISettingsRequest();
-            SetBusy(true, L"正在检查配置");
+            method = L"CheckAndStart";
+            SetBusy(true, L"正在检查配置并启动任务");
         }
         else
         {
@@ -323,17 +309,16 @@ namespace winrt::SurveyController::App::implementation
 
         hstring result;
         hstring saved;
-        hstring savedSettings;
+        hstring runResult;
         hstring error;
         co_await resume_background();
         try
         {
-            if (method == L"CheckTask")
+            if (method == L"CheckAndStart")
             {
-                savedSettings = co_await Services::SettingsService{}.SaveAsync(settingsRequest);
                 JsonObject savedSettingsObject;
                 hstring parseError;
-                if (!Services::TryParseJsonObject(savedSettings, savedSettingsObject, parseError))
+                if (!Services::TryParseJsonObject(Services::ShellSettings::Current().Json(), savedSettingsObject, parseError))
                 {
                     throw hresult_error(E_FAIL, parseError);
                 }
@@ -347,6 +332,7 @@ namespace winrt::SurveyController::App::implementation
                 if (check.GetNamedString(L"status", L"blocked") != L"blocked")
                 {
                     saved = co_await Services::ConfigService{}.SaveAsync(lifetime->m_document.SaveRequest());
+                    runResult = co_await Services::TaskService{}.StartAsync(lifetime->m_document.RunRequest());
                 }
             }
             else
@@ -367,7 +353,7 @@ namespace winrt::SurveyController::App::implementation
         }
         catch (std::exception const& value) { error = to_hstring(value.what()); }
         catch (...) { error = L"后端调用失败。"; }
-        dispatcher.TryEnqueue([lifetime, method, result, saved, savedSettings, error]()
+        dispatcher.TryEnqueue([lifetime, method, result, saved, runResult, error]()
         {
             lifetime->SetBusy(false);
             if (!error.empty())
@@ -375,41 +361,37 @@ namespace winrt::SurveyController::App::implementation
                 lifetime->SetFooterError(error);
                 return;
             }
-            if (!savedSettings.empty())
-            {
-                JsonObject parsedSettings;
-                hstring parseError;
-                if (!Services::TryParseJsonObject(savedSettings, parsedSettings, parseError))
-                {
-                    lifetime->SetFooterError(parseError);
-                    return;
-                }
-                lifetime->m_settings = parsedSettings;
-                lifetime->PopulateAIControls();
-            }
             if (method == L"CreateSurveyDocument")
             {
-                lifetime->m_document.SetParsedConfig(result);
-                lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
-                if (!lifetime->m_parsed)
+                try
                 {
-                    lifetime->SetFooterError(L"解析结果没有真实可作答题目。");
-                    return;
+                    lifetime->m_document.SetParsedConfig(result);
+                    lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
+                    if (!lifetime->m_parsed)
+                    {
+                        lifetime->SetFooterError(L"解析结果没有真实可作答题目。");
+                        return;
+                    }
+                    lifetime->PopulateControls();
+                    lifetime->SurveyStatus().Title(L"问卷解析完成");
+                    lifetime->SurveyStatus().Message(lifetime->m_document.Title());
+                    lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
+                    lifetime->SurveyStatus().IsOpen(true);
+                    lifetime->MoveToStep(1, true);
                 }
-                lifetime->PopulateControls();
-                lifetime->SurveyStatus().Title(L"问卷解析完成");
-                lifetime->SurveyStatus().Message(lifetime->m_document.Title());
-                lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
-                lifetime->SurveyStatus().IsOpen(true);
-                lifetime->MoveToStep(1, true);
+                catch (hresult_error const& value) { lifetime->SetFooterError(hstring{ L"问卷解析结果无效：" } + value.message()); }
+                catch (std::exception const& value) { lifetime->SetFooterError(hstring{ L"问卷解析结果无效：" } + to_hstring(value.what())); }
+                catch (...) { lifetime->SetFooterError(L"问卷解析结果无效。"); }
             }
-            else if (method == L"CheckTask")
+            else if (method == L"CheckAndStart")
             {
                 lifetime->ApplyCheckState(result);
-                if (!saved.empty())
+                if (!saved.empty() && !runResult.empty())
                 {
                     lifetime->m_document.LoadConfigState(saved);
-                    lifetime->MoveToStep(5, true);
+                    lifetime->MoveToStep(6, true);
+                    lifetime->ApplyRunState(runResult);
+                    lifetime->StartPolling();
                 }
             }
             else
@@ -423,6 +405,52 @@ namespace winrt::SurveyController::App::implementation
     void TaskPage::OnBack(IInspectable const&, RoutedEventArgs const&)
     {
         if (!m_busy && m_step > 0) MoveToStep(m_step - 1, true);
+    }
+
+    void TaskPage::OnEditAnswers(IInspectable const&, RoutedEventArgs const&)
+    {
+        if (m_busy) return;
+        if (m_answerEditor)
+        {
+            m_answerEditor.Activate();
+            return;
+        }
+        SurveyController::App::AnswerEditorWindow window{ nullptr };
+        try
+        {
+            window = winrt::make<implementation::AnswerEditorWindow>();
+            auto editor = winrt::get_self<implementation::AnswerEditorWindow>(window);
+            auto weak = get_weak();
+            editor->SetClosedHandler([weak](bool)
+            {
+                if (auto self = weak.get())
+                {
+                    self->m_answerEditor = nullptr;
+                    self->UpdateAnswerStats();
+                    self->UpdateStepVisuals();
+                }
+            });
+            m_answerEditor = window;
+            editor->Show(Services::MainWindowId());
+        }
+        catch (hresult_error const& error)
+        {
+            m_answerEditor = nullptr;
+            if (window) { try { window.Close(); } catch (...) {} }
+            SetFooterError(hstring{ L"答案编辑器打开失败：" } + error.message());
+        }
+        catch (std::exception const& error)
+        {
+            m_answerEditor = nullptr;
+            if (window) { try { window.Close(); } catch (...) {} }
+            SetFooterError(hstring{ L"答案编辑器打开失败：" } + to_hstring(error.what()));
+        }
+        catch (...)
+        {
+            m_answerEditor = nullptr;
+            if (window) { try { window.Close(); } catch (...) {} }
+            SetFooterError(L"答案编辑器打开失败。");
+        }
     }
 
     void TaskPage::OnSurveyUrlChanged(IInspectable const&, TextChangedEventArgs const&)
@@ -453,16 +481,34 @@ namespace winrt::SurveyController::App::implementation
         co_await resume_background();
         try { result = co_await Services::ConfigService{}.LoadAsync(path); }
         catch (hresult_error const& value) { error = value.message(); }
-        dispatcher.TryEnqueue([lifetime, result, error]()
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"配置文件读取失败。"; }
+        try
         {
-            lifetime->SetBusy(false);
-            if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            lifetime->m_document.LoadConfigState(result);
-            lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
-            if (!lifetime->m_parsed) { lifetime->SetFooterError(L"导入配置没有真实可作答题目。"); return; }
-            lifetime->PopulateControls();
-            lifetime->MoveToStep(4, true);
-        });
+            if (!dispatcher.TryEnqueue([lifetime, result, error]()
+            {
+                try
+                {
+                    lifetime->SetBusy(false);
+                    if (!error.empty()) { lifetime->SetFooterError(error); return; }
+                    lifetime->m_document.LoadConfigState(result);
+                    lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
+                    if (!lifetime->m_parsed) { lifetime->SetFooterError(L"导入配置没有真实可作答题目。"); return; }
+                    lifetime->PopulateControls();
+                    lifetime->MoveToStep(5, true);
+                }
+                catch (hresult_error const& value) { lifetime->SetFooterError(hstring{ L"导入配置失败：" } + value.message()); }
+                catch (std::exception const& value) { lifetime->SetFooterError(hstring{ L"导入配置失败：" } + to_hstring(value.what())); }
+                catch (...) { lifetime->SetFooterError(L"导入配置失败。"); }
+            }))
+            {
+                co_return;
+            }
+        }
+        catch (...)
+        {
+            co_return;
+        }
     }
 
     fire_and_forget TaskPage::OnChooseQRCode(IInspectable const&, RoutedEventArgs const&)
@@ -497,21 +543,39 @@ namespace winrt::SurveyController::App::implementation
             parsed = co_await Services::ConfigService{}.CreateSurveyAsync(url);
         }
         catch (hresult_error const& value) { error = value.message(); }
-        dispatcher.TryEnqueue([lifetime, parsed, url, error]()
+        catch (std::exception const& value) { error = to_hstring(value.what()); }
+        catch (...) { error = L"二维码识别失败。"; }
+        try
         {
-            lifetime->SetBusy(false);
-            if (!error.empty()) { lifetime->SetFooterError(error); return; }
-            lifetime->m_document.SetParsedConfig(parsed);
-            lifetime->m_document.SetSurveyURL(url);
-            lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
-            if (!lifetime->m_parsed) { lifetime->SetFooterError(L"二维码对应问卷没有真实可作答题目。"); return; }
-            lifetime->PopulateControls();
-            lifetime->SurveyStatus().Title(L"二维码已识别");
-            lifetime->SurveyStatus().Message(lifetime->m_document.Title());
-            lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
-            lifetime->SurveyStatus().IsOpen(true);
-            lifetime->MoveToStep(1, true);
-        });
+            if (!dispatcher.TryEnqueue([lifetime, parsed, url, error]()
+            {
+                try
+                {
+                    lifetime->SetBusy(false);
+                    if (!error.empty()) { lifetime->SetFooterError(error); return; }
+                    lifetime->m_document.SetParsedConfig(parsed);
+                    lifetime->m_document.SetSurveyURL(url);
+                    lifetime->m_parsed = lifetime->m_document.HasRealSurvey();
+                    if (!lifetime->m_parsed) { lifetime->SetFooterError(L"二维码对应问卷没有真实可作答题目。"); return; }
+                    lifetime->PopulateControls();
+                    lifetime->SurveyStatus().Title(L"二维码已识别");
+                    lifetime->SurveyStatus().Message(lifetime->m_document.Title());
+                    lifetime->SurveyStatus().Severity(InfoBarSeverity::Success);
+                    lifetime->SurveyStatus().IsOpen(true);
+                    lifetime->MoveToStep(1, true);
+                }
+                catch (hresult_error const& value) { lifetime->SetFooterError(hstring{ L"二维码导入失败：" } + value.message()); }
+                catch (std::exception const& value) { lifetime->SetFooterError(hstring{ L"二维码导入失败：" } + to_hstring(value.what())); }
+                catch (...) { lifetime->SetFooterError(L"二维码导入失败。"); }
+            }))
+            {
+                co_return;
+            }
+        }
+        catch (...)
+        {
+            co_return;
+        }
     }
 
     fire_and_forget TaskPage::OnChooseReverseFill(IInspectable const&, RoutedEventArgs const&)
@@ -523,85 +587,10 @@ namespace winrt::SurveyController::App::implementation
             if (path.empty()) co_return;
             m_reverseFillPath = path;
             ReverseFillEnabled().IsOn(true);
-            ReverseFillButton().Content(box_value(L"更换 Excel"));
+            ReverseFillButtonLabel().Text(L"更换 Excel");
         }
         catch (hresult_error const& error) { SetFooterError(error.message()); }
         catch (...) { SetFooterError(L"选择 Excel 文件失败。"); }
-    }
-
-    void TaskPage::OnAIModeChanged(IInspectable const&, SelectionChangedEventArgs const&)
-    {
-        if (m_initialized) UpdateAIVisibility();
-    }
-
-    fire_and_forget TaskPage::OnTestAIConnection(IInspectable const&, RoutedEventArgs const&)
-    {
-        auto lifetime = get_strong();
-        auto settingsRequest = BuildAISettingsRequest();
-        auto dispatcher = DispatcherQueue();
-        SetBusy(true, L"正在测试 AI 连接");
-        hstring savedSettings;
-        hstring result;
-        hstring error;
-        co_await resume_background();
-        try
-        {
-            savedSettings = co_await Services::SettingsService{}.SaveAsync(settingsRequest);
-            JsonObject settings;
-            hstring parseError;
-            if (!Services::TryParseJsonObject(savedSettings, settings, parseError))
-            {
-                throw hresult_error(E_FAIL, parseError);
-            }
-            result = co_await Services::TaskService{}.TestAiAsync(
-                settings.GetNamedObject(L"aiProfile", JsonObject{}));
-        }
-        catch (hresult_error const& value)
-        {
-            error = value.message();
-        }
-        catch (std::exception const& value) { error = to_hstring(value.what()); }
-        catch (...) { error = L"AI 连接测试失败。"; }
-        dispatcher.TryEnqueue([lifetime, savedSettings, result, error]()
-        {
-            lifetime->SetBusy(false);
-            if (!savedSettings.empty())
-            {
-                JsonObject parsedSettings;
-                hstring parseError;
-                if (!Services::TryParseJsonObject(savedSettings, parsedSettings, parseError))
-                {
-                    lifetime->AIStatus().Severity(InfoBarSeverity::Error);
-                    lifetime->AIStatus().Title(L"AI 设置响应无效");
-                    lifetime->AIStatus().Message(parseError);
-                    lifetime->AIStatus().IsOpen(true);
-                    return;
-                }
-                lifetime->m_settings = parsedSettings;
-                lifetime->PopulateAIControls();
-            }
-            lifetime->AIStatus().IsOpen(true);
-            if (!error.empty())
-            {
-                lifetime->AIStatus().Severity(InfoBarSeverity::Error);
-                lifetime->AIStatus().Title(L"AI 连接失败");
-                lifetime->AIStatus().Message(error);
-                return;
-            }
-            JsonObject state;
-            hstring parseError;
-            if (!Services::TryParseJsonObject(result, state, parseError))
-            {
-                lifetime->AIStatus().Severity(InfoBarSeverity::Error);
-                lifetime->AIStatus().Title(L"AI 响应无效");
-                lifetime->AIStatus().Message(parseError);
-                return;
-            }
-            auto success = state.GetNamedBoolean(L"success", false);
-            lifetime->AIStatus().Severity(success ? InfoBarSeverity::Success : InfoBarSeverity::Error);
-            lifetime->AIStatus().Title(success ? L"AI 连接正常" : L"AI 连接失败");
-            lifetime->AIStatus().Message(state.GetNamedString(L"message", L""));
-        });
     }
 
     void TaskPage::UpdateReview()
@@ -614,48 +603,66 @@ namespace winrt::SurveyController::App::implementation
         ReviewThreads().Text(NumberText(m_document.Threads(), L" 路"));
         auto mode = m_document.ProxyMode();
         ReviewNetwork().Text(mode == L"fixed" ? L"固定代理" : mode == L"random" ? L"随机 IP" : L"直连");
+        auto duration = m_document.AnswerDuration();
+        ReviewDuration().Text(hstring{ std::to_wstring(duration[0]) + L" ~ " + std::to_wstring(duration[1]) + L" 秒" });
+        auto alphaStr = std::to_wstring(m_document.TargetAlpha());
+        if (alphaStr.size() > 4) alphaStr = alphaStr.substr(0, 4);
+        ReviewReliability().Text(m_document.PsychometricsEnabled()
+            ? hstring{ L"已启用 (α = " + alphaStr + L")" }
+            : L"未启用");
         ReviewUrl().Text(m_document.URL());
     }
 
     void TaskPage::MoveToStep(int32_t step, bool force)
     {
-        if (step < 0 || step > 5 || (!force && step > m_highestStep + 1)) return;
-        m_step = step;
-        m_highestStep = (std::max)(m_highestStep, step);
-        if (step == 4)
+        if (step < 0 || step > 6 || (!force && step > m_highestStep + 1)) return;
+        if (step == 5)
         {
             if (!SyncControlsToDocument()) return;
             UpdateReview();
         }
+        m_step = step;
+        m_highestStep = (std::max)(m_highestStep, step);
         UpdateStepVisuals();
+        if (m_step == 2) ScheduleRuleRefresh();
     }
 
     void TaskPage::UpdateStepVisuals()
     {
-        std::array<UIElement, 6> panels{ SurveyPanel(), AnswersPanel(), TaskPanel(), NetworkPanel(), ReviewPanel(), RunPanel() };
-        for (int32_t index = 0; index < 6; ++index)
+        std::array<UIElement, 7> panels{ SurveyPanel(), AnswersPanel(), RulesPanel(), NetworkPanel(), TimingPanel(), LaunchPanel(), RunPanel() };
+        for (int32_t index = 0; index < 7; ++index)
         {
             panels[index].Visibility(index == m_step ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
         }
-        StepProgress().Value(m_step);
-        static const std::array<hstring, 6> labels{ L"问卷", L"答案", L"任务", L"网络", L"检查", L"运行" };
-        StepSummary().Text(hstring{ L"第 " } + to_hstring(m_step + 1) + L"/6 步：" + labels[m_step]);
+        if (m_step < 6)
+        {
+            StepProgress().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
+            StepProgress().Maximum(5);
+            StepProgress().Value(m_step);
+            static const std::array<hstring, 6> labels{ L"导入问卷", L"答案策略", L"条件规则", L"网络与信度", L"时间与节奏", L"规模与启动" };
+            StepSummary().Text(hstring{ L"第 " } + to_hstring(m_step + 1) + L"/6 步：" + labels[m_step]);
+        }
+        else
+        {
+            StepProgress().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            StepSummary().Text(L"任务运行中");
+        }
         auto const firstStep = m_step == 0;
-        AnswerCoverageStatus().IsOpen(m_step == 1);
+        auto const isRunStep = m_step == 6;
         NetworkStatus().IsOpen(m_step == 3);
-        CheckStatus().IsOpen(m_step == 4);
-        RunStatus().IsOpen(m_step == 5);
+        CheckStatus().IsOpen(m_step == 5);
+        RunStatus().IsOpen(m_step == 6);
         if (m_step != 0) SurveyStatus().IsOpen(false);
-        if (m_step != 1) AIStatus().IsOpen(false);
-        if (m_step != 5) RunExportStatus().IsOpen(false);
-        FooterDivider().Visibility(!firstStep ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-        FooterBar().Visibility(!firstStep ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
-        SurveyPrimaryButton().Content(box_value(m_parsed ? L"继续" : L"解析并继续"));
+        if (m_step != 6) RunExportStatus().IsOpen(false);
+        FooterDivider().Visibility(!firstStep && !isRunStep ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        FooterBar().Visibility(!firstStep && !isRunStep ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        SurveyPrimaryLabel().Text(m_parsed ? L"继续" : L"解析并继续");
+        SurveyPrimaryIcon().Symbol(m_parsed ? Symbol::Forward : Symbol::Refresh);
         SurveyPrimaryButton().IsEnabled(!m_busy);
         BackButton().IsEnabled(!m_busy && m_step > 0);
-        if (m_step == 4) PrimaryButton().Content(box_value(L"检查并保存"));
-        else if (m_step == 5) PrimaryButton().Content(box_value(L"启动任务"));
-        else PrimaryButton().Content(box_value(L"继续"));
+        PrimaryButtonLabel().Text(m_step == 5 ? L"检查并启动作答" : L"继续");
+        PrimaryButtonIcon().Symbol(m_step == 5 ? Symbol::Send : Symbol::Forward);
+        Automation::AutomationProperties::SetName(PrimaryButton(), PrimaryButtonLabel().Text());
         PrimaryButton().IsEnabled(!m_busy);
     }
 

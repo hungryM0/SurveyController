@@ -106,6 +106,8 @@
     <Page Include="MainWindow.xaml" />
     <Page Include="Views\TaskPage.xaml" />
     <Page Include="Views\StrategyEditor.xaml" />
+    <Page Include="Views\RuleEditor.xaml" />
+    <Page Include="Views\AnswerEditorWindow.xaml" />
     <Page Include="Views\SettingsPage.xaml" />
     <Page Include="Views\CommunityPage.xaml" />
     <Page Include="Views\MorePage.xaml" />
@@ -116,6 +118,9 @@
     <ClInclude Include="MainWindow.xaml.h"><DependentUpon>MainWindow.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\TaskPage.xaml.h"><DependentUpon>TaskPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\StrategyEditor.xaml.h"><DependentUpon>StrategyEditor.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="Views\RuleEditor.xaml.h"><DependentUpon>RuleEditor.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="Views\AnswerEditorWindow.xaml.h"><DependentUpon>AnswerEditorWindow.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="Views\AISettingsDialog.h" />
     <ClInclude Include="Views\SettingsPage.xaml.h"><DependentUpon>SettingsPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\CommunityPage.xaml.h"><DependentUpon>CommunityPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\MorePage.xaml.h"><DependentUpon>MorePage.xaml</DependentUpon></ClInclude>
@@ -139,8 +144,12 @@
     <ClCompile Include="Views\TaskPage.Proxy.cpp" />
     <ClCompile Include="Views\TaskPage.Run.cpp" />
     <ClCompile Include="Views\StrategyEditor.Tree.cpp" />
+    <ClCompile Include="Views\StrategyEditor.Advanced.cpp" />
     <ClCompile Include="Views\StrategyEditor.Weights.cpp" />
     <ClCompile Include="Views\StrategyEditor.xaml.cpp"><DependentUpon>StrategyEditor.xaml</DependentUpon></ClCompile>
+    <ClCompile Include="Views\RuleEditor.xaml.cpp"><DependentUpon>RuleEditor.xaml</DependentUpon></ClCompile>
+    <ClCompile Include="Views\AnswerEditorWindow.xaml.cpp"><DependentUpon>AnswerEditorWindow.xaml</DependentUpon></ClCompile>
+    <ClCompile Include="Views\AISettingsDialog.cpp" />
     <ClCompile Include="Views\SettingsPage.xaml.cpp"><DependentUpon>SettingsPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\CommunityPage.xaml.cpp"><DependentUpon>CommunityPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\MorePage.xaml.cpp"><DependentUpon>MorePage.xaml</DependentUpon></ClCompile>

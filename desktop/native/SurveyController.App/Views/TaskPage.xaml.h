@@ -2,6 +2,7 @@
 
 #include "TaskPage.g.h"
 #include "Services/WizardDocument.h"
+#include "AnswerEditorWindow.xaml.h"
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -14,6 +15,7 @@ namespace winrt::SurveyController::App::implementation
 
         winrt::fire_and_forget OnPrimary(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBack(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnEditAnswers(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnSurveyUrlChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::TextChangedEventArgs const&);
         winrt::fire_and_forget OnImportConfig(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnChooseQRCode(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -22,8 +24,7 @@ namespace winrt::SurveyController::App::implementation
         void OnProxySourceChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnProxyProvinceChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnProxyCityChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
-        void OnAIModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
-        winrt::fire_and_forget OnTestAIConnection(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnPsychometricsToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnTestFixedProxy(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnTestCustomProxy(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnSyncProxy(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -49,6 +50,7 @@ namespace winrt::SurveyController::App::implementation
         int32_t m_highestStep{};
         bool m_parsed{};
         bool m_busy{};
+        SurveyController::App::AnswerEditorWindow m_answerEditor{ nullptr };
         bool m_polling{};
         bool m_updatingProxyAreas{};
         bool m_initialized{};
@@ -58,18 +60,18 @@ namespace winrt::SurveyController::App::implementation
 
         void InitializeState();
         void PopulateControls();
+        void ScheduleRuleRefresh();
         bool SyncControlsToDocument();
         void UpdateNetworkVisibility();
+        void UpdatePsychometricsVisibility();
         winrt::fire_and_forget LoadProxyAreaOptions();
         void ApplyProxyAreaOptions(hstring const& json, hstring const& source);
         void RebuildProxyCities(hstring const& provinceCode, hstring const& selectedCode = L"");
         void ApplyProxyStatus(Windows::Data::Json::JsonObject const& state);
-        void UpdateAIVisibility();
-        void PopulateAIControls();
-        hstring BuildAISettingsRequest();
         void UpdateReview();
         void UpdateStepVisuals();
         void MoveToStep(int32_t step, bool force = false);
+        void UpdateAnswerStats();
         void SetBusy(bool busy, hstring const& message = L"");
         void SetFooterError(hstring const& message);
         Windows::Foundation::IAsyncOperation<hstring> ChooseFile(bool image, bool spreadsheet = false);

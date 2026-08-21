@@ -5,14 +5,26 @@ namespace winrt::SurveyController::App::Services
     struct WizardQuestion
     {
         int32_t number{};
+        int32_t page{ 1 };
+        int32_t rows{};
         hstring title;
         hstring type;
+        hstring normalizedType;
+        hstring icon;
         bool required{};
         int32_t options{};
+        std::vector<hstring> optionTexts;
+        std::vector<hstring> rowTexts;
         hstring dimension;
         hstring bias{ L"custom" };
         hstring weights;
+        bool configured{};
         bool aiEnabled{};
+        bool unsupported{};
+        hstring unsupportedReason;
+        bool hasJump{};
+        bool hasDisplayLogic{};
+        hstring logicSummary;
     };
 
     class WizardDocument final
@@ -25,6 +37,12 @@ namespace winrt::SurveyController::App::Services
         bool Initialized() const { return m_initialized; }
         bool Dirty() const { return m_dirty; }
         bool HasRealSurvey() const;
+
+        // AnswerEditorWindow owns one transaction for its whole lifetime.
+        void BeginEditTransaction();
+        void CommitEditTransaction();
+        void RollbackEditTransaction();
+        bool EditTransactionActive() const { return m_transactionActive; }
 
         hstring Path() const { return m_path; }
         hstring URL() const;
@@ -45,11 +63,16 @@ namespace winrt::SurveyController::App::Services
         void SetNetwork(hstring const& mode, hstring const& fixedAddress, hstring const& source,
             hstring const& customApi, hstring const& areaCode, bool randomUA);
         void SetReverseFill(bool enabled, hstring const& path);
+        void SetPsychometrics(bool enabled, double targetAlpha);
         void SetQuestionStrategy(uint32_t index, hstring const& dimension, hstring const& bias,
             hstring const& weights, bool aiEnabled);
         void UpdateQuestionStrategy(uint32_t index, Windows::Data::Json::JsonObject const& changes);
         void SetRule(int32_t index, Windows::Data::Json::JsonObject const& rule);
         void DeleteRule(uint32_t index);
+        bool MoveRule(uint32_t from, uint32_t to);
+        bool MoveRuleUp(uint32_t index);
+        bool MoveRuleDown(uint32_t index);
+        hstring ValidateRule(Windows::Data::Json::JsonObject const& rule) const;
         void SetDimensions(Windows::Data::Json::JsonArray const& dimensions);
 
         int32_t Target() const;
@@ -67,6 +90,8 @@ namespace winrt::SurveyController::App::Services
         bool RandomUA() const;
         bool ReverseFillEnabled() const;
         hstring ReverseFillPath() const;
+        bool PsychometricsEnabled() const;
+        double TargetAlpha() const;
 
         hstring CheckRequest(Windows::Data::Json::JsonObject const& settings) const;
         hstring SaveRequest() const;
@@ -74,14 +99,19 @@ namespace winrt::SurveyController::App::Services
 
     private:
         Windows::Data::Json::JsonObject m_config{ nullptr };
+        Windows::Data::Json::JsonObject m_transactionConfig{ nullptr };
         hstring m_path;
+        hstring m_transactionPath;
         bool m_initialized{};
         bool m_dirty{};
+        bool m_transactionDirty{};
+        bool m_transactionActive{};
 
         Windows::Data::Json::JsonObject Survey() const;
         Windows::Data::Json::JsonObject Execution() const;
         Windows::Data::Json::JsonObject Network() const;
         Windows::Data::Json::JsonObject ReverseFill() const;
+        Windows::Data::Json::JsonObject Psychometrics() const;
         Windows::Data::Json::JsonArray DefinitionQuestions() const;
         Windows::Data::Json::JsonArray Strategies() const;
         Windows::Data::Json::JsonObject Answers() const;

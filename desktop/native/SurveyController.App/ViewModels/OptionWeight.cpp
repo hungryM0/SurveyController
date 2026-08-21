@@ -7,8 +7,8 @@
 
 namespace winrt::SurveyController::App::implementation
 {
-    OptionWeight::OptionWeight(hstring const& label, double value, double maximum)
-        : m_label(label), m_value(value), m_maximum(maximum)
+    OptionWeight::OptionWeight(hstring const& label, double value, double minimum, double maximum, double step)
+        : m_label(label), m_value(value), m_minimum(minimum), m_maximum(maximum), m_step(step)
     {
     }
 
@@ -29,9 +29,19 @@ namespace winrt::SurveyController::App::implementation
         m_propertyChanged(*this, Microsoft::UI::Xaml::Data::PropertyChangedEventArgs{ L"Value" });
     }
 
+    double OptionWeight::Minimum() const
+    {
+        return m_minimum;
+    }
+
     double OptionWeight::Maximum() const
     {
         return m_maximum;
+    }
+
+    double OptionWeight::Step() const
+    {
+        return m_step;
     }
 
     winrt::event_token OptionWeight::PropertyChanged(

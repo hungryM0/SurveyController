@@ -125,6 +125,168 @@ namespace
         Expect(threw, "WizardDocument must reject invalid JSON");
     }
 
+    void TestWizardQuestionNormalization()
+    {
+        auto& document = WizardDocument::Current();
+        auto normJson = LR"({
+            "config":{
+                "survey":{"url":"https://example.test/types","definition":{"questions":[
+                    {"num":1,"provider_type":"radio","provider":"qq","provider_question_id":"q1","provider_page_id":"p1","title":"Single","options":0,"option_texts":["A","B"]},
+                    {"num":2,"provider_type":"checkbox","title":"Multiple","options":2,"option_texts":["A","B"]},
+                    {"num":3,"type_code":"7","title":"Dropdown","options":2,"option_texts":["A","B"]},
+                    {"num":4,"provider_type":"matrix_radio","title":"Matrix","options":2,"rows":0,"row_texts":["R1","R2"]},
+                    {"num":5,"provider_type":"order","title":"Sort","options":2,"option_texts":["A","B"]},
+                    {"num":6,"is_rating":true,"title":"Scale","options":5},
+                    {"num":7,"type_code":"8","title":"Slider","options":1,"slider_min":"10","slider_max":"90"},
+                    {"num":8,"provider_type":"matrix","is_slider_matrix":true,"title":"Slider matrix","options":2,"rows":2},
+                    {"num":9,"is_multi_text":true,"title":"Multi text","text_inputs":2},
+                    {"num":10,"is_location":true,"title":"Location"},
+                    {"num":11,"type_code":"1","is_text_like":true,"text_inputs":1,"title":"Text"},
+                    {"num":12,"unsupported":true,"title":"Unsupported"},
+                    {"num":13,"provider_type":"new_widget","type_code":"99","title":"Unknown"}
+                ]}},"answers":{"questions":[]}}
+        })";
+        document.LoadConfigState(normJson);
+
+        auto questions = document.Questions();
+        Expect(questions.size() == 13, "All non-description questions must be normalized");
+        Expect(questions[0].normalizedType == L"single" && questions[0].options == 2,
+            "Option text count must fill a missing option count");
+        Expect(questions[1].normalizedType == L"multiple", "Checkbox questions must map to multiple");
+        Expect(questions[2].normalizedType == L"dropdown", "Type code 7 must map to dropdown");
+        Expect(questions[3].normalizedType == L"matrix" && questions[3].rows == 2,
+            "Matrix row text count must fill a missing row count");
+        Expect(questions[4].normalizedType == L"sort", "Order questions must map to sort");
+        Expect(questions[5].normalizedType == L"scale", "Rating questions must map to scale");
+        Expect(questions[6].normalizedType == L"slider", "Type code 8 must map to slider");
+        Expect(questions[7].normalizedType == L"matrix", "Slider matrices must keep the matrix answer contract");
+        Expect(questions[8].normalizedType == L"multi_text", "Multi-text questions must map to multi_text");
+        Expect(questions[9].normalizedType == L"location", "Location questions must map to location");
+        Expect(questions[10].normalizedType == L"text", "Text metadata must map to text");
+        Expect(questions[11].unsupported && questions[11].normalizedType == L"unsupported" && questions[11].type == L"未知题型",
+            "Unsupported questions must retain their unsupported state");
+        Expect(questions[12].unsupported && questions[12].normalizedType == L"unsupported",
+            "Unknown provider types must not silently become text questions");
+
+        document.UpdateQuestionStrategy(0, JsonObject::Parse(LR"({"dimension":"created"})"));
+        Expect(document.StrategyCount() == 1 && document.StrategyAt(0).GetNamedString(L"dimension") == L"created",
+            "Editing a question without a strategy must create one with the existing contract");
+        auto created = document.StrategyAt(0);
+        Expect(created.GetNamedString(L"survey_provider") == L"qq" &&
+            created.GetNamedString(L"provider_question_id") == L"q1" &&
+            created.GetNamedString(L"provider_page_id") == L"p1",
+            "A newly created strategy must preserve provider identity fields");
+
+        // Provider metadata is external input. Wrong-shaped optional fields must be ignored.
+        document.SetParsedConfig(LR"({
+            "survey":{"url":"https://example.test/malformed","definition":{"questions":[
+                {"num":1,"provider_type":"radio","title":"Malformed","options":2,
+                 "option_texts":{},"row_texts":"not-an-array","jump_rules":{},
+                 "controls_display_targets":null}
+            ]},"provider":"wjx"},
+            "answers":{"questions":[{"question_num":1,"option_fill_texts":{},"multi_text_blank_ai_flags":null}]}
+        })");
+        auto malformed = document.Questions();
+        Expect(malformed.size() == 1 && malformed[0].options == 2,
+            "Malformed optional metadata must not abort question normalization");
+    }
+
+    void TestWizardDocumentTransactionsAndRules()
+    {
+        auto& document = WizardDocument::Current();
+        document.LoadConfigState(LR"({
+            "config":{
+                "survey":{"url":"https://example.test/rules","definition":{"questions":[
+                    {"num":1,"provider_type":"radio","title":"Condition","options":3,"option_texts":["A","B","C"]},
+                    {"num":2,"provider_type":"matrix_radio","title":"Target","options":2,"rows":2,"option_texts":["X","Y"],"row_texts":["R1","R2"]},
+                    {"num":3,"provider_type":"slider","title":"Slider","options":1,"rows":1},
+                    {"num":4,"provider_type":"text","title":"Text"}
+                ]}},"answers":{"questions":[{"question_num":1,"custom_weights":{"options":[1,2,3]}}],"rules":[]}}
+        })");
+
+        auto original = document.RunRequest();
+        Expect(!document.Dirty(), "Loaded rule fixture must start clean");
+        Expect(document.StrategyCount() == 1, "Rule fixture must contain one editable strategy");
+        document.BeginEditTransaction();
+        document.SetQuestionStrategy(0, L"changed", L"custom", L"4,5,6", false);
+        Expect(document.Dirty(), "Transaction edits must mark the document dirty");
+        document.RollbackEditTransaction();
+        Expect(!document.Dirty() && document.RunRequest() == original,
+            "Rollback must restore content and the original clean state");
+
+        document.BeginEditTransaction();
+        document.SetQuestionStrategy(0, L"committed", L"custom", L"6,5,4", false);
+        document.CommitEditTransaction();
+        Expect(document.Dirty() && document.StrategyAt(0).GetNamedString(L"dimension") == L"committed",
+            "Commit must retain transaction edits and their dirty state");
+
+        document.LoadConfigState(original);
+        document.SetSurveyURL(L"https://example.test/dirty");
+        Expect(document.Dirty(), "A pre-existing dirty state must be retained");
+        document.BeginEditTransaction();
+        document.SetQuestionStrategy(0, L"temporary", L"custom", L"9,9,9", false);
+        document.RollbackEditTransaction();
+        Expect(document.Dirty() && document.URL() == L"https://example.test/dirty",
+            "Rollback must restore the dirty flag captured at transaction start");
+
+        document.LoadConfigState(LR"({
+            "config":{
+                "survey":{"url":"https://example.test/rules","definition":{"questions":[
+                    {"num":1,"provider_type":"radio","options":3,"option_texts":["A","B","C"]},
+                    {"num":2,"provider_type":"matrix_radio","options":2,"rows":2,"option_texts":["X","Y"],"row_texts":["R1","R2"]},
+                    {"num":3,"provider_type":"slider","options":1,"rows":1},
+                    {"num":4,"provider_type":"text","options":0}
+                ]}},"answers":{"questions":[],"rules":[]}}
+        })");
+
+        auto valid = JsonObject::Parse(LR"({
+            "id":"first","condition_question_num":1,"condition_mode":"selected",
+            "condition_option_indices":[0],"target_question_num":2,"action_mode":"must_select",
+            "target_option_indices":[1],"target_row_index":1
+        })");
+        Expect(document.ValidateRule(valid).empty(), "A valid forward matrix rule must pass validation");
+        document.SetRule(-1, valid);
+        auto second = JsonObject::Parse(LR"({
+            "id":"second","condition_question_num":1,"condition_mode":"not_selected",
+            "condition_option_indices":[2],"target_question_num":2,"action_mode":"must_not_select",
+            "target_option_indices":[0],"target_row_index":0
+        })");
+        document.SetRule(-1, second);
+        Expect(document.Rules().Size() == 2, "Rules must support append");
+        Expect(document.MoveRuleDown(0), "Rules must move down");
+        Expect(document.Rules().GetObjectAt(0).GetNamedString(L"id") == L"second",
+            "Moving down must update the rule order");
+        Expect(document.MoveRuleUp(1), "Rules must move up");
+        Expect(!document.MoveRuleUp(0) && !document.MoveRuleDown(1),
+            "Moving the first rule up or last rule down must be rejected");
+
+        auto before = JsonObject::Parse(LR"({
+            "condition_question_num":2,"condition_mode":"selected","condition_option_indices":[0],
+            "target_question_num":1,"action_mode":"must_select","target_option_indices":[0]
+        })");
+        Expect(!document.ValidateRule(before).empty(), "Target questions must be later than condition questions");
+        auto textCondition = JsonObject::Parse(LR"({
+            "condition_question_num":4,"condition_mode":"selected","condition_option_indices":[0],
+            "target_question_num":2,"action_mode":"must_select","target_option_indices":[0]
+        })");
+        Expect(!document.ValidateRule(textCondition).empty(), "Text questions cannot be condition questions");
+        auto badOption = JsonObject::Parse(LR"({
+            "condition_question_num":1,"condition_mode":"selected","condition_option_indices":[3],
+            "target_question_num":2,"action_mode":"must_select","target_option_indices":[0]
+        })");
+        Expect(!document.ValidateRule(badOption).empty(), "Option indices must stay within bounds");
+        auto badRow = JsonObject::Parse(LR"({
+            "condition_question_num":1,"condition_mode":"selected","condition_option_indices":[0],
+            "target_question_num":2,"action_mode":"must_select","target_option_indices":[0],"target_row_index":2
+        })");
+        Expect(!document.ValidateRule(badRow).empty(), "Matrix row indices must stay within bounds");
+        auto sliderRow = JsonObject::Parse(LR"({
+            "condition_question_num":1,"condition_mode":"selected","condition_option_indices":[0],
+            "target_question_num":3,"action_mode":"must_select","target_option_indices":[0],"target_row_index":0
+        })");
+        Expect(!document.ValidateRule(sliderRow).empty(), "Matrix row selectors must not appear on slider questions");
+    }
+
     void TestRpcEnvelopeValidation()
     {
         auto request = JsonObject::Parse(winrt::to_hstring(
@@ -178,6 +340,8 @@ int wmain()
     failures += RunTest("ShellSettings notifications", TestShellSettingsNotifications);
     failures += RunTest("WizardDocument state and mutations", TestWizardDocumentStateAndMutations);
     failures += RunTest("WizardDocument invalid JSON", TestWizardDocumentRejectsInvalidJson);
+    failures += RunTest("WizardDocument question normalization", TestWizardQuestionNormalization);
+    failures += RunTest("WizardDocument transactions and rules", TestWizardDocumentTransactionsAndRules);
     failures += RunTest("RPC envelope validation", TestRpcEnvelopeValidation);
     std::cout << "Native tests: " << (failures == 0 ? "PASS" : "FAIL") << '\n';
     return failures == 0 ? 0 : 1;

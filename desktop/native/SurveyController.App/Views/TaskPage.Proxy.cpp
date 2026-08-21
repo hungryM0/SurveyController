@@ -62,36 +62,50 @@ namespace winrt::SurveyController::App::implementation
 
     fire_and_forget TaskPage::LoadProxyAreaOptions()
     {
-        auto mode = SelectedTag(ProxyMode(), L"direct");
-        auto source = SelectedTag(ProxySource(), L"default");
-        if (mode != L"random" || source == L"custom") co_return;
-        auto lifetime = get_strong();
-        auto dispatcher = DispatcherQueue();
-        hstring result;
-        hstring error;
-        co_await resume_background();
         try
         {
-            result = co_await Services::ProxyService{}.AreasAsync(source);
-        }
-        catch (hresult_error const& value)
-        {
-            error = value.message();
-        }
-        catch (std::exception const& value) { error = to_hstring(value.what()); }
-        catch (...) { error = L"地区列表读取失败。"; }
-        dispatcher.TryEnqueue([lifetime, result, error, source]()
-        {
-            if (source != lifetime->SelectedTag(lifetime->ProxySource(), L"default")) return;
-            if (!error.empty())
+            auto mode = SelectedTag(ProxyMode(), L"direct");
+            auto source = SelectedTag(ProxySource(), L"default");
+            if (mode != L"random" || source == L"custom") co_return;
+            auto lifetime = get_strong();
+            auto dispatcher = DispatcherQueue();
+            hstring result;
+            hstring error;
+            co_await resume_background();
+            try { result = co_await Services::ProxyService{}.AreasAsync(source); }
+            catch (hresult_error const& value) { error = value.message(); }
+            catch (std::exception const& value) { error = to_hstring(value.what()); }
+            catch (...) { error = L"地区列表读取失败。"; }
+            try
             {
-                lifetime->NetworkStatus().Title(L"地区列表读取失败");
-                lifetime->NetworkStatus().Message(error);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
-                return;
+                dispatcher.TryEnqueue([lifetime, result, error, source]()
+                {
+                    try
+                    {
+                        if (source != lifetime->SelectedTag(lifetime->ProxySource(), L"default")) return;
+                        if (!error.empty())
+                        {
+                            lifetime->NetworkStatus().Title(L"地区列表读取失败");
+                            lifetime->NetworkStatus().Message(error);
+                            lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
+                            return;
+                        }
+                        lifetime->ApplyProxyAreaOptions(result, source);
+                    }
+                    catch (hresult_error const& value) { lifetime->SetFooterError(value.message()); }
+                    catch (std::exception const& value) { lifetime->SetFooterError(to_hstring(value.what())); }
+                    catch (...) { lifetime->SetFooterError(L"地区列表应用失败。"); }
+                });
             }
-            lifetime->ApplyProxyAreaOptions(result, source);
-        });
+            catch (...)
+            {
+                co_return;
+            }
+        }
+        catch (...)
+        {
+            co_return;
+        }
     }
 
     void TaskPage::ApplyProxyAreaOptions(hstring const& json, hstring const& source)
