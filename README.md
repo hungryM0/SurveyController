@@ -41,8 +41,8 @@
 
 **环境要求：** Python 3.13.14+，Git
 
-### <summary>Windows 使用</summary>
 <details>
+<summary>Windows 使用</summary>
 
 克隆、安装依赖、运行源码：
 ```bash
@@ -58,8 +58,8 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 ```
 </details>
 
-### <summary>macOS 使用</summary>
 <details>
+<summary>macOS 使用</summary>
 
 当前暂未提供 macOS 安装包，可以通过源码运行：
 ```bash
