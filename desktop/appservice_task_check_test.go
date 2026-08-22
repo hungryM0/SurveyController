@@ -65,6 +65,28 @@ func TestCheckTaskRejectsUnsupportedProvider(t *testing.T) {
 	assertTaskCheckProblemShape(t, problem, taskCheckStepSurvey, "error")
 }
 
+func TestCheckTaskRejectsUnsupportedQuestion(t *testing.T) {
+	document := validTaskCheckDocument()
+	document.Survey.Definition.Questions[0].Unsupported = true
+	document.Survey.Definition.Questions[0].UnsupportedReason = "未知题型"
+	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
+	if state.Status != TaskCheckBlocked {
+		t.Fatalf("status = %q, want blocked", state.Status)
+	}
+	requireTaskCheckProblem(t, state, "answer_question_unsupported")
+}
+
+func TestCheckTaskRejectsAllZeroAnswerWeights(t *testing.T) {
+	document := validTaskCheckDocument()
+	document.Answers.Strategies[0].QuestionType = "single"
+	document.Answers.Strategies[0].Probabilities.Options = []float64{0, 0}
+	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
+	if state.Status != TaskCheckBlocked {
+		t.Fatalf("status = %q, want blocked", state.Status)
+	}
+	requireTaskCheckProblem(t, state, "config_invalid")
+}
+
 func TestCheckTaskDetectsAllAIAnswerMarkers(t *testing.T) {
 	document := validTaskCheckDocument()
 	fill := "__AI_FILL__"
