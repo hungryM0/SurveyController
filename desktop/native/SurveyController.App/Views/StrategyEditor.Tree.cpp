@@ -116,22 +116,13 @@ namespace winrt::SurveyController::App::implementation
             row.Children().Append(title);
             auto appendStatus = [&](wchar_t const* label, wchar_t const* brushKey)
             {
-                auto status = StackPanel{};
-                status.Orientation(Orientation::Horizontal);
-                status.Spacing(5);
-                auto dot = InfoBadge{};
-                dot.Width(8);
-                dot.Height(8);
-                dot.VerticalAlignment(VerticalAlignment::Center);
+                auto badge = InfoBadge{};
+                badge.Style(resources.Lookup(box_value(L"WizardTextBadgeStyle")).as<Style>());
+                badge.Tag(box_value(label));
                 auto color = resources.Lookup(box_value(brushKey)).as<Brush>();
-                dot.Background(color);
-                auto text = TextBlock{};
-                text.Text(label);
-                text.Style(resources.Lookup(box_value(L"WizardBadgeTextStyle")).as<Style>());
-                text.Foreground(color);
-                status.Children().Append(dot);
-                status.Children().Append(text);
-                row.Children().Append(status);
+                badge.Background(color);
+                badge.Foreground(color);
+                row.Children().Append(badge);
             };
             if (question.required)
             {
@@ -394,7 +385,28 @@ namespace winrt::SurveyController::App::implementation
         {
             if (candidate == node)
             {
-                SelectQuestion(targetIndex);
+                auto lifetime = get_strong();
+                DispatcherQueue().TryEnqueue([lifetime, targetIndex]()
+                {
+                    if (targetIndex >= 0 && targetIndex < static_cast<int32_t>(lifetime->m_questionNodes.size()))
+                    {
+                        try { lifetime->SelectQuestion(targetIndex); }
+                        catch (hresult_error const& error)
+                        {
+                            lifetime->QuestionStatus().Severity(InfoBarSeverity::Error);
+                            lifetime->QuestionStatus().Title(L"切换题目失败");
+                            lifetime->QuestionStatus().Message(error.message());
+                            lifetime->QuestionStatus().IsOpen(true);
+                        }
+                        catch (...)
+                        {
+                            lifetime->QuestionStatus().Severity(InfoBarSeverity::Error);
+                            lifetime->QuestionStatus().Title(L"切换题目失败");
+                            lifetime->QuestionStatus().Message(L"题目状态已更新，请重新选择。");
+                            lifetime->QuestionStatus().IsOpen(true);
+                        }
+                    }
+                });
                 return;
             }
         }
@@ -411,7 +423,15 @@ namespace winrt::SurveyController::App::implementation
                 auto lifetime = get_strong();
                 DispatcherQueue().TryEnqueue([lifetime, targetIndex]()
                 {
-                    lifetime->SelectQuestion(targetIndex);
+                    if (targetIndex < 0 || targetIndex >= static_cast<int32_t>(lifetime->m_questionNodes.size())) return;
+                    try { lifetime->SelectQuestion(targetIndex); }
+                    catch (...)
+                    {
+                        lifetime->QuestionStatus().Severity(InfoBarSeverity::Error);
+                        lifetime->QuestionStatus().Title(L"切换题目失败");
+                        lifetime->QuestionStatus().Message(L"题目状态已更新，请重新选择。");
+                        lifetime->QuestionStatus().IsOpen(true);
+                    }
                 });
                 return;
             }

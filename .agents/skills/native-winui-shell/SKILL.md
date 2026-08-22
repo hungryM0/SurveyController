@@ -5,6 +5,8 @@ description: 面向 SurveyController 当前 C++20、C++/WinRT、WinUI 3 原生�
 
 # Native WinUI Shell
 
+应用改动后的验收不得使用 Computer Use，不得为验收抢占、切换或操纵用户当前桌面；缺少不干扰的运行时证据时，明确标为未验证。
+
 1. 先读目标页面、相邻 `.xaml.cpp/.h`、相关 `Services/`、`App.xaml` 和现有资源。界面依据以当前原生实现、WinUI 控件语义和微软官方文档为准。
 2. 开发或修改 WinUI 3、Windows App SDK、C++/WinRT API 和 XAML 行为前，必须显式调用 `microsoft-learn` MCP，核对对应的微软官方文档与版本说明；不得凭记忆或猜测 API、属性、事件和生命周期。先用文档搜索定位，再按需抓取完整页面。
 3. 页面放 `Views/`，窗口级逻辑放 `MainWindow`，可复用壳能力放 `Services/`。页面调用 `RpcServices`，不直接拼 RPC 方法名、JSON 或匿名管道帧。不要把文件 IO、进程管理或长任务堆进 XAML 事件。
@@ -24,4 +26,4 @@ go test ./...
 .\build\native.ps1 -Action build -Configuration Release
 ```
 
-本地预览运行 `native.ps1 -Action preview`。构建成功不等于交互通过；界面改动还要确认进程和窗口存活，并检查目标页面的键盘、窄窗和高 DPI 行为。发布打包运行 `native.ps1 -Action package`。不使用 Wails、React、WebView 或浏览器自动化。
+本地预览运行 `native.ps1 -Action preview`。构建成功不等于交互通过；界面改动仅在不干扰用户工作的方式确认进程和窗口存活，并覆盖目标页面的键盘、窄窗和高 DPI 行为后才算通过。不得使用 Computer Use，无法取得运行时证据时明确标为未验证。发布打包运行 `native.ps1 -Action package`。不使用 Wails、React、WebView 或浏览器自动化。

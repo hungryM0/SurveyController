@@ -5,6 +5,8 @@ description: 面向 SurveyController 桌面 Go 后端的开发与排错技能。
 
 # Go Desktop Backend
 
+应用改动后的验收不得使用 Computer Use，不得为验收抢占、切换或操纵用户当前桌面；缺少不干扰的运行时证据时，明确标为未验证。
+
 1. 先读目标 `appservice_*.go`、`rpc_handler.go`、相邻测试。涉及原生调用时再读 `Services/RpcServices`、目标页面；只有传输或后端进程问题才进入 `Services/BackendClient`。
 2. `desktop/` 只做产品编排、用户态持久化和 RPC。平台解析、HTTP 提交、代理核心和配置文档模型属于 `SurveyCore/` 子模块。
 3. 新增或修改 RPC 时同步维护请求结构、参数校验、服务实现、`rpc_handler.go` 分派、错误语义和 `RpcServices` 调用方。字段变化还要检查原生 JSON 解析和旧配置兼容，不能静默错读。

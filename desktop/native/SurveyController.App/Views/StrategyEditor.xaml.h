@@ -97,6 +97,8 @@ namespace winrt::SurveyController::App::implementation
         void ApplyQuestionTypeBrush(hstring const& normalizedType);
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&) const;
         void SelectTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&);
+        hstring SelectedTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&) const;
+        void SelectTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&);
     };
 }
 

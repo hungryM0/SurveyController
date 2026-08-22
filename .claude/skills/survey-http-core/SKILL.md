@@ -5,6 +5,8 @@ description: 面向 SurveyController 所引用 SurveyCore 子模块的 Go 代理
 
 # Survey HTTP Core
 
+应用改动后的验收不得使用 Computer Use，不得为验收抢占、切换或操纵用户当前桌面；缺少不干扰的运行时证据时，明确标为未验证。
+
 1. `SurveyCore/` 是独立 Git 子模块。先读目标包公开接口、对应测试和 `desktop/` 直接调用方；分别检查子模块差异和根仓库 gitlink。
 2. 核心库不读取桌面用户路径，不碰 UI 或匿名管道 RPC。SurveyController 专属编排和持久化留在 `desktop/`。
 3. 代理租约、TTL、代理池和官方会话放 `pkg/proxycore`；通用模型和运行编排放 `pkg/surveycore`；平台字段、解析与提交参数放 `{wjx,tencent,credamo}`。第三方 REST 契约属于 `pkg/restapi` 和 `api/openapi.yaml`，不要与桌面 RPC 混用。

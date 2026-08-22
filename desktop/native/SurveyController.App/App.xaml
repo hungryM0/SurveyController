@@ -16,6 +16,21 @@
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Foreground" Value="{ThemeResource WizardBadgeForegroundBrush}" />
             </Style>
+            <Style x:Key="WizardTextBadgeStyle" TargetType="InfoBadge">
+                <Setter Property="Background" Value="{ThemeResource WizardBadgeBackgroundBrush}" />
+                <Setter Property="Foreground" Value="{ThemeResource WizardBadgeForegroundBrush}" />
+                <Setter Property="Padding" Value="6,2" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="InfoBadge">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="{StaticResource ControlCornerRadius}">
+                                <ContentPresenter Content="{TemplateBinding Tag}" Foreground="{TemplateBinding Foreground}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="QuestionChoiceBrush" Color="#005FB8" />

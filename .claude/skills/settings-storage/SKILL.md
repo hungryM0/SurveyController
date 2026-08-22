@@ -5,6 +5,8 @@ description: 面向 SurveyController Windows 桌面端设置、配置、凭据�
 
 # Settings and Storage
 
+应用改动后的验收不得使用 Computer Use，不得为验收抢占、切换或操纵用户当前桌面；缺少不干扰的运行时证据时，明确标为未验证。
+
 1. 先读目标存储实现、请求/响应结构和相邻测试；配置文档模型同时读 `SurveyCore/pkg/surveycore/configio/`；涉及界面回填时再读 `Services/RpcServices` 和调用页面。
 2. 区分应用设置、问卷配置、凭据和日志。各自保持独立的读写、默认值和错误语义，不能借用安装目录存用户数据。
 3. 新字段必须有安全默认值。改字段名、类型或语义时同步检查 SurveyCore `configio` 的编码、规范化、旧格式读取和 `RunRequest` 转换。旧数据不能静默错配，无法迁移时返回可理解错误。

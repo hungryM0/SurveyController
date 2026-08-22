@@ -88,7 +88,6 @@ namespace winrt::SurveyController::App::implementation
         auto textRange = Services::GetJsonArray(strategy, L"text_random_int_range");
         TextRangeMin().Value(textRange.Size() > 0 ? textRange.GetNumberAt(0) : std::numeric_limits<double>::quiet_NaN());
         TextRangeMax().Value(textRange.Size() > 1 ? textRange.GetNumberAt(1) : std::numeric_limits<double>::quiet_NaN());
-        Dimension().Text(strategy.GetNamedString(L"dimension", L""));
         LoadAdvancedEditors(question, strategy, summary);
         UpdateTextModeVisibility();
         QuestionStatus().IsOpen(false);
@@ -143,7 +142,6 @@ namespace winrt::SurveyController::App::implementation
                 changes.SetNamedValue(L"text_random_int_range", range);
             }
             else changes.SetNamedValue(L"text_random_int_range", JsonValue::CreateNullValue());
-            changes.SetNamedValue(L"dimension", JsonValue::CreateStringValue(Dimension().Text()));
             SaveAdvancedEditors(m_document.QuestionAt(static_cast<uint32_t>(index)), m_currentNormalizedType, changes);
             m_document.UpdateQuestionStrategy(static_cast<uint32_t>(index), changes);
             m_currentQuestionDirty = false;
@@ -217,5 +215,25 @@ namespace winrt::SurveyController::App::implementation
             }
         }
         buttons.SelectedIndex(0);
+    }
+
+    hstring StrategyEditor::SelectedTag(ComboBox const& box, hstring const& fallback) const
+    {
+        auto item = box.SelectedItem().try_as<ComboBoxItem>();
+        return item ? unbox_value_or<hstring>(item.Tag(), fallback) : fallback;
+    }
+
+    void StrategyEditor::SelectTag(ComboBox const& box, hstring const& value)
+    {
+        for (uint32_t index = 0; index < box.Items().Size(); ++index)
+        {
+            auto item = box.Items().GetAt(index).try_as<ComboBoxItem>();
+            if (item && unbox_value_or<hstring>(item.Tag(), L"") == value)
+            {
+                box.SelectedIndex(static_cast<int32_t>(index));
+                return;
+            }
+        }
+        box.SelectedIndex(0);
     }
 }

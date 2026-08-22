@@ -117,7 +117,9 @@ namespace winrt::SurveyController::App::implementation
         using namespace Microsoft::UI::Xaml::Media;
         if (IsWindows11OrGreater())
         {
-            SystemBackdrop(MicaBackdrop{});
+            auto mica = MicaBackdrop{};
+            mica.Kind(Microsoft::UI::Composition::SystemBackdrops::MicaKind::BaseAlt);
+            SystemBackdrop(mica);
             return;
         }
         SystemBackdrop(DesktopAcrylicBackdrop{});

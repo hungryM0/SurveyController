@@ -5,6 +5,8 @@ description: Bootstrap, develop, and design modern WinUI 3 desktop applications 
 
 # WinUI App
 
+应用改动后的验收不得使用 Computer Use，不得为验收抢占、切换或操纵用户当前桌面；缺少不干扰的运行时证据时，明确标为未验证。
+
 Use this skill for WinUI 3 and Windows App SDK work that needs grounded setup guidance, app bootstrap, modern Windows UX decisions, or concrete implementation patterns.
 
 For this repository, WinUI is a native Windows desktop UI, not a web surface. Do not transfer DOM/CSS, web breakpoint, CSS Flex/Grid, card-grid, CSS token, hover-first, web component, or custom-control assumptions into XAML. Start from WinUI controls, the XAML visual tree, dependency properties, theme resources, VisualState, windowing, keyboard/focus behavior, accessibility, and DPI semantics.
