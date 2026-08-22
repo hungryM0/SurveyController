@@ -5,7 +5,7 @@
     >
 
     <ScrollViewer x:Name="CommunityScrollViewer" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Width="{x:Bind CommunityScrollViewer.ViewportWidth, Mode=OneWay}" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+        <StackPanel Width="{x:Bind CommunityScrollViewer.ViewportWidth, Mode=OneWay}" MaxWidth="720" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
             <StackPanel.ChildrenTransitions>
                 <TransitionCollection>
                     <EntranceThemeTransition FromVerticalOffset="8" />

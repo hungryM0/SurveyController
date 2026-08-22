@@ -44,7 +44,7 @@
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="WideWizardForms">
-                        <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="720" /></VisualState.StateTriggers>
+                        <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="{StaticResource DesktopBreakpointWidth}" /></VisualState.StateTriggers>
                         <VisualState.Setters>
                             <Setter Target="ImportActionColumn.Width" Value="Auto" />
                             <Setter Target="ImportActionRow.Height" Value="0" />
