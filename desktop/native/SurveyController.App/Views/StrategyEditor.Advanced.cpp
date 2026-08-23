@@ -105,12 +105,11 @@ namespace winrt::SurveyController::App::implementation
         Border CreateRowSurface()
         {
             Border border;
-            border.Padding(Thickness{ 12, 10, 12, 10 });
-            border.CornerRadius(CornerRadius{ 10 });
-            border.BorderThickness(Thickness{ 1 });
+            // 动态表单项属于同一组设置，用分隔线保持层次，不再把每一项包装成卡片。
+            border.Padding(Thickness{ 0, 8, 0, 12 });
+            border.BorderThickness(Thickness{ 0, 0, 0, 1 });
             auto resources = Application::Current().Resources();
-            border.Background(resources.Lookup(box_value(L"CardBackgroundFillColorDefaultBrush")).as<Brush>());
-            border.BorderBrush(resources.Lookup(box_value(L"CardStrokeColorDefaultBrush")).as<Brush>());
+            border.BorderBrush(resources.Lookup(box_value(L"DividerStrokeColorDefaultBrush")).as<Brush>());
             return border;
         }
 

@@ -20,10 +20,18 @@ namespace winrt::SurveyController::App::Services
             if (providerType == L"multi_text") return L"多项填空题";
             if (providerType == L"location") return L"地理位置题";
             if (providerType == L"slider") return L"滑块题";
+            if (providerType == L"scale" || providerType == L"rating" || providerType == L"star") return L"量表题";
             if (providerType == L"score") return L"评分题";
             if (providerType == L"dropdown") return L"下拉题";
-            if (providerType == L"order") return L"排序题";
+            if (providerType == L"order" || providerType == L"sort") return L"排序题";
             return providerType;
+        }
+
+        hstring StringValue(JsonObject const& object, wchar_t const* name, hstring const& fallback = {})
+        {
+            if (!object || !object.HasKey(name)) return fallback;
+            auto value = object.GetNamedValue(name);
+            return value.ValueType() == JsonValueType::String ? value.GetString() : fallback;
         }
 
         JsonObject Object(JsonObject const& parent, wchar_t const* name)
@@ -194,12 +202,12 @@ namespace winrt::SurveyController::App::Services
             item.rows = static_cast<int32_t>(question.GetNamedNumber(L"rows", 0));
             item.title = question.GetNamedString(L"title", L"");
             // Go 返回的展示 DTO 已包含规范化题型和展示字段；原生只绑定这些值。
-            item.normalizedType = question.GetNamedString(L"normalized_type",
-                question.GetNamedString(L"provider_type", question.GetNamedString(L"type", L"unsupported")));
-            auto providerType = question.GetNamedString(L"provider_type", question.GetNamedString(L"type", L""));
-            item.type = question.GetNamedString(L"type_label", question.GetNamedString(L"type", L""));
+            item.normalizedType = StringValue(question, L"normalized_type",
+                StringValue(question, L"provider_type", StringValue(question, L"type", L"unsupported")));
+            auto providerType = StringValue(question, L"provider_type", StringValue(question, L"type"));
+            item.type = StringValue(question, L"type_label", StringValue(question, L"type"));
             if (item.type.empty() || item.type == providerType) item.type = LocalizedQuestionType(providerType);
-            item.icon = question.GetNamedString(L"icon", L"");
+            item.icon = StringValue(question, L"icon");
             item.required = question.GetNamedBoolean(L"required", false);
             for (auto const& option : Array(question, L"option_texts"))
             {

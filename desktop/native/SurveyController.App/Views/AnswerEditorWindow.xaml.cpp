@@ -21,6 +21,27 @@ namespace winrt::SurveyController::App::implementation
     {
         InitializeComponent();
         Title(L"逐题答案编辑器");
+        ExtendsContentIntoTitleBar(true);
+        SetTitleBar(AppTitleBar());
+        auto titleBar = AppWindow().TitleBar();
+        if (titleBar.IsCustomizationSupported())
+        {
+            titleBar.PreferredHeightOption(TitleBarHeightOption::Standard);
+            auto const transparent = Windows::UI::Colors::Transparent();
+            auto const foreground = Windows::UI::Colors::Black();
+            titleBar.BackgroundColor(transparent);
+            titleBar.ButtonBackgroundColor(transparent);
+            titleBar.ButtonHoverBackgroundColor(transparent);
+            titleBar.ButtonPressedBackgroundColor(transparent);
+            titleBar.InactiveBackgroundColor(transparent);
+            titleBar.ButtonInactiveBackgroundColor(transparent);
+            titleBar.ForegroundColor(foreground);
+            titleBar.ButtonForegroundColor(foreground);
+            titleBar.ButtonHoverForegroundColor(foreground);
+            titleBar.ButtonPressedForegroundColor(foreground);
+            titleBar.InactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110));
+            titleBar.ButtonInactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110));
+        }
         m_document.BeginEditTransaction();
         AppWindow().Closing([this](Microsoft::UI::Windowing::AppWindow const&, AppWindowClosingEventArgs const& args)
         {
