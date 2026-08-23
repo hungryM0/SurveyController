@@ -26,12 +26,6 @@ namespace SurveyController.App
     }
 
     [default_interface]
-    runtimeclass TaskPage : Microsoft.UI.Xaml.Controls.Page
-    {
-        TaskPage();
-    }
-
-    [default_interface]
     runtimeclass SurveyPage : Microsoft.UI.Xaml.Controls.Page
     {
         SurveyPage();
