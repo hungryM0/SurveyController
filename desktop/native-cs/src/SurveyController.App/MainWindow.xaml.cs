@@ -5,6 +5,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using SurveyController.App.Services;
 using SurveyController.App.Views;
@@ -203,7 +204,7 @@ public sealed partial class MainWindow : Window
     private void ApplyTitleBarTheme(string themeMode)
     {
         var titleBar = AppWindow.TitleBar;
-        if (!titleBar.IsCustomizationSupported)
+        if (!titleBar.IsCustomizationSupported())
         {
             return;
         }

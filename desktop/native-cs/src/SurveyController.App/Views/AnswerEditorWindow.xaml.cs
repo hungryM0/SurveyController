@@ -109,7 +109,8 @@ public sealed partial class AnswerEditorWindow : Window
         }
 
         var appWindow = AppWindow;
-        if (appWindow.Presenter is OverlappedPresenter presenter)
+        var presenter = appWindow.Presenter as OverlappedPresenter;
+        if (presenter is not null)
         {
             presenter.IsResizable = true;
             presenter.IsMaximizable = true;

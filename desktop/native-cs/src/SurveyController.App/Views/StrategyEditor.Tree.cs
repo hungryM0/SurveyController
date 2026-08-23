@@ -363,7 +363,8 @@ public sealed partial class StrategyEditor
         var count = 0;
         foreach (var value in indices)
         {
-            if (value is not System.Text.Json.Nodes.JsonValue || !value.TryGetValue<double>(out var raw))
+            if (value is not System.Text.Json.Nodes.JsonValue jsonValue
+                || !jsonValue.TryGetValue<double>(out var raw))
             {
                 continue;
             }
@@ -453,15 +454,18 @@ public sealed partial class StrategyEditor
 
         void AppendStatus(string label, string brushKey)
         {
-            // 官方元素组合的轻量状态徽标：文本 + 主题画刷背景（替代自绘模板）。
-            row.Children.Add(new TextBlock
+            // 官方元素组合的轻量状态徽标：Border 背景承载主题画刷（替代自绘模板）。
+            row.Children.Add(new Border
             {
-                Text = label,
-                Style = Application.Current.Resources["WizardBadgeTextStyle"] as Style,
                 Background = resources[brushKey] as Brush,
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(5, 1, 5, 2),
                 Margin = new Thickness(2, 0, 0, 0),
+                Child = new TextBlock
+                {
+                    Text = label,
+                    Style = Application.Current.Resources["WizardBadgeTextStyle"] as Style,
+                },
             });
         }
         if (question.Required)
@@ -484,7 +488,7 @@ public sealed partial class StrategyEditor
     {
         try
         {
-            var manager = BadgeNotificationManager.Current();
+            var manager = BadgeNotificationManager.Current;
             if (unsupportedCount == 0)
             {
                 manager.ClearBadge();

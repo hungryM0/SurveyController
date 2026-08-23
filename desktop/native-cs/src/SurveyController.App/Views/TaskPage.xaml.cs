@@ -48,6 +48,9 @@ public sealed partial class TaskPage : Page, IShutdownAware
     private uint _pageGeneration;
     private int _pollFailures;
 
+    private readonly Microsoft.UI.Dispatching.DispatcherQueue _dispatcherQueue =
+        Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+
     public ObservableCollection<string> LogLines { get; } = [];
 
     public TaskPage()
@@ -180,7 +183,7 @@ public sealed partial class TaskPage : Page, IShutdownAware
 
     private void ScheduleRuleRefresh()
     {
-        _ = Dispatcher.TryEnqueue(() => RuleEditorView.Refresh());
+        _ = _dispatcherQueue.TryEnqueue(() => RuleEditorView.Refresh());
     }
 
     private void UpdatePsychometricsVisibility()
@@ -387,9 +390,9 @@ public sealed partial class TaskPage : Page, IShutdownAware
         {
             path = await ChooseFileAsync(image: false);
         }
-        catch (Exception error)
+        catch (Exception exception)
         {
-            SetFooterError(error.Message);
+            SetFooterError(exception.Message);
             return;
         }
         if (path.Length == 0)
@@ -440,9 +443,9 @@ public sealed partial class TaskPage : Page, IShutdownAware
         {
             path = await ChooseFileAsync(image: true);
         }
-        catch (Exception error)
+        catch (Exception exception)
         {
-            SetFooterError(error.Message);
+            SetFooterError(exception.Message);
             return;
         }
         if (path.Length == 0)

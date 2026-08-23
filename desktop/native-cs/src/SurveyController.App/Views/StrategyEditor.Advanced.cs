@@ -77,7 +77,8 @@ public sealed partial class StrategyEditor
         var savedTexts = strategy["option_fill_texts"] as JsonArray ?? [];
         foreach (var value in fillable)
         {
-            if (value is not System.Text.Json.Nodes.JsonValue || !value.TryGetValue<double>(out var rawIndex))
+            if (value is not System.Text.Json.Nodes.JsonValue jsonValue
+                || !jsonValue.TryGetValue<double>(out var rawIndex))
             {
                 continue;
             }

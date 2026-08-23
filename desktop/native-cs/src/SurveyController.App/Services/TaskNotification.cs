@@ -19,7 +19,7 @@ internal static class TaskNotification
                 .Append(EscapeXml(body))
                 .Append("</text></binding></visual></toast>")
                 .ToString();
-            AppNotificationManager.Default().Show(new AppNotification(payload));
+            AppNotificationManager.Default.Show(new AppNotification(payload));
             return true;
         }
         catch (Exception)
@@ -34,7 +34,7 @@ internal static class TaskNotification
         {
             return;
         }
-        var manager = AppNotificationManager.Default();
+        var manager = AppNotificationManager.Default;
         manager.NotificationInvoked += (_, _) =>
         {
             // 激活行为暂不处理；注册事件以维持与 C++ 相同的生命周期。
