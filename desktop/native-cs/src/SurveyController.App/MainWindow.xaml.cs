@@ -204,7 +204,7 @@ public sealed partial class MainWindow : Window
     private void ApplyTitleBarTheme(string themeMode)
     {
         var titleBar = AppWindow.TitleBar;
-        if (!titleBar.IsCustomizationSupported())
+        if (!AppWindowTitleBar.IsCustomizationSupported())
         {
             return;
         }
