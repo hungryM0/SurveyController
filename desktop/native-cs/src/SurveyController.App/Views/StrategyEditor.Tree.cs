@@ -7,6 +7,8 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Text;
 using Microsoft.Windows.BadgeNotifications;
 
+using SurveyController.Core.Document;
+
 namespace SurveyController.App.Views;
 
 /// <summary>题目树构建、搜索与选择，对照 C++ StrategyEditor.Tree.cpp。</summary>
