@@ -284,7 +284,7 @@ namespace winrt::SurveyController::App::implementation
     {
         m_busy = busy;
         ProxyMode().IsEnabled(!busy);
-        ProxySourceRow().IsEnabled(!busy);
+        ProxySource().IsEnabled(!busy);
         FixedProxyAddress().IsEnabled(!busy);
         CustomProxyApi().IsEnabled(!busy);
         ProxyProvince().IsEnabled(!busy);

@@ -4,6 +4,7 @@
 #include "Services/ShellSettings.h"
 #include "Services/TaskNotification.h"
 #include "Services/JsonHelpers.h"
+#include "Services/WindowContext.h"
 
 #if __has_include("RunPage.g.cpp")
 #include "RunPage.g.cpp"
@@ -119,7 +120,7 @@ namespace winrt::SurveyController::App::implementation
     {
         if (!m_initialized) return;
         auto target = NumberValue(TargetCount(), 1, 1, 999999);
-        auto threads = std::min(target, NumberValue(ThreadCount(), 1, 1, 128));
+        auto threads = (std::min)(target, NumberValue(ThreadCount(), 1, 1, 128));
         m_document.SetExecution(
             target,
             threads,
@@ -171,7 +172,7 @@ namespace winrt::SurveyController::App::implementation
         lifetime->DispatcherQueue().TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);
-            MonitorCard().Visibility(Visibility::Visible);
+            lifetime->MonitorCard().Visibility(Visibility::Visible);
             if (!error.empty())
             {
                 lifetime->CheckStatus().Title(L"无法启动任务");

@@ -86,6 +86,12 @@ namespace winrt::SurveyController::App::implementation
         InitializeComponent();
         m_initialized = true;
         PopulateFromDocument();
+
+        // 泛型 lambda 接线，避免在头文件中引用事件参数类型。
+        WindowStartDate().DateChanged([this](auto const&, auto const&) { ScheduleSync(); });
+        WindowStartTime().SelectedTimeChanged([this](auto const&, auto const&) { ScheduleSync(); });
+        WindowEndDate().DateChanged([this](auto const&, auto const&) { ScheduleSync(); });
+        WindowEndTime().SelectedTimeChanged([this](auto const&, auto const&) { ScheduleSync(); });
     }
 
     void TimingPage::PopulateFromDocument()
@@ -186,16 +192,6 @@ namespace winrt::SurveyController::App::implementation
     }
 
     void TimingPage::OnNumberChanged(IInspectable const&, NumberBoxValueChangedEventArgs const&)
-    {
-        ScheduleSync();
-    }
-
-    void TimingPage::OnWindowDateChanged(IInspectable const&, CalendarDatePickerDateChangedEventArgs const&)
-    {
-        ScheduleSync();
-    }
-
-    void TimingPage::OnWindowTimeChanged(IInspectable const&, TimePickerSelectedTimeChangedEventArgs const&)
     {
         ScheduleSync();
     }

@@ -10,8 +10,6 @@ namespace winrt::SurveyController::App::implementation
         TimingPage();
 
         void OnNumberChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::NumberBoxValueChangedEventArgs const&);
-        void OnWindowDateChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::CalendarDatePickerDateChangedEventArgs const&);
-        void OnWindowTimeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::TimePickerSelectedTimeChangedEventArgs const&);
         void OnToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         winrt::fire_and_forget OnChooseReverseFill(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
 

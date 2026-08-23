@@ -74,6 +74,7 @@
                         </Grid>
                     </StackPanel>
                     <Button
+                        x:Name="StartButton"
                         HorizontalAlignment="Right"
                         Style="{StaticResource AccentButtonStyle}"
                         Click="OnCheckAndStart"

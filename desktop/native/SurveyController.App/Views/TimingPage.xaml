@@ -77,12 +77,12 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="8">
-                            <CalendarDatePicker x:Name="WindowStartDate" Header="开始日期" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowStartDatePicker" DateChanged="OnWindowDateChanged" />
-                            <TimePicker x:Name="WindowStartTime" Header="开始时间" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowStartTimePicker" SelectedTimeChanged="OnWindowTimeChanged" />
+                            <CalendarDatePicker x:Name="WindowStartDate" Header="开始日期" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowStartDatePicker" />
+                            <TimePicker x:Name="WindowStartTime" Header="开始时间" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowStartTimePicker" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="8">
-                            <CalendarDatePicker x:Name="WindowEndDate" Header="结束日期" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowEndDatePicker" DateChanged="OnWindowDateChanged" />
-                            <TimePicker x:Name="WindowEndTime" Header="结束时间" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowEndTimePicker" SelectedTimeChanged="OnWindowTimeChanged" />
+                            <CalendarDatePicker x:Name="WindowEndDate" Header="结束日期" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowEndDatePicker" />
+                            <TimePicker x:Name="WindowEndTime" Header="结束时间" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="TimingWindowEndTimePicker" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
