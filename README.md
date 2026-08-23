@@ -57,7 +57,7 @@
 
 ```mermaid
 flowchart TB
-  ui["desktop/native<br/>C++ / WinUI 3 原生壳"]
+  ui["desktop/native-cs<br/>C# / .NET WinUI 3 原生壳"]
   service["AppService<br/>应用层编排"]
   proxy["packages/proxycore<br/>代理租约 / 池 / 随机 IP"]
   survey["packages/surveycore<br/>公开 API / 模型 / 编排"]
