@@ -1,29 +1,24 @@
 ---
 name: native-winui-shell
-description: 面向 SurveyController 当前 C++20、C++/WinRT、WinUI 3 原生桌面壳的开发与修复技能。用于修改 `desktop/native/SurveyController.App/` 的 XAML 页面、窗口、原生服务、导航、表单、弹层、无障碍、缩放和 Go 后端 RPC 调用。
+description: 面向 SurveyController 的 C#/.NET WinUI 3 桌面壳开发与修复技能。用于修改 desktop/native-cs/ 的 XAML 页面、ViewModel、原生服务、导航、表单、弹层、无障碍、缩放和 Go 后端 RPC 调用。
 ---
 
-# Native WinUI Shell
+# Managed WinUI Shell (C#/.NET)
 
 应用改动后的验收不得使用 Computer Use，不得为验收抢占、切换或操纵用户当前桌面；缺少不干扰的运行时证据时，明确标为未验证。
 
-1. 先读目标页面、相邻 `.xaml.cpp/.h`、相关 `Services/`、`App.xaml` 和现有资源。界面依据以当前原生实现、WinUI 控件语义和微软官方文档为准。
-2. 开发或修改 WinUI 3、Windows App SDK、C++/WinRT API 和 XAML 行为前，必须显式调用 `microsoft-learn` MCP，核对对应的微软官方文档与版本说明；不得凭记忆或猜测 API、属性、事件和生命周期。先用文档搜索定位，再按需抓取完整页面。
-3. 页面放 `Views/`，窗口级逻辑放 `MainWindow`，可复用壳能力放 `Services/`。页面调用 `RpcServices`，不直接拼 RPC 方法名、JSON 或匿名管道帧。不要把文件 IO、进程管理或长任务堆进 XAML 事件。
-4. 界面只能使用 WinUI 3 官方原生控件和标准布局元素。禁止自定义控件、第三方控件、Web 控件以及任何手绘样式。
-5. 禁止使用 `Canvas`、`Path`、Win2D、Direct2D、Composition 或其他绘图 API 绘制界面，也禁止用几何图形、位图、字符图标、伪元素或自定义模板伪造控件和装饰；视觉效果只能来自 WinUI 3 官方控件、官方主题资源、控件模板和系统 Fluent/Mica 能力。
-6. WinUI 界面必须按原生 Windows 桌面 UI 设计。禁止套用 Web 开发思路，不使用 DOM/CSS、网页断点、CSS Flex/Grid、网页卡片、Web 组件、CSS token、悬停驱动交互或自绘控件的思维替代 WinUI 语义。
-7. 复用 WinUI 3 原生控件、XAML 视觉树、依赖属性、现有资源、`ThemeResource` 和 Fluent/Mica 视觉。窗口尺寸适配使用 WinUI 布局、VisualState 和窗口机制，不照搬网页响应式规则。保持键盘焦点、无障碍文字、深色模式、窄窗口和 DPI 缩放。
-8. `RpcServices` 提供业务调用，`BackendClient` 只负责匿名管道传输和后端进程生命周期。新增能力同步 Go 服务、RPC 分派、`RpcServices` 和页面错误反馈；禁止伪造成功状态。
-9. C++/WinRT 只负责 WinUI 壳：控件、导航、窗口生命周期、焦点、可访问性、展示 DTO 和轻量编辑草稿。题型、策略、规则、权重、Provider/URL、二维码内容、配置 schema、运行参数校验、持久化和任务编排必须由 Go/SurveyCore 提供；禁止从领域 JSON 推导业务语义、手工拼 RPC 或在页面串联 Check/Save/Start。
-10. 条件界面使用现有 WinUI 导航、`ContentDialog`、`Flyout`、`TeachingTip` 或 `Expander`。不要自制网页式卡片、字符图标或另一套控件皮肤。
-11. 变更后至少检查相关 C++/XAML 编译影响；壳、资源或交互改动运行：
+1. 先读目标页面（`desktop/native-cs/src/SurveyController.App/Views/`）、对应 ViewModel（`ViewModels/`）、相邻 partial 文件与相关 `Services/`。界面依据以当前实现、WinUI 控件语义和微软官方文档为准；涉及 WinAppSDK API 前先查官方文档，不凭记忆猜测。
+2. 分层约定：`SurveyController.Core`（net8.0 纯逻辑库）持有 RPC 客户端、帧协议、WizardDocument 与 DTO，可在任意平台跑 xUnit 测试；壳项目只做展示编排。页面调用 `Services/RpcServices` 门面，禁止拼 RPC 方法名、JSON 信封或管道帧；`BackendClient` 只负责进程与管道传输。
+3. 使用 CommunityToolkit.Mvvm：ViewModel 继承 `ObservableObject`，状态用 `[ObservableProperty]` 分部属性，命令用 `[RelayCommand]`；业务规则、题型语义、校验和持久化必须留在 Go/SurveyCore，壳层只提交编辑草稿（策略与规则的规范化归 Go）。
+4. XAML 规范：`x:Bind` 显式写 `Mode`；TextBox 双向绑定加 `UpdateSourceTrigger=PropertyChanged`；DataTemplate 带 `x:DataType`；颜色只用 `{ThemeResource}` 和主题字典（Light/Dark/HighContrast 三套都要覆盖）；每个交互控件设唯一的 `AutomationProperties.AutomationId`。窗口尺寸用 AppWindow 物理像素乘 DPI 缩放。
+5. 只用 WinUI 3 官方控件与 Fluent/Mica 能力。禁止自定义控件、第三方/Web 控件、自定义 ControlTemplate 手绘样式、Canvas/Path/Win2D 绘图，以及 DOM/CSS 式网页思维。弹层用 ContentDialog/Flyout/TeachingTip；代码创建的对话框须经 `DialogStyling.PrepareContentDialog` 套样式并跟随主题。
+6. 长任务与轮询保持取消/暂停/日志可用：DispatcherQueueTimer + 代次守卫防过期回调；后台 RPC 用 async/await，结果回 UI 线程再改控件。文件选择器走 WinAppSDK `Microsoft.Windows.Storage.Pickers` 并传主窗口 WindowId。
+7. 变更后验证：
 
 ```powershell
 Set-Location desktop
-go test ./...
-.\build\native.ps1 -Action test -Configuration Release
-.\build\native.ps1 -Action build -Configuration Release
+./build/native.ps1 -Action build -Configuration Release   # dotnet build + go build 后端
+./build/native.ps1 -Action test  -Configuration Release   # dotnet test（Core 单测）
 ```
 
-本地预览运行 `native.ps1 -Action preview`。构建成功不等于交互通过；界面改动仅在不干扰用户工作的方式确认进程和窗口存活，并覆盖目标页面的键盘、窄窗和高 DPI 行为后才算通过。不得使用 Computer Use，无法取得运行时证据时明确标为未验证。发布打包运行 `native.ps1 -Action package`。不使用 Wails、React、WebView 或浏览器自动化。
+纯逻辑改动只需在任意平台跑 `dotnet test desktop/native-cs/tests/SurveyController.Core.Tests`。发布打包运行 `-Action package`（NSIS 不变）。本地预览运行 `native.ps1 -Action preview`。构建成功不等于交互通过；界面改动仅在不干扰用户的方式下确认进程与窗口存活，并覆盖键盘、窄窗和高 DPI 行为后算通过，否则明确标为未验证。不使用 Wails、React、WebView 或浏览器自动化。

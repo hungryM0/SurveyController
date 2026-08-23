@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [ValidateSet('restore', 'build', 'rebuild', 'clean', 'package', 'preview', 'test')]
     [string]$Action = 'build',
@@ -10,42 +10,45 @@ $ErrorActionPreference = 'Stop'
 
 $desktopRoot = Split-Path -Parent $PSScriptRoot
 $repoRoot = Split-Path -Parent $desktopRoot
-$solution = Join-Path $desktopRoot 'native\SurveyController.sln'
-$testProject = Join-Path $desktopRoot 'native\tests\SurveyController.Native.Tests\SurveyController.Native.Tests.vcxproj'
-$testOutput = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.Native.Tests\SurveyController.Native.Tests.exe"
-$releaseOutput = Join-Path $desktopRoot 'native\x64\Release\SurveyController.App'
+$solution = Join-Path $desktopRoot 'native-cs\SurveyController.sln'
+$appProject = Join-Path $desktopRoot 'native-cs\src\SurveyController.App\SurveyController.App.csproj'
+$testProject = Join-Path $desktopRoot 'native-cs\tests\SurveyController.Core.Tests\SurveyController.Core.Tests.csproj'
 $packageRoot = Join-Path $desktopRoot 'bin\native-x64'
 $installerOutput = Join-Path $desktopRoot 'bin\SurveyController-amd64-installer.exe'
 $installerIcon = Join-Path $repoRoot 'assets\icon.ico'
-$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 
-if (-not (Test-Path -LiteralPath $vswhere)) {
-    throw '未找到 Visual Studio Installer。'
+if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    throw '未找到 dotnet CLI。请安装 .NET SDK 8 或更新版本。'
 }
 
-$msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
-if (-not $msbuild) {
-    throw '未找到带 MSVC 的 MSBuild。'
-}
+function Resolve-AppOutputDirectory {
+    param([string]$Configuration)
 
-# MSBuild supplies the toolchain library paths; discard stale LIB entries from
-# an older Visual Studio installation before invoking it.
-$env:LIB = ''
+    # dotnet 输出路径包含 TFM 段，按 exe 实际位置解析而不是硬编码。
+    $binRoot = Join-Path $desktopRoot "native-cs\src\SurveyController.App\bin\x64\$Configuration"
+    $executable = Get-ChildItem -LiteralPath $binRoot -Recurse -Filter 'SurveyController.exe' -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $executable) {
+        return $null
+    }
+    return $executable.DirectoryName
+}
 
 if ($Action -eq 'restore') {
-    & $msbuild $solution /t:Restore /m
+    & dotnet restore $solution
     exit $LASTEXITCODE
 }
 
-if ($Action -eq 'test') {
-    & $msbuild $testProject /restore /t:Build /p:Configuration=$Configuration /p:Platform=x64 /m
+if ($Action -eq 'clean') {
+    & dotnet clean $solution -p:Platform=x64
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
-    if (-not (Test-Path -LiteralPath $testOutput)) {
-        throw "未找到原生测试程序：$testOutput"
-    }
-    & $testOutput
+    exit 0
+}
+
+if ($Action -eq 'test') {
+    & dotnet test $testProject -c $Configuration --logger "console;verbosity=minimal"
     exit $LASTEXITCODE
 }
 
@@ -53,37 +56,42 @@ if ($Action -eq 'package') {
     $Configuration = 'Release'
 }
 
-if ($Action -in @('build', 'rebuild', 'package', 'preview')) {
-    $backendOutput = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.App\SurveyController.Backend.exe"
-    New-Item -ItemType Directory -Path (Split-Path -Parent $backendOutput) -Force | Out-Null
-    $goArguments = @('build', '-buildvcs=false', '-o', $backendOutput)
-    if ($Configuration -eq 'Release') {
-        $goArguments = @('build', '-buildvcs=false', '-trimpath', '-ldflags=-s -w', '-o', $backendOutput)
-    }
-    Push-Location -LiteralPath $desktopRoot
-    try {
-        & go @goArguments '.'
-        if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-        }
-    } finally {
-        Pop-Location
-    }
+if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+    throw '未找到 Go 工具链。'
 }
 
-$target = switch ($Action) {
+# 先构建托管壳（rebuild 会清空输出目录），再把 Go 后端产物放进 exe 同目录。
+$dotnetTarget = switch ($Action) {
     'rebuild' { 'Rebuild' }
-    'clean' { 'Clean' }
     default { 'Build' }
 }
-
-& $msbuild $solution /restore /t:$target /p:Configuration=$Configuration /p:Platform=x64 /m
+& dotnet build $appProject -c $Configuration -p:Platform=x64 "-t:$dotnetTarget" /restore
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+$appOutput = Resolve-AppOutputDirectory -Configuration $Configuration
+if (-not $appOutput) {
+    throw "未找到托管壳输出目录：native-cs\src\SurveyController.App\bin\x64\$Configuration"
+}
+
+$backendOutput = Join-Path $appOutput 'SurveyController.Backend.exe'
+$goArguments = @('build', '-buildvcs=false', '-o', $backendOutput)
+if ($Configuration -eq 'Release') {
+    $goArguments = @('build', '-buildvcs=false', '-trimpath', '-ldflags=-s -w', '-o', $backendOutput)
+}
+Push-Location -LiteralPath $desktopRoot
+try {
+    & go @goArguments '.'
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+} finally {
+    Pop-Location
+}
+
 if ($Action -eq 'preview') {
-    $previewExecutable = Join-Path $desktopRoot "native\x64\$Configuration\SurveyController.App\SurveyController.exe"
+    $previewExecutable = Join-Path $appOutput 'SurveyController.exe'
     if (-not (Test-Path -LiteralPath $previewExecutable)) {
         throw "未找到原生预览程序：$previewExecutable"
     }
@@ -105,10 +113,6 @@ if ($Action -ne 'package') {
     exit 0
 }
 
-if (-not (Test-Path -LiteralPath $releaseOutput)) {
-    throw "未找到原生 Release 输出：$releaseOutput"
-}
-
 $binRoot = Split-Path -Parent $packageRoot
 $resolvedBinRoot = [System.IO.Path]::GetFullPath($binRoot)
 $resolvedPackageRoot = [System.IO.Path]::GetFullPath($packageRoot)
@@ -120,15 +124,18 @@ if (Test-Path -LiteralPath $resolvedPackageRoot) {
 }
 New-Item -ItemType Directory -Path $resolvedPackageRoot -Force | Out-Null
 
-$excludedExtensions = @('.exp', '.lib', '.pdb')
-$excludedNames = @('Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.Core.winmd')
-Get-ChildItem -LiteralPath $releaseOutput -Recurse -File |
+$excludedExtensions = @('.pdb')
+$excludedNames = @(
+    'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.Core.winmd',
+    'SurveyController.pdb', 'createdump.exe'
+)
+Get-ChildItem -LiteralPath $appOutput -Recurse -File |
     Where-Object {
         $excludedExtensions -notcontains $_.Extension.ToLowerInvariant() -and
         $excludedNames -notcontains $_.Name
     } |
     ForEach-Object {
-        $relativePath = [System.IO.Path]::GetRelativePath($releaseOutput, $_.FullName)
+        $relativePath = [System.IO.Path]::GetRelativePath($appOutput, $_.FullName)
         $destination = Join-Path $resolvedPackageRoot $relativePath
         New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
         Copy-Item -LiteralPath $_.FullName -Destination $destination -Force

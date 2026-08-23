@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>SurveyController.App</RootNamespace>
+    <AssemblyName>SurveyController</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWinUI>true</UseWinUI>
+    <!-- 与现产品一致：未打包 + 自包含运行时，产物为独立 exe，NSIS 负责安装。 -->
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
+    <Version>5.0.0</Version>
+    <DefaultLanguage>zh-CN</DefaultLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SurveyController.Core\SurveyController.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 与 C++ 壳一致：仓库根 assets 以链接方式进入包内 Assets 目录。 -->
+    <Content Include="..\..\..\..\assets\icon.png" Link="Assets\appicon.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\icon.ico" Link="Assets\SurveyController.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\community_qr.png" Link="Assets\community_qr.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\WeDonate.png" Link="Assets\WeDonate.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\AliDonate.jpg" Link="Assets\AliDonate.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

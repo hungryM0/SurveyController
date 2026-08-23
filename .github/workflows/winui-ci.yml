@@ -7,13 +7,14 @@ on:
 
 env:
   GO_VERSION: "1.26.7"
+  DOTNET_VERSION: "8.0.x"
 
 permissions:
   contents: read
 
 jobs:
   winui-test:
-    name: WinUI build and native tests
+    name: Managed shell build and tests
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,12 +28,16 @@ jobs:
             SurveyCore/go.sum
             desktop/go.sum
 
-      - name: Build native WinUI shell
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build managed WinUI shell and Go backend
         working-directory: desktop
         shell: pwsh
         run: ./build/native.ps1 -Action build -Configuration Release
 
-      - name: Test native WinUI services
+      - name: Test shell services
         working-directory: desktop
         shell: pwsh
         run: ./build/native.ps1 -Action test -Configuration Release
