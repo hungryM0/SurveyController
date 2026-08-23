@@ -90,6 +90,15 @@ func isLocalProviderURL(raw string, providers ...string) bool {
 func checkAnswers(config configio.ConfigDocument, problems *[]TaskCheckProblem) {
 	questionNumbers := make(map[int]struct{})
 	for _, question := range config.Survey.Definition.Questions {
+		if question.Unsupported {
+			*problems = append(*problems, TaskCheckProblem{
+				Code:     "answer_question_unsupported",
+				Message:  fmt.Sprintf("第%d题暂不支持：%s", question.Num, firstNonEmptyTask(question.UnsupportedReason, question.ProviderType, question.TypeCode)),
+				Step:     taskCheckStepAnswers,
+				Severity: "error",
+			})
+			continue
+		}
 		if !question.IsDescription {
 			questionNumbers[question.Num] = struct{}{}
 		}
@@ -144,17 +153,30 @@ func checkExecution(config configio.ConfigDocument, problems *[]TaskCheckProblem
 }
 
 func providerForURL(raw string) string {
-	lowered := strings.ToLower(raw)
-	switch {
-	case strings.Contains(lowered, "wj.qq.com"):
-		return surveycore.ProviderQQ
-	case strings.Contains(lowered, "credamo.com"), strings.Contains(lowered, "credamo.cn"):
-		return surveycore.ProviderCredamo
-	case strings.Contains(lowered, "wjx.cn"), strings.Contains(lowered, "wjx.com"), strings.Contains(lowered, "wjx.top"):
-		return surveycore.ProviderWJX
-	default:
+	parsed, err := url.ParseRequestURI(strings.TrimSpace(raw))
+	if err != nil {
 		return ""
 	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "wj.qq.com" {
+		return surveycore.ProviderQQ
+	}
+	if host == "credamo.com" || strings.HasSuffix(host, ".credamo.com") || host == "credamo.cn" || strings.HasSuffix(host, ".credamo.cn") {
+		return surveycore.ProviderCredamo
+	}
+	if host == "wjx.cn" || strings.HasSuffix(host, ".wjx.cn") || host == "wjx.com" || strings.HasSuffix(host, ".wjx.com") || host == "wjx.top" || strings.HasSuffix(host, ".wjx.top") {
+		return surveycore.ProviderWJX
+	}
+	return ""
+}
+
+func firstNonEmptyTask(values ...string) string {
+	for _, value := range values {
+		if text := strings.TrimSpace(value); text != "" {
+			return text
+		}
+	}
+	return "未知题型"
 }
 
 func checkAnswerDatetimeWindow(config configio.ConfigDocument, problems *[]TaskCheckProblem) {
@@ -264,7 +286,7 @@ func answerPlanUsesAIFromConfig(config configio.ConfigDocument) bool {
 
 func hasAnswerableQuestions(questions []surveycore.QuestionMeta) bool {
 	for _, question := range questions {
-		if !question.IsDescription {
+		if !question.IsDescription && !question.Unsupported {
 			return true
 		}
 	}

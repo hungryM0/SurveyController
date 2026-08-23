@@ -3,6 +3,7 @@
 #include "JsonHelpers.h"
 
 #include <algorithm>
+#include <cwctype>
 
 namespace winrt::SurveyController::App::Services
 {
@@ -288,19 +289,81 @@ namespace winrt::SurveyController::App::Services
     void WizardDocument::SetQuestionStrategy(uint32_t index, hstring const& dimension, hstring const& bias,
         hstring const& weights, bool aiEnabled)
     {
-        UNREFERENCED_PARAMETER(index);
-        UNREFERENCED_PARAMETER(dimension);
-        UNREFERENCED_PARAMETER(bias);
-        UNREFERENCED_PARAMETER(weights);
-        UNREFERENCED_PARAMETER(aiEnabled);
-        // 策略规范化和持久化由 Go 向导服务负责。原生仅保留编辑状态。
-        m_dirty = true;
+        JsonObject changes;
+        changes.SetNamedValue(L"dimension", JsonValue::CreateStringValue(dimension));
+        changes.SetNamedValue(L"psycho_bias", JsonValue::CreateStringValue(bias));
+        changes.SetNamedValue(L"ai_enabled", JsonValue::CreateBooleanValue(aiEnabled));
+        JsonArray options;
+        std::wstring value{ weights.c_str() };
+        std::replace(value.begin(), value.end(), L';', L',');
+        size_t start = 0;
+        while (start <= value.size())
+        {
+            auto end = value.find(L',', start);
+            auto token = value.substr(start, end == std::wstring::npos ? std::wstring::npos : end - start);
+            token.erase(std::remove_if(token.begin(), token.end(), [](wchar_t character)
+            {
+                return std::iswspace(character) != 0;
+            }), token.end());
+            try
+            {
+                size_t consumed = 0;
+                auto number = std::stod(token, &consumed);
+                if (consumed == token.size()) options.Append(JsonValue::CreateNumberValue(number));
+            }
+            catch (...) {}
+            if (end == std::wstring::npos) break;
+            start = end + 1;
+        }
+        if (options.Size() > 0)
+        {
+            JsonObject table;
+            table.SetNamedValue(L"options", options);
+            changes.SetNamedValue(L"custom_weights", table);
+            changes.SetNamedValue(L"probabilities", Clone(table));
+            changes.SetNamedValue(L"distribution_mode", JsonValue::CreateStringValue(L"custom"));
+        }
+        UpdateQuestionStrategy(index, changes);
     }
 
     void WizardDocument::UpdateQuestionStrategy(uint32_t index, JsonObject const& changes)
     {
-        UNREFERENCED_PARAMETER(index);
-        UNREFERENCED_PARAMETER(changes);
+        if (!m_config || !changes) return;
+        auto question = QuestionAt(index);
+        if (!question) return;
+        auto questionNumber = static_cast<int32_t>(question.GetNamedNumber(L"num", 0));
+        if (questionNumber <= 0) return;
+        auto answers = Answers();
+        auto strategies = Strategies();
+        JsonObject strategy;
+        uint32_t strategyIndex = strategies.Size();
+        for (uint32_t current = 0; current < strategies.Size(); ++current)
+        {
+            auto value = strategies.GetAt(current);
+            if (value.ValueType() != JsonValueType::Object) continue;
+            auto candidate = value.GetObject();
+            if (static_cast<int32_t>(candidate.GetNamedNumber(L"question_num", 0)) == questionNumber)
+            {
+                strategy = candidate;
+                strategyIndex = current;
+                break;
+            }
+        }
+        if (!strategy)
+        {
+            strategy = JsonObject{};
+            strategy.SetNamedValue(L"question_num", JsonValue::CreateNumberValue(questionNumber));
+        }
+        for (auto const& pair : changes)
+        {
+            auto value = pair.Value();
+            if (value.ValueType() == JsonValueType::Null) strategy.Remove(pair.Key());
+            else strategy.SetNamedValue(pair.Key(), value);
+        }
+        if (strategyIndex == strategies.Size()) strategies.Append(strategy);
+        else strategies.SetAt(strategyIndex, strategy);
+        answers.SetNamedValue(L"questions", strategies);
+        m_config.SetNamedValue(L"answers", answers);
         m_dirty = true;
     }
 

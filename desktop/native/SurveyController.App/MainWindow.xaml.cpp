@@ -121,9 +121,8 @@ namespace winrt::SurveyController::App::implementation
         using namespace Microsoft::UI::Xaml::Media;
         if (IsWindows11OrGreater())
         {
-            auto mica = MicaBackdrop{};
-            mica.Kind(Microsoft::UI::Composition::SystemBackdrops::MicaKind::BaseAlt);
-            SystemBackdrop(mica);
+            // Base keeps the standard, lighter Mica tint for the main window.
+            SystemBackdrop(MicaBackdrop{});
             return;
         }
         SystemBackdrop(DesktopAcrylicBackdrop{});
@@ -147,6 +146,7 @@ namespace winrt::SurveyController::App::implementation
             root.RequestedTheme(theme == L"light" ? ElementTheme::Light
                 : theme == L"dark" ? ElementTheme::Dark : ElementTheme::Default);
         }
+        m_themeMode = theme;
         ApplyTitleBarTheme(theme);
 
         ShellNavigation().PaneDisplayMode(settings.GetNamedBoolean(L"showNavigationText", true)
@@ -234,8 +234,24 @@ namespace winrt::SurveyController::App::implementation
         SetTitleBar(AppTitleBar());
 
         auto titleBar = AppWindow().TitleBar();
-        titleBar.ButtonBackgroundColor(Windows::UI::Colors::Transparent());
-        titleBar.ButtonInactiveBackgroundColor(Windows::UI::Colors::Transparent());
+        if (titleBar.IsCustomizationSupported())
+        {
+            // 48px 标题栏内容区需要 taller 的系统按钮，否则按钮偏小、不占满。
+            titleBar.PreferredHeightOption(Microsoft::UI::Windowing::TitleBarHeightOption::Tall);
+        }
+
+        // 主题变化（显式切换或切回 system）在 ActualTheme 异步更新后才反映，
+        // 监听它来同步标题栏按钮颜色，避免切回 system 瞬间颜色滞后。
+        if (auto root = Content().try_as<Microsoft::UI::Xaml::FrameworkElement>())
+        {
+            m_rootThemeRevoker = root.ActualThemeChanged(
+                winrt::auto_revoke,
+                [this](Microsoft::UI::Xaml::FrameworkElement const&, IInspectable const&)
+                {
+                    ApplyTitleBarTheme(m_themeMode);
+                });
+        }
+
         ApplyTitleBarTheme(L"system");
     }
 
@@ -247,11 +263,27 @@ namespace winrt::SurveyController::App::implementation
         auto root = Content().try_as<Microsoft::UI::Xaml::FrameworkElement>();
         auto const dark = themeMode == L"dark" ||
             (themeMode == L"system" && root && root.ActualTheme() == Microsoft::UI::Xaml::ElementTheme::Dark);
+
+        // 按钮叠加在 Mica 上，背景保持透明让材质透出；前景跟随主题，
+        // 失焦时淡化，明确区分活动/非活动窗口。官方要求设置任一颜色就显式设全部。
+        auto const transparent = Windows::UI::Colors::Transparent();
         auto const foreground = dark ? Windows::UI::Colors::White() : Windows::UI::Colors::Black();
+        auto const inactive = dark
+            ? Windows::UI::ColorHelper::FromArgb(255, 150, 150, 150)
+            : Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110);
+
+        titleBar.ForegroundColor(foreground);
+        titleBar.BackgroundColor(transparent);
         titleBar.ButtonForegroundColor(foreground);
+        titleBar.ButtonBackgroundColor(transparent);
         titleBar.ButtonHoverForegroundColor(foreground);
+        titleBar.ButtonHoverBackgroundColor(transparent);
         titleBar.ButtonPressedForegroundColor(foreground);
-        titleBar.ButtonInactiveForegroundColor(foreground);
+        titleBar.ButtonPressedBackgroundColor(transparent);
+        titleBar.InactiveForegroundColor(inactive);
+        titleBar.InactiveBackgroundColor(transparent);
+        titleBar.ButtonInactiveForegroundColor(inactive);
+        titleBar.ButtonInactiveBackgroundColor(transparent);
     }
 
     void MainWindow::ConfigureWindow()

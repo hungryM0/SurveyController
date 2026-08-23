@@ -79,8 +79,8 @@
                 <TextBlock x:Name="QuestionCountSummary" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                <Button x:Name="PreviousQuestionButton" Width="36" Height="36" Click="OnPreviousQuestion" AutomationProperties.Name="上一题" ToolTipService.ToolTip="上一题"><SymbolIcon Symbol="Back" /></Button>
-                <Button x:Name="NextQuestionButton" Width="36" Height="36" Click="OnNextQuestion" AutomationProperties.Name="下一题" ToolTipService.ToolTip="下一题"><SymbolIcon Symbol="Forward" /></Button>
+                <Button x:Name="PreviousQuestionButton" Click="OnPreviousQuestion" AutomationProperties.Name="上一题" ToolTipService.ToolTip="上一题"><SymbolIcon Symbol="Back" /></Button>
+                <Button x:Name="NextQuestionButton" Click="OnNextQuestion" AutomationProperties.Name="下一题" ToolTipService.ToolTip="下一题"><SymbolIcon Symbol="Forward" /></Button>
             </StackPanel>
             <AutoSuggestBox x:Name="QuestionSearch" Grid.Column="2" PlaceholderText="查找题号、题干或选项" QueryIcon="Find" TextChanged="OnQuestionSearchChanged" SuggestionChosen="OnQuestionSuggestionChosen" QuerySubmitted="OnQuestionQuerySubmitted" AutomationProperties.Name="搜索题目" />
         </Grid>
@@ -112,24 +112,14 @@
                                 <FontIcon x:Name="QuestionTypeIcon" FontSize="18" />
                                 <TextBlock x:Name="QuestionTitle" FontSize="21" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <InfoBadge x:Name="QuestionTypeInfoBadge" Width="8" Height="8" VerticalAlignment="Center" />
-                                    <FontIcon x:Name="QuestionBadgeIcon" FontSize="12" />
-                                    <TextBlock x:Name="QuestionTypeBadge" Style="{StaticResource WizardBadgeTextStyle}" Text="题型" />
-                                </StackPanel>
-                                <StackPanel x:Name="RequiredBadgeBorder" Orientation="Horizontal" Spacing="5" Visibility="Collapsed">
-                                    <InfoBadge x:Name="RequiredBadgeInfo" Width="8" Height="8" VerticalAlignment="Center" Background="{ThemeResource RequiredBadgeForegroundBrush}" />
-                                    <TextBlock x:Name="RequiredBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource RequiredBadgeForegroundBrush}" Text="必答" />
-                                </StackPanel>
-                                <StackPanel x:Name="LogicBadgeBorder" Orientation="Horizontal" Spacing="5" Visibility="Collapsed">
-                                    <InfoBadge x:Name="LogicBadgeInfo" Width="8" Height="8" VerticalAlignment="Center" Background="{ThemeResource LogicBadgeForegroundBrush}" />
-                                    <TextBlock x:Name="LogicBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource LogicBadgeForegroundBrush}" Text="逻辑" />
-                                </StackPanel>
-                                <StackPanel x:Name="UnsupportedBadgeBorder" Orientation="Horizontal" Spacing="5" Visibility="Collapsed">
-                                    <InfoBadge x:Name="UnsupportedBadgeInfo" Width="8" Height="8" VerticalAlignment="Center" Background="{ThemeResource UnsupportedBadgeForegroundBrush}" />
-                                    <TextBlock x:Name="UnsupportedBadge" Style="{StaticResource WizardBadgeTextStyle}" Foreground="{ThemeResource UnsupportedBadgeForegroundBrush}" Text="暂不支持" />
-                                </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ContentControl x:Name="QuestionTypeBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="题型" />
+                                <ContentControl x:Name="RequiredBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="必答" Background="{ThemeResource RequiredBadgeBackgroundBrush}" Foreground="{ThemeResource RequiredBadgeForegroundBrush}" Visibility="Collapsed" />
+                                <ContentControl x:Name="MediaBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="图片题" Background="{ThemeResource MediaBadgeBackgroundBrush}" Foreground="{ThemeResource MediaBadgeForegroundBrush}" Visibility="Collapsed" />
+                                <ContentControl x:Name="ConditionalDisplayBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="条件显示" Background="{ThemeResource ConditionalDisplayBadgeBackgroundBrush}" Foreground="{ThemeResource ConditionalDisplayBadgeForegroundBrush}" Visibility="Collapsed" />
+                                <ContentControl x:Name="ControlsDisplayBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="控制后续" Background="{ThemeResource ControlsDisplayBadgeBackgroundBrush}" Foreground="{ThemeResource ControlsDisplayBadgeForegroundBrush}" Visibility="Collapsed" />
+                                <ContentControl x:Name="JumpBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="跳题" Background="{ThemeResource JumpBadgeBackgroundBrush}" Foreground="{ThemeResource JumpBadgeForegroundBrush}" Visibility="Collapsed" />
+                                <ContentControl x:Name="UnsupportedBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="暂不支持" Background="{ThemeResource UnsupportedBadgeBackgroundBrush}" Foreground="{ThemeResource UnsupportedBadgeForegroundBrush}" Visibility="Collapsed" />
                             </StackPanel>
                             <TextBlock x:Name="QuestionMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
@@ -162,7 +152,7 @@
                                     </DataTemplate>
                                 </ItemsRepeater.ItemTemplate>
                             </ItemsRepeater>
-                            <TextBlock x:Name="RatioPreview" Foreground="{ThemeResource AccentFillColorDefaultBrush}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="RatioPreview" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                         <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
                     </StackPanel>

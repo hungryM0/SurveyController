@@ -94,7 +94,7 @@ namespace winrt::SurveyController::App::implementation
             if (mode == L"integer")
             {
                 if (std::isnan(minimum.Value()) || std::isnan(maximum.Value()))
-                    throw hresult_invalid_argument(L"随机整数模式必须填写最小值和最大值。");
+                    throw hresult_error(E_INVALIDARG, L"随机整数模式必须填写最小值和最大值。");
                 auto low = static_cast<int64_t>(std::llround((std::min)(minimum.Value(), maximum.Value())));
                 auto high = static_cast<int64_t>(std::llround((std::max)(minimum.Value(), maximum.Value())));
                 return hstring{ std::wstring{ randomIntegerPrefix } + std::to_wstring(low) + L":" + std::to_wstring(high) };
@@ -135,7 +135,7 @@ namespace winrt::SurveyController::App::implementation
             JsonArray range;
             if (!enabled) return range;
             if (std::isnan(minimum.Value()) || std::isnan(maximum.Value()))
-                throw hresult_invalid_argument(L"随机整数模式必须填写最小值和最大值。");
+                throw hresult_error(E_INVALIDARG, L"随机整数模式必须填写最小值和最大值。");
             range.Append(JsonValue::CreateNumberValue(static_cast<double>(std::llround((std::min)(minimum.Value(), maximum.Value())))));
             range.Append(JsonValue::CreateNumberValue(static_cast<double>(std::llround((std::max)(minimum.Value(), maximum.Value())))));
             return range;
@@ -214,11 +214,10 @@ namespace winrt::SurveyController::App::implementation
         auto resources = Application::Current().Resources();
         auto foreground = resources.Lookup(box_value(foregroundKey)).as<Brush>();
         auto badgeForeground = resources.Lookup(box_value(badgeForegroundKey)).as<Brush>();
+        auto badgeBackground = resources.Lookup(box_value(backgroundKey)).as<Brush>();
         QuestionTypeIcon().Foreground(foreground);
-        QuestionBadgeIcon().Glyph(QuestionTypeIcon().Glyph());
-        QuestionBadgeIcon().Foreground(badgeForeground);
+        QuestionTypeBadge().Background(badgeBackground);
         QuestionTypeBadge().Foreground(badgeForeground);
-        QuestionTypeInfoBadge().Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
     }
 
     void StrategyEditor::LoadAdvancedEditors(JsonObject const& question, JsonObject const& strategy,
@@ -527,7 +526,7 @@ namespace winrt::SurveyController::App::implementation
                 total += value;
                 weights.Append(JsonValue::CreateNumberValue(value));
             }
-            if (weights.Size() && total <= 0) throw hresult_invalid_argument(L"嵌入式下拉配比不能全为 0。");
+            if (weights.Size() && total <= 0) throw hresult_error(E_INVALIDARG, L"嵌入式下拉配比不能全为 0。");
             item.SetNamedValue(L"weights", weights);
             attached.Append(item);
         }

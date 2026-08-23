@@ -15,6 +15,7 @@ namespace winrt::SurveyController::App::implementation
         using namespace Microsoft::UI::Xaml;
         using namespace Microsoft::UI::Xaml::Controls;
         using namespace Microsoft::UI::Xaml::Media;
+        using namespace Microsoft::UI::Xaml::Shapes;
         using namespace Windows::Data::Json;
 
         hstring ShortTitle(hstring const& value)
@@ -97,11 +98,11 @@ namespace winrt::SurveyController::App::implementation
             icon.Glyph(question.icon);
             icon.FontSize(14);
             icon.Foreground(foreground);
-            auto badge = InfoBadge{};
+            auto badge = Shapes::Ellipse{};
             badge.Width(8);
             badge.Height(8);
             badge.VerticalAlignment(VerticalAlignment::Center);
-            badge.Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
+            badge.Fill(resources.Lookup(box_value(backgroundKey)).as<Brush>());
             auto type = TextBlock{};
             type.Text(question.type);
             type.FontSize(12);
@@ -114,27 +115,30 @@ namespace winrt::SurveyController::App::implementation
             row.Children().Append(badge);
             row.Children().Append(type);
             row.Children().Append(title);
-            auto appendStatus = [&](wchar_t const* label, wchar_t const* brushKey)
+            auto appendBadge = [&](wchar_t const* label, wchar_t const* backgroundKey, wchar_t const* foregroundKey)
             {
-                auto badge = InfoBadge{};
+                auto badge = ContentControl{};
                 badge.Style(resources.Lookup(box_value(L"WizardTextBadgeStyle")).as<Style>());
-                badge.Tag(box_value(label));
-                auto color = resources.Lookup(box_value(brushKey)).as<Brush>();
-                badge.Background(color);
-                badge.Foreground(color);
+                badge.Content(box_value(label));
+                badge.Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
+                badge.Foreground(resources.Lookup(box_value(foregroundKey)).as<Brush>());
                 row.Children().Append(badge);
             };
             if (question.required)
             {
-                appendStatus(L"必答", L"RequiredBadgeForegroundBrush");
+                appendBadge(L"必答", L"RequiredBadgeBackgroundBrush", L"RequiredBadgeForegroundBrush");
             }
-            if (question.hasJump || question.hasDisplayLogic)
+            if (question.hasJump)
             {
-                appendStatus(L"逻辑", L"LogicBadgeForegroundBrush");
+                appendBadge(L"跳题", L"JumpBadgeBackgroundBrush", L"JumpBadgeForegroundBrush");
+            }
+            if (question.hasDisplayLogic)
+            {
+                appendBadge(L"逻辑", L"ControlsDisplayBadgeBackgroundBrush", L"ControlsDisplayBadgeForegroundBrush");
             }
             if (question.unsupported)
             {
-                appendStatus(L"不支持", L"UnsupportedBadgeForegroundBrush");
+                appendBadge(L"不支持", L"UnsupportedBadgeBackgroundBrush", L"UnsupportedBadgeForegroundBrush");
             }
             Automation::AutomationProperties::SetName(row, hstring{ L"第 " + std::to_wstring(question.number) + L" 题，" +
                 std::wstring{ question.type } + L"，" + std::wstring{ question.title } });
