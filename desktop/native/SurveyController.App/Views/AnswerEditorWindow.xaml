@@ -9,7 +9,6 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Spacing="2">
                 <TextBlock FontSize="24" FontWeight="SemiBold" Text="逐题答案编辑器" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="保存后一次提交全部题目答案；取消会恢复打开窗口前的配置。" />
             </StackPanel>
             <Button Grid.Column="1" Width="40" Height="40" Click="OnOpenAISettings" AutomationProperties.Name="AI 服务设置" ToolTipService.ToolTip="AI 服务设置">
                 <SymbolIcon Symbol="Setting" />

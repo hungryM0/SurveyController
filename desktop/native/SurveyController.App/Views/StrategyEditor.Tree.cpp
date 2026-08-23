@@ -265,7 +265,6 @@ namespace winrt::SurveyController::App::implementation
             UpdateTaskbarBadge(unsupportedCount);
             QuestionTitle().Text(L"没有匹配的题目");
             QuestionMeta().Text(L"清空搜索框后显示全部题目");
-            QuestionCountSummary().Text(L"0 / " + std::to_wstring(questions.size()) + L" 题");
             return;
         }
         UpdateTaskbarBadge(unsupportedCount);
@@ -295,11 +294,7 @@ namespace winrt::SurveyController::App::implementation
             return;
         }
         m_questionIndex = index;
-        auto total = static_cast<double>(m_document.Questions().size());
-        QuestionCountSummary().Text(hstring{ L"第 " + std::to_wstring(index + 1) + L" / " + std::to_wstring(static_cast<int32_t>(total)) + L" 题" });
         auto node = m_questionNodes[static_cast<size_t>(index)];
-        PreviousQuestionButton().IsEnabled(index > 0);
-        NextQuestionButton().IsEnabled(index + 1 < static_cast<int32_t>(m_questionNodes.size()));
         if (QuestionTree().SelectedNode() != node)
         {
             m_syncingTreeSelection = true;
@@ -442,14 +437,4 @@ namespace winrt::SurveyController::App::implementation
         }
     }
 
-    void StrategyEditor::OnPreviousQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
-    {
-        if (m_questionIndex > 0) SelectQuestion(m_questionIndex - 1);
-    }
-
-    void StrategyEditor::OnNextQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
-    {
-        if (m_questionIndex >= 0 && m_questionIndex + 1 < static_cast<int32_t>(m_questionNodes.size()))
-            SelectQuestion(m_questionIndex + 1);
-    }
 }

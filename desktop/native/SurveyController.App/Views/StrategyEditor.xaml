@@ -11,7 +11,6 @@
                     <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="EditorSearchRow.Height" Value="Auto" />
-                        <Setter Target="EditorSearchColumn.Width" Value="0" />
                         <Setter Target="QuestionSearch.(Grid.Row)" Value="1" />
                         <Setter Target="QuestionSearch.(Grid.Column)" Value="0" />
                         <Setter Target="QuestionSearch.(Grid.ColumnSpan)" Value="3" />
@@ -35,9 +34,8 @@
                     <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="800" /></VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="EditorSearchRow.Height" Value="0" />
-                        <Setter Target="EditorSearchColumn.Width" Value="280" />
                         <Setter Target="QuestionSearch.(Grid.Row)" Value="0" />
-                        <Setter Target="QuestionSearch.(Grid.Column)" Value="2" />
+                        <Setter Target="QuestionSearch.(Grid.Column)" Value="1" />
                         <Setter Target="QuestionSearch.(Grid.ColumnSpan)" Value="1" />
                         <Setter Target="QuestionTreeColumn.Width" Value="300" />
                         <Setter Target="QuestionDetailColumn.Width" Value="*" />
@@ -67,22 +65,13 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="EditorSearchColumn" Width="280" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition x:Name="EditorSearchRow" Height="0" />
             </Grid.RowDefinitions>
-            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <SymbolIcon Symbol="Edit" />
-                <TextBlock FontSize="18" FontWeight="SemiBold" Text="逐题答案" />
-                <TextBlock x:Name="QuestionCountSummary" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                <Button x:Name="PreviousQuestionButton" Click="OnPreviousQuestion" AutomationProperties.Name="上一题" ToolTipService.ToolTip="上一题"><SymbolIcon Symbol="Back" /></Button>
-                <Button x:Name="NextQuestionButton" Click="OnNextQuestion" AutomationProperties.Name="下一题" ToolTipService.ToolTip="下一题"><SymbolIcon Symbol="Forward" /></Button>
-            </StackPanel>
-            <AutoSuggestBox x:Name="QuestionSearch" Grid.Column="2" PlaceholderText="查找题号、题干或选项" QueryIcon="Find" TextChanged="OnQuestionSearchChanged" SuggestionChosen="OnQuestionSuggestionChosen" QuerySubmitted="OnQuestionQuerySubmitted" AutomationProperties.Name="搜索题目" />
+            <AutoSuggestBox x:Name="QuestionSearch" Grid.Column="1" Width="360" HorizontalAlignment="Center" PlaceholderText="查找题号、题干或选项" QueryIcon="Find" TextChanged="OnQuestionSearchChanged" SuggestionChosen="OnQuestionSuggestionChosen" QuerySubmitted="OnQuestionQuerySubmitted" AutomationProperties.Name="搜索题目" />
         </Grid>
 
         <Grid x:Name="QuestionEditorPanel" Grid.Row="1" ColumnSpacing="16" RowSpacing="16">
@@ -127,12 +116,12 @@
 
                     <StackPanel x:Name="WeightSettingsSection" Spacing="12">
                         <TextBlock FontSize="16" FontWeight="SemiBold" Text="基础策略" />
-                        <ComboBox x:Name="Bias" Width="220" Header="倾向预设" SelectedIndex="0" SelectionChanged="OnBiasChanged" AutomationProperties.Name="选项倾向">
-                            <ComboBoxItem Content="自定义" Tag="custom" />
-                            <ComboBoxItem Content="偏左" Tag="left" />
-                            <ComboBoxItem Content="居中" Tag="center" />
-                            <ComboBoxItem Content="偏右" Tag="right" />
-                        </ComboBox>
+                        <RadioButtons x:Name="Bias" Header="选项预设" MaxColumns="4" SelectedIndex="0" SelectionChanged="OnBiasChanged" AutomationProperties.Name="选项预设">
+                            <RadioButton Content="自定义" Tag="custom" />
+                            <RadioButton Content="偏左" Tag="left" />
+                            <RadioButton Content="居中" Tag="center" />
+                            <RadioButton Content="偏右" Tag="right" />
+                        </RadioButtons>
                         <StackPanel x:Name="OptionWeightsSection" Spacing="8">
                             <Grid><TextBlock FontWeight="SemiBold" Text="选项比例" /><TextBlock HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="拖动滑块调整" /></Grid>
                             <ItemsRepeater x:Name="OptionWeightRows">
@@ -157,9 +146,7 @@
                         <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
                     </StackPanel>
 
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="{StaticResource WizardCardCornerRadius}">
-                        <StackPanel Padding="16,14,16,16" Spacing="12">
-                            <TextBlock FontWeight="SemiBold" Text="题型专属设置" />
+                    <StackPanel Spacing="12">
                             <StackPanel x:Name="TextQuestionSection" Spacing="12">
                                 <RadioButtons x:Name="TextRandomMode" Header="填空模式" MaxColumns="3" SelectionChanged="OnTextModeChanged" AutomationProperties.Name="填空模式">
                                     <RadioButton Content="答案文本" Tag="none" />
@@ -189,9 +176,7 @@
                             </Grid>
                             <StackPanel x:Name="MultiTextSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="多项填空" /><TextBox x:Name="MultiTextAnswers" Header="答案文本组合" PlaceholderText="每行一组，各空用 || 分隔" AcceptsReturn="True" MinHeight="84" TextWrapping="Wrap" TextChanged="OnQuestionTextChanged" AutomationProperties.Name="多项填空答案文本" /><StackPanel x:Name="MultiTextRows" Spacing="8" /></StackPanel>
                             <StackPanel x:Name="AttachedOptionSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="嵌入式下拉" /><StackPanel x:Name="AttachedOptionSelectList" Spacing="8" AutomationProperties.Name="嵌入式下拉选项" /></StackPanel>
-                        </StackPanel>
-                    </Border>
-                    <Button HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}" Click="OnSaveQuestion" AutomationProperties.Name="保存本题答案"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Save" /><TextBlock Text="保存本题答案" /></StackPanel></Button>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

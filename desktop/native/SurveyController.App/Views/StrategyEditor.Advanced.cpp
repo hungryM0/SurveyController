@@ -242,6 +242,7 @@ namespace winrt::SurveyController::App::implementation
         FillableOptionList().Children().Clear();
         auto fillable = Services::GetJsonArray(question, L"fillable_options");
         if (fillable.Size() == 0) fillable = Services::GetJsonArray(strategy, L"fillable_option_indices");
+        FillableOptionsSection().Visibility(fillable.Size() > 0 ? Visibility::Visible : Visibility::Collapsed);
         auto optionTexts = Services::GetJsonArray(question, L"option_texts");
         auto savedTexts = Services::GetJsonArray(strategy, L"option_fill_texts");
         for (auto const& value : fillable)
