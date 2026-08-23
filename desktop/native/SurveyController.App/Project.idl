@@ -32,6 +32,36 @@ namespace SurveyController.App
     }
 
     [default_interface]
+    runtimeclass SurveyPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        SurveyPage();
+    }
+
+    [default_interface]
+    runtimeclass AnswersPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        AnswersPage();
+    }
+
+    [default_interface]
+    runtimeclass NetworkPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        NetworkPage();
+    }
+
+    [default_interface]
+    runtimeclass TimingPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        TimingPage();
+    }
+
+    [default_interface]
+    runtimeclass RunPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        RunPage();
+    }
+
+    [default_interface]
     runtimeclass StrategyEditor : Microsoft.UI.Xaml.Controls.UserControl
     {
         StrategyEditor();

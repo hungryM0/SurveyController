@@ -1,7 +1,11 @@
 #include "pch.h"
 #include "MainWindow.xaml.h"
 #include "Services/WindowContext.h"
-#include "Views/TaskPage.xaml.h"
+#include "Views/SurveyPage.xaml.h"
+#include "Views/AnswersPage.xaml.h"
+#include "Views/NetworkPage.xaml.h"
+#include "Views/TimingPage.xaml.h"
+#include "Views/RunPage.xaml.h"
 #include "Views/SettingsPage.xaml.h"
 #include "Views/CommunityPage.xaml.h"
 #include "Views/MorePage.xaml.h"
@@ -87,7 +91,7 @@ namespace winrt::SurveyController::App::implementation
                 if (auto self = weak.get()) self->ApplyShellSettings(json);
             });
             Services::ShellSettings::Current().Update(m_settingsJson);
-            if (!m_hasNavigated) ShowPage(L"task");
+            if (!m_hasNavigated) ShowPage(L"survey");
             StartupStatus().IsOpen(false);
             m_initialized = true;
         }
@@ -217,9 +221,9 @@ namespace winrt::SurveyController::App::implementation
         m_confirmingClose = false;
         if (result == Microsoft::UI::Xaml::Controls::ContentDialogResult::None) co_return;
         m_closeConfirmed = true;
-        if (auto taskPage = ContentFrame().Content().try_as<SurveyController::App::TaskPage>())
+        if (auto runPage = ContentFrame().Content().try_as<SurveyController::App::RunPage>())
         {
-            winrt::get_self<SurveyController::App::implementation::TaskPage>(taskPage)->PrepareForShutdown();
+            winrt::get_self<SurveyController::App::implementation::RunPage>(runPage)->PrepareForShutdown();
         }
         Close();
     }
@@ -319,14 +323,27 @@ namespace winrt::SurveyController::App::implementation
     {
         using namespace Microsoft::UI::Xaml::Media::Animation;
 
-        int32_t const targetIndex = tag == L"task" ? 0 : tag == L"settings" ? 1 : tag == L"community" ? 2 : 3;
+        int32_t const targetIndex = tag == L"survey" ? 0 : tag == L"answers" ? 1 : tag == L"network" ? 2
+            : tag == L"timing" ? 3 : tag == L"run" ? 4 : tag == L"settings" ? 5 : tag == L"community" ? 6 : 7;
         if (m_hasNavigated && targetIndex == m_currentPageIndex) return;
 
         NavigationTransitionInfo transition = EntranceNavigationTransitionInfo{};
 
-        if (tag == L"task")
+        if (tag == L"answers")
         {
-            ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr, transition);
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::AnswersPage>(), nullptr, transition);
+        }
+        else if (tag == L"network")
+        {
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::NetworkPage>(), nullptr, transition);
+        }
+        else if (tag == L"timing")
+        {
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::TimingPage>(), nullptr, transition);
+        }
+        else if (tag == L"run")
+        {
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::RunPage>(), nullptr, transition);
         }
         else if (tag == L"settings")
         {
@@ -339,6 +356,10 @@ namespace winrt::SurveyController::App::implementation
         else if (tag == L"more")
         {
             ContentFrame().Navigate(xaml_typename<SurveyController::App::MorePage>(), nullptr, transition);
+        }
+        else
+        {
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::SurveyPage>(), nullptr, transition);
         }
         m_currentPageIndex = targetIndex;
         m_hasNavigated = true;

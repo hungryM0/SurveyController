@@ -1,0 +1,184 @@
+<Page
+    x:Class="SurveyController.App.NetworkPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Required">
+
+    <Page.Resources>
+        <Style x:Key="SectionCardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource WizardCardCornerRadius}" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer x:Name="NetworkScrollViewer" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Width="{x:Bind NetworkScrollViewer.ViewportWidth, Mode=OneWay}" MaxWidth="760" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+            <TextBlock FontSize="28" FontWeight="SemiBold" Text="网络" />
+
+            <InfoBar
+                x:Name="NetworkStatus"
+                IsOpen="True"
+                IsClosable="False"
+                MaxWidth="720"
+                Severity="Informational"
+                Title="直连"
+                Message="不使用代理访问问卷。"
+                AutomationProperties.AutomationId="NetworkStatusInfoBar" />
+
+            <!-- 代理状态摘要 -->
+            <Grid Padding="12,8" Background="{ThemeResource ControlFillColorDefaultBrush}" CornerRadius="6" ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="2">
+                    <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="代理来源" />
+                    <TextBlock x:Name="ProxyStatusSource" FontWeight="SemiBold" AutomationProperties.AutomationId="NetworkProxyStatusSourceText" Text="直连" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="可用额度" />
+                    <TextBlock x:Name="ProxyStatusQuota" FontWeight="SemiBold" AutomationProperties.AutomationId="NetworkProxyStatusQuotaText" Text="不适用" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="2">
+                    <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="IP 池状态" />
+                    <TextBlock x:Name="ProxyStatusPool" FontWeight="SemiBold" AutomationProperties.AutomationId="NetworkProxyStatusPoolText" Text="不适用" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 访问方式 -->
+            <Border Style="{StaticResource SectionCardBorder}">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <SymbolIcon Symbol="Sync" />
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="访问方式与代理" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox
+                            x:Name="ProxyMode"
+                            Header="访问方式"
+                            HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="访问方式"
+                            AutomationProperties.AutomationId="NetworkProxyModeComboBox"
+                            SelectedIndex="0"
+                            SelectionChanged="OnProxyModeChanged">
+                            <ComboBoxItem Content="直连" Tag="direct" />
+                            <ComboBoxItem Content="固定代理" Tag="fixed" />
+                            <ComboBoxItem Content="随机 IP" Tag="random" />
+                        </ComboBox>
+                        <Border x:Name="ProxySourceRow" Grid.Column="1" Visibility="Collapsed">
+                            <ComboBox
+                                x:Name="ProxySource"
+                                Header="代理来源"
+                                Width="200"
+                                AutomationProperties.Name="代理来源"
+                                AutomationProperties.AutomationId="NetworkProxySourceComboBox"
+                                SelectedIndex="0"
+                                SelectionChanged="OnProxySourceChanged">
+                                <ComboBoxItem Content="默认代理" Tag="default" />
+                                <ComboBoxItem Content="限时福利" Tag="benefit" />
+                                <ComboBoxItem Content="自定义代理" Tag="custom" />
+                            </ComboBox>
+                        </Border>
+                    </Grid>
+
+                    <Border x:Name="FixedProxyRow" Visibility="Collapsed">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                x:Name="FixedProxyAddress"
+                                Header="固定代理地址"
+                                AutomationProperties.Name="固定代理地址"
+                                AutomationProperties.AutomationId="NetworkFixedProxyAddressInput"
+                                PlaceholderText="http://127.0.0.1:8080"
+                                TextChanged="OnTextChanged" />
+                            <Button Grid.Column="1" VerticalAlignment="Bottom" Click="OnTestFixedProxy" AutomationProperties.Name="测试固定代理连接" AutomationProperties.AutomationId="NetworkTestFixedButton">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Refresh" /><TextBlock Text="测试连接" /></StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="CustomProxyRow" Visibility="Collapsed">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                x:Name="CustomProxyApi"
+                                Header="代理 API 地址"
+                                AutomationProperties.Name="代理 API"
+                                AutomationProperties.AutomationId="NetworkCustomProxyApiInput"
+                                PlaceholderText="https://..."
+                                TextChanged="OnTextChanged" />
+                            <Button Grid.Column="1" VerticalAlignment="Bottom" Click="OnTestCustomProxy" AutomationProperties.Name="测试自定义代理连接" AutomationProperties.AutomationId="NetworkTestCustomButton">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Refresh" /><TextBlock Text="测试连接" /></StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="ProxyAreaRow" Visibility="Collapsed">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="ProxyProvince" Header="省份" HorizontalAlignment="Stretch" AutomationProperties.Name="代理省份" AutomationProperties.AutomationId="NetworkProvinceComboBox" PlaceholderText="不限制" SelectionChanged="OnProxyProvinceChanged" />
+                            <ComboBox x:Name="ProxyCity" Grid.Column="1" Header="城市" HorizontalAlignment="Stretch" AutomationProperties.Name="代理城市" AutomationProperties.AutomationId="NetworkCityComboBox" PlaceholderText="不限制" SelectionChanged="OnProxyCityChanged" />
+                            <Button x:Name="SyncProxyButton" Grid.Column="2" VerticalAlignment="Bottom" Click="OnSyncProxy" AutomationProperties.Name="同步代理额度" AutomationProperties.AutomationId="NetworkSyncQuotaButton">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Sync" /><TextBlock Text="同步额度" /></StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- 身份与信度 -->
+            <Border Style="{StaticResource SectionCardBorder}">
+                <StackPanel Spacing="4">
+                    <Grid MinHeight="40">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock FontWeight="SemiBold" Text="随机 User-Agent 身份" />
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Text="每次提交使用随机浏览器身份" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="RandomUA" HorizontalAlignment="Right" AutomationProperties.Name="随机访问身份" AutomationProperties.AutomationId="NetworkRandomUaToggle" OffContent="关" OnContent="开" Toggled="OnSettingToggled" />
+                    </Grid>
+                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                    <Grid MinHeight="40">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock FontWeight="SemiBold" Text="量表信度拟真 (Cronbach's α)" />
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Text="按目标信度系数生成选项分布" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="PsychometricsEnabled" HorizontalAlignment="Right" AutomationProperties.Name="启用心理学信度拟真" AutomationProperties.AutomationId="NetworkPsychometricsToggle" OffContent="关" OnContent="开" Toggled="OnPsychometricsToggled" />
+                    </Grid>
+                    <Border x:Name="PsychometricsRow" Visibility="Collapsed">
+                        <NumberBox
+                            x:Name="TargetAlpha"
+                            Header="目标信度 α (推荐 0.75 ~ 0.90)"
+                            Width="260"
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name="目标信度系数"
+                            AutomationProperties.AutomationId="NetworkTargetAlphaBox"
+                            Minimum="0.5"
+                            Maximum="0.99"
+                            SmallChange="0.01"
+                            LargeChange="0.05"
+                            SpinButtonPlacementMode="Compact"
+                            ValueChanged="OnAlphaChanged" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

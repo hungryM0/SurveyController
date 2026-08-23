@@ -33,8 +33,20 @@
             OpenPaneLength="192"
             PaneDisplayMode="Auto">
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Name="TaskNavigationItem" Content="任务" IsSelected="True" Tag="task">
-                    <NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon>
+                <NavigationViewItem x:Name="SurveyNavigationItem" Content="问卷" IsSelected="True" Tag="survey">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Document" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="作答" Tag="answers">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Edit" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="网络" Tag="network">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Sync" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="时间" Tag="timing">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Clock" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Name="RunNavigationItem" Content="运行" Tag="run">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Play" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
