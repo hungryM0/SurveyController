@@ -99,11 +99,6 @@ namespace winrt::SurveyController::App::implementation
         m_currentQuestionDirty = false;
     }
 
-    void StrategyEditor::OnSaveQuestion(IInspectable const&, RoutedEventArgs const&)
-    {
-        SaveCurrentQuestion();
-    }
-
     bool StrategyEditor::SaveCurrentQuestion()
     {
         auto index = m_questionIndex;
@@ -222,23 +217,4 @@ namespace winrt::SurveyController::App::implementation
         buttons.SelectedIndex(0);
     }
 
-    hstring StrategyEditor::SelectedTag(ComboBox const& box, hstring const& fallback) const
-    {
-        auto item = box.SelectedItem().try_as<ComboBoxItem>();
-        return item ? unbox_value_or<hstring>(item.Tag(), fallback) : fallback;
-    }
-
-    void StrategyEditor::SelectTag(ComboBox const& box, hstring const& value)
-    {
-        for (uint32_t index = 0; index < box.Items().Size(); ++index)
-        {
-            auto item = box.Items().GetAt(index).try_as<ComboBoxItem>();
-            if (item && unbox_value_or<hstring>(item.Tag(), L"") == value)
-            {
-                box.SelectedIndex(static_cast<int32_t>(index));
-                return;
-            }
-        }
-        box.SelectedIndex(0);
-    }
 }

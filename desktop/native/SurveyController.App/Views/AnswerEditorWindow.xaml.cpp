@@ -2,6 +2,7 @@
 #include "AnswerEditorWindow.xaml.h"
 #include "AISettingsDialog.h"
 #include "StrategyEditor.xaml.h"
+#include "Services/DialogStyling.h"
 
 #if __has_include("AnswerEditorWindow.g.cpp")
 #include "AnswerEditorWindow.g.cpp"
@@ -14,12 +15,40 @@ namespace winrt::SurveyController::App::implementation
 {
     using namespace Microsoft::UI::Windowing;
     using namespace Microsoft::UI::Xaml;
+    using namespace Microsoft::UI::Xaml::Controls;
 
     AnswerEditorWindow::AnswerEditorWindow() : m_document(Services::WizardDocument::Current())
     {
         InitializeComponent();
         Title(L"逐题答案编辑器");
+        ExtendsContentIntoTitleBar(true);
+        SetTitleBar(AppTitleBar());
+        auto titleBar = AppWindow().TitleBar();
+        if (titleBar.IsCustomizationSupported())
+        {
+            titleBar.PreferredHeightOption(TitleBarHeightOption::Standard);
+            auto const transparent = Windows::UI::Colors::Transparent();
+            auto const foreground = Windows::UI::Colors::Black();
+            titleBar.BackgroundColor(transparent);
+            titleBar.ButtonBackgroundColor(transparent);
+            titleBar.ButtonHoverBackgroundColor(transparent);
+            titleBar.ButtonPressedBackgroundColor(transparent);
+            titleBar.InactiveBackgroundColor(transparent);
+            titleBar.ButtonInactiveBackgroundColor(transparent);
+            titleBar.ForegroundColor(foreground);
+            titleBar.ButtonForegroundColor(foreground);
+            titleBar.ButtonHoverForegroundColor(foreground);
+            titleBar.ButtonPressedForegroundColor(foreground);
+            titleBar.InactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110));
+            titleBar.ButtonInactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110));
+        }
         m_document.BeginEditTransaction();
+        AppWindow().Closing([this](Microsoft::UI::Windowing::AppWindow const&, AppWindowClosingEventArgs const& args)
+        {
+            if (m_closing) return;
+            args.Cancel(true);
+            if (!m_confirmingClose) ConfirmCloseAsync();
+        });
         Closed([this](IInspectable const&, WindowEventArgs const&)
         {
             if (!m_committed) m_document.RollbackEditTransaction();
@@ -79,7 +108,7 @@ namespace winrt::SurveyController::App::implementation
         auto editor = winrt::get_self<implementation::StrategyEditor>(Editor());
         if (editor->SaveCurrentQuestion()) CloseEditor(true);
     }
-    void AnswerEditorWindow::OnCancel(IInspectable const&, RoutedEventArgs const&) { CloseEditor(false); }
+    void AnswerEditorWindow::OnCancel(IInspectable const&, RoutedEventArgs const&) { ConfirmCloseAsync(); }
     void AnswerEditorWindow::OnOpenAISettings(IInspectable const&, RoutedEventArgs const&) { ShowAISettingsAsync(); }
 
     fire_and_forget AnswerEditorWindow::ShowAISettingsAsync()
@@ -100,8 +129,38 @@ namespace winrt::SurveyController::App::implementation
         if (args.Key() == Windows::System::VirtualKey::Escape)
         {
             args.Handled(true);
-            CloseEditor(false);
+            ConfirmCloseAsync();
         }
+    }
+
+    fire_and_forget AnswerEditorWindow::ConfirmCloseAsync()
+    {
+        if (m_confirmingClose || m_closing) co_return;
+        auto lifetime = get_strong();
+        m_confirmingClose = true;
+        try
+        {
+            ContentDialog dialog;
+            auto dialogThemeRevoker = Services::PrepareContentDialog(dialog, Content().XamlRoot());
+            dialog.Title(box_value(L"保存当前答案配置？"));
+            dialog.Content(box_value(L"关闭前可以保存本次修改，也可以放弃所有未保存改动。"));
+            dialog.PrimaryButtonText(L"保存并关闭");
+            dialog.SecondaryButtonText(L"不保存并关闭");
+            dialog.CloseButtonText(L"取消");
+            dialog.DefaultButton(ContentDialogButton::Primary);
+            auto result = co_await dialog.ShowAsync();
+            if (result == ContentDialogResult::Primary)
+            {
+                auto editor = winrt::get_self<implementation::StrategyEditor>(Editor());
+                if (editor->SaveCurrentQuestion()) CloseEditor(true);
+            }
+            else if (result == ContentDialogResult::Secondary)
+            {
+                CloseEditor(false);
+            }
+        }
+        catch (...) {}
+        m_confirmingClose = false;
     }
 
     void AnswerEditorWindow::CloseEditor(bool commit)

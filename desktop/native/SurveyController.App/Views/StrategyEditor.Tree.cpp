@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <map>
-#include <unordered_map>
 #include <cwctype>
 #include <tuple>
 
@@ -24,35 +23,6 @@ namespace winrt::SurveyController::App::implementation
             constexpr size_t limit = 24;
             if (title.size() > limit) title = title.substr(0, limit - 1) + L"…";
             return hstring{ title };
-        }
-
-        hstring OptionLabel(JsonObject const& question, JsonArray const& indices)
-        {
-            auto optionTexts = Services::GetJsonArray(question, L"option_texts");
-            std::wstring result;
-            uint32_t count = 0;
-            for (auto const& value : indices)
-            {
-                if (value.ValueType() != JsonValueType::Number) continue;
-                auto index = static_cast<int32_t>(value.GetNumber());
-                if (index < 0) continue;
-                if (count++) result += L"、";
-                if (static_cast<uint32_t>(index) < optionTexts.Size())
-                {
-                    auto text = ShortTitle(optionTexts.GetStringAt(static_cast<uint32_t>(index)));
-                    result += L"“" + std::wstring{ text } + L"”";
-                }
-                else
-                {
-                    result += L"第 " + std::to_wstring(index + 1) + L" 项";
-                }
-                if (count == 3 && indices.Size() > 3)
-                {
-                    result += L"等" + std::to_wstring(indices.Size()) + L"项";
-                    break;
-                }
-            }
-            return result.empty() ? hstring{ L"指定选项" } : hstring{ result };
         }
 
         int32_t PageNumber(JsonObject const& question)
@@ -91,9 +61,9 @@ namespace winrt::SurveyController::App::implementation
             auto resources = Application::Current().Resources();
             auto foreground = resources.Lookup(box_value(foregroundKey)).as<Brush>();
             auto badgeForeground = resources.Lookup(box_value(badgeForegroundKey)).as<Brush>();
-            auto row = StackPanel{};
-            row.Orientation(Orientation::Horizontal);
-            row.Spacing(7);
+            auto line = StackPanel{};
+            line.Orientation(Orientation::Horizontal);
+            line.Spacing(7);
             auto icon = FontIcon{};
             icon.Glyph(question.icon);
             icon.FontSize(14);
@@ -111,10 +81,10 @@ namespace winrt::SurveyController::App::implementation
             auto title = TextBlock{};
             title.Text(hstring{ std::to_wstring(question.number) + L". " + std::wstring{ ShortTitle(question.title) } });
             title.TextTrimming(TextTrimming::CharacterEllipsis);
-            row.Children().Append(icon);
-            row.Children().Append(badge);
-            row.Children().Append(type);
-            row.Children().Append(title);
+            line.Children().Append(icon);
+            line.Children().Append(badge);
+            line.Children().Append(type);
+            line.Children().Append(title);
             auto appendBadge = [&](wchar_t const* label, wchar_t const* backgroundKey, wchar_t const* foregroundKey)
             {
                 auto badge = ContentControl{};
@@ -122,7 +92,7 @@ namespace winrt::SurveyController::App::implementation
                 badge.Content(box_value(label));
                 badge.Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
                 badge.Foreground(resources.Lookup(box_value(foregroundKey)).as<Brush>());
-                row.Children().Append(badge);
+                line.Children().Append(badge);
             };
             if (question.required)
             {
@@ -140,9 +110,21 @@ namespace winrt::SurveyController::App::implementation
             {
                 appendBadge(L"不支持", L"UnsupportedBadgeBackgroundBrush", L"UnsupportedBadgeForegroundBrush");
             }
-            Automation::AutomationProperties::SetName(row, hstring{ L"第 " + std::to_wstring(question.number) + L" 题，" +
+            auto content = StackPanel{};
+            content.Spacing(2);
+            content.Children().Append(line);
+            if (!question.logicSummary.empty())
+            {
+                auto logic = TextBlock{};
+                logic.Text(question.logicSummary);
+                logic.FontSize(11);
+                logic.Foreground(resources.Lookup(box_value(L"TextFillColorSecondaryBrush")).as<Brush>());
+                logic.TextTrimming(TextTrimming::CharacterEllipsis);
+                content.Children().Append(logic);
+            }
+            Automation::AutomationProperties::SetName(content, hstring{ L"第 " + std::to_wstring(question.number) + L" 题，" +
                 std::wstring{ question.type } + L"，" + std::wstring{ question.title } });
-            return row;
+            return content;
         }
 
         void UpdateTaskbarBadge(uint32_t unsupportedCount)
@@ -173,20 +155,12 @@ namespace winrt::SurveyController::App::implementation
             return;
         }
 
-        bool hasUnknownLogic = false;
         uint32_t unsupportedCount = 0;
-        int32_t maxQuestionNumber = 0;
-        std::unordered_map<int32_t, int32_t> questionIndices;
+        std::map<int32_t, uint32_t> pageCounts;
         for (uint32_t index = 0; index < questions.size(); ++index)
         {
-            auto question = m_document.QuestionAt(index);
-            auto status = question.GetNamedString(L"logic_parse_status", L"");
-            std::wstring normalized{ status };
-            std::transform(normalized.begin(), normalized.end(), normalized.begin(), ::towlower);
-            hasUnknownLogic = hasUnknownLogic || normalized == L"unknown";
             unsupportedCount += questions[index].unsupported ? 1u : 0u;
-            maxQuestionNumber = (std::max)(maxQuestionNumber, questions[index].number);
-            questionIndices.try_emplace(questions[index].number, static_cast<int32_t>(index));
+            ++pageCounts[questions[index].page];
         }
 
         std::map<int32_t, TreeViewNode> pages;
@@ -195,19 +169,12 @@ namespace winrt::SurveyController::App::implementation
             auto found = pages.find(page);
             if (found != pages.end()) return found->second;
             TreeViewNode node;
-            node.Content(box_value(hstring{ L"第 " + std::to_wstring(page) + L" 页" }));
+            node.Content(box_value(hstring{ L"第 " + std::to_wstring(page) + L" 页 · " +
+                std::to_wstring(pageCounts[page]) + L" 题" }));
             node.IsExpanded(true);
             tree.RootNodes().Append(node);
             pages.emplace(page, node);
             return node;
-        };
-
-        auto appendRelation = [&](TreeViewNode const& parent, hstring const& label, int32_t targetIndex)
-        {
-            TreeViewNode node;
-            node.Content(box_value(label));
-            parent.Children().Append(node);
-            m_treeTargets.emplace_back(node, targetIndex);
         };
 
         for (uint32_t index = 0; index < questions.size(); ++index)
@@ -221,42 +188,6 @@ namespace winrt::SurveyController::App::implementation
             parent.Children().Append(node);
             m_questionNodes[index] = node;
             m_treeTargets.emplace_back(node, static_cast<int32_t>(index));
-
-            if (hasUnknownLogic) continue;
-
-            auto displayTargets = Services::GetJsonArray(question, L"controls_display_targets");
-            for (auto const& value : displayTargets)
-            {
-                if (value.ValueType() != JsonValueType::Object) continue;
-                auto target = value.GetObject();
-                auto targetNumber = static_cast<int32_t>(target.GetNamedNumber(L"target_question_num", 0));
-                if (targetNumber <= 0) continue;
-                auto targetIndex = questionIndices.contains(targetNumber)
-                    ? questionIndices.at(targetNumber) : static_cast<int32_t>(index);
-                auto options = Services::GetJsonArray(target, L"condition_option_indices");
-                appendRelation(node, hstring{ L"条件 · 选中" + std::wstring{ OptionLabel(question, options) }
-                    + L" → 显示第 " + std::to_wstring(targetNumber) + L" 题" }, targetIndex);
-            }
-
-            auto jumpRules = Services::GetJsonArray(question, L"jump_rules");
-            for (auto const& value : jumpRules)
-            {
-                if (value.ValueType() != JsonValueType::Object) continue;
-                auto rule = value.GetObject();
-                auto targetNumber = static_cast<int32_t>(rule.GetNamedNumber(L"jumpto", 0));
-                if (targetNumber <= 0) continue;
-                JsonArray optionIndex;
-                optionIndex.Append(JsonValue::CreateNumberValue(rule.GetNamedNumber(L"option_index", -1)));
-                auto endsSurvey = rule.GetNamedBoolean(L"terminates_survey", false) || targetNumber > maxQuestionNumber;
-                auto targetIndex = !endsSurvey && questionIndices.contains(targetNumber)
-                    ? questionIndices.at(targetNumber) : static_cast<int32_t>(index);
-                auto targetLabel = endsSurvey
-                    ? std::wstring{ L"结束" }
-                    : L"第 " + std::to_wstring(targetNumber) + L" 题";
-                appendRelation(node, hstring{ L"跳题 · 选中" + std::wstring{ OptionLabel(question, optionIndex) }
-                    + L" → " + targetLabel }, targetIndex);
-            }
-            node.IsExpanded(node.Children().Size() > 0);
         }
 
         if (tree.RootNodes().Size() == 0)
@@ -265,7 +196,6 @@ namespace winrt::SurveyController::App::implementation
             UpdateTaskbarBadge(unsupportedCount);
             QuestionTitle().Text(L"没有匹配的题目");
             QuestionMeta().Text(L"清空搜索框后显示全部题目");
-            QuestionCountSummary().Text(L"0 / " + std::to_wstring(questions.size()) + L" 题");
             return;
         }
         UpdateTaskbarBadge(unsupportedCount);
@@ -295,11 +225,7 @@ namespace winrt::SurveyController::App::implementation
             return;
         }
         m_questionIndex = index;
-        auto total = static_cast<double>(m_document.Questions().size());
-        QuestionCountSummary().Text(hstring{ L"第 " + std::to_wstring(index + 1) + L" / " + std::to_wstring(static_cast<int32_t>(total)) + L" 题" });
         auto node = m_questionNodes[static_cast<size_t>(index)];
-        PreviousQuestionButton().IsEnabled(index > 0);
-        NextQuestionButton().IsEnabled(index + 1 < static_cast<int32_t>(m_questionNodes.size()));
         if (QuestionTree().SelectedNode() != node)
         {
             m_syncingTreeSelection = true;
@@ -442,14 +368,4 @@ namespace winrt::SurveyController::App::implementation
         }
     }
 
-    void StrategyEditor::OnPreviousQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
-    {
-        if (m_questionIndex > 0) SelectQuestion(m_questionIndex - 1);
-    }
-
-    void StrategyEditor::OnNextQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&)
-    {
-        if (m_questionIndex >= 0 && m_questionIndex + 1 < static_cast<int32_t>(m_questionNodes.size()))
-            SelectQuestion(m_questionIndex + 1);
-    }
 }
