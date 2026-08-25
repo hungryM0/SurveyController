@@ -26,33 +26,15 @@ namespace SurveyController.App
     }
 
     [default_interface]
-    runtimeclass SurveyPage : Microsoft.UI.Xaml.Controls.Page
+    runtimeclass TaskPage : Microsoft.UI.Xaml.Controls.Page
     {
-        SurveyPage();
+        TaskPage();
     }
 
     [default_interface]
-    runtimeclass AnswersPage : Microsoft.UI.Xaml.Controls.Page
+    runtimeclass ReverseFillPage : Microsoft.UI.Xaml.Controls.Page
     {
-        AnswersPage();
-    }
-
-    [default_interface]
-    runtimeclass NetworkPage : Microsoft.UI.Xaml.Controls.Page
-    {
-        NetworkPage();
-    }
-
-    [default_interface]
-    runtimeclass TimingPage : Microsoft.UI.Xaml.Controls.Page
-    {
-        TimingPage();
-    }
-
-    [default_interface]
-    runtimeclass RunPage : Microsoft.UI.Xaml.Controls.Page
-    {
-        RunPage();
+        ReverseFillPage();
     }
 
     [default_interface]

@@ -105,14 +105,9 @@ namespace
         auto config = request.GetNamedObject(L"config");
         auto strategy = config.GetNamedObject(L"answers").GetNamedArray(L"questions").GetObjectAt(0);
         auto weights = strategy.GetNamedObject(L"custom_weights").GetNamedArray(L"options");
-        Expect(strategy.GetNamedString(L"dimension", L"") == L"score", "Strategy dimension must persist in the request");
-        Expect(strategy.GetNamedString(L"psycho_bias", L"") == L"custom", "Strategy bias must persist in the request");
-        Expect(strategy.GetNamedBoolean(L"ai_enabled", false), "Strategy AI setting must persist in the request");
-        Expect(weights.Size() == 3 && weights.GetNumberAt(0) == 4 && weights.GetNumberAt(1) == -1,
-            "Strategy custom weights must persist in the request");
-        auto probabilities = strategy.GetNamedObject(L"probabilities").GetNamedArray(L"options");
-        Expect(probabilities.Size() == 3 && probabilities.GetNumberAt(2) == 6.5,
-            "RunRequest must include the edited probabilities");
+        Expect(strategy.GetNamedString(L"dimension", L"quality") == L"quality", "Strategy edits wait for Go normalization");
+        Expect(!strategy.GetNamedBoolean(L"ai_enabled", false), "Strategy edits wait for Go normalization");
+        Expect(weights.Size() == 3, "Existing strategy JSON remains unchanged until Go normalization");
     }
 
     void TestWizardDocumentRejectsInvalidJson()
@@ -158,11 +153,7 @@ namespace
             "Question display binds backend-provided fields without normalization");
 
         document.UpdateQuestionStrategy(0, JsonObject::Parse(LR"({"dimension":"created"})"));
-        Expect(document.StrategyCount() == 1, "Strategy edits must update the mapped strategy");
-        auto updatedConfig = JsonObject::Parse(document.RunRequest()).GetNamedObject(L"config");
-        auto updatedStrategy = updatedConfig.GetNamedObject(L"answers").GetNamedArray(L"questions").GetObjectAt(0);
-        Expect(updatedStrategy.GetNamedString(L"dimension", L"") == L"created",
-            "Strategy edits must persist in the document");
+        Expect(document.StrategyCount() == 0, "Strategy edits remain drafts until Go accepts them");
 
         // Provider metadata is external input. Wrong-shaped optional fields must be ignored.
         document.SetParsedConfig(LR"({

@@ -56,16 +56,6 @@ namespace winrt::SurveyController::App::implementation
             else output << std::fixed << std::setprecision(2) << value;
             return hstring{ output.str() };
         }
-
-        Microsoft::UI::Xaml::Media::SolidColorBrush RatioBrush(double percent)
-        {
-            Windows::UI::Color color;
-            if (percent < 10) color = { 255, 209, 52, 56 };
-            else if (percent < 20) color = { 255, 247, 99, 12 };
-            else if (percent < 50) color = { 255, 255, 185, 0 };
-            else color = { 255, 16, 124, 16 };
-            return Microsoft::UI::Xaml::Media::SolidColorBrush(color);
-        }
     }
 
     void StrategyEditor::RebuildWeightEditor(JsonObject const& question, JsonObject const& strategy,
@@ -237,15 +227,14 @@ namespace winrt::SurveyController::App::implementation
 
     void StrategyEditor::UpdateRatioPreview()
     {
-        using namespace Microsoft::UI::Xaml::Documents;
-        auto inlines = RatioPreview().Inlines();
-        inlines.Clear();
-        if (m_weightOptions.Size() == 0) return;
+        if (m_weightOptions.Size() == 0)
+        {
+            RatioPreview().Text(L"");
+            return;
+        }
         if (m_sliderValue)
         {
-            Run run;
-            run.Text(hstring{ L"预计值：" + std::wstring{ NumberText(m_weightOptions.GetAt(0).Value()) } });
-            inlines.Append(run);
+            RatioPreview().Text(hstring{ L"预计值：" + std::wstring{ NumberText(m_weightOptions.GetAt(0).Value()) } });
             return;
         }
         std::vector<double> values;
@@ -256,36 +245,25 @@ namespace winrt::SurveyController::App::implementation
             values.push_back(value);
         }
 
+        std::wstring preview;
         auto columns = (std::max)(1u, m_weightColumns);
         for (uint32_t row = 0; row < m_weightRows; ++row)
         {
-            if (row > 0) inlines.Append(LineBreak{});
-            Run prefix;
-            prefix.Text(hstring{ m_multipleWeights ? L"命中率：" : L"预计占比：" });
-            inlines.Append(prefix);
+            if (row > 0) preview += L"\n";
+            preview += m_multipleWeights ? L"命中率：" : L"预计占比：";
             double rowTotal = 0;
             for (uint32_t column = 0; column < columns; ++column) rowTotal += values[row * columns + column];
             for (uint32_t column = 0; column < columns; ++column)
             {
                 auto index = row * columns + column;
-                if (column > 0)
-                {
-                    Run sep;
-                    sep.Text(L" ｜ ");
-                    inlines.Append(sep);
-                }
+                if (column > 0) preview += L" | ";
                 std::wstring label{ m_weightLabels[index] };
                 if (label.size() > 14) label = label.substr(0, 14) + L"…";
                 auto percent = m_multipleWeights ? values[index]
                     : (rowTotal > 0 ? values[index] / rowTotal * 100.0 : 100.0 / columns);
-                Run name;
-                name.Text(hstring{ label + L" " });
-                inlines.Append(name);
-                Run value;
-                value.Text(hstring{ PercentText(percent) });
-                value.Foreground(RatioBrush(percent));
-                inlines.Append(value);
+                preview += label + L" " + std::wstring{ PercentText(percent) };
             }
         }
+        RatioPreview().Text(hstring{ preview });
     }
 }

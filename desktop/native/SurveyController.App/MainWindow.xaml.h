@@ -31,9 +31,6 @@ namespace winrt::SurveyController::App::implementation
         bool m_initialized{};
         bool m_closing{};
 
-        hstring m_themeMode{ L"system" };
-        Microsoft::UI::Xaml::FrameworkElement::ActualThemeChanged_revoker m_rootThemeRevoker;
-
         winrt::fire_and_forget InitializeAsync();
         winrt::fire_and_forget ConfirmCloseAsync();
         void ConfigureBackdrop();

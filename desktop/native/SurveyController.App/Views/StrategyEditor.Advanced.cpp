@@ -94,7 +94,7 @@ namespace winrt::SurveyController::App::implementation
             if (mode == L"integer")
             {
                 if (std::isnan(minimum.Value()) || std::isnan(maximum.Value()))
-                    throw hresult_error(E_INVALIDARG, L"随机整数模式必须填写最小值和最大值。");
+                    throw hresult_invalid_argument(L"随机整数模式必须填写最小值和最大值。");
                 auto low = static_cast<int64_t>(std::llround((std::min)(minimum.Value(), maximum.Value())));
                 auto high = static_cast<int64_t>(std::llround((std::max)(minimum.Value(), maximum.Value())));
                 return hstring{ std::wstring{ randomIntegerPrefix } + std::to_wstring(low) + L":" + std::to_wstring(high) };
@@ -105,11 +105,12 @@ namespace winrt::SurveyController::App::implementation
         Border CreateRowSurface()
         {
             Border border;
-            // 动态表单项属于同一组设置，用分隔线保持层次，不再把每一项包装成卡片。
-            border.Padding(Thickness{ 0, 8, 0, 12 });
-            border.BorderThickness(Thickness{ 0, 0, 0, 1 });
+            border.Padding(Thickness{ 12, 10, 12, 10 });
+            border.CornerRadius(CornerRadius{ 10 });
+            border.BorderThickness(Thickness{ 1 });
             auto resources = Application::Current().Resources();
-            border.BorderBrush(resources.Lookup(box_value(L"DividerStrokeColorDefaultBrush")).as<Brush>());
+            border.Background(resources.Lookup(box_value(L"CardBackgroundFillColorDefaultBrush")).as<Brush>());
+            border.BorderBrush(resources.Lookup(box_value(L"CardStrokeColorDefaultBrush")).as<Brush>());
             return border;
         }
 
@@ -134,7 +135,7 @@ namespace winrt::SurveyController::App::implementation
             JsonArray range;
             if (!enabled) return range;
             if (std::isnan(minimum.Value()) || std::isnan(maximum.Value()))
-                throw hresult_error(E_INVALIDARG, L"随机整数模式必须填写最小值和最大值。");
+                throw hresult_invalid_argument(L"随机整数模式必须填写最小值和最大值。");
             range.Append(JsonValue::CreateNumberValue(static_cast<double>(std::llround((std::min)(minimum.Value(), maximum.Value())))));
             range.Append(JsonValue::CreateNumberValue(static_cast<double>(std::llround((std::max)(minimum.Value(), maximum.Value())))));
             return range;
@@ -213,10 +214,11 @@ namespace winrt::SurveyController::App::implementation
         auto resources = Application::Current().Resources();
         auto foreground = resources.Lookup(box_value(foregroundKey)).as<Brush>();
         auto badgeForeground = resources.Lookup(box_value(badgeForegroundKey)).as<Brush>();
-        auto badgeBackground = resources.Lookup(box_value(backgroundKey)).as<Brush>();
         QuestionTypeIcon().Foreground(foreground);
-        QuestionTypeBadge().Background(badgeBackground);
+        QuestionBadgeIcon().Glyph(QuestionTypeIcon().Glyph());
+        QuestionBadgeIcon().Foreground(badgeForeground);
         QuestionTypeBadge().Foreground(badgeForeground);
+        QuestionTypeInfoBadge().Background(resources.Lookup(box_value(backgroundKey)).as<Brush>());
     }
 
     void StrategyEditor::LoadAdvancedEditors(JsonObject const& question, JsonObject const& strategy,
@@ -241,7 +243,6 @@ namespace winrt::SurveyController::App::implementation
         FillableOptionList().Children().Clear();
         auto fillable = Services::GetJsonArray(question, L"fillable_options");
         if (fillable.Size() == 0) fillable = Services::GetJsonArray(strategy, L"fillable_option_indices");
-        FillableOptionsSection().Visibility(fillable.Size() > 0 ? Visibility::Visible : Visibility::Collapsed);
         auto optionTexts = Services::GetJsonArray(question, L"option_texts");
         auto savedTexts = Services::GetJsonArray(strategy, L"option_fill_texts");
         for (auto const& value : fillable)
@@ -526,7 +527,7 @@ namespace winrt::SurveyController::App::implementation
                 total += value;
                 weights.Append(JsonValue::CreateNumberValue(value));
             }
-            if (weights.Size() && total <= 0) throw hresult_error(E_INVALIDARG, L"嵌入式下拉配比不能全为 0。");
+            if (weights.Size() && total <= 0) throw hresult_invalid_argument(L"嵌入式下拉配比不能全为 0。");
             item.SetNamedValue(L"weights", weights);
             attached.Append(item);
         }

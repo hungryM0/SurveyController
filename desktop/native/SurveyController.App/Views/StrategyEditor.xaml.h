@@ -19,6 +19,9 @@ namespace winrt::SurveyController::App::implementation
         void OnQuestionSearchChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::AutoSuggestBoxTextChangedEventArgs const&);
         void OnQuestionSuggestionChosen(IInspectable const&, Microsoft::UI::Xaml::Controls::AutoSuggestBoxSuggestionChosenEventArgs const&);
         void OnQuestionQuerySubmitted(IInspectable const&, Microsoft::UI::Xaml::Controls::AutoSuggestBoxQuerySubmittedEventArgs const&);
+        void OnPreviousQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnNextQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnSaveQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnBiasChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnTextModeChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
         void OnAIEnabledToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -94,6 +97,8 @@ namespace winrt::SurveyController::App::implementation
         void ApplyQuestionTypeBrush(hstring const& normalizedType);
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&) const;
         void SelectTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&);
+        hstring SelectedTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&) const;
+        void SelectTag(Microsoft::UI::Xaml::Controls::ComboBox const&, hstring const&);
     };
 }
 

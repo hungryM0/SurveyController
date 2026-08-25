@@ -1,11 +1,8 @@
 #include "pch.h"
 #include "MainWindow.xaml.h"
 #include "Services/WindowContext.h"
-#include "Views/SurveyPage.xaml.h"
-#include "Views/AnswersPage.xaml.h"
-#include "Views/NetworkPage.xaml.h"
-#include "Views/TimingPage.xaml.h"
-#include "Views/RunPage.xaml.h"
+#include "Views/TaskPage.xaml.h"
+#include "Views/ReverseFillPage.xaml.h"
 #include "Views/SettingsPage.xaml.h"
 #include "Views/CommunityPage.xaml.h"
 #include "Views/MorePage.xaml.h"
@@ -91,7 +88,7 @@ namespace winrt::SurveyController::App::implementation
                 if (auto self = weak.get()) self->ApplyShellSettings(json);
             });
             Services::ShellSettings::Current().Update(m_settingsJson);
-            if (!m_hasNavigated) ShowPage(L"survey");
+            if (!m_hasNavigated) ShowPage(L"task");
             StartupStatus().IsOpen(false);
             m_initialized = true;
         }
@@ -121,8 +118,9 @@ namespace winrt::SurveyController::App::implementation
         using namespace Microsoft::UI::Xaml::Media;
         if (IsWindows11OrGreater())
         {
-            // Base keeps the standard, lighter Mica tint for the main window.
-            SystemBackdrop(MicaBackdrop{});
+            auto mica = MicaBackdrop{};
+            mica.Kind(Microsoft::UI::Composition::SystemBackdrops::MicaKind::BaseAlt);
+            SystemBackdrop(mica);
             return;
         }
         SystemBackdrop(DesktopAcrylicBackdrop{});
@@ -146,7 +144,6 @@ namespace winrt::SurveyController::App::implementation
             root.RequestedTheme(theme == L"light" ? ElementTheme::Light
                 : theme == L"dark" ? ElementTheme::Dark : ElementTheme::Default);
         }
-        m_themeMode = theme;
         ApplyTitleBarTheme(theme);
 
         ShellNavigation().PaneDisplayMode(settings.GetNamedBoolean(L"showNavigationText", true)
@@ -221,9 +218,9 @@ namespace winrt::SurveyController::App::implementation
         m_confirmingClose = false;
         if (result == Microsoft::UI::Xaml::Controls::ContentDialogResult::None) co_return;
         m_closeConfirmed = true;
-        if (auto runPage = ContentFrame().Content().try_as<SurveyController::App::RunPage>())
+        if (auto taskPage = ContentFrame().Content().try_as<SurveyController::App::TaskPage>())
         {
-            winrt::get_self<SurveyController::App::implementation::RunPage>(runPage)->PrepareForShutdown();
+            winrt::get_self<SurveyController::App::implementation::TaskPage>(taskPage)->PrepareForShutdown();
         }
         Close();
     }
@@ -234,24 +231,8 @@ namespace winrt::SurveyController::App::implementation
         SetTitleBar(AppTitleBar());
 
         auto titleBar = AppWindow().TitleBar();
-        if (titleBar.IsCustomizationSupported())
-        {
-            // 48px 标题栏内容区需要 taller 的系统按钮，否则按钮偏小、不占满。
-            titleBar.PreferredHeightOption(Microsoft::UI::Windowing::TitleBarHeightOption::Tall);
-        }
-
-        // 主题变化（显式切换或切回 system）在 ActualTheme 异步更新后才反映，
-        // 监听它来同步标题栏按钮颜色，避免切回 system 瞬间颜色滞后。
-        if (auto root = Content().try_as<Microsoft::UI::Xaml::FrameworkElement>())
-        {
-            m_rootThemeRevoker = root.ActualThemeChanged(
-                winrt::auto_revoke,
-                [this](Microsoft::UI::Xaml::FrameworkElement const&, IInspectable const&)
-                {
-                    ApplyTitleBarTheme(m_themeMode);
-                });
-        }
-
+        titleBar.ButtonBackgroundColor(Windows::UI::Colors::Transparent());
+        titleBar.ButtonInactiveBackgroundColor(Windows::UI::Colors::Transparent());
         ApplyTitleBarTheme(L"system");
     }
 
@@ -263,27 +244,11 @@ namespace winrt::SurveyController::App::implementation
         auto root = Content().try_as<Microsoft::UI::Xaml::FrameworkElement>();
         auto const dark = themeMode == L"dark" ||
             (themeMode == L"system" && root && root.ActualTheme() == Microsoft::UI::Xaml::ElementTheme::Dark);
-
-        // 按钮叠加在 Mica 上，背景保持透明让材质透出；前景跟随主题，
-        // 失焦时淡化，明确区分活动/非活动窗口。官方要求设置任一颜色就显式设全部。
-        auto const transparent = Windows::UI::Colors::Transparent();
         auto const foreground = dark ? Windows::UI::Colors::White() : Windows::UI::Colors::Black();
-        auto const inactive = dark
-            ? Windows::UI::ColorHelper::FromArgb(255, 150, 150, 150)
-            : Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110);
-
-        titleBar.ForegroundColor(foreground);
-        titleBar.BackgroundColor(transparent);
         titleBar.ButtonForegroundColor(foreground);
-        titleBar.ButtonBackgroundColor(transparent);
         titleBar.ButtonHoverForegroundColor(foreground);
-        titleBar.ButtonHoverBackgroundColor(transparent);
         titleBar.ButtonPressedForegroundColor(foreground);
-        titleBar.ButtonPressedBackgroundColor(transparent);
-        titleBar.InactiveForegroundColor(inactive);
-        titleBar.InactiveBackgroundColor(transparent);
-        titleBar.ButtonInactiveForegroundColor(inactive);
-        titleBar.ButtonInactiveBackgroundColor(transparent);
+        titleBar.ButtonInactiveForegroundColor(foreground);
     }
 
     void MainWindow::ConfigureWindow()
@@ -355,27 +320,14 @@ namespace winrt::SurveyController::App::implementation
     {
         using namespace Microsoft::UI::Xaml::Media::Animation;
 
-        int32_t const targetIndex = tag == L"survey" ? 0 : tag == L"answers" ? 1 : tag == L"network" ? 2
-            : tag == L"timing" ? 3 : tag == L"run" ? 4 : tag == L"settings" ? 5 : tag == L"community" ? 6 : 7;
+        int32_t const targetIndex = tag == L"task" ? 0 : tag == L"reversefill" ? 1 : tag == L"settings" ? 2 : tag == L"community" ? 3 : 4;
         if (m_hasNavigated && targetIndex == m_currentPageIndex) return;
 
         NavigationTransitionInfo transition = EntranceNavigationTransitionInfo{};
 
-        if (tag == L"answers")
+        if (tag == L"reversefill")
         {
-            ContentFrame().Navigate(xaml_typename<SurveyController::App::AnswersPage>(), nullptr, transition);
-        }
-        else if (tag == L"network")
-        {
-            ContentFrame().Navigate(xaml_typename<SurveyController::App::NetworkPage>(), nullptr, transition);
-        }
-        else if (tag == L"timing")
-        {
-            ContentFrame().Navigate(xaml_typename<SurveyController::App::TimingPage>(), nullptr, transition);
-        }
-        else if (tag == L"run")
-        {
-            ContentFrame().Navigate(xaml_typename<SurveyController::App::RunPage>(), nullptr, transition);
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::ReverseFillPage>(), nullptr, transition);
         }
         else if (tag == L"settings")
         {
@@ -391,7 +343,7 @@ namespace winrt::SurveyController::App::implementation
         }
         else
         {
-            ContentFrame().Navigate(xaml_typename<SurveyController::App::SurveyPage>(), nullptr, transition);
+            ContentFrame().Navigate(xaml_typename<SurveyController::App::TaskPage>(), nullptr, transition);
         }
         m_currentPageIndex = targetIndex;
         m_hasNavigated = true;

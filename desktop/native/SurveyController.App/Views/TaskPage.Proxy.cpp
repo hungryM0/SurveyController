@@ -1,25 +1,21 @@
 #include "pch.h"
-#include "NetworkPage.xaml.h"
+#include "TaskPage.xaml.h"
 #include "Services/RpcServices.h"
 #include "Services/JsonHelpers.h"
 
-#include <algorithm>
-#include <cmath>
-#include <string>
-
-#if __has_include("NetworkPage.g.cpp")
-#include "NetworkPage.g.cpp"
-#endif
-
 namespace winrt::SurveyController::App::implementation
 {
-    using namespace Microsoft::UI::Dispatching;
-    using namespace Microsoft::UI::Xaml;
-    using namespace Microsoft::UI::Xaml::Controls;
-    using namespace Windows::Data::Json;
-
     namespace
     {
+        using namespace Microsoft::UI::Xaml;
+        using namespace Microsoft::UI::Xaml::Controls;
+        using namespace Windows::Data::Json;
+
+        hstring ProxyJsonString(hstring const& value)
+        {
+            return JsonValue::CreateStringValue(value).Stringify();
+        }
+
         hstring ProxySourceLabel(hstring const& source)
         {
             if (source == L"benefit") return L"限时福利代理";
@@ -36,146 +32,35 @@ namespace winrt::SurveyController::App::implementation
         }
     }
 
-    NetworkPage::NetworkPage() : m_document(Services::WizardDocument::Current())
+    void TaskPage::OnProxyModeChanged(IInspectable const&, SelectionChangedEventArgs const&)
     {
-        InitializeComponent();
-        m_initialized = true;
-        PopulateFromDocument();
-    }
-
-    hstring NetworkPage::SelectedTag(ComboBox const& combo, hstring const& fallback) const
-    {
-        auto item = combo.SelectedItem().try_as<ComboBoxItem>();
-        return item ? unbox_value_or<hstring>(item.Tag(), fallback) : fallback;
-    }
-
-    void NetworkPage::SelectTag(ComboBox const& combo, hstring const& value)
-    {
-        for (uint32_t index = 0; index < combo.Items().Size(); ++index)
-        {
-            auto item = combo.Items().GetAt(index).try_as<ComboBoxItem>();
-            if (item && unbox_value_or<hstring>(item.Tag(), L"") == value)
-            {
-                combo.SelectedIndex(static_cast<int32_t>(index));
-                return;
-            }
-        }
-        combo.SelectedIndex(0);
-    }
-
-    void NetworkPage::PopulateFromDocument()
-    {
-        SelectTag(ProxyMode(), m_document.ProxyMode());
-        FixedProxyAddress().Text(m_document.FixedProxyAddress());
-        SelectTag(ProxySource(), m_document.ProxySource());
-        CustomProxyApi().Text(m_document.CustomProxyAPI());
-        m_proxyAreaCode = m_document.ProxyAreaCode();
-        RandomUA().IsOn(m_document.RandomUA());
-        PsychometricsEnabled().IsOn(m_document.PsychometricsEnabled());
-        TargetAlpha().Value(m_document.TargetAlpha());
-        UpdatePsychometricsVisibility();
+        if (!m_initialized) return;
         UpdateNetworkVisibility();
         LoadProxyAreaOptions();
     }
 
-    void NetworkPage::ScheduleSync()
-    {
-        // 与 SettingsPage 相同的 30ms 单发防抖；写回仅作用于内存文档，无 RPC。
-        ++m_syncGeneration;
-        if (!m_syncTimer)
-        {
-            m_syncTimer = DispatcherQueue().CreateTimer();
-            m_syncTimer.IsRepeating(false);
-            m_syncTimer.Interval(std::chrono::milliseconds{ 30 });
-            auto weak = get_weak();
-            m_syncTimer.Tick([weak](auto const&, auto const&)
-            {
-                if (auto self = weak.get()) self->SyncToDocument();
-            });
-        }
-        m_syncTimer.Stop();
-        m_syncTimer.Start();
-    }
-
-    void NetworkPage::SyncToDocument()
-    {
-        if (!m_initialized) return;
-        m_document.SetNetwork(
-            SelectedTag(ProxyMode(), L"direct"),
-            FixedProxyAddress().Text(),
-            SelectedTag(ProxySource(), L"default"),
-            CustomProxyApi().Text(),
-            m_proxyAreaCode,
-            RandomUA().IsOn());
-        auto alphaValue = TargetAlpha().Value();
-        if (std::isnan(alphaValue)) alphaValue = 0.85;
-        alphaValue = std::clamp(alphaValue, 0.5, 0.99);
-        m_document.SetPsychometrics(PsychometricsEnabled().IsOn(), alphaValue);
-    }
-
-    void NetworkPage::UpdatePsychometricsVisibility()
-    {
-        PsychometricsRow().Visibility(PsychometricsEnabled().IsOn() ? Visibility::Visible : Visibility::Collapsed);
-    }
-
-    void NetworkPage::OnTextChanged(IInspectable const&, TextChangedEventArgs const&)
-    {
-        ScheduleSync();
-    }
-
-    void NetworkPage::OnAlphaChanged(IInspectable const&, NumberBoxValueChangedEventArgs const&)
-    {
-        ScheduleSync();
-    }
-
-    void NetworkPage::OnSettingToggled(IInspectable const&, RoutedEventArgs const&)
-    {
-        ScheduleSync();
-    }
-
-    void NetworkPage::OnPsychometricsToggled(IInspectable const&, RoutedEventArgs const&)
-    {
-        if (!m_initialized) return;
-        UpdatePsychometricsVisibility();
-        ScheduleSync();
-    }
-
-    void NetworkPage::OnProxyModeChanged(IInspectable const&, SelectionChangedEventArgs const&)
-    {
-        if (!m_initialized) return;
-        SyncToDocument();
-        UpdateNetworkVisibility();
-        LoadProxyAreaOptions();
-    }
-
-    void NetworkPage::OnProxySourceChanged(IInspectable const&, SelectionChangedEventArgs const&)
+    void TaskPage::OnProxySourceChanged(IInspectable const&, SelectionChangedEventArgs const&)
     {
         if (!m_initialized) return;
         if (SelectedTag(ProxySource(), L"default") != m_document.ProxySource()) m_proxyAreaCode.clear();
-        SyncToDocument();
         UpdateNetworkVisibility();
         LoadProxyAreaOptions();
     }
 
-    void NetworkPage::OnProxyProvinceChanged(IInspectable const&, SelectionChangedEventArgs const&)
+    void TaskPage::OnProxyProvinceChanged(IInspectable const&, SelectionChangedEventArgs const&)
     {
         if (m_updatingProxyAreas) return;
         auto provinceCode = SelectedTag(ProxyProvince(), L"");
         RebuildProxyCities(provinceCode);
         m_proxyAreaCode = SelectedTag(ProxyCity(), L"");
-        ScheduleSync();
     }
 
-    void NetworkPage::OnProxyCityChanged(IInspectable const&, SelectionChangedEventArgs const&)
+    void TaskPage::OnProxyCityChanged(IInspectable const&, SelectionChangedEventArgs const&)
     {
-        if (!m_updatingProxyAreas)
-        {
-            m_proxyAreaCode = SelectedTag(ProxyCity(), L"");
-            ScheduleSync();
-        }
+        if (!m_updatingProxyAreas) m_proxyAreaCode = SelectedTag(ProxyCity(), L"");
     }
 
-    fire_and_forget NetworkPage::LoadProxyAreaOptions()
+    fire_and_forget TaskPage::LoadProxyAreaOptions()
     {
         try
         {
@@ -183,45 +68,57 @@ namespace winrt::SurveyController::App::implementation
             auto source = SelectedTag(ProxySource(), L"default");
             if (mode != L"random" || source == L"custom") co_return;
             auto lifetime = get_strong();
+            auto dispatcher = DispatcherQueue();
             hstring result;
             hstring error;
-            co_await winrt::resume_background();
+            co_await resume_background();
             try { result = co_await Services::ProxyService{}.AreasAsync(source); }
-            catch (winrt::hresult_error const& value) { error = value.message(); }
+            catch (hresult_error const& value) { error = value.message(); }
             catch (std::exception const& value) { error = to_hstring(value.what()); }
             catch (...) { error = L"地区列表读取失败。"; }
-
-            lifetime->DispatcherQueue().TryEnqueue([lifetime, result, error, source]()
+            try
             {
-                try
+                dispatcher.TryEnqueue([lifetime, result, error, source]()
                 {
-                    if (!lifetime->m_initialized) return;
-                    if (source != lifetime->SelectedTag(lifetime->ProxySource(), L"default")) return;
-                    if (!error.empty())
+                    try
                     {
-                        lifetime->NetworkStatus().Title(L"地区列表读取失败");
-                        lifetime->NetworkStatus().Message(error);
-                        lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
-                        return;
+                        if (source != lifetime->SelectedTag(lifetime->ProxySource(), L"default")) return;
+                        if (!error.empty())
+                        {
+                            lifetime->NetworkStatus().Title(L"地区列表读取失败");
+                            lifetime->NetworkStatus().Message(error);
+                            lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
+                            return;
+                        }
+                        lifetime->ApplyProxyAreaOptions(result, source);
                     }
-                    lifetime->ApplyProxyAreaOptions(result, source);
-                }
-                catch (...) {}
-            });
+                    catch (hresult_error const& value) { lifetime->SetFooterError(value.message()); }
+                    catch (std::exception const& value) { lifetime->SetFooterError(to_hstring(value.what())); }
+                    catch (...) { lifetime->SetFooterError(L"地区列表应用失败。"); }
+                });
+            }
+            catch (...)
+            {
+                co_return;
+            }
         }
-        catch (...) {}
+        catch (...)
+        {
+            co_return;
+        }
     }
 
-    void NetworkPage::ApplyProxyAreaOptions(hstring const& json, hstring const& source)
+    void TaskPage::ApplyProxyAreaOptions(hstring const& json, hstring const& source)
     {
         JsonObject state;
         hstring error;
         if (!Services::TryParseJsonObject(json, state, error))
         {
+            SetFooterError(error);
             return;
         }
         m_proxyAreaOptions = state;
-        auto provinces = Services::GetJsonArray(state, L"provinces");
+        auto provinces = state.GetNamedArray(L"provinces", JsonArray{});
         m_updatingProxyAreas = true;
         ProxyProvince().Items().Clear();
         ProxyProvince().Items().Append(AreaItem(source == L"benefit" ? L"请选择省份" : L"不限制", L""));
@@ -229,7 +126,6 @@ namespace winrt::SurveyController::App::implementation
         hstring selectedProvince;
         for (auto const& value : provinces)
         {
-            if (value.ValueType() != JsonValueType::Object) continue;
             auto province = value.GetObject();
             auto code = province.GetNamedString(L"code", L"");
             ProxyProvince().Items().Append(AreaItem(province.GetNamedString(L"name", code), code));
@@ -247,7 +143,7 @@ namespace winrt::SurveyController::App::implementation
         m_updatingProxyAreas = false;
     }
 
-    void NetworkPage::RebuildProxyCities(hstring const& provinceCode, hstring const& selectedCode)
+    void TaskPage::RebuildProxyCities(hstring const& provinceCode, hstring const& selectedCode)
     {
         auto source = SelectedTag(ProxySource(), L"default");
         ProxyCity().Items().Clear();
@@ -258,15 +154,13 @@ namespace winrt::SurveyController::App::implementation
             return;
         }
 
-        ProxyCity().Items().Append(AreaItem(
-            source == L"benefit" ? L"请选择城市" : L"全省/全市",
+        ProxyCity().Items().Append(AreaItem(source == L"benefit" ? L"请选择城市" : L"全省/全市",
             source == L"benefit" ? L"" : provinceCode));
         auto provinces = m_proxyAreaOptions
-            ? Services::GetJsonArray(m_proxyAreaOptions, L"provinces")
+            ? m_proxyAreaOptions.GetNamedArray(L"provinces", JsonArray{})
             : JsonArray{};
         for (auto const& value : provinces)
         {
-            if (value.ValueType() != JsonValueType::Object) continue;
             auto province = value.GetObject();
             if (province.GetNamedString(L"code", L"") != provinceCode) continue;
             for (auto const& cityValue : province.GetNamedArray(L"cities", JsonArray{}))
@@ -280,50 +174,27 @@ namespace winrt::SurveyController::App::implementation
         SelectTag(ProxyCity(), selectedCode.empty() ? (source == L"benefit" ? L"" : provinceCode) : selectedCode);
     }
 
-    void NetworkPage::SetBusy(bool busy)
-    {
-        m_busy = busy;
-        ProxyMode().IsEnabled(!busy);
-        ProxySource().IsEnabled(!busy);
-        FixedProxyAddress().IsEnabled(!busy);
-        CustomProxyApi().IsEnabled(!busy);
-        ProxyProvince().IsEnabled(!busy);
-        ProxyCity().IsEnabled(!busy);
-        SyncProxyButton().IsEnabled(!busy);
-    }
-
-    fire_and_forget NetworkPage::OnTestFixedProxy(IInspectable const&, RoutedEventArgs const&)
+    fire_and_forget TaskPage::OnTestFixedProxy(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
         auto address = FixedProxyAddress().Text();
-        SetBusy(true);
-        SyncToDocument();
-        UpdateNetworkVisibility();
-
+        auto dispatcher = DispatcherQueue();
+        SetBusy(true, L"正在测试固定代理");
         hstring result, error;
-        co_await winrt::resume_background();
+        co_await resume_background();
         try { result = co_await Services::ProxyService{}.TestFixedAsync(address); }
-        catch (winrt::hresult_error const& value) { error = value.message(); }
+        catch (hresult_error const& value) { error = value.message(); }
         catch (std::exception const& value) { error = to_hstring(value.what()); }
         catch (...) { error = L"固定代理测试失败。"; }
-
-        lifetime->DispatcherQueue().TryEnqueue([lifetime, result, error]()
+        dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);
-            if (!error.empty())
-            {
-                lifetime->NetworkStatus().Title(L"固定代理不可用");
-                lifetime->NetworkStatus().Message(error);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
-                return;
-            }
+            if (!error.empty()) { lifetime->SetFooterError(error); return; }
             JsonObject state;
             hstring parseError;
             if (!Services::TryParseJsonObject(result, state, parseError))
             {
-                lifetime->NetworkStatus().Title(L"固定代理测试失败");
-                lifetime->NetworkStatus().Message(parseError);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
+                lifetime->SetFooterError(parseError);
                 return;
             }
             auto success = state.GetNamedBoolean(L"success", false);
@@ -336,38 +207,27 @@ namespace winrt::SurveyController::App::implementation
         });
     }
 
-    fire_and_forget NetworkPage::OnTestCustomProxy(IInspectable const&, RoutedEventArgs const&)
+    fire_and_forget TaskPage::OnTestCustomProxy(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
         auto url = CustomProxyApi().Text();
-        SetBusy(true);
-        SyncToDocument();
-        UpdateNetworkVisibility();
-
+        auto dispatcher = DispatcherQueue();
+        SetBusy(true, L"正在测试代理 API");
         hstring result, error;
-        co_await winrt::resume_background();
+        co_await resume_background();
         try { result = co_await Services::ProxyService{}.TestCustomAsync(url); }
-        catch (winrt::hresult_error const& value) { error = value.message(); }
+        catch (hresult_error const& value) { error = value.message(); }
         catch (std::exception const& value) { error = to_hstring(value.what()); }
         catch (...) { error = L"代理 API 测试失败。"; }
-
-        lifetime->DispatcherQueue().TryEnqueue([lifetime, result, error]()
+        dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);
-            if (!error.empty())
-            {
-                lifetime->NetworkStatus().Title(L"代理 API 不可用");
-                lifetime->NetworkStatus().Message(error);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
-                return;
-            }
+            if (!error.empty()) { lifetime->SetFooterError(error); return; }
             JsonObject state;
             hstring parseError;
             if (!Services::TryParseJsonObject(result, state, parseError))
             {
-                lifetime->NetworkStatus().Title(L"代理 API 测试失败");
-                lifetime->NetworkStatus().Message(parseError);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
+                lifetime->SetFooterError(parseError);
                 return;
             }
             auto success = state.GetNamedBoolean(L"success", false);
@@ -381,43 +241,34 @@ namespace winrt::SurveyController::App::implementation
         });
     }
 
-    fire_and_forget NetworkPage::OnSyncProxy(IInspectable const&, RoutedEventArgs const&)
+    fire_and_forget TaskPage::OnSyncProxy(IInspectable const&, RoutedEventArgs const&)
     {
         auto lifetime = get_strong();
         auto source = SelectedTag(ProxySource(), L"default");
-        SetBusy(true);
-
+        auto dispatcher = DispatcherQueue();
+        SetBusy(true, L"正在同步代理状态");
         hstring result, error;
-        co_await winrt::resume_background();
+        co_await resume_background();
         try { result = co_await Services::ProxyService{}.SyncAsync(source); }
-        catch (winrt::hresult_error const& value) { error = value.message(); }
+        catch (hresult_error const& value) { error = value.message(); }
         catch (std::exception const& value) { error = to_hstring(value.what()); }
         catch (...) { error = L"同步代理状态失败。"; }
-
-        lifetime->DispatcherQueue().TryEnqueue([lifetime, result, error]()
+        dispatcher.TryEnqueue([lifetime, result, error]()
         {
             lifetime->SetBusy(false);
-            if (!error.empty())
-            {
-                lifetime->NetworkStatus().Title(L"同步代理状态失败");
-                lifetime->NetworkStatus().Message(error);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
-                return;
-            }
+            if (!error.empty()) { lifetime->SetFooterError(error); return; }
             JsonObject state;
             hstring parseError;
             if (!Services::TryParseJsonObject(result, state, parseError))
             {
-                lifetime->NetworkStatus().Title(L"同步代理状态失败");
-                lifetime->NetworkStatus().Message(parseError);
-                lifetime->NetworkStatus().Severity(InfoBarSeverity::Error);
+                lifetime->SetFooterError(parseError);
                 return;
             }
             lifetime->ApplyProxyStatus(state);
         });
     }
 
-    void NetworkPage::ApplyProxyStatus(JsonObject const& state)
+    void TaskPage::ApplyProxyStatus(JsonObject const& state)
     {
         auto source = state.GetNamedString(L"source", SelectedTag(ProxySource(), L"default"));
         auto message = state.GetNamedString(L"message", L"");
@@ -452,15 +303,15 @@ namespace winrt::SurveyController::App::implementation
         NetworkStatus().Severity(unavailable ? InfoBarSeverity::Error : InfoBarSeverity::Success);
     }
 
-    void NetworkPage::UpdateNetworkVisibility()
+    void TaskPage::UpdateNetworkVisibility()
     {
         auto mode = SelectedTag(ProxyMode(), L"direct");
         auto source = SelectedTag(ProxySource(), L"default");
-        FixedProxyRow().Visibility(mode == L"fixed" ? Visibility::Visible : Visibility::Collapsed);
-        ProxySourceRow().Visibility(mode == L"random" ? Visibility::Visible : Visibility::Collapsed);
-        CustomProxyRow().Visibility(mode == L"random" && source == L"custom" ? Visibility::Visible : Visibility::Collapsed);
-        ProxyAreaRow().Visibility(mode == L"random" && source != L"custom" ? Visibility::Visible : Visibility::Collapsed);
-        SyncProxyButton().Visibility(mode == L"random" && source != L"custom" ? Visibility::Visible : Visibility::Collapsed);
+        FixedProxyRow().Visibility(mode == L"fixed" ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        ProxySourceRow().Visibility(mode == L"random" ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        CustomProxyRow().Visibility(mode == L"random" && source == L"custom" ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        ProxyAreaRow().Visibility(mode == L"random" && source != L"custom" ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
+        SyncProxyButton().Visibility(mode == L"random" && source != L"custom" ? Microsoft::UI::Xaml::Visibility::Visible : Microsoft::UI::Xaml::Visibility::Collapsed);
         if (mode == L"direct")
         {
             NetworkStatus().Title(L"直连");
@@ -472,7 +323,7 @@ namespace winrt::SurveyController::App::implementation
         else if (mode == L"fixed")
         {
             NetworkStatus().Title(L"固定代理");
-            NetworkStatus().Message(L"测试连接后再启动任务。");
+            NetworkStatus().Message(L"测试连接后再继续。");
             ProxyStatusSource().Text(L"固定代理");
             ProxyStatusQuota().Text(L"不适用");
             ProxyStatusPool().Text(L"尚未测试");
@@ -480,7 +331,7 @@ namespace winrt::SurveyController::App::implementation
         else
         {
             NetworkStatus().Title(L"随机 IP");
-            NetworkStatus().Message(source == L"custom" ? L"测试代理 API 后再启动任务。" : L"同步代理额度后再启动任务。");
+            NetworkStatus().Message(source == L"custom" ? L"测试代理 API 后再继续。" : L"同步代理额度后再继续。");
             ProxyStatusSource().Text(ProxySourceLabel(source));
             ProxyStatusQuota().Text(source == L"custom" ? L"不适用" : L"未知");
             ProxyStatusPool().Text(L"未知");

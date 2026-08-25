@@ -104,11 +104,8 @@
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
-    <Page Include="Views\SurveyPage.xaml" />
-    <Page Include="Views\AnswersPage.xaml" />
-    <Page Include="Views\NetworkPage.xaml" />
-    <Page Include="Views\TimingPage.xaml" />
-    <Page Include="Views\RunPage.xaml" />
+    <Page Include="Views\TaskPage.xaml" />
+    <Page Include="Views\ReverseFillPage.xaml" />
     <Page Include="Views\StrategyEditor.xaml" />
     <Page Include="Views\RuleEditor.xaml" />
     <Page Include="Views\AnswerEditorWindow.xaml" />
@@ -120,11 +117,8 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h"><DependentUpon>App.xaml</DependentUpon></ClInclude>
     <ClInclude Include="MainWindow.xaml.h"><DependentUpon>MainWindow.xaml</DependentUpon></ClInclude>
-    <ClInclude Include="Views\SurveyPage.xaml.h"><DependentUpon>SurveyPage.xaml</DependentUpon></ClInclude>
-    <ClInclude Include="Views\AnswersPage.xaml.h"><DependentUpon>AnswersPage.xaml</DependentUpon></ClInclude>
-    <ClInclude Include="Views\NetworkPage.xaml.h"><DependentUpon>NetworkPage.xaml</DependentUpon></ClInclude>
-    <ClInclude Include="Views\TimingPage.xaml.h"><DependentUpon>TimingPage.xaml</DependentUpon></ClInclude>
-    <ClInclude Include="Views\RunPage.xaml.h"><DependentUpon>RunPage.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="Views\TaskPage.xaml.h"><DependentUpon>TaskPage.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="Views\ReverseFillPage.xaml.h"><DependentUpon>ReverseFillPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\StrategyEditor.xaml.h"><DependentUpon>StrategyEditor.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\RuleEditor.xaml.h"><DependentUpon>RuleEditor.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\AnswerEditorWindow.xaml.h"><DependentUpon>AnswerEditorWindow.xaml</DependentUpon></ClInclude>
@@ -148,11 +142,10 @@
     <ClCompile Include="pch.cpp"><PrecompiledHeader>Create</PrecompiledHeader></ClCompile>
     <ClCompile Include="App.xaml.cpp"><DependentUpon>App.xaml</DependentUpon></ClCompile>
     <ClCompile Include="MainWindow.xaml.cpp"><DependentUpon>MainWindow.xaml</DependentUpon></ClCompile>
-    <ClCompile Include="Views\SurveyPage.xaml.cpp"><DependentUpon>SurveyPage.xaml</DependentUpon></ClCompile>
-    <ClCompile Include="Views\AnswersPage.xaml.cpp"><DependentUpon>AnswersPage.xaml</DependentUpon></ClCompile>
-    <ClCompile Include="Views\NetworkPage.xaml.cpp"><DependentUpon>NetworkPage.xaml</DependentUpon></ClCompile>
-    <ClCompile Include="Views\TimingPage.xaml.cpp"><DependentUpon>TimingPage.xaml</DependentUpon></ClCompile>
-    <ClCompile Include="Views\RunPage.xaml.cpp"><DependentUpon>RunPage.xaml</DependentUpon></ClCompile>
+    <ClCompile Include="Views\TaskPage.xaml.cpp"><DependentUpon>TaskPage.xaml</DependentUpon></ClCompile>
+    <ClCompile Include="Views\TaskPage.Proxy.cpp" />
+    <ClCompile Include="Views\TaskPage.Run.cpp" />
+    <ClCompile Include="Views\ReverseFillPage.xaml.cpp"><DependentUpon>ReverseFillPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\StrategyEditor.Tree.cpp" />
     <ClCompile Include="Views\StrategyEditor.Advanced.cpp" />
     <ClCompile Include="Views\StrategyEditor.Weights.cpp" />
