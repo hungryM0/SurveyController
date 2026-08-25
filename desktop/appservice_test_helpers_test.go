@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
 )
 
 type memoryCredentialStore struct {
@@ -79,18 +79,18 @@ func newTestAppService() *AppService {
 
 func testConfigDocument(url string, provider string) configio.ConfigDocument {
 	if strings.TrimSpace(provider) == "" {
-		provider = surveycore.ProviderWJX
+		provider = model.ProviderWJX
 	}
 	return configio.ConfigDocument{
 		SchemaVersion: configio.ConfigSchemaVersion,
 		Survey: configio.SurveyDocument{
 			URL:      strings.TrimSpace(url),
 			Provider: provider,
-			Definition: surveycore.SurveyDefinition{
+			Definition: model.SurveyDefinition{
 				Provider: provider,
 			},
 		},
-		Execution: surveycore.ExecutionPlan{
+		Execution: model.ExecutionPlan{
 			Target:               1,
 			Threads:              1,
 			AnswerDuration:       [2]int{60, 120},
@@ -98,9 +98,9 @@ func testConfigDocument(url string, provider string) configio.ConfigDocument {
 			PauseOnAliyunCaptcha: true,
 		},
 		Network:       defaultNetworkSettings(),
-		Answers:       surveycore.AnswerPlan{},
-		ReverseFill:   surveycore.ReverseFillPlan{Format: configio.ReverseFillFormatAuto, StartRow: 1, Threads: 1},
-		Psychometrics: surveycore.PsychometricPolicy{Enabled: true, TargetAlpha: 0.85},
+		Answers:       model.AnswerPlan{},
+		ReverseFill:   model.ReverseFillPlan{Format: configio.ReverseFillFormatAuto, StartRow: 1, Threads: 1},
+		Psychometrics: model.PsychometricPolicy{Enabled: true, TargetAlpha: 0.85},
 	}
 }
 

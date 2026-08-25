@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	desktoprpc "github.com/SurveyController/SurveyController/desktop/internal/rpc"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
 )
 
 func TestBackendProcessServesSettingsAndDefaultConfig(t *testing.T) {
@@ -74,7 +74,7 @@ func TestBackendProcessServesSettingsAndDefaultConfig(t *testing.T) {
 
 	document := validTaskCheckDocument()
 	document.Answers.Dimensions = []string{"服务"}
-	document.Answers.Rules = []surveycore.ConsistencyRule{{
+	document.Answers.Rules = []model.ConsistencyRule{{
 		ID:                     "native-rule",
 		ConditionQuestionNum:   1,
 		ConditionMode:          "selected",
@@ -83,7 +83,7 @@ func TestBackendProcessServesSettingsAndDefaultConfig(t *testing.T) {
 		ActionMode:             "must_select",
 		TargetOptionIndices:    []int{1},
 	}}
-	document.Answers.Strategies[0].CustomWeights = surveycore.WeightTable{Options: []float64{0.25, 0.75}}
+	document.Answers.Strategies[0].CustomWeights = model.WeightTable{Options: []float64{0.25, 0.75}}
 	document.Answers.Strategies[0].Dimension = "服务"
 	document.Answers.Strategies[0].MultiTextBlankAIFlags = []bool{true, false, true}
 	document.Answers.Strategies[0].TextRandomIntRange = []int{1, 9}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	surveyRuntime "github.com/SurveyController/SurveyCore/pkg/surveycore/runtime"
 )
 
 var runIDCounter atomic.Uint64
@@ -24,7 +25,8 @@ type runManager struct {
 	logSink       runEventSink
 	logErr        error
 	stopRequested bool
-	survey        *surveycore.Client
+	parser        *surveycore.Client
+	runtime       *surveyRuntime.Client
 	sleep         sleepBlocker
 	reporter      submissionReporter
 }
@@ -38,7 +40,8 @@ func newRunManager() *runManager {
 	return &runManager{
 		state:    RunTaskState{Status: RunTaskStatusIdle},
 		events:   newRunEventWindow(),
-		survey:   surveycore.New(),
+		parser:   surveycore.New(),
+		runtime:  surveyRuntime.New(),
 		sleep:    newSystemSleepBlocker(),
 		reporter: newHTTPSubmissionReporter(),
 	}

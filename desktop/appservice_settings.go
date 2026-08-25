@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/reversefill"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/config/reversefill"
 )
 
 func (s *AppService) GetAppSettings() (AppSettings, error) {

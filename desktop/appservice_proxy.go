@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
 )
 
 func (s *AppService) GetProxyStatus() ProxyStatus {
@@ -55,7 +55,7 @@ func (s *AppService) TestAIConnection(ctx context.Context, request TestAIConnect
 	if profile.Mode == "provider" && !configured {
 		return AIConnectionTestState{Success: false, Message: "未配置 AI API Key"}
 	}
-	message, err := s.runs.survey.TestAIConnection(ctx, profile)
+	message, err := s.runs.runtime.TestAIConnection(ctx, profile)
 	if err != nil {
 		return AIConnectionTestState{Success: false, Message: "连接失败: " + err.Error()}
 	}

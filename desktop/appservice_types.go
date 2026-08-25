@@ -3,9 +3,10 @@ package main
 import (
 	"time"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
 )
 
 type ParseSurveyRequest struct {
@@ -125,10 +126,10 @@ type RunTaskState struct {
 }
 
 type ReverseFillPreviewRequest struct {
-	Path      string                    `json:"path"`
-	Format    string                    `json:"format"`
-	StartRow  int                       `json:"startRow"`
-	Questions []surveycore.QuestionMeta `json:"questions"`
+	Path      string               `json:"path"`
+	Format    string               `json:"format"`
+	StartRow  int                  `json:"startRow"`
+	Questions []model.QuestionMeta `json:"questions"`
 }
 
 type RedeemProxyCardRequest struct {

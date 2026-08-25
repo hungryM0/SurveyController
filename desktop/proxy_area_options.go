@@ -3,7 +3,7 @@ package main
 import (
 	"sort"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
 )
 
 type ProxyAreaCity struct {

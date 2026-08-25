@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
 )
 
 type officialSessionFileStore struct {

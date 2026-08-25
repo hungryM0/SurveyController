@@ -14,3 +14,6 @@ CLAUDE.md
 # Go 测试产物
 *.test
 coverage.out
+
+# 已移除的 C++ 壳构建输出
+/desktop/native/

@@ -6,16 +6,17 @@ import (
 	"strings"
 
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
 )
 
-func coreRunRequest(document configio.ConfigDocument) (surveycore.RunRequest, error) {
+func coreRunRequest(document configio.ConfigDocument) (model.RunRequest, error) {
 	request, err := configio.RunRequestFromConfigDocument(document)
 	if err != nil {
-		return surveycore.RunRequest{}, err
+		return model.RunRequest{}, err
 	}
 	if strings.TrimSpace(request.SurveySource.URL) == "" {
-		return surveycore.RunRequest{}, fmt.Errorf("问卷链接不能为空")
+		return model.RunRequest{}, fmt.Errorf("问卷链接不能为空")
 	}
 	return request, nil
 }
@@ -37,20 +38,20 @@ func defaultNetworkSettings() configio.NetworkSettings {
 	}
 }
 
-func aiProfileForSettings(ctx context.Context, store credentialStore, settings AIProfileSettings) (surveycore.AIProfile, bool, error) {
+func aiProfileForSettings(ctx context.Context, store credentialStore, settings AIProfileSettings) (model.AIProfile, bool, error) {
 	profile := settings.ProfileWithKey("")
 	if strings.EqualFold(strings.TrimSpace(profile.Mode), "free") || strings.TrimSpace(profile.Mode) == "" {
 		return profile, false, nil
 	}
 	key, configured, err := readAICredential(ctx, store)
 	if err != nil {
-		return surveycore.AIProfile{}, false, err
+		return model.AIProfile{}, false, err
 	}
 	profile.APIKey = key
 	return profile, configured, nil
 }
 
-func answerPlanUsesAI(plan surveycore.AnswerPlan) bool {
+func answerPlanUsesAI(plan model.AnswerPlan) bool {
 	for _, strategy := range plan.Strategies {
 		if strategy.AIEnabled {
 			return true

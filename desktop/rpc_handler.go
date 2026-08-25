@@ -14,6 +14,8 @@ const (
 	rpcMethodLoadConfig         = "LoadConfig"
 	rpcMethodSaveConfig         = "SaveConfig"
 	rpcMethodCreateSurvey       = "CreateSurveyDocument"
+	rpcMethodBuildAnswerEditor  = "BuildAnswerEditorView"
+	rpcMethodApplyAnswerChanges = "ApplyAnswerEditorChanges"
 	rpcMethodDecodeQRCode       = "DecodeQRCode"
 	rpcMethodDecodeQRCodeSurvey = "DecodeQRCodeSurvey"
 	rpcMethodCheckTask          = "CheckTask"
@@ -83,6 +85,18 @@ func (h *rpcHandler) Handle(ctx context.Context, method string, params json.RawM
 			return nil, desktoprpc.InvalidParams(err)
 		}
 		return h.service.CreateSurveyDocument(ctx, request)
+	case rpcMethodBuildAnswerEditor:
+		var request BuildAnswerEditorViewRequest
+		if err := unmarshalRPCParams(params, &request); err != nil {
+			return nil, desktoprpc.InvalidParams(err)
+		}
+		return h.service.BuildAnswerEditorView(request)
+	case rpcMethodApplyAnswerChanges:
+		var request ApplyAnswerEditorChangesRequest
+		if err := unmarshalRPCParams(params, &request); err != nil {
+			return nil, desktoprpc.InvalidParams(err)
+		}
+		return h.service.ApplyAnswerEditorChanges(request)
 	case rpcMethodDecodeQRCode:
 		var request DecodeQRCodeRequest
 		if err := unmarshalRPCParams(params, &request); err != nil {

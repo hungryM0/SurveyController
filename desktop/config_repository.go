@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
 )
 
 type configRepository interface {
