@@ -1,4 +1,3 @@
-# 本机代理状态
 .claude/settings.local.json
 .codex/environments/
 desktop.ini
@@ -10,6 +9,7 @@ CLAUDE.md
 /configs/
 /Releases/
 /Setup/
+.tmp/
 
 # Go 测试产物
 *.test
