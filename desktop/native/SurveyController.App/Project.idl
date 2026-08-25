@@ -32,6 +32,12 @@ namespace SurveyController.App
     }
 
     [default_interface]
+    runtimeclass ReverseFillPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        ReverseFillPage();
+    }
+
+    [default_interface]
     runtimeclass StrategyEditor : Microsoft.UI.Xaml.Controls.UserControl
     {
         StrategyEditor();

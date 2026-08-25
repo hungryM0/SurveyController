@@ -105,6 +105,7 @@
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
     <Page Include="Views\TaskPage.xaml" />
+    <Page Include="Views\ReverseFillPage.xaml" />
     <Page Include="Views\StrategyEditor.xaml" />
     <Page Include="Views\RuleEditor.xaml" />
     <Page Include="Views\AnswerEditorWindow.xaml" />
@@ -117,6 +118,7 @@
     <ClInclude Include="App.xaml.h"><DependentUpon>App.xaml</DependentUpon></ClInclude>
     <ClInclude Include="MainWindow.xaml.h"><DependentUpon>MainWindow.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\TaskPage.xaml.h"><DependentUpon>TaskPage.xaml</DependentUpon></ClInclude>
+    <ClInclude Include="Views\ReverseFillPage.xaml.h"><DependentUpon>ReverseFillPage.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\StrategyEditor.xaml.h"><DependentUpon>StrategyEditor.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\RuleEditor.xaml.h"><DependentUpon>RuleEditor.xaml</DependentUpon></ClInclude>
     <ClInclude Include="Views\AnswerEditorWindow.xaml.h"><DependentUpon>AnswerEditorWindow.xaml</DependentUpon></ClInclude>
@@ -143,6 +145,7 @@
     <ClCompile Include="Views\TaskPage.xaml.cpp"><DependentUpon>TaskPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\TaskPage.Proxy.cpp" />
     <ClCompile Include="Views\TaskPage.Run.cpp" />
+    <ClCompile Include="Views\ReverseFillPage.xaml.cpp"><DependentUpon>ReverseFillPage.xaml</DependentUpon></ClCompile>
     <ClCompile Include="Views\StrategyEditor.Tree.cpp" />
     <ClCompile Include="Views\StrategyEditor.Advanced.cpp" />
     <ClCompile Include="Views\StrategyEditor.Weights.cpp" />

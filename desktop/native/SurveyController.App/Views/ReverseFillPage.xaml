@@ -1,0 +1,85 @@
+<Page
+    x:Class="SurveyController.App.ReverseFillPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="OnLoaded"
+    NavigationCacheMode="Required">
+
+    <Page.Resources>
+        <Style x:Key="SectionCardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource WizardCardCornerRadius}" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer x:Name="ReverseFillScrollViewer" HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Width="{x:Bind ReverseFillScrollViewer.ViewportWidth, Mode=OneWay}" MaxWidth="760" Padding="24,24,24,32" HorizontalAlignment="Left" Spacing="16">
+            <TextBlock FontSize="28" FontWeight="SemiBold" Text="Excel 反填" />
+
+            <InfoBar
+                x:Name="ReverseFillStatus"
+                IsOpen="True"
+                IsClosable="False"
+                MaxWidth="720"
+                Severity="Informational"
+                Title="用表格覆盖答案"
+                Message="选择 .xlsx / .xls 表格后，作答时会按表格内容逐题覆盖对应答案；开关随任务配置一起保存。"
+                AutomationProperties.AutomationId="ReverseFillStatusInfoBar" />
+
+            <!-- 配置 -->
+            <Border Style="{StaticResource SectionCardBorder}">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <SymbolIcon Symbol="OpenFile" />
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="反填表格" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            x:Name="PathDisplay"
+                            Header="表格文件"
+                            IsReadOnly="True"
+                            AutomationProperties.Name="反填表格路径"
+                            AutomationProperties.AutomationId="ReverseFillPathInput"
+                            PlaceholderText="尚未选择表格"
+                            TextWrapping="Wrap" />
+                        <Button
+                            Grid.Column="1"
+                            VerticalAlignment="Bottom"
+                            MinWidth="110"
+                            Click="OnChooseSpreadsheet"
+                            AutomationProperties.Name="选择 Excel 文件"
+                            AutomationProperties.AutomationId="ReverseFillPickButton">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="OpenFile" /><TextBlock x:Name="PickLabel" Text="选择 Excel" /></StackPanel>
+                        </Button>
+                        <ToggleSwitch
+                            x:Name="ReverseFillEnabled"
+                            Grid.Column="2"
+                            VerticalAlignment="Bottom"
+                            Margin="8,0,0,0"
+                            OffContent="关"
+                            OnContent="开"
+                            Toggled="OnToggled"
+                            AutomationProperties.Name="启用 Excel 反填"
+                            AutomationProperties.AutomationId="ReverseFillEnableToggle" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 说明 -->
+            <Border Style="{StaticResource SectionCardBorder}">
+                <StackPanel Spacing="8">
+                    <TextBlock FontWeight="SemiBold" Text="使用说明" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Text="1. 先在「任务」页解析问卷，确认题目结构无误。&#x0a;2. 选择包含答案的 Excel 表格并打开上方开关。&#x0a;3. 到「任务」页检查并启动任务，作答时将按表格内容覆盖对应答案。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
