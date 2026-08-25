@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
 )
 
 func TestAppServiceTestFixedProxyUsesRealHealthCheck(t *testing.T) {
@@ -44,7 +44,7 @@ func TestAppServiceTestFixedProxyReportsFailure(t *testing.T) {
 
 func TestAppServiceProxyRuntimeUsesFixedProxyForEveryLease(t *testing.T) {
 	service := newTestAppService()
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Execution.Threads = 2
 	document.Network.FixedProxyAddress = "127.0.0.1:8080"
 

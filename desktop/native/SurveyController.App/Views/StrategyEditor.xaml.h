@@ -3,6 +3,7 @@
 #include "StrategyEditor.g.h"
 #include "Services/WizardDocument.h"
 #include "ViewModels/OptionWeight.h"
+#include <map>
 
 namespace winrt::SurveyController::App::implementation
 {
@@ -12,6 +13,14 @@ namespace winrt::SurveyController::App::implementation
         void OnLoaded(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void Refresh();
         bool SaveCurrentQuestion();
+        Windows::Foundation::IAsyncOperation<bool> ApplyChangesAsync();
+        void FocusSearch();
+        void SelectPreviousQuestion();
+        void SelectNextQuestion();
+        void SelectPreviousMatch();
+        void SelectNextMatch();
+        void FocusSection(bool reverse);
+        void ShowQuestionList();
         Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> WeightOptions();
 
         void OnQuestionSelected(IInspectable const&, Microsoft::UI::Xaml::Controls::TreeViewSelectionChangedEventArgs const&);
@@ -24,9 +33,13 @@ namespace winrt::SurveyController::App::implementation
         void OnAIEnabledToggled(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnQuestionTextChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::TextChangedEventArgs const&);
         void OnQuestionNumberChanged(IInspectable const&, Microsoft::UI::Xaml::Controls::NumberBoxValueChangedEventArgs const&);
+        void OnBackToList(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnWeightElementPrepared(Microsoft::UI::Xaml::Controls::ItemsRepeater const&,
+            Microsoft::UI::Xaml::Controls::ItemsRepeaterElementPreparedEventArgs const&);
 
     private:
-        Services::WizardDocument& m_document;
+        Services::WizardDocument& m_sourceDocument;
+        Services::WizardDocument m_document;
         bool m_initialized{};
         bool m_isLoaded{};
         bool m_itemsSourceBound{};
@@ -38,6 +51,9 @@ namespace winrt::SurveyController::App::implementation
         int32_t m_questionIndex{ -1 };
         hstring m_currentNormalizedType;
         hstring m_questionSearch;
+        uint64_t m_sourceRevision{};
+        Windows::Data::Json::JsonArray m_editorQuestions;
+        std::map<int32_t, Windows::Data::Json::JsonObject> m_pendingDrafts;
         std::vector<Microsoft::UI::Xaml::Controls::TreeViewNode> m_questionNodes;
         std::vector<std::pair<Microsoft::UI::Xaml::Controls::TreeViewNode, int32_t>> m_treeTargets;
         Windows::Foundation::Collections::IObservableVector<SurveyController::App::OptionWeight> m_weightOptions{
@@ -78,6 +94,10 @@ namespace winrt::SurveyController::App::implementation
         std::vector<AttachedSelectControls> m_attachedSelectControls;
 
         void LoadQuestion();
+        winrt::fire_and_forget LoadEditorViewAsync();
+        void ApplyEditorView(Windows::Data::Json::JsonObject const& view);
+        Windows::Data::Json::JsonObject DraftFromStrategy(int32_t questionNumber,
+            Windows::Data::Json::JsonObject const& strategy) const;
         void RebuildQuestionTree(int32_t selectedIndex);
         void SelectQuestion(int32_t index);
         void RebuildWeightEditor(Windows::Data::Json::JsonObject const& question,
@@ -91,7 +111,6 @@ namespace winrt::SurveyController::App::implementation
             Windows::Data::Json::JsonObject const& strategy, Services::WizardQuestion const& summary);
         void SaveAdvancedEditors(Windows::Data::Json::JsonObject const& question,
             hstring const& normalizedType, Windows::Data::Json::JsonObject& changes);
-        void ApplyQuestionTypeBrush(hstring const& normalizedType);
         hstring SelectedTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&) const;
         void SelectTag(Microsoft::UI::Xaml::Controls::RadioButtons const&, hstring const&);
     };

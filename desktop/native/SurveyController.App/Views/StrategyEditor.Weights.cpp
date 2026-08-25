@@ -289,3 +289,28 @@ namespace winrt::SurveyController::App::implementation
         }
     }
 }
+
+namespace winrt::SurveyController::App::implementation
+{
+    void StrategyEditor::OnWeightElementPrepared(Microsoft::UI::Xaml::Controls::ItemsRepeater const&,
+        Microsoft::UI::Xaml::Controls::ItemsRepeaterElementPreparedEventArgs const& args)
+    {
+        auto root = args.Element();
+        auto index = args.Index() + 1;
+        Microsoft::UI::Xaml::Automation::AutomationProperties::SetAutomationId(root,
+            hstring{ L"AnswerEditor.Weight." + std::to_wstring(index) + L".Row" });
+        Microsoft::UI::Xaml::Automation::AutomationProperties::SetName(root,
+            hstring{ L"第 " + std::to_wstring(index) + L" 个比例项" });
+        auto const childCount = Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(root);
+        for (int32_t childIndex = 0; childIndex < childCount; ++childIndex)
+        {
+            auto child = Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(root, childIndex);
+            if (auto slider = child.try_as<Microsoft::UI::Xaml::Controls::Slider>())
+                Microsoft::UI::Xaml::Automation::AutomationProperties::SetAutomationId(slider,
+                    hstring{ L"AnswerEditor.Weight." + std::to_wstring(index) + L".Slider" });
+            if (auto number = child.try_as<Microsoft::UI::Xaml::Controls::NumberBox>())
+                Microsoft::UI::Xaml::Automation::AutomationProperties::SetAutomationId(number,
+                    hstring{ L"AnswerEditor.Weight." + std::to_wstring(index) + L".Value" });
+        }
+    }
+}

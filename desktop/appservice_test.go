@@ -12,9 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xuri/excelize/v2"
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
+	surveyRuntime "github.com/SurveyController/SurveyCore/pkg/surveycore/runtime"
+	"github.com/xuri/excelize/v2"
 )
 
 func TestAppServiceRejectsEmptySurveyURL(t *testing.T) {
@@ -53,7 +55,7 @@ func TestAppServiceProxyRuntimeUsesCustomAPI(t *testing.T) {
 	defer server.Close()
 
 	service := newTestAppService()
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Execution.Threads = 2
 	document.Network.RandomProxyEnabled = true
 	document.Network.ProxySource = "custom"
@@ -128,7 +130,7 @@ func TestAppServiceProxyRuntimeUsesOfficialSource(t *testing.T) {
 		ExtractEndpoint: server.URL + "/extract",
 		SessionManager:  manager,
 	})}}
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Execution.Threads = 2
 	document.Network.RandomProxyEnabled = true
 	document.Network.ProxySource = "default"
@@ -326,7 +328,7 @@ func TestAppServiceProxyRuntimeUsesOfficialBenefitSource(t *testing.T) {
 		ExtractEndpoint: server.URL + "/extract",
 		SessionManager:  manager,
 	})}}
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Network.RandomProxyEnabled = true
 	document.Network.ProxySource = "benefit"
 	options, err := service.proxy.executionOptions(context.Background(), document)
@@ -377,7 +379,7 @@ func TestAppServiceProxyRuntimeStopsWhenOfficialQuotaExhaustedAfterSync(t *testi
 		ExtractEndpoint: server.URL + "/extract",
 		SessionManager:  manager,
 	})}}
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Network.RandomProxyEnabled = true
 	document.Network.ProxySource = "default"
 	_, err := service.proxy.executionOptions(context.Background(), document)
@@ -397,16 +399,16 @@ func TestAppServiceParsesTencentViaCoreClient(t *testing.T) {
 	server := newAppTencentServer(t)
 	defer server.Close()
 	service := newTestAppService()
-	service.runs.survey = surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))
+	service.runs.parser = surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))
 
 	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: "https://wj.qq.com/s2/123/hashvalue/"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Survey.Definition.Provider != surveycore.ProviderQQ || len(document.Survey.Definition.Questions) != 2 {
+	if document.Survey.Definition.Provider != model.ProviderQQ || len(document.Survey.Definition.Questions) != 2 {
 		t.Fatalf("document = %#v", document)
 	}
-	if document.Survey.Provider != surveycore.ProviderQQ || len(document.Answers.Strategies) != 2 {
+	if document.Survey.Provider != model.ProviderQQ || len(document.Answers.Strategies) != 2 {
 		t.Fatalf("document = %#v", document)
 	}
 }
@@ -420,10 +422,10 @@ func TestAppServiceParsesCredamoViaCoreClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Survey.Definition.Provider != surveycore.ProviderCredamo || len(document.Survey.Definition.Questions) != 2 {
+	if document.Survey.Definition.Provider != model.ProviderCredamo || len(document.Survey.Definition.Questions) != 2 {
 		t.Fatalf("document = %#v", document)
 	}
-	if document.Survey.Provider != surveycore.ProviderCredamo || len(document.Answers.Strategies) != 2 {
+	if document.Survey.Provider != model.ProviderCredamo || len(document.Answers.Strategies) != 2 {
 		t.Fatalf("document = %#v", document)
 	}
 }
@@ -432,7 +434,9 @@ func TestAppServiceStartRunSubmitsTencentAndEmitsEvents(t *testing.T) {
 	server := newAppTencentServer(t)
 	defer server.Close()
 	service := newTestAppService()
-	service.runs.survey = surveycore.New(surveycore.WithHTTPClient(rewriteTencentClient(server.URL)))
+	httpClient := rewriteTencentClient(server.URL)
+	service.runs.parser = surveycore.New(surveycore.WithHTTPClient(httpClient))
+	service.runs.runtime = surveyRuntime.New(surveyRuntime.WithHTTPClient(httpClient))
 	document, err := service.CreateSurveyDocument(context.Background(), ParseSurveyRequest{URL: "https://wj.qq.com/s2/123/hashvalue/"})
 	if err != nil {
 		t.Fatal(err)
@@ -559,7 +563,8 @@ func TestAppServiceStartRunReportsSubmissionWhenEnabled(t *testing.T) {
 	})
 	service := newTestAppService()
 	service.proxy = &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{SessionManager: manager})}
-	service.runs.survey = surveycore.New()
+	service.runs.parser = surveycore.New()
+	service.runs.runtime = surveyRuntime.New()
 	service.runs.sleep = noopSleepBlocker{}
 	service.runs.reporter = reporter
 
@@ -593,7 +598,8 @@ func TestAppServiceStartRunSkipsSubmissionReportWhenDisabled(t *testing.T) {
 	})
 	service := newTestAppService()
 	service.proxy = &proxyRuntime{officialClient: proxycore.NewOfficialClient(proxycore.OfficialClientOptions{SessionManager: manager})}
-	service.runs.survey = surveycore.New()
+	service.runs.parser = surveycore.New()
+	service.runs.runtime = surveyRuntime.New()
 	service.runs.sleep = noopSleepBlocker{}
 	service.runs.reporter = reporter
 	settings, err := service.GetAppSettings()
@@ -620,16 +626,16 @@ func TestAppServiceStartRunSkipsSubmissionReportWhenDisabled(t *testing.T) {
 
 func TestAppServiceCancelRunMarksCanceling(t *testing.T) {
 	service := newTestAppService()
-	document := testConfigDocument("https://wj.qq.com/s2/123/hashvalue/", surveycore.ProviderQQ)
-	document.Survey.Definition.Questions = []surveycore.QuestionMeta{{
+	document := testConfigDocument("https://wj.qq.com/s2/123/hashvalue/", model.ProviderQQ)
+	document.Survey.Definition.Questions = []model.QuestionMeta{{
 		Num:          1,
 		Title:        "满意度",
-		Provider:     surveycore.ProviderQQ,
+		Provider:     model.ProviderQQ,
 		ProviderType: "single",
 		Options:      2,
 	}}
 	questionNum := 1
-	document.Answers.Strategies = []surveycore.QuestionStrategy{{QuestionNum: &questionNum}}
+	document.Answers.Strategies = []model.QuestionStrategy{{QuestionNum: &questionNum}}
 	state, err := service.StartRun(context.Background(), RunSurveyRequest{Config: document})
 	if err != nil {
 		t.Fatal(err)
@@ -900,7 +906,7 @@ func TestAppServiceConfigRoundTrip(t *testing.T) {
 	t.Setenv("SURVEYCONTROLLER_CONFIG_HOME", t.TempDir())
 	service := newTestAppService()
 
-	document := testConfigDocument("https://wj.qq.com/s2/123/hash/", surveycore.ProviderQQ)
+	document := testConfigDocument("https://wj.qq.com/s2/123/hash/", model.ProviderQQ)
 	document.Survey.Title = "腾讯配置"
 	document.Execution.Target = 6
 	document.Execution.Threads = 2
@@ -988,7 +994,7 @@ func TestAppServiceSaveConfigDoesNotPersistAICredential(t *testing.T) {
 	if err := service.credentials.Write(context.Background(), aiCredentialTarget, "sk-save"); err != nil {
 		t.Fatal(err)
 	}
-	state, err := service.SaveConfig(context.Background(), SaveConfigRequest{Config: testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)})
+	state, err := service.SaveConfig(context.Background(), SaveConfigRequest{Config: testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1032,7 +1038,7 @@ func TestAppServicePreviewReverseFill(t *testing.T) {
 		Path:     path,
 		Format:   "wjx_text",
 		StartRow: 1,
-		Questions: []surveycore.QuestionMeta{
+		Questions: []model.QuestionMeta{
 			{Num: 1, Title: "单选题", TypeCode: "3", OptionTexts: []string{"A", "B"}},
 			{Num: 2, Title: "文本题", TypeCode: "1", TextInputs: 1},
 		},

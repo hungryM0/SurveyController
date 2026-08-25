@@ -14,6 +14,8 @@ namespace winrt::SurveyController::App::Services
         Windows::Foundation::IAsyncOperation<hstring> LoadAsync(hstring path = L"") const;
         Windows::Foundation::IAsyncOperation<hstring> SaveAsync(hstring request) const;
         Windows::Foundation::IAsyncOperation<hstring> CreateSurveyAsync(hstring url) const;
+        Windows::Foundation::IAsyncOperation<hstring> BuildAnswerEditorAsync(hstring request) const;
+        Windows::Foundation::IAsyncOperation<hstring> ApplyAnswerChangesAsync(hstring request) const;
         Windows::Foundation::IAsyncOperation<hstring> DecodeQrCodeAsync(hstring path) const;
         Windows::Foundation::IAsyncOperation<hstring> DecodeQrSurveyAsync(hstring path) const;
     };

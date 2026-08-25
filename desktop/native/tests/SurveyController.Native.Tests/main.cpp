@@ -64,7 +64,7 @@ namespace
                     "provider":"wjx",
                     "definition":{"questions":[
                         {"num":0,"title":"Intro","is_description":true},
-                        {"num":1,"title":"Choice","provider_type":"radio","required":true,"options":3}
+                        {"num":1,"title":"Choice","provider_type":"radio","normalized_type":"single","type_label":"单选题","required":true,"options":3}
                     ]}
                 },
                 "execution":{"target":2,"threads":1},
@@ -85,7 +85,8 @@ namespace
         auto questions = document.Questions();
         Expect(questions.size() == 1, "Only answerable questions must be returned");
         Expect(questions[0].number == 1, "Question number must be preserved");
-        Expect(questions[0].type.empty() || questions[0].type == L"radio", "Question labels come from the backend DTO");
+        Expect(questions[0].normalizedType == L"single" && questions[0].type == L"单选题",
+            "Question type labels must come from the backend DTO");
         Expect(questions[0].required, "Required question metadata must be preserved");
         Expect(questions[0].weights.empty() || questions[0].weights == L"1, 2, 3", "Strategy summaries come from the backend DTO");
 
@@ -129,92 +130,39 @@ namespace
         Expect(threw, "WizardDocument must reject invalid JSON");
     }
 
-    void TestWizardQuestionNormalization()
+    void TestWizardQuestionDisplayBinding()
     {
         auto& document = WizardDocument::Current();
-        auto normJson = LR"({
+        auto displayJson = LR"({
             "config":{
                 "survey":{"url":"https://example.test/types","definition":{"questions":[
-                    {"num":1,"provider_type":"radio","provider":"qq","provider_question_id":"q1","provider_page_id":"p1","title":"Single","options":0,"option_texts":["A","B"]},
-                    {"num":2,"provider_type":"checkbox","title":"Multiple","options":2,"option_texts":["A","B"]},
-                    {"num":3,"type_code":"7","title":"Dropdown","options":2,"option_texts":["A","B"]},
-                    {"num":4,"provider_type":"matrix_radio","title":"Matrix","options":2,"rows":0,"row_texts":["R1","R2"]},
-                    {"num":5,"provider_type":"order","title":"Sort","options":2,"option_texts":["A","B"]},
-                    {"num":6,"is_rating":true,"title":"Scale","options":5},
-                    {"num":7,"type_code":"8","title":"Slider","options":1,"slider_min":"10","slider_max":"90"},
-                    {"num":8,"provider_type":"matrix","is_slider_matrix":true,"title":"Slider matrix","options":2,"rows":2},
-                    {"num":9,"is_multi_text":true,"title":"Multi text","text_inputs":2},
-                    {"num":10,"is_location":true,"title":"Location"},
-                    {"num":11,"type_code":"1","is_text_like":true,"text_inputs":1,"title":"Text"},
-                    {"num":12,"unsupported":true,"title":"Unsupported"},
-                    {"num":13,"provider_type":"new_widget","type_code":"99","title":"Unknown"}
+                    {"num":1,"provider_type":"radio","normalized_type":"multiple","type_label":"多选题","title":"Mapped by backend","page":2,"page_question_count":3,"options":0,"option_texts":["A","B"]},
+                    {"num":2,"provider_type":"matrix_radio","normalized_type":"unsupported","type_label":"暂不支持","title":"Unsupported","unsupported":true,"unsupported_reason":"该题没有可编辑的答案策略","rows":0,"row_texts":["R1","R2"]},
+                    {"num":3,"provider_type":"text","normalized_type":"text","type_label":"文本题","title":"Malformed metadata","options":2,
+                     "option_texts":{},"row_texts":"not-an-array"}
                 ]}},"answers":{"questions":[]}}
         })";
-        document.LoadConfigState(normJson);
+        document.LoadConfigState(displayJson);
+        auto original = document.RunRequest();
 
         auto questions = document.Questions();
-        Expect(questions.size() == 13, "All non-description questions must be normalized");
-        Expect(questions[0].number == 1 && questions[0].options == 2,
-            "Question display binds backend-provided fields without normalization");
-
-        document.UpdateQuestionStrategy(0, JsonObject::Parse(LR"({"dimension":"created"})"));
-        Expect(document.StrategyCount() == 1, "Strategy edits must update the mapped strategy");
-        auto updatedConfig = JsonObject::Parse(document.RunRequest()).GetNamedObject(L"config");
-        auto updatedStrategy = updatedConfig.GetNamedObject(L"answers").GetNamedArray(L"questions").GetObjectAt(0);
-        Expect(updatedStrategy.GetNamedString(L"dimension", L"") == L"created",
-            "Strategy edits must persist in the document");
-
-        // Provider metadata is external input. Wrong-shaped optional fields must be ignored.
-        document.SetParsedConfig(LR"({
-            "survey":{"url":"https://example.test/malformed","definition":{"questions":[
-                {"num":1,"provider_type":"radio","title":"Malformed","options":2,
-                 "option_texts":{},"row_texts":"not-an-array","jump_rules":{},
-                 "controls_display_targets":null}
-            ]},"provider":"wjx"},
-            "answers":{"questions":[{"question_num":1,"option_fill_texts":{},"multi_text_blank_ai_flags":null}]}
-        })");
-        auto malformed = document.Questions();
-        Expect(malformed.size() == 1 && malformed[0].options == 2,
-            "Malformed optional metadata must not abort question normalization");
+        Expect(questions.size() == 3, "All backend display questions must be exposed");
+        Expect(questions[0].number == 1 && questions[0].page == 2 && questions[0].pageQuestionCount == 3 && questions[0].options == 2,
+            "Question display fields must be bound without native normalization");
+        Expect(questions[0].normalizedType == L"multiple" && questions[0].type == L"多选题",
+            "Provider type must not override the normalized backend type");
+        Expect(questions[1].unsupported && questions[1].type == L"暂不支持"
+            && questions[1].unsupportedReason == L"该题没有可编辑的答案策略" && questions[1].rows == 2,
+            "Unsupported state and row metadata must come from the backend display DTO");
+        Expect(questions[2].normalizedType == L"text" && questions[2].options == 2,
+            "Malformed optional display arrays must not abort read-only binding");
+        Expect(!document.Dirty() && document.RunRequest() == original,
+            "Reading display questions must not mutate the wizard document");
     }
 
-    void TestWizardDocumentTransactionsAndRules()
+    void TestWizardDocumentRules()
     {
         auto& document = WizardDocument::Current();
-        document.LoadConfigState(LR"({
-            "config":{
-                "survey":{"url":"https://example.test/rules","definition":{"questions":[
-                    {"num":1,"provider_type":"radio","title":"Condition","options":3,"option_texts":["A","B","C"]},
-                    {"num":2,"provider_type":"matrix_radio","title":"Target","options":2,"rows":2,"option_texts":["X","Y"],"row_texts":["R1","R2"]},
-                    {"num":3,"provider_type":"slider","title":"Slider","options":1,"rows":1},
-                    {"num":4,"provider_type":"text","title":"Text"}
-                ]}},"answers":{"questions":[{"question_num":1,"custom_weights":{"options":[1,2,3]}}],"rules":[]}}
-        })");
-
-        auto original = document.RunRequest();
-        Expect(!document.Dirty(), "Loaded rule fixture must start clean");
-        Expect(document.StrategyCount() == 1, "Rule fixture must contain one editable strategy");
-        document.BeginEditTransaction();
-        document.SetQuestionStrategy(0, L"changed", L"custom", L"4,5,6", false);
-        Expect(document.Dirty(), "Transaction edits must mark the document dirty");
-        document.RollbackEditTransaction();
-        Expect(!document.Dirty() && document.RunRequest() == original,
-            "Rollback must restore content and the original clean state");
-
-        document.BeginEditTransaction();
-        document.SetQuestionStrategy(0, L"committed", L"custom", L"6,5,4", false);
-        document.CommitEditTransaction();
-        Expect(document.Dirty(), "Commit must retain transaction dirty state");
-
-        document.LoadConfigState(original);
-        document.SetSurveyURL(L"https://example.test/dirty");
-        Expect(document.Dirty(), "A pre-existing dirty state must be retained");
-        document.BeginEditTransaction();
-        document.SetQuestionStrategy(0, L"temporary", L"custom", L"9,9,9", false);
-        document.RollbackEditTransaction();
-        Expect(document.Dirty() && document.URL() == L"https://example.test/dirty",
-            "Rollback must restore the dirty flag captured at transaction start");
-
         document.LoadConfigState(LR"({
             "config":{
                 "survey":{"url":"https://example.test/rules","definition":{"questions":[
@@ -326,8 +274,8 @@ int wmain()
     failures += RunTest("ShellSettings notifications", TestShellSettingsNotifications);
     failures += RunTest("WizardDocument state and mutations", TestWizardDocumentStateAndMutations);
     failures += RunTest("WizardDocument invalid JSON", TestWizardDocumentRejectsInvalidJson);
-    failures += RunTest("WizardDocument question normalization", TestWizardQuestionNormalization);
-    failures += RunTest("WizardDocument transactions and rules", TestWizardDocumentTransactionsAndRules);
+    failures += RunTest("WizardDocument question display binding", TestWizardQuestionDisplayBinding);
+    failures += RunTest("WizardDocument rules", TestWizardDocumentRules);
     failures += RunTest("RPC envelope validation", TestRpcEnvelopeValidation);
     std::cout << "Native tests: " << (failures == 0 ? "PASS" : "FAIL") << '\n';
     return failures == 0 ? 0 : 1;

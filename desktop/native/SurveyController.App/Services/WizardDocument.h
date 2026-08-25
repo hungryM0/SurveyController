@@ -6,11 +6,11 @@ namespace winrt::SurveyController::App::Services
     {
         int32_t number{};
         int32_t page{ 1 };
+        int32_t pageQuestionCount{};
         int32_t rows{};
         hstring title;
         hstring type;
         hstring normalizedType;
-        hstring icon;
         bool required{};
         int32_t options{};
         std::vector<hstring> optionTexts;
@@ -30,6 +30,7 @@ namespace winrt::SurveyController::App::Services
     class WizardDocument final
     {
     public:
+        WizardDocument() = default;
         static WizardDocument& Current();
 
         void LoadConfigState(hstring const& json);
@@ -37,12 +38,6 @@ namespace winrt::SurveyController::App::Services
         bool Initialized() const { return m_initialized; }
         bool Dirty() const { return m_dirty; }
         bool HasRealSurvey() const;
-
-        // AnswerEditorWindow owns one transaction for its whole lifetime.
-        void BeginEditTransaction();
-        void CommitEditTransaction();
-        void RollbackEditTransaction();
-        bool EditTransactionActive() const { return m_transactionActive; }
 
         hstring Path() const { return m_path; }
         hstring URL() const;
@@ -96,16 +91,15 @@ namespace winrt::SurveyController::App::Services
         hstring CheckRequest(Windows::Data::Json::JsonObject const& settings) const;
         hstring SaveRequest() const;
         hstring RunRequest() const;
+        hstring ConfigState() const;
+        uint64_t Revision() const { return m_revision; }
 
     private:
         Windows::Data::Json::JsonObject m_config{ nullptr };
-        Windows::Data::Json::JsonObject m_transactionConfig{ nullptr };
         hstring m_path;
-        hstring m_transactionPath;
         bool m_initialized{};
         bool m_dirty{};
-        bool m_transactionDirty{};
-        bool m_transactionActive{};
+        uint64_t m_revision{};
 
         Windows::Data::Json::JsonObject Survey() const;
         Windows::Data::Json::JsonObject Execution() const;

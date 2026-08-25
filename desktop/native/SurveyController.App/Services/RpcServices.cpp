@@ -27,6 +27,10 @@ namespace winrt::SurveyController::App::Services
     { co_return co_await BackendClient::Current().CallAsync(L"SaveConfig", request); }
     Windows::Foundation::IAsyncOperation<hstring> ConfigService::CreateSurveyAsync(hstring url) const
     { co_return co_await BackendClient::Current().CallAsync(L"CreateSurveyDocument", StringRequest(L"url", url)); }
+    Windows::Foundation::IAsyncOperation<hstring> ConfigService::BuildAnswerEditorAsync(hstring request) const
+    { co_return co_await BackendClient::Current().CallAsync(L"BuildAnswerEditorView", request); }
+    Windows::Foundation::IAsyncOperation<hstring> ConfigService::ApplyAnswerChangesAsync(hstring request) const
+    { co_return co_await BackendClient::Current().CallAsync(L"ApplyAnswerEditorChanges", request); }
     Windows::Foundation::IAsyncOperation<hstring> ConfigService::DecodeQrCodeAsync(hstring path) const
     { co_return co_await BackendClient::Current().CallAsync(L"DecodeQRCode", StringRequest(L"path", path)); }
     Windows::Foundation::IAsyncOperation<hstring> ConfigService::DecodeQrSurveyAsync(hstring path) const

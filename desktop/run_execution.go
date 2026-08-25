@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
+	surveyRuntime "github.com/SurveyController/SurveyCore/pkg/surveycore/runtime"
 )
 
 func (m *runManager) launch(
 	runID string,
 	startedAt time.Time,
-	config surveycore.RunRequest,
+	config model.RunRequest,
 	proxySource string,
-	options surveycore.ExecutionOptions,
+	options surveyRuntime.ExecutionOptions,
 	settings AppSettings,
 	proxy *proxyRuntime,
 ) (RunTaskState, error) {
@@ -44,9 +46,9 @@ func (m *runManager) launch(
 func (m *runManager) execute(
 	ctx context.Context,
 	runID string,
-	config surveycore.RunRequest,
+	config model.RunRequest,
 	proxySource string,
-	options surveycore.ExecutionOptions,
+	options surveyRuntime.ExecutionOptions,
 	settings AppSettings,
 	proxy *proxyRuntime,
 	sleepAcquired bool,
@@ -54,7 +56,9 @@ func (m *runManager) execute(
 	if sleepAcquired {
 		defer m.sleep.Release()
 	}
-	result, err := m.survey.RunWithExecutionOptions(ctx, &config, m.append, options)
+	result, err := m.runtime.RunWithExecutionOptions(ctx, &config, func(event surveyRuntime.Event) {
+		m.append(surveycore.Event(event))
+	}, options)
 	state := m.finish(runID, result, err, time.Now())
 	if !settings.SubmissionReportTelemetry {
 		return
@@ -66,7 +70,7 @@ func (m *runManager) execute(
 	}()
 }
 
-func (m *runManager) reportSubmissionResult(ctx context.Context, proxy *proxyRuntime, config surveycore.RunRequest, proxySource string, result *surveycore.RunResult, runErr error) {
+func (m *runManager) reportSubmissionResult(ctx context.Context, proxy *proxyRuntime, config model.RunRequest, proxySource string, result *surveycore.RunResult, runErr error) {
 	if m.reporter == nil || proxy == nil {
 		return
 	}

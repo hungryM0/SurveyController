@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
+	surveyRuntime "github.com/SurveyController/SurveyCore/pkg/surveycore/runtime"
 )
 
-func (r *proxyRuntime) customLeaseManager(_ context.Context, network configio.NetworkSettings, source string, options surveycore.ExecutionOptions) (surveycore.LeaseManager, error) {
+func (r *proxyRuntime) customLeaseManager(_ context.Context, network configio.NetworkSettings, source string, options surveyRuntime.ExecutionOptions) (surveyRuntime.LeaseManager, error) {
 	endpoint := strings.TrimSpace(network.CustomProxyAPI)
 	key := proxyRuntimeKey(source, endpoint)
 	if endpoint == "" {
@@ -54,7 +55,7 @@ func (r *proxyRuntime) customLeaseManager(_ context.Context, network configio.Ne
 	return proxyLeaseManager{pool: r.pool}, nil
 }
 
-func fixedProxyLeaseManager(address string) (surveycore.LeaseManager, error) {
+func fixedProxyLeaseManager(address string) (surveyRuntime.LeaseManager, error) {
 	normalized, ok := proxycore.NormalizeHTTPProxyAddress(address)
 	if !ok {
 		if strings.TrimSpace(address) == "" {
@@ -62,10 +63,10 @@ func fixedProxyLeaseManager(address string) (surveycore.LeaseManager, error) {
 		}
 		return nil, fmt.Errorf("%w: 固定代理地址必须是有效的 HTTP 或 HTTPS 地址", surveycore.ErrInvalidConfig)
 	}
-	return fixedProxyLease{lease: surveycore.ExecutionLease{Address: normalized, Source: "fixed"}}, nil
+	return fixedProxyLease{lease: surveyRuntime.ExecutionLease{Address: normalized, Source: "fixed"}}, nil
 }
 
-func (r *proxyRuntime) officialLeaseManager(ctx context.Context, network configio.NetworkSettings, source string, options surveycore.ExecutionOptions) (surveycore.LeaseManager, error) {
+func (r *proxyRuntime) officialLeaseManager(ctx context.Context, network configio.NetworkSettings, source string, options surveyRuntime.ExecutionOptions) (surveyRuntime.LeaseManager, error) {
 	client := r.officialProxyClient()
 	session, err := r.ensureOfficialSession(ctx, client, source)
 	if err != nil {
@@ -121,17 +122,17 @@ type proxyLeaseManager struct {
 }
 
 type fixedProxyLease struct {
-	lease surveycore.ExecutionLease
+	lease surveyRuntime.ExecutionLease
 }
 
-func (m fixedProxyLease) Acquire(ctx context.Context, _ string) (surveycore.ExecutionLease, error) {
+func (m fixedProxyLease) Acquire(ctx context.Context, _ string) (surveyRuntime.ExecutionLease, error) {
 	if err := ctx.Err(); err != nil {
-		return surveycore.ExecutionLease{}, err
+		return surveyRuntime.ExecutionLease{}, err
 	}
 	return m.lease, nil
 }
 
-func (m fixedProxyLease) Release(_ string) (surveycore.ExecutionLease, bool) {
+func (m fixedProxyLease) Release(_ string) (surveyRuntime.ExecutionLease, bool) {
 	return m.lease, true
 }
 
@@ -141,26 +142,26 @@ func (m fixedProxyLease) MarkSuccess(_ string) bool {
 
 func (m fixedProxyLease) MarkCooldown(_ string, _ time.Duration) {}
 
-func (m proxyLeaseManager) Acquire(ctx context.Context, owner string) (surveycore.ExecutionLease, error) {
+func (m proxyLeaseManager) Acquire(ctx context.Context, owner string) (surveyRuntime.ExecutionLease, error) {
 	if m.pool == nil {
-		return surveycore.ExecutionLease{}, proxycore.ErrProxyUnavailable
+		return surveyRuntime.ExecutionLease{}, proxycore.ErrProxyUnavailable
 	}
 	lease, err := m.pool.Acquire(ctx, owner)
 	if err != nil {
-		return surveycore.ExecutionLease{}, err
+		return surveyRuntime.ExecutionLease{}, err
 	}
 	if m.afterAcquire != nil {
 		m.afterAcquire(ctx)
 	}
-	return surveycore.ExecutionLease{Address: lease.Address, Source: lease.Source}, nil
+	return surveyRuntime.ExecutionLease{Address: lease.Address, Source: lease.Source}, nil
 }
 
-func (m proxyLeaseManager) Release(owner string) (surveycore.ExecutionLease, bool) {
+func (m proxyLeaseManager) Release(owner string) (surveyRuntime.ExecutionLease, bool) {
 	if m.pool == nil {
-		return surveycore.ExecutionLease{}, false
+		return surveyRuntime.ExecutionLease{}, false
 	}
 	lease, ok := m.pool.Release(owner)
-	return surveycore.ExecutionLease{Address: lease.Address, Source: lease.Source}, ok
+	return surveyRuntime.ExecutionLease{Address: lease.Address, Source: lease.Source}, ok
 }
 
 func (m proxyLeaseManager) MarkSuccess(proxyAddress string) bool {

@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
 )
 
 const AppSettingsSchemaVersion = 2
@@ -18,8 +18,8 @@ type AIProfileSettings struct {
 	HasAPIKey    bool   `json:"hasAPIKey"`
 }
 
-func (settings AIProfileSettings) ProfileWithKey(apiKey string) surveycore.AIProfile {
-	return surveycore.AIProfile{
+func (settings AIProfileSettings) ProfileWithKey(apiKey string) model.AIProfile {
+	return model.AIProfile{
 		Mode:         strings.TrimSpace(settings.Mode),
 		Provider:     strings.TrimSpace(settings.Provider),
 		BaseURL:      strings.TrimSpace(settings.BaseURL),

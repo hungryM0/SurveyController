@@ -12,6 +12,8 @@ namespace winrt::SurveyController::App::implementation
         void OnSave(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnCancel(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnOpenAISettings(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnPreviousQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void OnNextQuestion(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
         void OnKeyDown(IInspectable const&, Microsoft::UI::Xaml::Input::KeyRoutedEventArgs const&);
         void SetClosedHandler(std::function<void(bool)> handler) { m_closedHandler = std::move(handler); }
 
@@ -22,11 +24,13 @@ namespace winrt::SurveyController::App::implementation
         bool m_closing{};
         bool m_confirmingClose{};
         bool m_aiSettingsOpen{};
+        bool m_saving{};
         std::function<void(bool)> m_closedHandler;
         void ConfigureWindow(Microsoft::UI::WindowId owner);
         void CloseEditor(bool commit);
         winrt::fire_and_forget ConfirmCloseAsync();
         winrt::fire_and_forget ShowAISettingsAsync();
+        winrt::fire_and_forget SaveAndCloseAsync();
     };
 }
 

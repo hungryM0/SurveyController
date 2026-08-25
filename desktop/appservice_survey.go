@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
 )
 
 func (s *AppService) CreateSurveyDocument(ctx context.Context, request ParseSurveyRequest) (configio.ConfigDocument, error) {
@@ -13,7 +13,7 @@ func (s *AppService) CreateSurveyDocument(ctx context.Context, request ParseSurv
 	if url == "" {
 		return configio.ConfigDocument{}, fmt.Errorf("问卷链接不能为空")
 	}
-	document, err := defaultConfigDocument(ctx, s.runs.survey, url)
+	document, err := defaultConfigDocument(ctx, s.runs.parser, url)
 	if err != nil {
 		return configio.ConfigDocument{}, err
 	}

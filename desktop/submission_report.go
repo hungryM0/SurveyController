@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
 )
 
 const defaultSubmissionReportEndpoint = "https://api-wjx.hungrym0.com/api/submission/report"
@@ -66,7 +67,7 @@ func (r *httpSubmissionReporter) Report(ctx context.Context, report submissionRe
 	return response.StatusCode >= 200 && response.StatusCode < 300
 }
 
-func buildSubmissionReport(session proxycore.RandomIPSession, cfg surveycore.RunRequest, proxySource string, result *surveycore.RunResult, runErr error) submissionReport {
+func buildSubmissionReport(session proxycore.RandomIPSession, cfg model.RunRequest, proxySource string, result *surveycore.RunResult, runErr error) submissionReport {
 	resultText := "unknown"
 	if runErr != nil {
 		resultText = "failed"

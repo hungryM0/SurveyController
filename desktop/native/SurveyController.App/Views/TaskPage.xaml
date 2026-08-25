@@ -163,7 +163,7 @@
                                             <TextBlock x:Name="AnswerProblemCount" FontSize="24" FontWeight="SemiBold" Text="0" />
                                         </StackPanel>
                                     </Grid>
-                                    <Button x:Name="EditAnswersButton" HorizontalAlignment="Left" Style="{StaticResource AccentButtonStyle}" Click="OnEditAnswers" AutomationProperties.Name="编辑逐题答案">
+                                    <Button x:Name="EditAnswersButton" HorizontalAlignment="Left" Style="{StaticResource AccentButtonStyle}" Click="OnEditAnswers" AutomationProperties.AutomationId="Task.EditAnswers" AutomationProperties.Name="编辑逐题答案">
                                         <StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Edit" /><TextBlock Text="编辑逐题答案" /></StackPanel>
                                     </Button>
                                 </StackPanel>

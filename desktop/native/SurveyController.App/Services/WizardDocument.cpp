@@ -11,22 +11,6 @@ namespace winrt::SurveyController::App::Services
     {
         using namespace Windows::Data::Json;
 
-        hstring LocalizedQuestionType(hstring const& providerType)
-        {
-            if (providerType == L"single") return L"单选题";
-            if (providerType == L"multiple") return L"多选题";
-            if (providerType == L"matrix") return L"矩阵题";
-            if (providerType == L"text") return L"填空题";
-            if (providerType == L"multi_text") return L"多项填空题";
-            if (providerType == L"location") return L"地理位置题";
-            if (providerType == L"slider") return L"滑块题";
-            if (providerType == L"scale" || providerType == L"rating" || providerType == L"star") return L"量表题";
-            if (providerType == L"score") return L"评分题";
-            if (providerType == L"dropdown") return L"下拉题";
-            if (providerType == L"order" || providerType == L"sort") return L"排序题";
-            return providerType;
-        }
-
         hstring StringValue(JsonObject const& object, wchar_t const* name, hstring const& fallback = {})
         {
             if (!object || !object.HasKey(name)) return fallback;
@@ -110,10 +94,7 @@ namespace winrt::SurveyController::App::Services
         m_config = Object(state, L"config");
         m_initialized = true;
         m_dirty = false;
-        m_transactionConfig = nullptr;
-        m_transactionPath.clear();
-        m_transactionDirty = false;
-        m_transactionActive = false;
+        ++m_revision;
     }
 
     void WizardDocument::SetParsedConfig(hstring const& json)
@@ -127,36 +108,7 @@ namespace winrt::SurveyController::App::Services
         m_config = parsed;
         m_initialized = true;
         m_dirty = true;
-    }
-
-    void WizardDocument::BeginEditTransaction()
-    {
-        if (m_transactionActive) return;
-        m_transactionConfig = Clone(m_config);
-        m_transactionPath = m_path;
-        m_transactionDirty = m_dirty;
-        m_transactionActive = true;
-    }
-
-    void WizardDocument::CommitEditTransaction()
-    {
-        if (!m_transactionActive) return;
-        m_transactionConfig = nullptr;
-        m_transactionPath.clear();
-        m_transactionDirty = false;
-        m_transactionActive = false;
-    }
-
-    void WizardDocument::RollbackEditTransaction()
-    {
-        if (!m_transactionActive) return;
-        m_config = m_transactionConfig;
-        m_path = m_transactionPath;
-        m_dirty = m_transactionDirty;
-        m_transactionConfig = nullptr;
-        m_transactionPath.clear();
-        m_transactionDirty = false;
-        m_transactionActive = false;
+        ++m_revision;
     }
 
     bool WizardDocument::HasRealSurvey() const
@@ -199,15 +151,12 @@ namespace winrt::SurveyController::App::Services
             WizardQuestion item;
             item.number = static_cast<int32_t>(question.GetNamedNumber(L"num", 0));
             item.page = static_cast<int32_t>(question.GetNamedNumber(L"page", 1));
+            item.pageQuestionCount = static_cast<int32_t>(question.GetNamedNumber(L"page_question_count", 0));
             item.rows = static_cast<int32_t>(question.GetNamedNumber(L"rows", 0));
             item.title = question.GetNamedString(L"title", L"");
             // Go 返回的展示 DTO 已包含规范化题型和展示字段；原生只绑定这些值。
-            item.normalizedType = StringValue(question, L"normalized_type",
-                StringValue(question, L"provider_type", StringValue(question, L"type", L"unsupported")));
-            auto providerType = StringValue(question, L"provider_type", StringValue(question, L"type"));
-            item.type = StringValue(question, L"type_label", StringValue(question, L"type"));
-            if (item.type.empty() || item.type == providerType) item.type = LocalizedQuestionType(providerType);
-            item.icon = StringValue(question, L"icon");
+            item.normalizedType = StringValue(question, L"normalized_type", L"unsupported");
+            item.type = StringValue(question, L"type_label", L"暂不支持");
             item.required = question.GetNamedBoolean(L"required", false);
             for (auto const& option : Array(question, L"option_texts"))
             {
@@ -508,6 +457,14 @@ namespace winrt::SurveyController::App::Services
         JsonObject request;
         request.SetNamedValue(L"config", m_config);
         return request.Stringify();
+    }
+
+    hstring WizardDocument::ConfigState() const
+    {
+        JsonObject state;
+        state.SetNamedValue(L"path", JsonValue::CreateStringValue(m_path));
+        state.SetNamedValue(L"config", m_config ? m_config : JsonObject{});
+        return state.Stringify();
     }
 
     JsonObject WizardDocument::Survey() const { return m_config ? Object(m_config, L"survey") : JsonObject{}; }

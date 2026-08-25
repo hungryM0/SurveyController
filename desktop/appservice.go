@@ -1,6 +1,9 @@
 package main
 
-import "github.com/SurveyController/SurveyCore/pkg/surveycore"
+import (
+	"github.com/SurveyController/SurveyCore/pkg/surveycore"
+	surveyRuntime "github.com/SurveyController/SurveyCore/pkg/surveycore/runtime"
+)
 
 type AppService struct {
 	runs        *runManager
@@ -12,7 +15,8 @@ type AppService struct {
 func NewAppService() *AppService {
 	proxy := newProxyRuntime()
 	runs := newRunManager()
-	runs.survey = newSurveyClient(proxy)
+	runs.parser = surveycore.New()
+	runs.runtime = newSurveyRuntimeClient(proxy)
 	return &AppService{
 		runs:        runs,
 		configs:     fileConfigRepository{},
@@ -21,6 +25,6 @@ func NewAppService() *AppService {
 	}
 }
 
-func newSurveyClient(proxy *proxyRuntime) *surveycore.Client {
-	return surveycore.New(surveycore.WithFreeAIIdentityProvider(proxy))
+func newSurveyRuntimeClient(proxy *proxyRuntime) *surveyRuntime.Client {
+	return surveyRuntime.New(surveyRuntime.WithFreeAIIdentityProvider(proxy))
 }

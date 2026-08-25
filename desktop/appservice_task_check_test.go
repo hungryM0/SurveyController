@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
 )
 
 func TestCheckTaskEmptyConfigIsBlocked(t *testing.T) {
@@ -18,7 +18,7 @@ func TestCheckTaskEmptyConfigIsBlocked(t *testing.T) {
 }
 
 func TestCheckTaskRequiresParsedQuestions(t *testing.T) {
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Survey.Title = "已解析问卷"
 	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
 	if state.Status != TaskCheckBlocked {
@@ -41,7 +41,7 @@ func TestCheckTaskRequiresAnswerStrategies(t *testing.T) {
 
 func TestCheckTaskRejectsDescriptionOnlySurvey(t *testing.T) {
 	document := validTaskCheckDocument()
-	document.Survey.Definition.Questions = []surveycore.QuestionMeta{{
+	document.Survey.Definition.Questions = []model.QuestionMeta{{
 		Num:           1,
 		Title:         "说明",
 		IsDescription: true,
@@ -91,7 +91,7 @@ func TestCheckTaskDetectsAllAIAnswerMarkers(t *testing.T) {
 	document := validTaskCheckDocument()
 	fill := "__AI_FILL__"
 	questionNum := 1
-	document.Answers.Strategies = []surveycore.QuestionStrategy{{
+	document.Answers.Strategies = []model.QuestionStrategy{{
 		QuestionNum:     &questionNum,
 		OptionFillTexts: []*string{&fill},
 	}}
@@ -149,9 +149,9 @@ func TestCheckTaskRejectsLongAnswerDuration(t *testing.T) {
 func TestCheckTaskRejectsDuplicateAndUnknownStrategies(t *testing.T) {
 	document := validTaskCheckDocument()
 	unknown := 99
-	document.Answers.Strategies = append(document.Answers.Strategies, surveycore.QuestionStrategy{QuestionNum: &unknown})
+	document.Answers.Strategies = append(document.Answers.Strategies, model.QuestionStrategy{QuestionNum: &unknown})
 	duplicate := 1
-	document.Answers.Strategies = append(document.Answers.Strategies, surveycore.QuestionStrategy{QuestionNum: &duplicate})
+	document.Answers.Strategies = append(document.Answers.Strategies, model.QuestionStrategy{QuestionNum: &duplicate})
 	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
 	if state.Status != TaskCheckBlocked {
 		t.Fatalf("status = %q, want blocked", state.Status)
@@ -214,8 +214,8 @@ func TestCheckTaskWarningRemainsWarning(t *testing.T) {
 
 func TestCheckTaskRejectsInvalidCredamoDatetimeWindow(t *testing.T) {
 	document := validTaskCheckDocument()
-	document.Survey.Provider = surveycore.ProviderCredamo
-	document.Survey.Definition.Provider = surveycore.ProviderCredamo
+	document.Survey.Provider = model.ProviderCredamo
+	document.Survey.Definition.Provider = model.ProviderCredamo
 	document.Execution.AnswerDatetimeWindow = [2]string{"2024-03-10 10:00:00", "2024-03-10 09:00:00"}
 	state := NewAppService().CheckTask(context.Background(), CheckTaskRequest{Config: document})
 	if state.Status != TaskCheckBlocked {
@@ -226,10 +226,10 @@ func TestCheckTaskRejectsInvalidCredamoDatetimeWindow(t *testing.T) {
 }
 
 func validTaskCheckDocument() configio.ConfigDocument {
-	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", surveycore.ProviderWJX)
+	document := testConfigDocument("https://www.wjx.cn/vm/demo.aspx", model.ProviderWJX)
 	document.Survey.Title = "已解析问卷"
 	document.Survey.Definition.Title = "已解析问卷"
-	document.Survey.Definition.Questions = []surveycore.QuestionMeta{{
+	document.Survey.Definition.Questions = []model.QuestionMeta{{
 		Num:          1,
 		Title:        "满意度",
 		ProviderType: "single",
@@ -237,7 +237,7 @@ func validTaskCheckDocument() configio.ConfigDocument {
 		OptionTexts:  []string{"满意", "不满意"},
 	}}
 	questionNum := 1
-	document.Answers.Strategies = []surveycore.QuestionStrategy{{QuestionNum: &questionNum}}
+	document.Answers.Strategies = []model.QuestionStrategy{{QuestionNum: &questionNum}}
 	document.Execution.SubmitInterval = [2]int{1, 2}
 	return document
 }

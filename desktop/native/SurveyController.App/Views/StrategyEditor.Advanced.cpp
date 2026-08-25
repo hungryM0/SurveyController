@@ -23,11 +23,12 @@ namespace winrt::SurveyController::App::implementation
         constexpr wchar_t randomIDCard[] = L"__RANDOM_ID_CARD__";
         constexpr wchar_t randomIntegerPrefix[] = L"__RANDOM_INT__:";
 
-        RadioButtons CreateModeButtons(hstring const& automationName)
+        RadioButtons CreateModeButtons(hstring const& automationName, hstring const& automationId)
         {
             RadioButtons buttons;
             buttons.MaxColumns(3);
             AutomationProperties::SetName(buttons, automationName);
+            AutomationProperties::SetAutomationId(buttons, automationId);
             for (auto const& [label, tag] : std::array<std::pair<wchar_t const*, wchar_t const*>, 5>{ {
                 { L"答案文本", L"none" }, { L"随机姓名", L"name" }, { L"随机手机号", L"mobile" },
                 { L"随机身份证", L"id_card" }, { L"随机整数", L"integer" } } })
@@ -35,6 +36,7 @@ namespace winrt::SurveyController::App::implementation
                 RadioButton item;
                 item.Content(box_value(label));
                 item.Tag(box_value(tag));
+                AutomationProperties::SetAutomationId(item, hstring{ std::wstring{ automationId } + L"." + tag });
                 buttons.Items().Append(item);
             }
             buttons.SelectedIndex(0);
@@ -175,50 +177,6 @@ namespace winrt::SurveyController::App::implementation
         }
     }
 
-    void StrategyEditor::ApplyQuestionTypeBrush(hstring const& type)
-    {
-        wchar_t const* foregroundKey = L"QuestionUnknownBrush";
-        wchar_t const* badgeForegroundKey = L"QuestionUnknownBadgeForegroundBrush";
-        wchar_t const* backgroundKey = L"QuestionUnknownBadgeBackgroundBrush";
-        if (type == L"single" || type == L"multiple" || type == L"dropdown")
-        {
-            foregroundKey = L"QuestionChoiceBrush";
-            badgeForegroundKey = L"QuestionChoiceBadgeForegroundBrush";
-            backgroundKey = L"QuestionChoiceBadgeBackgroundBrush";
-        }
-        else if (type == L"text" || type == L"multi_text" || type == L"location")
-        {
-            foregroundKey = L"QuestionTextBrush";
-            badgeForegroundKey = L"QuestionTextBadgeForegroundBrush";
-            backgroundKey = L"QuestionTextBadgeBackgroundBrush";
-        }
-        else if (type == L"scale" || type == L"slider")
-        {
-            foregroundKey = L"QuestionScaleBrush";
-            badgeForegroundKey = L"QuestionScaleBadgeForegroundBrush";
-            backgroundKey = L"QuestionScaleBadgeBackgroundBrush";
-        }
-        else if (type == L"matrix")
-        {
-            foregroundKey = L"QuestionMatrixBrush";
-            badgeForegroundKey = L"QuestionMatrixBadgeForegroundBrush";
-            backgroundKey = L"QuestionMatrixBadgeBackgroundBrush";
-        }
-        else if (type == L"sort")
-        {
-            foregroundKey = L"QuestionSortBrush";
-            badgeForegroundKey = L"QuestionSortBadgeForegroundBrush";
-            backgroundKey = L"QuestionSortBadgeBackgroundBrush";
-        }
-        auto resources = Application::Current().Resources();
-        auto foreground = resources.Lookup(box_value(foregroundKey)).as<Brush>();
-        auto badgeForeground = resources.Lookup(box_value(badgeForegroundKey)).as<Brush>();
-        auto badgeBackground = resources.Lookup(box_value(backgroundKey)).as<Brush>();
-        QuestionTypeIcon().Foreground(foreground);
-        QuestionTypeBadge().Background(badgeBackground);
-        QuestionTypeBadge().Foreground(badgeForeground);
-    }
-
     void StrategyEditor::LoadAdvancedEditors(JsonObject const& question, JsonObject const& strategy,
         Services::WizardQuestion const& summary)
     {
@@ -260,13 +218,18 @@ namespace winrt::SurveyController::App::implementation
             ai.OnContent(box_value(L"开"));
             ai.IsOn(saved == optionFillAI);
             AutomationProperties::SetName(ai, hstring{ L"第 " + std::to_wstring(optionIndex + 1) + L" 个可填写选项启用 AI" });
-            auto mode = CreateModeButtons(hstring{ L"第 " + std::to_wstring(optionIndex + 1) + L" 个可填写选项填写模式" });
+            AutomationProperties::SetAutomationId(ai, hstring{ L"AnswerEditor.FillableOption." + std::to_wstring(optionIndex + 1) + L".AI" });
+            auto mode = CreateModeButtons(hstring{ L"第 " + std::to_wstring(optionIndex + 1) + L" 个可填写选项填写模式" },
+                hstring{ L"AnswerEditor.FillableOption." + std::to_wstring(optionIndex + 1) + L".Mode" });
             SelectMode(mode, decoded.first);
             auto text = TextBox{};
             text.Header(box_value(L"填写文本"));
             text.Text(decoded.first == L"none" && saved != optionFillAI ? saved : L"");
+            AutomationProperties::SetAutomationId(text, hstring{ L"AnswerEditor.FillableOption." + std::to_wstring(optionIndex + 1) + L".Text" });
             auto minimum = NumberBox{};
             auto maximum = NumberBox{};
+            AutomationProperties::SetAutomationId(minimum, hstring{ L"AnswerEditor.FillableOption." + std::to_wstring(optionIndex + 1) + L".Min" });
+            AutomationProperties::SetAutomationId(maximum, hstring{ L"AnswerEditor.FillableOption." + std::to_wstring(optionIndex + 1) + L".Max" });
             minimum.Value(decoded.second[0]);
             maximum.Value(decoded.second[1]);
             auto range = CreateRangePanel(minimum, maximum);
@@ -336,15 +299,19 @@ namespace winrt::SurveyController::App::implementation
         if (summary.normalizedType == L"multi_text" && count == 0) count = 1;
         for (uint32_t index = 0; index < count; ++index)
         {
-            auto mode = CreateModeButtons(hstring{ L"第 " + std::to_wstring(index + 1) + L" 个填空的填写模式" });
+            auto mode = CreateModeButtons(hstring{ L"第 " + std::to_wstring(index + 1) + L" 个填空的填写模式" },
+                hstring{ L"AnswerEditor.MultiText." + std::to_wstring(index + 1) + L".Mode" });
             SelectMode(mode, index < modes.Size() && modes.GetAt(index).ValueType() == JsonValueType::String ? modes.GetStringAt(index) : L"none");
             auto ai = ToggleSwitch{};
             ai.Header(box_value(L"启用 AI"));
             ai.OffContent(box_value(L"关"));
             ai.OnContent(box_value(L"开"));
             ai.IsOn(index < aiFlags.Size() && aiFlags.GetAt(index).ValueType() == JsonValueType::Boolean && aiFlags.GetBooleanAt(index));
+            AutomationProperties::SetAutomationId(ai, hstring{ L"AnswerEditor.MultiText." + std::to_wstring(index + 1) + L".AI" });
             auto minimum = NumberBox{};
             auto maximum = NumberBox{};
+            AutomationProperties::SetAutomationId(minimum, hstring{ L"AnswerEditor.MultiText." + std::to_wstring(index + 1) + L".Min" });
+            AutomationProperties::SetAutomationId(maximum, hstring{ L"AnswerEditor.MultiText." + std::to_wstring(index + 1) + L".Max" });
             auto savedRange = index < ranges.Size() && ranges.GetAt(index).ValueType() == JsonValueType::Array ? ranges.GetArrayAt(index) : JsonArray{};
             minimum.Value(savedRange.Size() > 0 ? savedRange.GetNumberAt(0) : std::numeric_limits<double>::quiet_NaN());
             maximum.Value(savedRange.Size() > 1 ? savedRange.GetNumberAt(1) : std::numeric_limits<double>::quiet_NaN());
@@ -422,6 +389,10 @@ namespace winrt::SurveyController::App::implementation
                 controls.selectTexts.push_back(label);
                 auto row = Grid{};
                 row.ColumnSpacing(8);
+                AutomationProperties::SetAutomationId(row, hstring{ L"AnswerEditor.AttachedOption." +
+                    std::to_wstring(controls.optionIndex + 1) + L".Weight." + std::to_wstring(index + 1) + L".Row" });
+                AutomationProperties::SetName(row, hstring{ L"选项 " + std::to_wstring(controls.optionIndex + 1) +
+                    L" 的嵌入式下拉项 " + std::to_wstring(index + 1) + L" 比例" });
                 row.ColumnDefinitions().Append(ColumnDefinition{});
                 auto sliderColumn = ColumnDefinition{};
                 sliderColumn.Width(GridLength{ 1, GridUnitType::Star });
@@ -438,6 +409,8 @@ namespace winrt::SurveyController::App::implementation
                 slider.Maximum(100);
                 slider.StepFrequency(1);
                 auto number = NumberBox{};
+                AutomationProperties::SetAutomationId(slider, hstring{ L"AnswerEditor.AttachedOption." + std::to_wstring(controls.optionIndex + 1) + L".Weight." + std::to_wstring(index + 1) + L".Slider" });
+                AutomationProperties::SetAutomationId(number, hstring{ L"AnswerEditor.AttachedOption." + std::to_wstring(controls.optionIndex + 1) + L".Weight." + std::to_wstring(index + 1) + L".Value" });
                 number.Minimum(0);
                 number.Maximum(100);
                 number.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Compact);
@@ -469,6 +442,14 @@ namespace winrt::SurveyController::App::implementation
             m_attachedSelectControls.push_back(std::move(controls));
         }
         AttachedOptionSection().Visibility(m_attachedSelectControls.empty() ? Visibility::Collapsed : Visibility::Visible);
+        // Keep the first screen focused on the common strategy. Only reserve space
+        // for answer-specific editors when the current question actually needs one.
+        AdvancedSettingsHost().Visibility(
+            textQuestion || summary.normalizedType == L"location" ||
+            summary.normalizedType == L"multi_text" || !m_optionFillControls.empty() ||
+            !m_attachedSelectControls.empty()
+                ? Visibility::Visible
+                : Visibility::Collapsed);
         UpdateTextModeVisibility();
     }
 

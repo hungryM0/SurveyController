@@ -16,10 +16,13 @@
                         <Setter Target="QuestionSearch.(Grid.ColumnSpan)" Value="3" />
                         <Setter Target="QuestionTreeColumn.Width" Value="*" />
                         <Setter Target="QuestionDetailColumn.Width" Value="0" />
-                        <Setter Target="QuestionTreeRow.Height" Value="250" />
-                        <Setter Target="QuestionDetailRow.Height" Value="*" />
-                        <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="1" />
+                        <Setter Target="QuestionTreeRow.Height" Value="*" />
+                        <Setter Target="QuestionDetailRow.Height" Value="0" />
+                        <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="0" />
                         <Setter Target="QuestionDetailScroll.(Grid.Column)" Value="0" />
+                        <Setter Target="QuestionListPane.Visibility" Value="Visible" />
+                        <Setter Target="QuestionDetailScroll.Visibility" Value="Collapsed" />
+                        <Setter Target="BackToListButton.Visibility" Value="Visible" />
                         <Setter Target="LocationCityColumn.Width" Value="0" />
                         <Setter Target="LocationDistrictColumn.Width" Value="0" />
                         <Setter Target="LocationCityRow.Height" Value="Auto" />
@@ -43,6 +46,9 @@
                         <Setter Target="QuestionDetailRow.Height" Value="0" />
                         <Setter Target="QuestionDetailScroll.(Grid.Row)" Value="0" />
                         <Setter Target="QuestionDetailScroll.(Grid.Column)" Value="1" />
+                        <Setter Target="QuestionListPane.Visibility" Value="Visible" />
+                        <Setter Target="QuestionDetailScroll.Visibility" Value="Visible" />
+                        <Setter Target="BackToListButton.Visibility" Value="Collapsed" />
                         <Setter Target="LocationCityColumn.Width" Value="*" />
                         <Setter Target="LocationDistrictColumn.Width" Value="*" />
                         <Setter Target="LocationCityRow.Height" Value="0" />
@@ -71,7 +77,10 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition x:Name="EditorSearchRow" Height="0" />
             </Grid.RowDefinitions>
-            <AutoSuggestBox x:Name="QuestionSearch" Grid.Column="1" Width="360" HorizontalAlignment="Center" PlaceholderText="查找题号、题干或选项" QueryIcon="Find" TextChanged="OnQuestionSearchChanged" SuggestionChosen="OnQuestionSuggestionChosen" QuerySubmitted="OnQuestionQuerySubmitted" AutomationProperties.Name="搜索题目" />
+            <AutoSuggestBox x:Name="QuestionSearch" Grid.Column="1" Width="360" HorizontalAlignment="Center" PlaceholderText="查找题干、选项、矩阵行或逻辑" QueryIcon="Find" TextChanged="OnQuestionSearchChanged" SuggestionChosen="OnQuestionSuggestionChosen" QuerySubmitted="OnQuestionQuerySubmitted" AutomationProperties.AutomationId="AnswerEditor.Search" AutomationProperties.Name="搜索题目" AutomationProperties.AcceleratorKey="Ctrl+F">
+                <AutoSuggestBox.ItemTemplate><DataTemplate><ContentPresenter Content="{Binding}" /></DataTemplate></AutoSuggestBox.ItemTemplate>
+            </AutoSuggestBox>
+            <TextBlock x:Name="SearchPosition" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.AutomationId="AnswerEditor.SearchPosition" />
         </Grid>
 
         <Grid x:Name="QuestionEditorPanel" Grid.Row="1" ColumnSpacing="16" RowSpacing="16">
@@ -83,48 +92,39 @@
                 <RowDefinition x:Name="QuestionTreeRow" Height="*" />
                 <RowDefinition x:Name="QuestionDetailRow" Height="0" />
             </Grid.RowDefinitions>
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="{StaticResource WizardCardCornerRadius}" Padding="8">
-                <TreeView x:Name="QuestionTree" SelectionMode="Single" SelectionChanged="OnQuestionSelected" ItemInvoked="OnQuestionInvoked" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="问卷题目结构">
+            <Grid x:Name="QuestionListPane" Padding="0,0,8,0">
+                <TreeView x:Name="QuestionTree" SelectionMode="Single" SelectionChanged="OnQuestionSelected" ItemInvoked="OnQuestionInvoked" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.AutomationId="AnswerEditor.QuestionTree" AutomationProperties.Name="问卷题目结构">
                     <TreeView.ItemTemplate>
                         <DataTemplate>
                             <ContentPresenter Content="{Binding Content}" HorizontalContentAlignment="Stretch" />
                         </DataTemplate>
                     </TreeView.ItemTemplate>
                 </TreeView>
-            </Border>
+            </Grid>
 
-            <ScrollViewer x:Name="QuestionDetailScroll" Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+            <ScrollViewer x:Name="QuestionDetailScroll" Grid.Column="1" IsTabStop="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible" AutomationProperties.AutomationId="AnswerEditor.QuestionDetail" AutomationProperties.Name="题目答案详情">
                 <StackPanel Padding="4,0,8,20" Spacing="16">
-                    <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="{StaticResource WizardCardCornerRadius}">
+                    <Grid Padding="0,4,0,12">
                         <StackPanel Spacing="8">
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <FontIcon x:Name="QuestionTypeIcon" FontSize="18" />
-                                <TextBlock x:Name="QuestionTitle" FontSize="21" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" />
-                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <ContentControl x:Name="QuestionTypeBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="题型" />
-                                <ContentControl x:Name="RequiredBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="必答" Background="{ThemeResource RequiredBadgeBackgroundBrush}" Foreground="{ThemeResource RequiredBadgeForegroundBrush}" Visibility="Collapsed" />
-                                <ContentControl x:Name="MediaBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="图片题" Background="{ThemeResource MediaBadgeBackgroundBrush}" Foreground="{ThemeResource MediaBadgeForegroundBrush}" Visibility="Collapsed" />
-                                <ContentControl x:Name="ConditionalDisplayBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="条件显示" Background="{ThemeResource ConditionalDisplayBadgeBackgroundBrush}" Foreground="{ThemeResource ConditionalDisplayBadgeForegroundBrush}" Visibility="Collapsed" />
-                                <ContentControl x:Name="ControlsDisplayBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="控制后续" Background="{ThemeResource ControlsDisplayBadgeBackgroundBrush}" Foreground="{ThemeResource ControlsDisplayBadgeForegroundBrush}" Visibility="Collapsed" />
-                                <ContentControl x:Name="JumpBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="跳题" Background="{ThemeResource JumpBadgeBackgroundBrush}" Foreground="{ThemeResource JumpBadgeForegroundBrush}" Visibility="Collapsed" />
-                                <ContentControl x:Name="UnsupportedBadge" Style="{StaticResource WizardTextBadgeStyle}" Content="暂不支持" Background="{ThemeResource UnsupportedBadgeBackgroundBrush}" Foreground="{ThemeResource UnsupportedBadgeForegroundBrush}" Visibility="Collapsed" />
+                                <Button x:Name="BackToListButton" Content="返回题目列表" Click="OnBackToList" Visibility="Collapsed" AutomationProperties.AutomationId="AnswerEditor.BackToList" />
+                                <TextBlock x:Name="QuestionTitle" FontSize="21" FontWeight="SemiBold" Text="选择题目" TextWrapping="Wrap" />
                             </StackPanel>
                             <TextBlock x:Name="QuestionMeta" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
-                    </Border>
+                    </Grid>
 
                     <StackPanel x:Name="WeightSettingsSection" Spacing="12">
                         <TextBlock FontSize="16" FontWeight="SemiBold" Text="基础策略" />
-                        <RadioButtons x:Name="Bias" Header="选项预设" MaxColumns="4" SelectedIndex="0" SelectionChanged="OnBiasChanged" AutomationProperties.Name="选项预设">
-                            <RadioButton Content="自定义" Tag="custom" />
-                            <RadioButton Content="偏左" Tag="left" />
-                            <RadioButton Content="居中" Tag="center" />
-                            <RadioButton Content="偏右" Tag="right" />
+                        <RadioButtons x:Name="Bias" Header="选项预设" MaxColumns="4" SelectedIndex="0" SelectionChanged="OnBiasChanged" AutomationProperties.AutomationId="AnswerEditor.Bias" AutomationProperties.Name="选项预设">
+                            <RadioButton Content="自定义" Tag="custom" AutomationProperties.AutomationId="AnswerEditor.Bias.Custom" />
+                            <RadioButton Content="偏左" Tag="left" AutomationProperties.AutomationId="AnswerEditor.Bias.Left" />
+                            <RadioButton Content="居中" Tag="center" AutomationProperties.AutomationId="AnswerEditor.Bias.Center" />
+                            <RadioButton Content="偏右" Tag="right" AutomationProperties.AutomationId="AnswerEditor.Bias.Right" />
                         </RadioButtons>
                         <StackPanel x:Name="OptionWeightsSection" Spacing="8">
-                            <Grid><TextBlock FontWeight="SemiBold" Text="选项比例" /><TextBlock HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="拖动滑块调整" /></Grid>
-                            <ItemsRepeater x:Name="OptionWeightRows">
+                            <TextBlock FontWeight="SemiBold" Text="选项比例" />
+                            <ItemsRepeater x:Name="OptionWeightRows" ElementPrepared="OnWeightElementPrepared">
                                 <ItemsRepeater.Layout><StackLayout Spacing="4" /></ItemsRepeater.Layout>
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="local:OptionWeight">
@@ -146,22 +146,22 @@
                         <TextBlock x:Name="OptionWeightEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="此题无需设置选项比例" />
                     </StackPanel>
 
-                    <StackPanel Spacing="12">
+                    <StackPanel x:Name="AdvancedSettingsHost" Spacing="12" Padding="0,4,0,0">
                             <StackPanel x:Name="TextQuestionSection" Spacing="12">
-                                <RadioButtons x:Name="TextRandomMode" Header="填空模式" MaxColumns="3" SelectionChanged="OnTextModeChanged" AutomationProperties.Name="填空模式">
-                                    <RadioButton Content="答案文本" Tag="none" />
-                                    <RadioButton Content="随机姓名" Tag="name" />
-                                    <RadioButton Content="随机手机号" Tag="mobile" />
-                                    <RadioButton Content="随机身份证" Tag="id_card" />
-                                    <RadioButton Content="随机整数" Tag="integer" />
+                                <RadioButtons x:Name="TextRandomMode" Header="填空模式" MaxColumns="3" SelectionChanged="OnTextModeChanged" AutomationProperties.AutomationId="AnswerEditor.TextMode" AutomationProperties.Name="填空模式">
+                                    <RadioButton Content="答案文本" Tag="none" AutomationProperties.AutomationId="AnswerEditor.TextMode.Text" />
+                                    <RadioButton Content="随机姓名" Tag="name" AutomationProperties.AutomationId="AnswerEditor.TextMode.Name" />
+                                    <RadioButton Content="随机手机号" Tag="mobile" AutomationProperties.AutomationId="AnswerEditor.TextMode.Mobile" />
+                                    <RadioButton Content="随机身份证" Tag="id_card" AutomationProperties.AutomationId="AnswerEditor.TextMode.IdCard" />
+                                    <RadioButton Content="随机整数" Tag="integer" AutomationProperties.AutomationId="AnswerEditor.TextMode.Integer" />
                                 </RadioButtons>
-                                <TextBox x:Name="TextAnswers" Header="答案文本" PlaceholderText="每行一个候选答案" AcceptsReturn="True" MinHeight="84" TextWrapping="Wrap" TextChanged="OnQuestionTextChanged" AutomationProperties.Name="填空答案文本" />
+                                <TextBox x:Name="TextAnswers" Header="答案文本" PlaceholderText="每行一个候选答案" AcceptsReturn="True" MinHeight="84" TextWrapping="Wrap" TextChanged="OnQuestionTextChanged" AutomationProperties.AutomationId="AnswerEditor.TextAnswers" AutomationProperties.Name="填空答案文本" />
                                 <Grid x:Name="TextRangeRow" Visibility="Collapsed" ColumnSpacing="12">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <NumberBox x:Name="TextRangeMin" Header="整数最小值" SpinButtonPlacementMode="Compact" ValueChanged="OnQuestionNumberChanged" />
-                                    <NumberBox x:Name="TextRangeMax" Grid.Column="1" Header="整数最大值" SpinButtonPlacementMode="Compact" ValueChanged="OnQuestionNumberChanged" />
+                                    <NumberBox x:Name="TextRangeMin" Header="整数最小值" SpinButtonPlacementMode="Compact" ValueChanged="OnQuestionNumberChanged" AutomationProperties.AutomationId="AnswerEditor.TextRangeMin" />
+                                    <NumberBox x:Name="TextRangeMax" Grid.Column="1" Header="整数最大值" SpinButtonPlacementMode="Compact" ValueChanged="OnQuestionNumberChanged" AutomationProperties.AutomationId="AnswerEditor.TextRangeMax" />
                                 </Grid>
-                                <ToggleSwitch x:Name="AIEnabled" Header="允许 AI 填空" OffContent="关" OnContent="开" Toggled="OnAIEnabledToggled" AutomationProperties.Name="允许 AI 填空" />
+                                <ToggleSwitch x:Name="AIEnabled" Header="允许 AI 填空" OffContent="关" OnContent="开" Toggled="OnAIEnabledToggled" AutomationProperties.AutomationId="AnswerEditor.AIEnabled" AutomationProperties.Name="允许 AI 填空" />
                             </StackPanel>
                             <StackPanel x:Name="FillableOptionsSection" Spacing="8">
                                 <TextBlock FontWeight="SemiBold" Text="可填写选项" />
@@ -170,11 +170,11 @@
                             <Grid x:Name="LocationSection" ColumnSpacing="8" RowSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="LocationCityColumn" Width="*" /><ColumnDefinition x:Name="LocationDistrictColumn" Width="*" /></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="LocationCityRow" Height="0" /><RowDefinition x:Name="LocationDistrictRow" Height="0" /></Grid.RowDefinitions>
-                                <TextBox x:Name="LocationProvince" Header="省" TextChanged="OnQuestionTextChanged" />
-                                <TextBox x:Name="LocationCity" Grid.Column="1" Header="市" TextChanged="OnQuestionTextChanged" />
-                                <TextBox x:Name="LocationDistrict" Grid.Column="2" Header="区县" TextChanged="OnQuestionTextChanged" />
+                                <TextBox x:Name="LocationProvince" Header="省" TextChanged="OnQuestionTextChanged" AutomationProperties.AutomationId="AnswerEditor.Location.Province" />
+                                <TextBox x:Name="LocationCity" Grid.Column="1" Header="市" TextChanged="OnQuestionTextChanged" AutomationProperties.AutomationId="AnswerEditor.Location.City" />
+                                <TextBox x:Name="LocationDistrict" Grid.Column="2" Header="区县" TextChanged="OnQuestionTextChanged" AutomationProperties.AutomationId="AnswerEditor.Location.District" />
                             </Grid>
-                            <StackPanel x:Name="MultiTextSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="多项填空" /><TextBox x:Name="MultiTextAnswers" Header="答案文本组合" PlaceholderText="每行一组，各空用 || 分隔" AcceptsReturn="True" MinHeight="84" TextWrapping="Wrap" TextChanged="OnQuestionTextChanged" AutomationProperties.Name="多项填空答案文本" /><StackPanel x:Name="MultiTextRows" Spacing="8" /></StackPanel>
+                            <StackPanel x:Name="MultiTextSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="多项填空" /><TextBox x:Name="MultiTextAnswers" Header="答案文本组合" PlaceholderText="每行一组，各空用 || 分隔" AcceptsReturn="True" MinHeight="84" TextWrapping="Wrap" TextChanged="OnQuestionTextChanged" AutomationProperties.AutomationId="AnswerEditor.MultiTextAnswers" AutomationProperties.Name="多项填空答案文本" /><StackPanel x:Name="MultiTextRows" Spacing="8" /></StackPanel>
                             <StackPanel x:Name="AttachedOptionSection" Spacing="8"><TextBlock FontWeight="SemiBold" Text="嵌入式下拉" /><StackPanel x:Name="AttachedOptionSelectList" Spacing="8" AutomationProperties.Name="嵌入式下拉选项" /></StackPanel>
                     </StackPanel>
                 </StackPanel>

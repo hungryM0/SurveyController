@@ -6,9 +6,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
+	surveyRuntime "github.com/SurveyController/SurveyCore/pkg/surveycore/runtime"
 )
 
 type proxyRuntime struct {
@@ -40,14 +42,14 @@ func (r *proxyRuntime) statusSnapshot() ProxyStatus {
 	return status
 }
 
-func (r *proxyRuntime) executionOptions(ctx context.Context, document configio.ConfigDocument) (surveycore.ExecutionOptions, error) {
+func (r *proxyRuntime) executionOptions(ctx context.Context, document configio.ConfigDocument) (surveyRuntime.ExecutionOptions, error) {
 	cfg, err := coreRunRequest(document)
 	if err != nil {
-		return surveycore.ExecutionOptions{}, err
+		return surveyRuntime.ExecutionOptions{}, err
 	}
-	options := surveycore.ExecutionOptionsFromConfig(&cfg)
+	options := surveyRuntime.ExecutionOptionsFromConfig(&cfg)
 	network := document.Network
-	options.UserAgent = surveycore.UserAgentSettings{Enabled: network.RandomUAEnabled, Ratios: cloneIntMap(network.RandomUARatios)}
+	options.UserAgent = model.UserAgentSettings{Enabled: network.RandomUAEnabled, Ratios: cloneIntMap(network.RandomUARatios)}
 	mode := normalizeDesktopNetworkMode(network)
 	if mode == "fixed" {
 		fixedAddress := strings.TrimSpace(network.FixedProxyAddress)

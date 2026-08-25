@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SurveyController/SurveyCore/pkg/proxycore"
 	"github.com/SurveyController/SurveyCore/pkg/surveycore"
-	"github.com/SurveyController/SurveyCore/pkg/surveycore/configio"
+	configio "github.com/SurveyController/SurveyCore/pkg/surveycore/config"
+	"github.com/SurveyController/SurveyCore/pkg/surveycore/model"
+	proxycore "github.com/SurveyController/SurveyCore/pkg/surveycore/proxy"
 )
 
 const (
@@ -56,7 +57,7 @@ func checkSurvey(config configio.ConfigDocument, problems *[]TaskCheckProblem) {
 	if provider == "" {
 		provider = strings.ToLower(strings.TrimSpace(config.Survey.Definition.Provider))
 	}
-	if provider != "" && provider != surveycore.ProviderWJX && provider != surveycore.ProviderQQ && provider != surveycore.ProviderCredamo {
+	if provider != "" && provider != model.ProviderWJX && provider != model.ProviderQQ && provider != model.ProviderCredamo {
 		*problems = append(*problems, TaskCheckProblem{"survey_provider_unsupported", "问卷平台暂不支持", taskCheckStepSurvey, "error"})
 	}
 	if provider != "" && surveycore.IsSupportedURL(parsedURL) {
@@ -80,7 +81,7 @@ func isLocalProviderURL(raw string, providers ...string) bool {
 	}
 	for _, provider := range providers {
 		switch strings.ToLower(strings.TrimSpace(provider)) {
-		case surveycore.ProviderWJX, surveycore.ProviderQQ, surveycore.ProviderCredamo:
+		case model.ProviderWJX, model.ProviderQQ, model.ProviderCredamo:
 			return true
 		}
 	}
@@ -159,13 +160,13 @@ func providerForURL(raw string) string {
 	}
 	host := strings.ToLower(parsed.Hostname())
 	if host == "wj.qq.com" {
-		return surveycore.ProviderQQ
+		return model.ProviderQQ
 	}
 	if host == "credamo.com" || strings.HasSuffix(host, ".credamo.com") || host == "credamo.cn" || strings.HasSuffix(host, ".credamo.cn") {
-		return surveycore.ProviderCredamo
+		return model.ProviderCredamo
 	}
 	if host == "wjx.cn" || strings.HasSuffix(host, ".wjx.cn") || host == "wjx.com" || strings.HasSuffix(host, ".wjx.com") || host == "wjx.top" || strings.HasSuffix(host, ".wjx.top") {
-		return surveycore.ProviderWJX
+		return model.ProviderWJX
 	}
 	return ""
 }
@@ -284,7 +285,7 @@ func answerPlanUsesAIFromConfig(config configio.ConfigDocument) bool {
 	return answerPlanUsesAI(config.Answers)
 }
 
-func hasAnswerableQuestions(questions []surveycore.QuestionMeta) bool {
+func hasAnswerableQuestions(questions []model.QuestionMeta) bool {
 	for _, question := range questions {
 		if !question.IsDescription && !question.Unsupported {
 			return true

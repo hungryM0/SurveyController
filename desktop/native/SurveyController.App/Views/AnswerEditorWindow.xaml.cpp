@@ -20,7 +20,7 @@ namespace winrt::SurveyController::App::implementation
     AnswerEditorWindow::AnswerEditorWindow() : m_document(Services::WizardDocument::Current())
     {
         InitializeComponent();
-        Title(L"逐题答案编辑器");
+        Title(L"配置向导");
         ExtendsContentIntoTitleBar(true);
         SetTitleBar(AppTitleBar());
         auto titleBar = AppWindow().TitleBar();
@@ -28,21 +28,13 @@ namespace winrt::SurveyController::App::implementation
         {
             titleBar.PreferredHeightOption(TitleBarHeightOption::Standard);
             auto const transparent = Windows::UI::Colors::Transparent();
-            auto const foreground = Windows::UI::Colors::Black();
             titleBar.BackgroundColor(transparent);
             titleBar.ButtonBackgroundColor(transparent);
             titleBar.ButtonHoverBackgroundColor(transparent);
             titleBar.ButtonPressedBackgroundColor(transparent);
             titleBar.InactiveBackgroundColor(transparent);
             titleBar.ButtonInactiveBackgroundColor(transparent);
-            titleBar.ForegroundColor(foreground);
-            titleBar.ButtonForegroundColor(foreground);
-            titleBar.ButtonHoverForegroundColor(foreground);
-            titleBar.ButtonPressedForegroundColor(foreground);
-            titleBar.InactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110));
-            titleBar.ButtonInactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(255, 110, 110, 110));
         }
-        m_document.BeginEditTransaction();
         AppWindow().Closing([this](Microsoft::UI::Windowing::AppWindow const&, AppWindowClosingEventArgs const& args)
         {
             if (m_closing) return;
@@ -51,7 +43,6 @@ namespace winrt::SurveyController::App::implementation
         });
         Closed([this](IInspectable const&, WindowEventArgs const&)
         {
-            if (!m_committed) m_document.RollbackEditTransaction();
             if (m_closedHandler) m_closedHandler(m_committed);
         });
     }
@@ -105,11 +96,30 @@ namespace winrt::SurveyController::App::implementation
 
     void AnswerEditorWindow::OnSave(IInspectable const&, RoutedEventArgs const&)
     {
-        auto editor = winrt::get_self<implementation::StrategyEditor>(Editor());
-        if (editor->SaveCurrentQuestion()) CloseEditor(true);
+        SaveAndCloseAsync();
     }
-    void AnswerEditorWindow::OnCancel(IInspectable const&, RoutedEventArgs const&) { ConfirmCloseAsync(); }
+    void AnswerEditorWindow::OnCancel(IInspectable const&, RoutedEventArgs const&) { CloseEditor(false); }
     void AnswerEditorWindow::OnOpenAISettings(IInspectable const&, RoutedEventArgs const&) { ShowAISettingsAsync(); }
+    void AnswerEditorWindow::OnPreviousQuestion(IInspectable const&, RoutedEventArgs const&)
+    {
+        winrt::get_self<implementation::StrategyEditor>(Editor())->SelectPreviousQuestion();
+    }
+    void AnswerEditorWindow::OnNextQuestion(IInspectable const&, RoutedEventArgs const&)
+    {
+        winrt::get_self<implementation::StrategyEditor>(Editor())->SelectNextQuestion();
+    }
+
+    fire_and_forget AnswerEditorWindow::SaveAndCloseAsync()
+    {
+        if (m_saving || m_closing) co_return;
+        auto lifetime = get_strong();
+        m_saving = true;
+        SaveButton().IsEnabled(false);
+        auto saved = co_await winrt::get_self<implementation::StrategyEditor>(Editor())->ApplyChangesAsync();
+        m_saving = false;
+        SaveButton().IsEnabled(true);
+        if (saved) CloseEditor(true);
+    }
 
     fire_and_forget AnswerEditorWindow::ShowAISettingsAsync()
     {
@@ -126,7 +136,41 @@ namespace winrt::SurveyController::App::implementation
 
     void AnswerEditorWindow::OnKeyDown(IInspectable const&, Microsoft::UI::Xaml::Input::KeyRoutedEventArgs const& args)
     {
-        if (args.Key() == Windows::System::VirtualKey::Escape)
+        auto editor = winrt::get_self<implementation::StrategyEditor>(Editor());
+        auto const ctrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
+        auto const shift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        if (ctrl && args.Key() == Windows::System::VirtualKey::F)
+        {
+            editor->FocusSearch();
+            args.Handled(true);
+        }
+        else if (ctrl && args.Key() == Windows::System::VirtualKey::S)
+        {
+            SaveAndCloseAsync();
+            args.Handled(true);
+        }
+        else if (ctrl && args.Key() == Windows::System::VirtualKey::PageUp)
+        {
+            editor->SelectPreviousQuestion();
+            args.Handled(true);
+        }
+        else if (ctrl && args.Key() == Windows::System::VirtualKey::PageDown)
+        {
+            editor->SelectNextQuestion();
+            args.Handled(true);
+        }
+        else if (args.Key() == Windows::System::VirtualKey::F3)
+        {
+            if (shift) editor->SelectPreviousMatch();
+            else editor->SelectNextMatch();
+            args.Handled(true);
+        }
+        else if (args.Key() == Windows::System::VirtualKey::F6)
+        {
+            editor->FocusSection(shift);
+            args.Handled(true);
+        }
+        else if (args.Key() == Windows::System::VirtualKey::Escape)
         {
             args.Handled(true);
             ConfirmCloseAsync();
@@ -151,8 +195,7 @@ namespace winrt::SurveyController::App::implementation
             auto result = co_await dialog.ShowAsync();
             if (result == ContentDialogResult::Primary)
             {
-                auto editor = winrt::get_self<implementation::StrategyEditor>(Editor());
-                if (editor->SaveCurrentQuestion()) CloseEditor(true);
+                SaveAndCloseAsync();
             }
             else if (result == ContentDialogResult::Secondary)
             {
@@ -168,8 +211,6 @@ namespace winrt::SurveyController::App::implementation
         if (m_closing) return;
         m_closing = true;
         m_committed = commit;
-        if (commit) m_document.CommitEditTransaction();
-        else m_document.RollbackEditTransaction();
         Close();
     }
 }
