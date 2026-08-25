@@ -20,10 +20,12 @@ namespace winrt::SurveyController::App::implementation
         HWND m_hwnd{};
         bool m_committed{};
         bool m_closing{};
+        bool m_confirmingClose{};
         bool m_aiSettingsOpen{};
         std::function<void(bool)> m_closedHandler;
         void ConfigureWindow(Microsoft::UI::WindowId owner);
         void CloseEditor(bool commit);
+        winrt::fire_and_forget ConfirmCloseAsync();
         winrt::fire_and_forget ShowAISettingsAsync();
     };
 }

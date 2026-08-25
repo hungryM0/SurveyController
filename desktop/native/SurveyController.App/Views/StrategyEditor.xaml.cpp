@@ -68,13 +68,18 @@ namespace winrt::SurveyController::App::implementation
         QuestionMeta().Text(hstring{ L"第 " + std::to_wstring(number) + L" 题 · "
             + std::wstring{ summary.type }
             + (question.GetNamedBoolean(L"required", false) ? L" · 必答" : L"") });
-        QuestionTypeBadge().Text(summary.type);
+        QuestionTypeBadge().Content(box_value(summary.type));
         QuestionTypeIcon().Glyph(summary.icon);
-        RequiredBadgeBorder().Visibility(question.GetNamedBoolean(L"required", false) ? Visibility::Visible : Visibility::Collapsed);
-        auto hasLogic = Services::GetJsonArray(question, L"jump_rules").Size() > 0 ||
-            Services::GetJsonArray(question, L"controls_display_targets").Size() > 0;
-        LogicBadgeBorder().Visibility(hasLogic ? Visibility::Visible : Visibility::Collapsed);
-        UnsupportedBadgeBorder().Visibility(summary.unsupported ? Visibility::Visible : Visibility::Collapsed);
+
+        auto required = question.GetNamedBoolean(L"required", false);
+        RequiredBadge().Visibility(Visibility::Visible);
+        RequiredBadge().Content(box_value(required ? L"必答" : L"非必答"));
+        MediaBadge().Visibility(Services::GetJsonArray(question, L"question_media").Size() > 0 ? Visibility::Visible : Visibility::Collapsed);
+        ConditionalDisplayBadge().Visibility(question.GetNamedBoolean(L"has_display_condition", false) ? Visibility::Visible : Visibility::Collapsed);
+        ControlsDisplayBadge().Visibility(Services::GetJsonArray(question, L"controls_display_targets").Size() > 0 ? Visibility::Visible : Visibility::Collapsed);
+        JumpBadge().Visibility(Services::GetJsonArray(question, L"jump_rules").Size() > 0 ? Visibility::Visible : Visibility::Collapsed);
+        UnsupportedBadge().Visibility(summary.unsupported ? Visibility::Visible : Visibility::Collapsed);
+
         ApplyQuestionTypeBrush(summary.normalizedType);
         m_syncingWeights = true;
         SelectTag(Bias(), strategy.GetNamedString(L"psycho_bias", L"custom"));
@@ -92,11 +97,6 @@ namespace winrt::SurveyController::App::implementation
         UpdateTextModeVisibility();
         QuestionStatus().IsOpen(false);
         m_currentQuestionDirty = false;
-    }
-
-    void StrategyEditor::OnSaveQuestion(IInspectable const&, RoutedEventArgs const&)
-    {
-        SaveCurrentQuestion();
     }
 
     bool StrategyEditor::SaveCurrentQuestion()
@@ -118,7 +118,7 @@ namespace winrt::SurveyController::App::implementation
                 {
                     double total = 0;
                     for (auto const& value : values) total += value.GetNumber();
-                    if (total <= 0) throw hresult_invalid_argument(L"选项配比不能全为 0。");
+                    if (total <= 0) throw hresult_error(E_INVALIDARG, L"选项配比不能全为 0。");
                 };
                 if (options.Size() && !m_sliderValue) validate(options);
                 for (auto const& row : rows)
@@ -135,7 +135,7 @@ namespace winrt::SurveyController::App::implementation
             if (textMode == L"integer")
             {
                 if (std::isnan(TextRangeMin().Value()) || std::isnan(TextRangeMax().Value()))
-                    throw hresult_invalid_argument(L"随机整数模式必须填写最小值和最大值。");
+                    throw hresult_error(E_INVALIDARG, L"随机整数模式必须填写最小值和最大值。");
                 JsonArray range;
                 range.Append(JsonValue::CreateNumberValue((std::min)(TextRangeMin().Value(), TextRangeMax().Value())));
                 range.Append(JsonValue::CreateNumberValue((std::max)(TextRangeMin().Value(), TextRangeMax().Value())));
@@ -217,23 +217,4 @@ namespace winrt::SurveyController::App::implementation
         buttons.SelectedIndex(0);
     }
 
-    hstring StrategyEditor::SelectedTag(ComboBox const& box, hstring const& fallback) const
-    {
-        auto item = box.SelectedItem().try_as<ComboBoxItem>();
-        return item ? unbox_value_or<hstring>(item.Tag(), fallback) : fallback;
-    }
-
-    void StrategyEditor::SelectTag(ComboBox const& box, hstring const& value)
-    {
-        for (uint32_t index = 0; index < box.Items().Size(); ++index)
-        {
-            auto item = box.Items().GetAt(index).try_as<ComboBoxItem>();
-            if (item && unbox_value_or<hstring>(item.Tag(), L"") == value)
-            {
-                box.SelectedIndex(static_cast<int32_t>(index));
-                return;
-            }
-        }
-        box.SelectedIndex(0);
-    }
 }
