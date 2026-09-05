@@ -23,7 +23,7 @@ public sealed partial class AnswerEditorWindow : Window
     public AnswerEditorWindow()
     {
         InitializeComponent();
-        Title = "逐题答案编辑器";
+        Title = "配置向导";
         Document.BeginEditTransaction();
         Closed += (_, _) =>
         {

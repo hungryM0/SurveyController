@@ -313,6 +313,12 @@ public sealed partial class StrategyEditor
             _attachedSelectControls.Add(controls);
         }
         AttachedOptionSection.Visibility = _attachedSelectControls.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        QuestionSpecificSettingsSection.Visibility = textQuestion
+            || summary.NormalizedType is "location" or "multi_text"
+            || _optionFillControls.Count > 0
+            || _attachedSelectControls.Count > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         UpdateTextModeVisibility();
     }
 

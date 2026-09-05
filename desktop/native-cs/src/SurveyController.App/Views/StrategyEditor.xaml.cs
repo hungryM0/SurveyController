@@ -112,11 +112,6 @@ public sealed partial class StrategyEditor : UserControl
         CurrentQuestionDirty = false;
     }
 
-    private void OnSaveQuestion(object sender, RoutedEventArgs e)
-    {
-        SaveCurrentQuestion();
-    }
-
     public bool SaveCurrentQuestion()
     {
         var index = _questionIndex;
@@ -273,22 +268,6 @@ public sealed partial class StrategyEditor : UserControl
             }
         }
         buttons.SelectedIndex = 0;
-    }
-
-    protected static string SelectedTag(ComboBox combo, string fallback) =>
-        combo.SelectedItem is ComboBoxItem item && item.Tag is string tag ? tag : fallback;
-
-    protected static void SelectTag(ComboBox combo, string value)
-    {
-        for (var index = 0; index < combo.Items.Count; index++)
-        {
-            if (combo.Items[index] is ComboBoxItem item && item.Tag as string == value)
-            {
-                combo.SelectedIndex = index;
-                return;
-            }
-        }
-        combo.SelectedIndex = 0;
     }
 
     // —— 共享 JSON 读取辅助 ——
