@@ -54,8 +54,17 @@ public sealed partial class TaskPage : UserControl, IShutdownAware
     public TaskPage()
     {
         InitializeComponent();
+        StepCapsuleIndicator.StepSelected += OnStepCapsuleSelected;
         _initialized = true;
         InitializeState();
+    }
+
+    private void OnStepCapsuleSelected(object? sender, int targetStep)
+    {
+        if (!_busy && targetStep <= _highestStep)
+        {
+            MoveToStep(targetStep);
+        }
     }
 
     private static int Clamp(int value, int min, int max) => Math.Max(min, Math.Min(max, value));
@@ -574,15 +583,15 @@ public sealed partial class TaskPage : UserControl, IShutdownAware
         }
         if (_step < 6)
         {
-            StepProgress.Visibility = Visibility.Visible;
-            StepProgress.Maximum = 5;
-            StepProgress.Value = _step;
+            StepCapsuleIndicator.Visibility = Visibility.Visible;
+            StepCapsuleIndicator.CurrentStep = _step;
+            StepCapsuleIndicator.HighestStep = _highestStep;
             string[] labels = ["导入问卷", "答案策略", "条件规则", "网络与信度", "时间与节奏", "规模与启动"];
             StepSummary.Text = $"第 {_step + 1}/6 步：{labels[_step]}";
         }
         else
         {
-            StepProgress.Visibility = Visibility.Collapsed;
+            StepCapsuleIndicator.Visibility = Visibility.Collapsed;
             StepSummary.Text = "任务运行中";
         }
         var firstStep = _step == 0;

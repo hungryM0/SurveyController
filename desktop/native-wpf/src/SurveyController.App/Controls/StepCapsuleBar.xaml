@@ -1,0 +1,15 @@
+<UserControl
+    x:Class="SurveyController.App.Controls.StepCapsuleBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.modernwpf.com/2019">
+
+    <Border
+        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+        BorderThickness="1"
+        CornerRadius="16"
+        Padding="4,3">
+        <StackPanel x:Name="CapsuleContainer" Orientation="Horizontal" VerticalAlignment="Center" />
+    </Border>
+</UserControl>

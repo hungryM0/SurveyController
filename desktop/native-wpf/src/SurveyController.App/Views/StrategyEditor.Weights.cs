@@ -243,7 +243,9 @@ public sealed partial class StrategyEditor
         }
         if (SliderValue)
         {
-            RatioPreview.Text = "预计值：" + NumberText(WeightOptions[0].Value);
+            var valueText = NumberText(WeightOptions[0].Value);
+            RatioPreview.Text = "预计值：" + valueText;
+            WeightOptions[0].PercentageText = valueText;
             return;
         }
         var values = new List<double>(WeightOptions.Count);
@@ -281,9 +283,32 @@ public sealed partial class StrategyEditor
                 var percent = MultipleWeights
                     ? values[index]
                     : rowTotal > 0 ? values[index] / rowTotal * 100.0 : 100.0 / columns;
-                preview += $"{label} {PercentText(percent)}";
+                var percentStr = PercentText(percent);
+                preview += $"{label} {percentStr}";
+                if (index < WeightOptions.Count)
+                {
+                    WeightOptions[index].PercentageText = percentStr;
+                }
             }
         }
         RatioPreview.Text = preview;
+    }
+
+    private void OnResetEvenWeights(object sender, RoutedEventArgs e)
+    {
+        if (SliderValue || WeightColumns == 0)
+        {
+            return;
+        }
+        SyncingWeights = true;
+        var defaultValue = MultipleWeights ? 50.0 : 1.0;
+        foreach (var option in WeightOptions)
+        {
+            option.Value = defaultValue;
+        }
+        SyncingWeights = false;
+        CurrentQuestionDirty = true;
+        SelectTag(Bias, "custom");
+        UpdateRatioPreview();
     }
 }

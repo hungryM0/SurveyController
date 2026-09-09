@@ -24,11 +24,13 @@
                 </Grid.RowDefinitions>
 
                 <!-- 顶部向导进度与步骤标题 -->
-                <Grid Margin="32,0">
-                    <ui:SimpleStackPanel Margin="0,12,0,10" Spacing="8">
-                        <ProgressBar x:Name="StepProgress" Minimum="0" Maximum="5" Value="0" />
-                        <TextBlock x:Name="StepSummary" Style="{DynamicResource SubtitleTextBlockStyle}" Text="第 1/6 步：导入问卷" />
-                    </ui:SimpleStackPanel>
+                <Grid Margin="32,10,32,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="StepSummary" VerticalAlignment="Center" Style="{DynamicResource SubtitleTextBlockStyle}" Text="第 1/6 步：导入问卷" />
+                    <controls:StepCapsuleBar x:Name="StepCapsuleIndicator" Grid.Column="1" VerticalAlignment="Center" />
                 </Grid>
                 <Rectangle Grid.Row="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" />
 
@@ -70,6 +72,53 @@
                                     </ui:SimpleStackPanel>
                                 </Button>
                             </ui:SimpleStackPanel>
+
+                            <!-- 引导提示卡片 -->
+                            <Border
+                                Margin="0,16,0,0"
+                                Padding="16"
+                                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <ui:SimpleStackPanel Spacing="12">
+                                    <ui:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                                        <ui:SymbolIcon Symbol="Help" Foreground="{DynamicResource SystemControlHighlightAccentBrush}" />
+                                        <TextBlock FontWeight="SemiBold" Text="使用提示与支持平台" />
+                                    </ui:SimpleStackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:SimpleStackPanel Spacing="4">
+                                            <TextBlock FontWeight="SemiBold" Text="1. 智能解析" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                Text="支持问卷星、腾讯问卷、见数 (Credamo) 等主流平台，自动识别所有题型结构。"
+                                                TextWrapping="Wrap" />
+                                        </ui:SimpleStackPanel>
+                                        <ui:SimpleStackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0">
+                                            <TextBlock FontWeight="SemiBold" Text="2. 策略与信度" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                Text="支持选项均分/配额自定义、心理测量信度 α 校验，以及大模型智能简答生成。"
+                                                TextWrapping="Wrap" />
+                                        </ui:SimpleStackPanel>
+                                        <ui:SimpleStackPanel Grid.Column="2" Spacing="4" Margin="12,0,0,0">
+                                            <TextBlock FontWeight="SemiBold" Text="3. 防护与风控" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                Text="内置动态时间节奏拟真、随机浏览器指纹 (UA) 与高质量代理池对接，保障任务平稳。"
+                                                TextWrapping="Wrap" />
+                                        </ui:SimpleStackPanel>
+                                    </Grid>
+                                </ui:SimpleStackPanel>
+                            </Border>
                         </ui:SimpleStackPanel>
                     </ScrollViewer>
 

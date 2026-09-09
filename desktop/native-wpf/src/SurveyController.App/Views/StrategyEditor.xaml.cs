@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ModernWpf.Controls;
 using SurveyController.App.Controls;
 using SurveyController.App.ViewModels;
@@ -35,6 +36,32 @@ public partial class StrategyEditor : UserControl
     public StrategyEditor()
     {
         InitializeComponent();
+    }
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Handled)
+        {
+            return;
+        }
+
+        if (e.Key == Key.PageUp || (Keyboard.Modifiers == ModifierKeys.Alt && e.Key == Key.Up))
+        {
+            if (_questionIndex > 0)
+            {
+                SelectQuestion(_questionIndex - 1);
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.PageDown || (Keyboard.Modifiers == ModifierKeys.Alt && e.Key == Key.Down))
+        {
+            if (_questionIndex >= 0 && _questionIndex + 1 < _questionNodes.Count)
+            {
+                SelectQuestion(_questionIndex + 1);
+                e.Handled = true;
+            }
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

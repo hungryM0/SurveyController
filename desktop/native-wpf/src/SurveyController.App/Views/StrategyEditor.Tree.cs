@@ -425,32 +425,34 @@ public sealed partial class StrategyEditor
             TextTrimming = TextTrimming.CharacterEllipsis,
         });
 
-        void AppendStatus(string label, string brushKey)
+        void AppendStatus(string label, string foregroundKey, string backgroundKey)
         {
             row.Children.Add(new Border
             {
-                Background = resources[brushKey] as Brush,
+                Background = resources[backgroundKey] as Brush,
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(5, 1, 5, 2),
                 Margin = new Thickness(2, 0, 0, 0),
                 Child = new TextBlock
                 {
                     Text = label,
-                    Style = Application.Current.Resources["WizardBadgeTextStyle"] as Style,
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = resources[foregroundKey] as Brush,
                 },
             });
         }
         if (question.Required)
         {
-            AppendStatus("必答", "RequiredBadgeForegroundBrush");
+            AppendStatus("必答", "RequiredBadgeForegroundBrush", "RequiredBadgeBackgroundBrush");
         }
         if (question.HasJump || question.HasDisplayLogic)
         {
-            AppendStatus("逻辑", "LogicBadgeForegroundBrush");
+            AppendStatus("逻辑", "LogicBadgeForegroundBrush", "LogicBadgeBackgroundBrush");
         }
         if (question.Unsupported)
         {
-            AppendStatus("不支持", "UnsupportedBadgeForegroundBrush");
+            AppendStatus("不支持", "UnsupportedBadgeForegroundBrush", "UnsupportedBadgeBackgroundBrush");
         }
         AutomationProperties.SetName(row, $"第 {question.Number} 题，{question.Type}，{question.Title}");
         return row;

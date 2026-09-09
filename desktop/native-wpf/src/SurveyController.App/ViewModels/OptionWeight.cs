@@ -39,6 +39,22 @@ public sealed class OptionWeight : INotifyPropertyChanged
         }
     }
 
+    private string _percentageText = string.Empty;
+
+    public string PercentageText
+    {
+        get => _percentageText;
+        set
+        {
+            if (_percentageText == value)
+            {
+                return;
+            }
+            _percentageText = value;
+            OnPropertyChanged();
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>

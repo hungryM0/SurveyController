@@ -89,8 +89,11 @@
                                 </ui:RadioButtons>
                                 <ui:SimpleStackPanel x:Name="OptionWeightsSection" Spacing="8">
                                     <Grid>
-                                        <TextBlock FontWeight="SemiBold" Text="选项比例" />
-                                        <TextBlock HorizontalAlignment="Right" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="拖动滑块调整" />
+                                        <TextBlock FontWeight="SemiBold" Text="选项比例" VerticalAlignment="Center" />
+                                        <ui:SimpleStackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="ResetEvenWeightsButton" Content="均分" Padding="8,2" FontSize="12" Click="OnResetEvenWeights" ToolTip="平均分配所有选项权重" />
+                                            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="拖动滑块调整" />
+                                        </ui:SimpleStackPanel>
                                     </Grid>
                                     <ItemsControl x:Name="OptionWeightRows">
                                         <ItemsControl.ItemsPanel>
@@ -104,11 +107,17 @@
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="180" />
                                                         <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="56" />
                                                         <ColumnDefinition Width="80" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock VerticalAlignment="Center" Text="{Binding Label}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}" />
-                                                    <Slider Grid.Column="1" VerticalAlignment="Center" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding Value, Mode=TwoWay}" />
-                                                    <ui:NumberBox Grid.Column="2" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" SmallChange="{Binding Step}" SpinButtonPlacementMode="Compact" Value="{Binding Value, Mode=TwoWay}" />
+                                                    <Slider Grid.Column="1" VerticalAlignment="Center" Margin="8,0" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding Value, Mode=TwoWay}" />
+                                                    <Border Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0"
+                                                            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="4" Padding="5,2">
+                                                        <TextBlock Text="{Binding PercentageText}" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource SystemControlHighlightAccentBrush}" />
+                                                    </Border>
+                                                    <ui:NumberBox Grid.Column="3" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" SmallChange="{Binding Step}" SpinButtonPlacementMode="Compact" Value="{Binding Value, Mode=TwoWay}" />
                                                 </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

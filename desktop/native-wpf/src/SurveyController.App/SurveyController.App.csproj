@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\icon.ico" />
+    <Resource Include="Assets\appicon.png" />
+    <Resource Include="Assets\community_qr.png" />
   </ItemGroup>
 
   <ItemGroup>
