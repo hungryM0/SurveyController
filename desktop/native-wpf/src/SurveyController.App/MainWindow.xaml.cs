@@ -44,10 +44,7 @@ public partial class MainWindow : Window
         _hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
         ThemeManager.AddActualThemeChangedHandler(this, OnActualThemeChanged);
 
-        if (MicaHelper.TryEnableMica(this))
-        {
-            RootLayout.Background = System.Windows.Media.Brushes.Transparent;
-        }
+        MicaHelper.TryEnableMica(this);
     }
 
     private void OnActualThemeChanged(object sender, RoutedEventArgs e)

@@ -46,19 +46,10 @@ public static class MicaHelper
 
         try
         {
-            // 1. 设置 WPF 窗口渲染目标透明，让 DWM 背景材质穿透显示
-            var source = HwndSource.FromHwnd(hwnd);
-            if (source?.CompositionTarget != null)
-            {
-                source.CompositionTarget.BackgroundColor = Colors.Transparent;
-            }
-
-            window.Background = Brushes.Transparent;
-
-            // 2. 同步沉浸式暗色模式状态
+            // 同步沉浸式暗色模式状态（使原生边框/标题栏样式与应用主题协调）
             UpdateDarkMode(hwnd, window);
 
-            // 3. 设置 DWM 背景材质类型
+            // 设置 DWM 背景属性
             var build = Environment.OSVersion.Version.Build;
             int hr;
             if (build >= 22621)
