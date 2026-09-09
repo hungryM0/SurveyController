@@ -1,0 +1,51 @@
+<Window
+    x:Class="SurveyController.App.Views.AnswerEditorWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:local="clr-namespace:SurveyController.App.Views"
+    ui:WindowHelper.UseModernWindowStyle="True"
+    Title="配置向导"
+    Background="Transparent"
+    Icon="pack://application:,,,/Assets/icon.ico"
+    Width="1180" Height="840"
+    MinWidth="760" MinHeight="560"
+    WindowStartupLocation="CenterOwner"
+    KeyDown="OnKeyDown">
+
+    <Grid x:Name="RootLayout" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Margin="24,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:SimpleStackPanel Spacing="2">
+                <TextBlock FontSize="24" FontWeight="SemiBold" Text="配置向导" />
+                <TextBlock Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="保存后一次提交全部题目答案；取消会恢复打开窗口前的配置。" />
+            </ui:SimpleStackPanel>
+            <Button Grid.Column="1" Width="40" Height="40" Click="OnOpenAISettings" ToolTip="AI 服务设置">
+                <ui:SymbolIcon Symbol="Setting" />
+            </Button>
+        </Grid>
+
+        <local:StrategyEditor x:Name="Editor" Grid.Row="1" Margin="24,0" />
+
+        <Border Grid.Row="2" Padding="24,12" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="0,1,0,0">
+            <ui:SimpleStackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="12">
+                <Button Content="取消" Click="OnCancel" MinWidth="80" />
+                <Button Style="{DynamicResource AccentButtonStyle}" Click="OnSave" MinWidth="96">
+                    <ui:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                        <ui:SymbolIcon Symbol="Save" />
+                        <TextBlock Text="保存" />
+                    </ui:SimpleStackPanel>
+                </Button>
+            </ui:SimpleStackPanel>
+        </Border>
+    </Grid>
+</Window>

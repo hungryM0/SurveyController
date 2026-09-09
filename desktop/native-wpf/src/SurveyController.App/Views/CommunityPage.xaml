@@ -1,0 +1,80 @@
+<Page
+    x:Class="SurveyController.App.Views.CommunityPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.modernwpf.com/2019">
+
+    <Page.Resources>
+        <Style x:Key="CommunityCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer HorizontalContentAlignment="Left" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <ui:SimpleStackPanel Margin="24,24,24,32" HorizontalAlignment="Left" Spacing="16" MaxWidth="800">
+            <TextBlock FontSize="28" FontWeight="SemiBold" Text="社区" />
+            <TextBlock Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="获取帮助、反馈问题并参与项目建设" />
+
+            <Border Style="{StaticResource CommunityCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Margin="0,0,16,0" VerticalAlignment="Top" Symbol="Message" />
+                    <ui:SimpleStackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="QQ 群交流" />
+                        <TextBlock Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="扫码加入 QQ 交流群，获取最新版本、反馈问题、交流使用经验和订阅服务状态。" TextWrapping="Wrap" />
+                        <Button
+                            HorizontalAlignment="Left" Content="打开二维码" Click="OnOpenQr" />
+                    </ui:SimpleStackPanel>
+                    <Image
+                        x:Name="CommunityQrImage"
+                        Grid.Column="2" Width="144" Height="144" Margin="16,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Source="/Assets/community_qr.png" Stretch="Uniform" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource CommunityCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Margin="0,0,16,0" VerticalAlignment="Top" Symbol="Edit" />
+                    <ui:SimpleStackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="参与贡献" />
+                        <TextBlock Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="开发、设计、测试、反馈和想法都能帮助项目继续完善。" TextWrapping="Wrap" />
+                        <Button
+                            HorizontalAlignment="Left" Content="仓库主页" Click="OnOpenRepository" />
+                    </ui:SimpleStackPanel>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource CommunityCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Margin="0,0,16,0" VerticalAlignment="Top" Symbol="Document" />
+                    <ui:SimpleStackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="开源许可" />
+                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="GPL-3.0" />
+                        <TextBlock Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="分发程序或修改版本时，必须按 GPL-3.0 提供相应源代码。" TextWrapping="Wrap" />
+                        <Button
+                            HorizontalAlignment="Left" Content="查看协议" Click="OnOpenLicense" />
+                    </ui:SimpleStackPanel>
+                </Grid>
+            </Border>
+
+            <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="欢迎加入社区，一起让这个项目变得更好" />
+        </ui:SimpleStackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>SurveyController.App</RootNamespace>
+    <AssemblyName>SurveyController</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
+    <Version>5.0.0</Version>
+    <DefaultLanguage>zh-CN</DefaultLanguage>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+    <Resource Include="Assets\appicon.png" />
+    <Resource Include="Assets\community_qr.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="ModernWpfUI" Version="0.9.6" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SurveyController.Core\SurveyController.Core.csproj" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Assets: Copy to output directory -->
+    <Content Include="..\..\..\..\assets\icon.png" Link="Assets\appicon.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\icon.ico" Link="Assets\SurveyController.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\community_qr.png" Link="Assets\community_qr.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\WeDonate.png" Link="Assets\WeDonate.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\assets\AliDonate.jpg" Link="Assets\AliDonate.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
