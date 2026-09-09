@@ -29,6 +29,23 @@ public partial class AnswerEditorWindow : Window
         };
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        ModernWpf.ThemeManager.AddActualThemeChangedHandler(this, (_, _) =>
+        {
+            if (hwnd != IntPtr.Zero)
+            {
+                MicaHelper.UpdateDarkMode(hwnd, this);
+            }
+        });
+        if (MicaHelper.TryEnableMica(this))
+        {
+            RootLayout.Background = System.Windows.Media.Brushes.Transparent;
+        }
+    }
+
     private WizardDocument Document { get; } = WizardDocument.Current;
 
     private void OnSave(object sender, RoutedEventArgs e)

@@ -6,12 +6,14 @@
     xmlns:local="clr-namespace:SurveyController.App.Views"
     ui:WindowHelper.UseModernWindowStyle="True"
     Title="配置向导"
+    Background="Transparent"
+    Icon="pack://application:,,,/Assets/icon.ico"
     Width="1180" Height="840"
     MinWidth="760" MinHeight="560"
     WindowStartupLocation="CenterOwner"
     KeyDown="OnKeyDown">
 
-    <Grid Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+    <Grid x:Name="RootLayout" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

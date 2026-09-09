@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private bool _initializing;
     private bool _closing;
     private int _currentPageIndex = -1;
+    private IntPtr _hwnd;
 
     public MainWindow()
     {
@@ -35,6 +36,26 @@ public partial class MainWindow : Window
         Closing += OnWindowClosing;
         Closed += OnWindowClosed;
         ShellNavigation.SelectionChanged += OnNavigationSelectionChanged;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        ThemeManager.AddActualThemeChangedHandler(this, OnActualThemeChanged);
+
+        if (MicaHelper.TryEnableMica(this))
+        {
+            RootLayout.Background = System.Windows.Media.Brushes.Transparent;
+        }
+    }
+
+    private void OnActualThemeChanged(object sender, RoutedEventArgs e)
+    {
+        if (_hwnd != IntPtr.Zero)
+        {
+            MicaHelper.UpdateDarkMode(_hwnd, this);
+        }
     }
 
     private async void OnWindowLoaded(object sender, RoutedEventArgs args)
