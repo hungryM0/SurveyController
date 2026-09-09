@@ -1,0 +1,81 @@
+<Window
+    x:Class="SurveyController.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:controls="clr-namespace:SurveyController.App.Controls"
+    ui:WindowHelper.UseModernWindowStyle="True"
+    Title="SurveyController"
+    Width="1180" Height="720"
+    MinWidth="720" MinHeight="560"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid x:Name="RootLayout" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:NavigationView
+            x:Name="ShellNavigation"
+            AutomationProperties.AutomationId="ShellNavigation"
+            Background="Transparent"
+            CompactModeThresholdWidth="641"
+            CompactPaneLength="56"
+            ExpandedModeThresholdWidth="1008"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleButtonVisible="True"
+            IsSettingsVisible="False"
+            OpenPaneLength="192"
+            PaneDisplayMode="Auto">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem
+                    x:Name="TaskNavigationItem"
+                    AutomationProperties.AutomationId="NavTaskItem"
+                    Content="任务"
+                    IsSelected="True"
+                    Tag="task">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Home" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem
+                    AutomationProperties.AutomationId="NavSettingsItem"
+                    Content="设置"
+                    Tag="settings">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Setting" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem
+                    AutomationProperties.AutomationId="NavCommunityItem"
+                    Content="社区"
+                    Tag="community">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Message" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem
+                    AutomationProperties.AutomationId="NavMoreItem"
+                    Content="更多"
+                    Tag="more">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="More" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.FooterMenuItems>
+            <ui:Frame x:Name="ContentFrame" Background="Transparent" />
+        </ui:NavigationView>
+
+        <controls:InfoBar
+            x:Name="StartupStatus"
+            Margin="16"
+            MaxWidth="720"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            AutomationProperties.AutomationId="ShellStartupStatus"
+            IsClosable="True"
+            IsOpen="False" />
+    </Grid>
+</Window>

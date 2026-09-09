@@ -1,0 +1,74 @@
+<UserControl
+    x:Class="SurveyController.App.Views.RuleEditor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:controls="clr-namespace:SurveyController.App.Controls"
+    Loaded="OnLoaded">
+
+    <Grid MinHeight="460">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="RuleListColumn" Width="300" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition x:Name="RuleDetailColumn" Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="10" Padding="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <ui:CommandBar DefaultLabelPosition="Right" IsOpen="False">
+                    <ui:AppBarButton x:Name="NewRuleButton" Label="新增" Click="OnNewRule"><ui:SymbolIcon Symbol="Add" /></ui:AppBarButton>
+                    <ui:AppBarButton x:Name="DeleteRuleButton" Label="删除" Click="OnDeleteRule"><ui:SymbolIcon Symbol="Delete" /></ui:AppBarButton>
+                    <ui:AppBarSeparator />
+                    <ui:AppBarButton x:Name="MoveRuleUpButton" Label="上移" Click="OnMoveRuleUp"><ui:FontIcon Glyph="&#xE74A;" /></ui:AppBarButton>
+                    <ui:AppBarButton x:Name="MoveRuleDownButton" Label="下移" Click="OnMoveRuleDown"><ui:FontIcon Glyph="&#xE74B;" /></ui:AppBarButton>
+                </ui:CommandBar>
+                <ListView x:Name="RuleList" Grid.Row="1" Margin="0,8,0,0" SelectionChanged="OnRuleSelected" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer x:Name="RuleDetailScroll" Grid.Column="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ui:SimpleStackPanel Margin="4,0,8,20" Spacing="16">
+                <ui:SimpleStackPanel Spacing="4">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="当…则…" />
+                    <TextBlock Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" Text="规则从上到下判断；多条规则命中时，靠后的规则优先。" TextWrapping="Wrap" />
+                </ui:SimpleStackPanel>
+
+                <ui:AutoSuggestBox x:Name="ConditionQuestion" Header="当：条件题" QueryIcon="Find" TextChanged="OnConditionQuestionTextChanged" SuggestionChosen="OnConditionQuestionChosen" QuerySubmitted="OnConditionQuestionSubmitted" />
+                <ui:RadioButtons x:Name="ConditionMode" Header="状态" SelectedIndex="0">
+                    <RadioButton Content="已选中" Tag="selected" />
+                    <RadioButton Content="未选中" Tag="not_selected" />
+                </ui:RadioButtons>
+                <ui:SimpleStackPanel Spacing="4">
+                    <TextBlock Text="条件选项" FontWeight="SemiBold" />
+                    <ListView x:Name="ConditionOptions" MaxHeight="180" SelectionMode="Multiple" />
+                </ui:SimpleStackPanel>
+                <ComboBox x:Name="ConditionRow" Visibility="Collapsed" />
+
+                <Rectangle Height="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+                <ui:AutoSuggestBox x:Name="TargetQuestion" Header="则：目标题" QueryIcon="Find" TextChanged="OnTargetQuestionTextChanged" SuggestionChosen="OnTargetQuestionChosen" QuerySubmitted="OnTargetQuestionSubmitted" />
+                <ui:RadioButtons x:Name="ActionMode" Header="动作" SelectedIndex="0">
+                    <RadioButton Content="必须选择" Tag="must_select" />
+                    <RadioButton Content="不得选择" Tag="must_not_select" />
+                </ui:RadioButtons>
+                <ui:SimpleStackPanel Spacing="4">
+                    <TextBlock Text="目标选项" FontWeight="SemiBold" />
+                    <ListView x:Name="TargetOptions" MaxHeight="180" SelectionMode="Multiple" />
+                </ui:SimpleStackPanel>
+                <ComboBox x:Name="TargetRow" Visibility="Collapsed" />
+
+                <Button HorizontalAlignment="Right" Style="{DynamicResource AccentButtonStyle}" Click="OnSaveRule">
+                    <ui:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                        <ui:SymbolIcon Symbol="Save" />
+                        <TextBlock Text="保存规则" />
+                    </ui:SimpleStackPanel>
+                </Button>
+                <controls:InfoBar x:Name="RuleStatus" IsOpen="False" IsClosable="False" />
+            </ui:SimpleStackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
